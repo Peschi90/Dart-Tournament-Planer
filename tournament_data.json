@@ -1,0 +1,71 @@
+{
+  "TournamentClasses": [
+    {
+      "Id": 1,
+      "Name": "Platin",
+      "Groups": [
+        {
+          "Id": 1,
+          "Name": "Gruppe 1",
+          "Players": [
+            {
+              "Id": 1,
+              "Name": "karl"
+            },
+            {
+              "Id": 2,
+              "Name": "joinas"
+            },
+            {
+              "Id": 3,
+              "Name": "peter"
+            },
+            {
+              "Id": 4,
+              "Name": "frank"
+            }
+          ]
+        },
+        {
+          "Id": 2,
+          "Name": "Gruppe 2",
+          "Players": [
+            {
+              "Id": 5,
+              "Name": "Sina"
+            },
+            {
+              "Id": 6,
+              "Name": "Milas"
+            },
+            {
+              "Id": 7,
+              "Name": "Marcel"
+            },
+            {
+              "Id": 8,
+              "Name": "Bailey"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Id": 2,
+      "Name": "Gold",
+      "Groups": []
+    },
+    {
+      "Id": 3,
+      "Name": "Silber",
+      "Groups": []
+    },
+    {
+      "Id": 4,
+      "Name": "Bronze",
+      "Groups": []
+    }
+  ],
+  "LastModified": "2025-07-23T09:56:38.3563405+02:00",
+  "Version": "1.0"
+}

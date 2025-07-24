@@ -1,0 +1,160 @@
+﻿<Window x:Class="DartTournamentPlaner.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DartTournamentPlaner"
+        xmlns:controls="clr-namespace:DartTournamentPlaner.Controls"
+        mc:Ignorable="d"
+        Title="Dart Tournament Planner" Height="900" Width="1600"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        MinHeight="800" MinWidth="1400"
+        Background="#F5F5F5">
+    
+    <Window.Resources>
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1565C0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern Tab Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#DDDDDD" 
+                                BorderThickness="1,1,1,0" 
+                                CornerRadius="8,8,0,0"
+                                Margin="2,0">
+                            <ContentPresenter x:Name="ContentSite"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Center"
+                                              ContentSource="Header"
+                                              Margin="15,10"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="White"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="False">
+                                <Setter TargetName="Border" Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#E3F2FD"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1">
+            <MenuItem Name="FileMenuItem" Header="File">
+                <MenuItem Name="NewMenuItem" Header="New" Click="New_Click"/>
+                <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click"/>
+                <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click"/>
+                <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click"/>
+                <Separator/>
+                <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
+            <MenuItem Name="HelpMenuItem" Header="Help">
+                <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Margin="15" Background="White" BorderBrush="#DDDDDD" BorderThickness="1">
+            <TabItem Name="PlatinTabItem" Background="#E8EAF6">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="12" Height="12" Fill="#9C27B0" Margin="0,0,8,0"/>
+                        <TextBlock Text="Platinum" FontWeight="Medium"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <controls:TournamentTab x:Name="PlatinTab"/>
+            </TabItem>
+            
+            <TabItem Name="GoldTabItem" Background="#FFF8E1">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="12" Height="12" Fill="#FF9800" Margin="0,0,8,0"/>
+                        <TextBlock Text="Gold" FontWeight="Medium"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <controls:TournamentTab x:Name="GoldTab"/>
+            </TabItem>
+            
+            <TabItem Name="SilverTabItem" Background="#F3E5F5">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="12" Height="12" Fill="#795548" Margin="0,0,8,0"/>
+                        <TextBlock Text="Silver" FontWeight="Medium"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <controls:TournamentTab x:Name="SilberTab"/>
+            </TabItem>
+            
+            <TabItem Name="BronzeTabItem" Background="#EFEBE9">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="12" Height="12" Fill="#8D6E63" Margin="0,0,8,0"/>
+                        <TextBlock Text="Bronze" FontWeight="Medium"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <controls:TournamentTab x:Name="BronzeTab"/>
+            </TabItem>
+        </TabControl>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0">
+            <StatusBarItem>
+                <TextBlock Name="StatusTextBlock" Text="Ready" Margin="10,0"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Name="LanguageStatusBlock" Text="DE" Margin="0,0,10,0" FontWeight="Medium"/>
+                    <TextBlock Name="LastSavedBlock" Text="Not saved" Margin="0,0,10,0" Foreground="Gray"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

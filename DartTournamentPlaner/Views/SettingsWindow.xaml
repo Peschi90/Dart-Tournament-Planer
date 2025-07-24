@@ -1,0 +1,105 @@
+<Window x:Class="DartTournamentPlaner.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings" Height="400" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="150"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- Language Settings -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Language:" VerticalAlignment="Center" FontWeight="Medium"/>
+        <ComboBox Grid.Row="0" Grid.Column="1" Name="LanguageComboBox" SelectedValuePath="Tag">
+            <ComboBoxItem Content="Deutsch" Tag="de"/>
+            <ComboBoxItem Content="English" Tag="en"/>
+        </ComboBox>
+        
+        <!-- Theme Settings -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Theme:" VerticalAlignment="Center" FontWeight="Medium"/>
+        <ComboBox Grid.Row="1" Grid.Column="1" Name="ThemeComboBox">
+            <ComboBoxItem Content="Modern" IsSelected="True"/>
+            <ComboBoxItem Content="Classic"/>
+        </ComboBox>
+        
+        <!-- Auto Save Settings -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Auto Save:" VerticalAlignment="Center" FontWeight="Medium"/>
+        <CheckBox Grid.Row="2" Grid.Column="1" Name="AutoSaveCheckBox" Content="Enable automatic saving"/>
+        
+        <!-- Auto Save Interval -->
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Save Interval:" VerticalAlignment="Center" FontWeight="Medium"/>
+        <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+            <TextBox Name="AutoSaveIntervalTextBox" Width="60" Text="5"/>
+            <TextBlock Text="minutes" VerticalAlignment="Center" Margin="5,0,0,0"/>
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,20,0,0">
+            <Button Name="SaveButton" Content="Save" Width="80" Click="SaveButton_Click"/>
+            <Button Name="CancelButton" Content="Cancel" Width="80" Click="CancelButton_Click" Background="#757575"/>
+        </StackPanel>
+    </Grid>
+</Window>

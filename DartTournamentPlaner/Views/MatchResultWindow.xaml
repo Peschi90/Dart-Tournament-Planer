@@ -1,0 +1,320 @@
+<Window x:Class="DartTournamentPlaner.Views.MatchResultWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Enter Match Result" Height="650" Width="750"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        MinHeight="600" MinWidth="700">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1565C0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Foreground" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- Arrow Icon Paths -->
+        <PathGeometry x:Key="ArrowUpPath">
+            <PathFigure StartPoint="6,10">
+                <LineSegment Point="12,4"/>
+                <LineSegment Point="18,10"/>
+                <LineSegment Point="16,12"/>
+                <LineSegment Point="12,8"/>
+                <LineSegment Point="8,12"/>
+                <LineSegment Point="6,10"/>
+            </PathFigure>
+        </PathGeometry>
+        
+        <PathGeometry x:Key="ArrowDownPath">
+            <PathFigure StartPoint="6,6">
+                <LineSegment Point="8,4"/>
+                <LineSegment Point="12,8"/>
+                <LineSegment Point="16,4"/>
+                <LineSegment Point="18,6"/>
+                <LineSegment Point="12,12"/>
+                <LineSegment Point="6,6"/>
+            </PathFigure>
+        </PathGeometry>
+        
+        <!-- NumericUpDown Style -->
+        <Style x:Key="NumericUpDownStyle" TargetType="DockPanel">
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+        
+        <Style x:Key="NumericTextBox" TargetType="TextBox">
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+        </Style>
+        
+        <Style x:Key="UpDownButton" TargetType="Button">
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                                <Setter Property="BorderBrush" Value="#2196F3"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#BBDEFB"/>
+                                <Setter Property="BorderBrush" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        
+        <Style TargetType="TextBlock">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </Window.Resources>
+    
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="10"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Match Info -->
+            <TextBlock Grid.Row="0" Name="MatchInfoBlock" FontSize="18" FontWeight="Bold" 
+                       HorizontalAlignment="Center" TextWrapping="Wrap"/>
+            
+            <!-- Game Rules Info -->
+            <TextBlock Grid.Row="2" Name="GameRulesBlock" FontSize="12" Foreground="Gray"
+                       HorizontalAlignment="Center" TextWrapping="Wrap"/>
+            
+            <!-- Sets Section (only visible if playing with sets) -->
+            <Border Grid.Row="4" Name="SetsSection" Visibility="Collapsed" 
+                    BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="15"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Name="Player1NameSets" FontWeight="Bold" 
+                               HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                               HorizontalAlignment="Center" FontSize="16"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Name="Player2NameSets" FontWeight="Bold" 
+                               HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    
+                    <!-- Player 1 Sets NumericUpDown -->
+                    <DockPanel Grid.Row="2" Grid.Column="0" Style="{StaticResource NumericUpDownStyle}">
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <Button Name="Player1SetsUpButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player1SetsUpButton_Click" ToolTip="Erhöhen">
+                                <Path Data="{StaticResource ArrowUpPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                            <Button Name="Player1SetsDownButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player1SetsDownButton_Click" ToolTip="Verringern" Margin="0,2,0,0">
+                                <Path Data="{StaticResource ArrowDownPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBox Name="Player1SetsTextBox" Style="{StaticResource NumericTextBox}"
+                                 TextChanged="Player1SetsTextBox_TextChanged"/>
+                    </DockPanel>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text=":" HorizontalAlignment="Center" 
+                               FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                    
+                    <!-- Player 2 Sets NumericUpDown -->
+                    <DockPanel Grid.Row="2" Grid.Column="2" Style="{StaticResource NumericUpDownStyle}">
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <Button Name="Player2SetsUpButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player2SetsUpButton_Click" ToolTip="Erhöhen">
+                                <Path Data="{StaticResource ArrowUpPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                            <Button Name="Player2SetsDownButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player2SetsDownButton_Click" ToolTip="Verringern" Margin="0,2,0,0">
+                                <Path Data="{StaticResource ArrowDownPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBox Name="Player2SetsTextBox" Style="{StaticResource NumericTextBox}"
+                                 TextChanged="Player2SetsTextBox_TextChanged"/>
+                    </DockPanel>
+                </Grid>
+            </Border>
+            
+            <!-- Legs Section -->
+            <Border Grid.Row="6" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="15"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" Grid.Column="0" Name="Player1NameLegs" FontWeight="Bold" 
+                               HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Name="LegsHeaderText" Text="Legs" FontWeight="Bold" 
+                               HorizontalAlignment="Center" FontSize="16"/>
+                    <TextBlock Grid.Row="0" Grid.Column="2" Name="Player2NameLegs" FontWeight="Bold" 
+                               HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    
+                    <!-- Player 1 Legs NumericUpDown -->
+                    <DockPanel Grid.Row="2" Grid.Column="0" Style="{StaticResource NumericUpDownStyle}">
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <Button Name="Player1LegsUpButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player1LegsUpButton_Click" ToolTip="Erhöhen">
+                                <Path Data="{StaticResource ArrowUpPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                            <Button Name="Player1LegsDownButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player1LegsDownButton_Click" ToolTip="Verringern" Margin="0,2,0,0">
+                                <Path Data="{StaticResource ArrowDownPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBox Name="Player1LegsTextBox" Style="{StaticResource NumericTextBox}"
+                                 TextChanged="Player1LegsTextBox_TextChanged"/>
+                    </DockPanel>
+                    
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text=":" HorizontalAlignment="Center" 
+                               FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                    
+                    <!-- Player 2 Legs NumericUpDown -->
+                    <DockPanel Grid.Row="2" Grid.Column="2" Style="{StaticResource NumericUpDownStyle}">
+                        <StackPanel DockPanel.Dock="Right" Margin="8,0,0,0">
+                            <Button Name="Player2LegsUpButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player2LegsUpButton_Click" ToolTip="Erhöhen">
+                                <Path Data="{StaticResource ArrowUpPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                            <Button Name="Player2LegsDownButton" Style="{StaticResource UpDownButton}" 
+                                    Click="Player2LegsDownButton_Click" ToolTip="Verringern" Margin="0,2,0,0">
+                                <Path Data="{StaticResource ArrowDownPath}" Fill="#666666" 
+                                      Stretch="Uniform" Width="12" Height="12"/>
+                            </Button>
+                        </StackPanel>
+                        <TextBox Name="Player2LegsTextBox" Style="{StaticResource NumericTextBox}"
+                                 TextChanged="Player2LegsTextBox_TextChanged"/>
+                    </DockPanel>
+                </Grid>
+            </Border>
+            
+            <!-- Validation Messages -->
+            <Border Grid.Row="8" Name="ValidationBorder" Background="#FFEBEE" BorderBrush="#F44336" 
+                    BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
+                <TextBlock Name="ValidationMessageBlock" Foreground="#D32F2F" FontWeight="Medium" 
+                           TextWrapping="Wrap"/>
+            </Border>
+            
+            <!-- Winner Info -->
+            <Border Grid.Row="10" Name="WinnerBorder" Background="#E8F5E8" BorderBrush="#4CAF50" 
+                    BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
+                <TextBlock Name="WinnerInfoBlock" FontWeight="Bold" 
+                           HorizontalAlignment="Center" Foreground="#2E7D32" FontSize="14"/>
+            </Border>
+            
+            <!-- Notes Section -->
+            <StackPanel Grid.Row="12">
+                <TextBlock Name="NotesLabel" Text="Notizen:" FontWeight="Medium"/>
+                <TextBox Name="NotesTextBox" Height="60" TextWrapping="Wrap" AcceptsReturn="True"/>
+            </StackPanel>
+            
+            <!-- Buttons -->
+            <StackPanel Grid.Row="16" Orientation="Horizontal" 
+                        HorizontalAlignment="Right" 
+                        Margin="0,20,0,0">
+                <Button Name="SaveButton" Content="Save Result" Click="SaveButton_Click" IsEnabled="False"/>
+                <Button Name="CancelButton" Content="Cancel" Click="CancelButton_Click" 
+                        Background="#757575" Margin="10,5,5,5"/>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Window>
