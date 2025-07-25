@@ -20,37 +20,88 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         _localizationService = localizationService;
         
         InitializeComponent();
-        DataContext = this;
+        InitializeUI();
+        UpdateTranslations();
+    }
+
+    /// <summary>
+    /// Constructor for KnockoutMatch with round-specific rules
+    /// </summary>
+    /// <param name="knockoutMatch">The knockout match</param>
+    /// <param name="roundRules">Round-specific rules for this match</param>
+    /// <param name="baseGameRules">Base game rules</param>
+    /// <param name="localizationService">Localization service</param>
+    public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService)
+    {
+        // Convert KnockoutMatch to Match
+        _match = new Match
+        {
+            Id = knockoutMatch.Id,
+            Player1 = knockoutMatch.Player1,
+            Player2 = knockoutMatch.Player2,
+            Player1Sets = knockoutMatch.Player1Sets,
+            Player2Sets = knockoutMatch.Player2Sets,
+            Player1Legs = knockoutMatch.Player1Legs,
+            Player2Legs = knockoutMatch.Player2Legs,
+            Winner = knockoutMatch.Winner,
+            Status = knockoutMatch.Status,
+            Notes = knockoutMatch.Notes
+        };
+
+        // Create temporary GameRules with round-specific settings
+        // WICHTIG: PlayWithSets wird NUR durch rundenspezifische SetsToWin bestimmt
+        _gameRules = new GameRules
+        {
+            GameMode = baseGameRules.GameMode,
+            FinishMode = baseGameRules.FinishMode,
+            PlayWithSets = roundRules.SetsToWin > 0, // Sets nur wenn rundenspezifisch > 0
+            SetsToWin = roundRules.SetsToWin,
+            LegsToWin = roundRules.LegsToWin,
+            LegsPerSet = roundRules.LegsPerSet
+        };
+
+        _localizationService = localizationService;
         
+        InitializeComponent();
         InitializeUI();
         UpdateTranslations();
     }
 
     private void InitializeUI()
     {
-        // Set match info
-        MatchInfoBlock.Text = _match.DisplayName;
-        GameRulesBlock.Text = _gameRules.ToString();
+        // Set initial values
+        MatchInfoBlock.Text = $"{_match.Player1?.Name ?? "Player 1"} vs {_match.Player2?.Name ?? "Player 2"}";
         
-        // Configure sets visibility
-        if (_gameRules.PlayWithSets)
-        {
-            SetsSection.Visibility = Visibility.Visible;
-            Player1NameSets.Text = _match.Player1?.Name ?? "Player 1";
-            Player2NameSets.Text = _match.Player2?.Name ?? "Player 2";
-            Player1SetsTextBox.Text = _match.Player1Sets.ToString();
-            Player2SetsTextBox.Text = _match.Player2Sets.ToString();
-        }
-        else
-        {
-            SetsSection.Visibility = Visibility.Collapsed;
-        }
+        // Display game rules info
+        var setsToWin = _gameRules.SetsToWin;
+        var legsToWin = _gameRules.LegsToWin;
+        var legsPerSet = _gameRules.LegsPerSet;
         
-        // Set player names for legs
+        // VEREINFACHT: Sets werden nur angezeigt wenn PlayWithSets = true
+        // (Das wird bereits korrekt in den Constructors gesetzt)
+        bool requiresSets = _gameRules.PlayWithSets;
+        
+        var rulesText = requiresSets 
+            ? $"{_gameRules.GameMode} {_gameRules.FinishMode}, First to {setsToWin} Sets ({legsPerSet} Legs per Set)"
+            : $"{_gameRules.GameMode} {_gameRules.FinishMode}, First to {legsToWin} Legs";
+        
+        GameRulesBlock.Text = rulesText;
+        
+        // Show/hide sets section based on whether sets are required
+        SetsSection.Visibility = requiresSets ? Visibility.Visible : Visibility.Collapsed;
+        
+        System.Diagnostics.Debug.WriteLine($"MatchResultWindow.InitializeUI: PlayWithSets={_gameRules.PlayWithSets}, SetsToWin={setsToWin}, requiresSets={requiresSets}");
+        System.Diagnostics.Debug.WriteLine($"MatchResultWindow.InitializeUI: SetsSection.Visibility={SetsSection.Visibility}");
+        
+        // Update player names
+        Player1NameSets.Text = _match.Player1?.Name ?? "Player 1";
+        Player2NameSets.Text = _match.Player2?.Name ?? "Player 2";
         Player1NameLegs.Text = _match.Player1?.Name ?? "Player 1";
         Player2NameLegs.Text = _match.Player2?.Name ?? "Player 2";
         
-        // Set current values
+        // Set initial values
+        Player1SetsTextBox.Text = _match.Player1Sets.ToString();
+        Player2SetsTextBox.Text = _match.Player2Sets.ToString();
         Player1LegsTextBox.Text = _match.Player1Legs.ToString();
         Player2LegsTextBox.Text = _match.Player2Legs.ToString();
         NotesTextBox.Text = _match.Notes;
@@ -212,24 +263,21 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
 
     private ValidationResult ValidateMatchResultStrict(int p1Sets, int p2Sets, int p1Legs, int p2Legs)
     {
-        // Schritt 1: Grundlegende Validierung
+        // Basis-Validierung: Negative Werte
         if (p1Sets < 0 || p2Sets < 0 || p1Legs < 0 || p2Legs < 0)
         {
             return new ValidationResult(false, _localizationService.GetString("NegativeValues"));
         }
 
-        // Schritt 2: Keine Eingabe/Nullwerte
-        if (p1Sets == 0 && p2Sets == 0 && p1Legs == 0 && p2Legs == 0)
-        {
-            return new ValidationResult(false, _localizationService.GetString("MatchIncomplete"));
-        }
-
+        // VEREINFACHT: Sets werden nur validiert wenn PlayWithSets = true
         if (_gameRules.PlayWithSets)
         {
+            System.Diagnostics.Debug.WriteLine($"MatchResultWindow.ValidateMatchResultStrict: Validating in SETS mode (SetsToWin={_gameRules.SetsToWin})");
             return ValidateSetsModeStrict(p1Sets, p2Sets, p1Legs, p2Legs);
         }
         else
         {
+            System.Diagnostics.Debug.WriteLine($"MatchResultWindow.ValidateMatchResultStrict: Validating in LEGS mode (LegsToWin={_gameRules.LegsToWin})");
             return ValidateLegsModeStrict(p1Legs, p2Legs);
         }
     }
@@ -397,10 +445,12 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             if (_gameRules.PlayWithSets)
             {
                 winnerText += $" ({p1Sets}:{p2Sets} Sets, {p1Legs}:{p2Legs} Legs)";
+                System.Diagnostics.Debug.WriteLine($"MatchResultWindow.ShowWinner: Sets mode - {winnerText}");
             }
             else
             {
                 winnerText += $" ({p1Legs}:{p2Legs} Legs)";
+                System.Diagnostics.Debug.WriteLine($"MatchResultWindow.ShowWinner: Legs mode - {winnerText}");
             }
             
             WinnerInfoBlock.Text = winnerText;
@@ -417,10 +467,14 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     {
         try
         {
+            // VEREINFACHT: Sets werden nur berücksichtigt wenn PlayWithSets = true
             var p1Sets = _gameRules.PlayWithSets ? GetIntValue(Player1SetsTextBox.Text) : 0;
             var p2Sets = _gameRules.PlayWithSets ? GetIntValue(Player2SetsTextBox.Text) : 0;
             var p1Legs = GetIntValue(Player1LegsTextBox.Text);
             var p2Legs = GetIntValue(Player2LegsTextBox.Text);
+
+            System.Diagnostics.Debug.WriteLine($"MatchResultWindow.SaveButton_Click: PlayWithSets={_gameRules.PlayWithSets}");
+            System.Diagnostics.Debug.WriteLine($"MatchResultWindow.SaveButton_Click: Saving p1Sets={p1Sets}, p2Sets={p2Sets}, p1Legs={p1Legs}, p2Legs={p2Legs}");
 
             // Finale strenge Validierung vor dem Speichern
             var validationResult = ValidateMatchResultStrict(p1Sets, p2Sets, p1Legs, p2Legs);
@@ -469,6 +523,11 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         DialogResult = false;
         Close();
     }
+
+    /// <summary>
+    /// Gets the internal match object for result copying
+    /// </summary>
+    internal Match InternalMatch => _match;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

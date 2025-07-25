@@ -64,6 +64,9 @@ public partial class MainWindow : Window
         {
             group.Players.CollectionChanged += (s, e) => MarkAsChanged();
         }
+        
+        // Subscribe to GameRules changes for automatic saving
+        tournamentClass.GameRules.PropertyChanged += (s, e) => MarkAsChanged();
     }
 
     private void InitializeServices()
@@ -100,14 +103,30 @@ public partial class MainWindow : Window
     {
         if (_hasUnsavedChanges)
         {
+            System.Diagnostics.Debug.WriteLine("AutoSave_Tick: Auto-saving due to changes...");
             await SaveDataInternal();
+            
+            // Reset timer to normal interval
+            UpdateAutoSaveTimer();
         }
     }
 
     private void MarkAsChanged()
     {
+        System.Diagnostics.Debug.WriteLine("MarkAsChanged: Data has been marked as changed");
         _hasUnsavedChanges = true;
         UpdateStatusBar();
+        
+        // Triggere sofortiges Auto-Save wenn aktiviert (mit kleiner Verzögerung)
+        if (_configService.Config.AutoSave)
+        {
+            System.Diagnostics.Debug.WriteLine("MarkAsChanged: Auto-save enabled, scheduling immediate save...");
+            
+            // Auto-Save nach 2 Sekunden Verzögerung um mehrfache Aufrufe zu vermeiden
+            _autoSaveTimer.Stop();
+            _autoSaveTimer.Interval = TimeSpan.FromSeconds(2);
+            _autoSaveTimer.Start();
+        }
     }
 
     private void UpdateTranslations()
@@ -216,6 +235,12 @@ public partial class MainWindow : Window
                 SubscribeToChanges(BronzeTab.TournamentClass);
                 
                 System.Diagnostics.Debug.WriteLine("LoadData: Successfully loaded and assigned tournament classes");
+                
+                // Daten wurden erfolgreich geladen - KEINE weitere Initialisierung nötig
+                _hasUnsavedChanges = false;
+                UpdateStatusBar();
+                System.Diagnostics.Debug.WriteLine("=== LoadData END ===");
+                return;
             }
             else
             {
@@ -253,6 +278,12 @@ public partial class MainWindow : Window
                     group.Players.CollectionChanged -= (s, e) => MarkAsChanged();
                 }
             }
+            
+            // Entferne GameRules Event-Handler
+            if (tournamentClass.GameRules != null)
+            {
+                tournamentClass.GameRules.PropertyChanged -= (s, e) => MarkAsChanged();
+            }
         }
         catch (Exception ex)
         {
@@ -264,6 +295,8 @@ public partial class MainWindow : Window
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine("=== SaveDataInternal START ===");
+            
             var data = new TournamentData
             {
                 TournamentClasses = new List<TournamentClass>
@@ -275,12 +308,17 @@ public partial class MainWindow : Window
                 }
             };
 
+            System.Diagnostics.Debug.WriteLine($"SaveDataInternal: Saving {data.TournamentClasses.Count} tournament classes");
+            
             await _dataService.SaveTournamentDataAsync(data);
             _hasUnsavedChanges = false;
             UpdateStatusBar();
+            
+            System.Diagnostics.Debug.WriteLine("=== SaveDataInternal END ===");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"SaveDataInternal: ERROR: {ex.Message}");
             MessageBox.Show($"Error saving data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             throw;
         }

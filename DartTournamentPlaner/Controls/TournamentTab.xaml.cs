@@ -1,4 +1,4 @@
-Ôªøusing System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -171,10 +171,10 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         AddPlayerButton.Content = _localizationService.GetString("AddPlayer");
         RemovePlayerButton.Content = _localizationService.GetString("RemovePlayer");
         GenerateMatchesButton.Content = _localizationService.GetString("GenerateMatches");
-        ResetMatchesButton.Content = "‚ö† " + _localizationService.GetString("ResetMatches");
-        AdvanceToNextPhaseButton.Content = "üèÜ " + _localizationService.GetString("AdvanceToNextPhase");
-        ResetTournamentButton.Content = "üîÑ " + _localizationService.GetString("ResetTournament");
-        ResetKnockoutButton.Content = "‚ö† " + _localizationService.GetString("ResetKnockoutPhase");
+        ResetMatchesButton.Content = "? " + _localizationService.GetString("ResetMatches");
+        AdvanceToNextPhaseButton.Content = "?? " + _localizationService.GetString("AdvanceToNextPhase");
+        ResetTournamentButton.Content = "?? " + _localizationService.GetString("ResetTournament");
+        ResetKnockoutButton.Content = "? " + _localizationService.GetString("ResetKnockoutPhase");
         GroupsHeaderText.Text = _localizationService.GetString("Groups");
         MatchesHeaderText.Text = _localizationService.GetString("Matches");
         StandingsHeaderText.Text = _localizationService.GetString("Standings");
@@ -326,7 +326,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                             }
                             else
                             {
-                                PlayersHeaderText.Text = "Spieler: (Keine Gruppe ausgew√§hlt)";
+                                PlayersHeaderText.Text = "Spieler: (Keine Gruppe ausgew‰hlt)";
                             }
                             
                             PlayerNameTextBox.IsEnabled = false;
@@ -336,7 +336,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for no group: {ex.Message}");
+    System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for no group: {ex.Message}");
                         }
                     }, DispatcherPriority.DataBind);
                 }
@@ -375,7 +375,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             {
                 System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Knockout phase");
                 
-                // SICHERHEITSCHECK: Pr√ºfe ob QualifiedPlayers verf√ºgbar sind
+                // SICHERHEITSCHECK: Pr¸fe ob QualifiedPlayers verf¸gbar sind
                 var qualifiedPlayers = TournamentClass.CurrentPhase.QualifiedPlayers;
                 if (qualifiedPlayers == null)
                 {
@@ -515,9 +515,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                         {
                             TournamentPhaseType.RoundRobinFinals => _localizationService?.GetString("FinalsPhase") ?? "Finalrunde",
                             TournamentPhaseType.KnockoutPhase => _localizationService?.GetString("KnockoutPhase") ?? "KO-Phase",
-                            _ => "N√§chste Phase"
+                            _ => "N‰chste Phase"
                         };
-                        AdvanceToNextPhaseButton.Content = $"üèÜ {nextPhaseText} starten";
+                        AdvanceToNextPhaseButton.Content = $"?? {nextPhaseText} starten";
                         System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Set next phase button text to '{nextPhaseText} starten'");
                     }
                 }
@@ -543,28 +543,28 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (TournamentClass == null) return;
 
-        var overview = $"üèÜ Turnier: {TournamentClass.Name}\n\n";
-        overview += $"üìã Aktuelle Phase: {TournamentClass.CurrentPhase?.Name}\n";
-        overview += $"üë• Gruppen: {TournamentClass.Groups.Count}\n";
-        overview += $"üéØ Spieler gesamt: {TournamentClass.Groups.SelectMany(g => g.Players).Count()}\n\n";
+        var overview = $"?? Turnier: {TournamentClass.Name}\n\n";
+        overview += $"?? Aktuelle Phase: {TournamentClass.CurrentPhase?.Name}\n";
+        overview += $"?? Gruppen: {TournamentClass.Groups.Count}\n";
+        overview += $"?? Spieler gesamt: {TournamentClass.Groups.SelectMany(g => g.Players).Count()}\n\n";
         
-        overview += $"‚öôÔ∏è Spielregeln:\n{TournamentClass.GameRules}\n\n";
+        overview += $"?? Spielregeln:\n{TournamentClass.GameRules}\n\n";
 
         if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
         {
             var finishedGroups = TournamentClass.Groups.Count(g => g.MatchesGenerated && g.Matches.All(m => m.Status == MatchStatus.Finished || m.IsBye));
-            overview += $"‚úÖ Abgeschlossene Gruppen: {finishedGroups}/{TournamentClass.Groups.Count}\n";
+            overview += $"? Abgeschlossene Gruppen: {finishedGroups}/{TournamentClass.Groups.Count}\n";
         }
         else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
         {
             var qualifiedCount = TournamentClass.CurrentPhase.QualifiedPlayers.Count;
-            overview += $"üèÜ Qualifizierte Spieler: {qualifiedCount}\n";
+            overview += $"?? Qualifizierte Spieler: {qualifiedCount}\n";
         }
         else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
         {
             var totalMatches = TournamentClass.CurrentPhase.WinnerBracket.Count;
             var finishedMatches = TournamentClass.CurrentPhase.WinnerBracket.Count(m => m.Status == MatchStatus.Finished);
-            overview += $"‚öîÔ∏è KO-Spiele: {finishedMatches}/{totalMatches} beendet\n";
+            overview += $"?? KO-Spiele: {finishedMatches}/{totalMatches} beendet\n";
         }
 
         TournamentOverviewText.Text = overview;
@@ -638,11 +638,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         double matchWidth = 200;
         double matchHeight = 70;
         double roundSpacing = 250;
-        double matchSpacing = 80;
+        double baseMatchSpacing = 80; // Base spacing for early rounds
         
-        // Calculate canvas size
+        // Calculate canvas size - needs to be larger for proper tree spacing
         double canvasWidth = rounds * roundSpacing + matchWidth;
-        double canvasHeight = maxMatchesInRound * matchSpacing + matchHeight;
+        double canvasHeight = Math.Max(600, maxMatchesInRound * baseMatchSpacing * 4); // More height for tree spacing
         
         BracketCanvas.Width = Math.Max(800, canvasWidth);
         BracketCanvas.Height = Math.Max(600, canvasHeight);
@@ -650,21 +650,23 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // Group matches by round
         var matchesByRound = matches.GroupBy(m => m.Round).OrderBy(g => g.Key).ToList();
         
+        // Calculate Y positions for all rounds first (tree-like spacing)
+        var roundPositions = CalculateTreePositions(matchesByRound.ToArray(), canvasHeight, baseMatchSpacing);
+        
         for (int roundIndex = 0; roundIndex < matchesByRound.Count; roundIndex++)
         {
             var roundMatches = matchesByRound[roundIndex].OrderBy(m => m.Position).ToList();
             double x = roundIndex * roundSpacing + 50;
             
+            // Get pre-calculated positions for this round
+            var yPositions = roundPositions[roundIndex];
+            
             for (int matchIndex = 0; matchIndex < roundMatches.Count; matchIndex++)
             {
                 var match = roundMatches[matchIndex];
+                double y = yPositions[matchIndex];
                 
-                // Calculate Y position (center matches vertically)
-                double totalRoundHeight = roundMatches.Count * matchSpacing;
-                double startY = (canvasHeight - totalRoundHeight) / 2;
-                double y = startY + matchIndex * matchSpacing;
-                
-                // Drew match box
+                // Draw match box
                 var matchBorder = new Border
                 {
                     Width = matchWidth,
@@ -747,10 +749,136 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 // Draw connection lines to next round (except for final)
                 if (roundIndex < matchesByRound.Count - 1)
                 {
-                    DrawConnectionLine(x + matchWidth, y + matchHeight / 2, 
-                                     x + roundSpacing, y + matchHeight / 2, 
-                                     matchIndex, roundMatches.Count);
+                    var nextRoundPositions = roundPositions[roundIndex + 1];
+                    DrawTreeConnectionLine(x + matchWidth, y + matchHeight / 2, 
+                                         x + roundSpacing, nextRoundPositions, 
+                                         matchIndex, roundMatches.Count);
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Calculates Y positions for all rounds to create a proper bracket structure
+    /// where each match is positioned exactly in the middle between its two source matches
+    /// </summary>
+    /// <param name="matchesByRound">Matches grouped by round</param>
+    /// <param name="canvasHeight">Total canvas height</param>
+    /// <param name="baseSpacing">Base spacing for the first round</param>
+    /// <returns>Dictionary of round positions</returns>
+    private Dictionary<int, List<double>> CalculateTreePositions(
+        IGrouping<KnockoutRound, KnockoutMatch>[] matchesByRound, 
+        double canvasHeight, 
+        double baseSpacing)
+    {
+        var positions = new Dictionary<int, List<double>>();
+        
+        // First round: start at the top with minimal margin
+        var firstRound = matchesByRound[0].OrderBy(m => m.Position).ToList();
+        var firstRoundPositions = new List<double>();
+        
+        // Start near the top with a small margin (instead of centering)
+        double topMargin = 50; // Small margin from the top
+        double startY = topMargin;
+        
+        for (int i = 0; i < firstRound.Count; i++)
+        {
+            firstRoundPositions.Add(startY + i * baseSpacing);
+        }
+        positions[0] = firstRoundPositions;
+        
+        System.Diagnostics.Debug.WriteLine($"First round: {firstRound.Count} matches, starting at Y={startY}, spacing: {baseSpacing}px");
+        for (int i = 0; i < firstRoundPositions.Count; i++)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Match {i}: Y = {firstRoundPositions[i]}");
+        }
+        
+        // Calculate subsequent rounds: each match positioned exactly in the middle of its two source matches
+        for (int roundIndex = 1; roundIndex < matchesByRound.Length; roundIndex++)
+        {
+            var currentRound = matchesByRound[roundIndex].OrderBy(m => m.Position).ToList();
+            var currentRoundPositions = new List<double>();
+            var previousRoundPositions = positions[roundIndex - 1];
+            
+            System.Diagnostics.Debug.WriteLine($"Round {roundIndex + 1}: {currentRound.Count} matches");
+            
+            for (int matchIndex = 0; matchIndex < currentRound.Count; matchIndex++)
+            {
+                // Each match gets its position from the middle of two previous matches
+                int sourceIndex1 = matchIndex * 2;      // First source match
+                int sourceIndex2 = matchIndex * 2 + 1;  // Second source match
+                
+                double y1 = sourceIndex1 < previousRoundPositions.Count ? previousRoundPositions[sourceIndex1] : startY;
+                double y2 = sourceIndex2 < previousRoundPositions.Count ? previousRoundPositions[sourceIndex2] : y1;
+                
+                // Position exactly in the middle between the two source matches
+                double middleY = (y1 + y2) / 2;
+                currentRoundPositions.Add(middleY);
+                
+                System.Diagnostics.Debug.WriteLine($"  Match {matchIndex}: Y = {middleY} (between {y1} and {y2})");
+            }
+            
+            positions[roundIndex] = currentRoundPositions;
+        }
+        
+        return positions;
+    }
+
+    /// <summary>
+    /// Draws connection lines for proper bracket structure
+    /// Each line connects two matches to their common target match in the next round
+    /// </summary>
+    private void DrawTreeConnectionLine(double startX, double startY, double endX, 
+                                      List<double> nextRoundPositions, 
+                                      int matchIndex, int totalMatches)
+    {
+        // Draw horizontal line from match to connection point
+        var horizontalLine = new Line
+        {
+            X1 = startX,
+            Y1 = startY,
+            X2 = startX + 80,
+            Y2 = startY,
+            Stroke = Brushes.Gray,
+            StrokeThickness = 2
+        };
+        BracketCanvas.Children.Add(horizontalLine);
+        
+        // Draw bracket connections: every pair of matches connects to one match in next round
+        int targetMatchIndex = matchIndex / 2;
+        
+        if (targetMatchIndex < nextRoundPositions.Count)
+        {
+            double targetY = nextRoundPositions[targetMatchIndex];
+            double connectionX = startX + 80;
+            
+            // Draw vertical line from current match to target Y level
+            var verticalLine = new Line
+            {
+                X1 = connectionX,
+                Y1 = startY,
+                X2 = connectionX,
+                Y2 = targetY,
+                Stroke = Brushes.Gray,
+                StrokeThickness = 2
+            };
+            BracketCanvas.Children.Add(verticalLine);
+            
+            // For even-indexed matches (first of each pair), draw the horizontal connection to next round
+            if (matchIndex % 2 == 0)
+            {
+                var toNextRoundLine = new Line
+                {
+                    X1 = connectionX,
+                    Y1 = targetY,
+                    X2 = endX,
+                    Y2 = targetY,
+                    Stroke = Brushes.Gray,
+                    StrokeThickness = 2
+                };
+                BracketCanvas.Children.Add(toNextRoundLine);
+                
+                System.Diagnostics.Debug.WriteLine($"Connected matches {matchIndex} and {matchIndex + 1} to target {targetMatchIndex} at Y={targetY}");
             }
         }
     }
@@ -772,11 +900,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         double matchWidth = 200;
         double matchHeight = 70;
         double roundSpacing = 250;
-        double matchSpacing = 80;
+        double baseMatchSpacing = 80;
         
-        // Calculate canvas size
+        // Calculate canvas size - larger for proper tree spacing
         double canvasWidth = rounds * roundSpacing + matchWidth;
-        double canvasHeight = maxMatchesInRound * matchSpacing + matchHeight;
+        double canvasHeight = Math.Max(600, maxMatchesInRound * baseMatchSpacing * 4);
         
         LoserBracketCanvas.Width = Math.Max(800, canvasWidth);
         LoserBracketCanvas.Height = Math.Max(600, canvasHeight);
@@ -784,19 +912,21 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // Group matches by round
         var matchesByRound = matches.GroupBy(m => m.Round).OrderBy(g => g.Key).ToList();
         
+        // Calculate Y positions for all rounds first (tree-like spacing)
+        var roundPositions = CalculateLoserTreePositions(matchesByRound.ToArray(), canvasHeight, baseMatchSpacing);
+        
         for (int roundIndex = 0; roundIndex < matchesByRound.Count; roundIndex++)
         {
             var roundMatches = matchesByRound[roundIndex].OrderBy(m => m.Position).ToList();
             double x = roundIndex * roundSpacing + 50;
             
+            // Get pre-calculated positions for this round
+            var yPositions = roundPositions[roundIndex];
+            
             for (int matchIndex = 0; matchIndex < roundMatches.Count; matchIndex++)
             {
                 var match = roundMatches[matchIndex];
-                
-                // Calculate Y position (center matches vertically)
-                double totalRoundHeight = roundMatches.Count * matchSpacing;
-                double startY = (canvasHeight - totalRoundHeight) / 2;
-                double y = startY + matchIndex * matchSpacing;
+                double y = yPositions[matchIndex];
                 
                 // Draw match box with loser bracket styling
                 var matchBorder = new Border
@@ -881,88 +1011,90 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 // Draw connection lines to next round (except for final)
                 if (roundIndex < matchesByRound.Count - 1)
                 {
-                    DrawLoserConnectionLine(x + matchWidth, y + matchHeight / 2, 
-                                           x + roundSpacing, y + matchHeight / 2, 
+                    var nextRoundPositions = roundPositions[roundIndex + 1];
+                    DrawLoserTreeConnectionLine(x + matchWidth, y + matchHeight / 2, 
+                                           x + roundSpacing, nextRoundPositions, 
                                            matchIndex, roundMatches.Count);
                 }
             }
         }
     }
 
-    private Brush GetMatchBackground(MatchStatus status)
+    /// <summary>
+    /// Calculates Y positions for loser bracket rounds using bracket structure
+    /// </summary>
+    private Dictionary<int, List<double>> CalculateLoserTreePositions(
+        IGrouping<KnockoutRound, KnockoutMatch>[] matchesByRound, 
+        double canvasHeight, 
+        double baseSpacing)
     {
-        return status switch
-        {
-            MatchStatus.NotStarted => Brushes.LightGray,
-            MatchStatus.InProgress => Brushes.LightYellow,
-            MatchStatus.Finished => Brushes.LightGreen,
-            _ => Brushes.White
-        };
-    }
-
-    private Brush GetLoserMatchBackground(MatchStatus status)
-    {
-        return status switch
-        {
-            MatchStatus.NotStarted => Brushes.LightCoral,
-            MatchStatus.InProgress => Brushes.Orange,
-            MatchStatus.Finished => Brushes.LightPink,
-            _ => Brushes.White
-        };
-    }
-
-    private void DrawConnectionLine(double startX, double startY, double endX, double endY, int matchIndex, int totalMatches)
-    {
-        // Draw horizontal line from match to middle point
-        var horizontalLine = new Line
-        {
-            X1 = startX,
-            Y1 = startY,
-            X2 = startX + 80,
-            Y2 = startY,
-            Stroke = Brushes.Gray,
-            StrokeThickness = 2
-        };
-        BracketCanvas.Children.Add(horizontalLine);
+        var positions = new Dictionary<int, List<double>>();
         
-        // For pairs of matches, draw vertical connector and line to next round
-        if (matchIndex % 2 == 0 && matchIndex + 1 < totalMatches)
+        // First round: start at the top with minimal margin
+        var firstRound = matchesByRound[0].OrderBy(m => m.Position).ToList();
+        var firstRoundPositions = new List<double>();
+        
+        // Start near the top with a small margin (consistent with winner bracket)
+        double topMargin = 50;
+        double startY = topMargin;
+        
+        for (int i = 0; i < firstRound.Count; i++)
         {
-            // Calculate positions for vertical connector
-            double verticalX = startX + 80;
-            double currentY = startY;
-            double nextMatchY = startY + 80; // Next match down
-            double midY = (currentY + nextMatchY) / 2;
-            
-            // Vertical line connecting two matches
-            var verticalLine = new Line
-            {
-                X1 = verticalX,
-                Y1 = currentY,
-                X2 = verticalX,
-                Y2 = nextMatchY,
-                Stroke = Brushes.Gray,
-                StrokeThickness = 2
-            };
-            BracketCanvas.Children.Add(verticalLine);
-            
-            // Horizontal line to next round
-            var toNextRoundLine = new Line
-            {
-                X1 = verticalX,
-                Y1 = midY,
-                X2 = endX,
-                Y2 = midY,
-                Stroke = Brushes.Gray,
-                StrokeThickness = 2
-            };
-            BracketCanvas.Children.Add(toNextRoundLine);
+            firstRoundPositions.Add(startY + i * baseSpacing);
         }
+        positions[0] = firstRoundPositions;
+        
+        // Calculate subsequent rounds using bracket logic
+        for (int roundIndex = 1; roundIndex < matchesByRound.Length; roundIndex++)
+        {
+            var currentRound = matchesByRound[roundIndex].OrderBy(m => m.Position).ToList();
+            var currentRoundPositions = new List<double>();
+            var previousRoundPositions = positions[roundIndex - 1];
+            
+            for (int matchIndex = 0; matchIndex < currentRound.Count; matchIndex++)
+            {
+                if (currentRound.Count == 1)
+                {
+                    // Final match - position it appropriately (not necessarily centered)
+                    if (previousRoundPositions.Count > 0)
+                    {
+                        // Position based on the last few matches
+                        double avgY = previousRoundPositions.Average();
+                        currentRoundPositions.Add(avgY);
+                    }
+                    else
+                    {
+                        currentRoundPositions.Add(startY + 200); // Fallback position
+                    }
+                }
+                else
+                {
+                    // Standard bracket logic: middle between two source matches
+                    int sourceIndex1 = matchIndex * 2;
+                    int sourceIndex2 = matchIndex * 2 + 1;
+                    
+                    double y1 = sourceIndex1 < previousRoundPositions.Count ? previousRoundPositions[sourceIndex1] : startY;
+                    double y2 = sourceIndex2 < previousRoundPositions.Count ? previousRoundPositions[sourceIndex2] : y1;
+                    
+                    double middleY = (y1 + y2) / 2;
+                    currentRoundPositions.Add(middleY);
+                }
+            }
+            
+            positions[roundIndex] = currentRoundPositions;
+        }
+        
+        return positions;
     }
 
-    private void DrawLoserConnectionLine(double startX, double startY, double endX, double endY, int matchIndex, int totalMatches)
+    /// <summary>
+    /// Draws connection lines for loser bracket using bracket structure
+    /// </summary>
+    private void DrawLoserTreeConnectionLine(double startX, double startY, double endX, 
+                                           List<double> nextRoundPositions, 
+                                           int matchIndex, int totalMatches)
     {
-        // Draw horizontal line from match to middle point (red style for loser bracket)
+        // Draw horizontal line from match to connection point (red style for loser bracket)
         var horizontalLine = new Line
         {
             X1 = startX,
@@ -974,38 +1106,40 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         };
         LoserBracketCanvas.Children.Add(horizontalLine);
         
-        // For pairs of matches, draw vertical connector and line to next round
-        if (matchIndex % 2 == 0 && matchIndex + 1 < totalMatches)
+        // Draw bracket connections for loser bracket
+        int targetMatchIndex = matchIndex / 2;
+        
+        if (targetMatchIndex < nextRoundPositions.Count)
         {
-            // Calculate positions for vertical connector
-            double verticalX = startX + 80;
-            double currentY = startY;
-            double nextMatchY = startY + 80; // Next match down
-            double midY = (currentY + nextMatchY) / 2;
+            double targetY = nextRoundPositions[targetMatchIndex];
+            double connectionX = startX + 80;
             
-            // Vertical line connecting two matches (red style)
+            // Draw vertical line from current match to target Y level (red style)
             var verticalLine = new Line
             {
-                X1 = verticalX,
-                Y1 = currentY,
-                X2 = verticalX,
-                Y2 = nextMatchY,
+                X1 = connectionX,
+                Y1 = startY,
+                X2 = connectionX,
+                Y2 = targetY,
                 Stroke = Brushes.DarkRed,
                 StrokeThickness = 2
             };
             LoserBracketCanvas.Children.Add(verticalLine);
             
-            // Horizontal line to next round (red style)
-            var toNextRoundLine = new Line
+            // For even-indexed matches, draw the horizontal connection to next round (red style)
+            if (matchIndex % 2 == 0)
             {
-                X1 = verticalX,
-                Y1 = midY,
-                X2 = endX,
-                Y2 = midY,
-                Stroke = Brushes.DarkRed,
-                StrokeThickness = 2
-            };
-            LoserBracketCanvas.Children.Add(toNextRoundLine);
+                var toNextRoundLine = new Line
+                {
+                    X1 = connectionX,
+                    Y1 = targetY,
+                    X2 = endX,
+                    Y2 = targetY,
+                    Stroke = Brushes.DarkRed,
+                    StrokeThickness = 2
+                };
+                LoserBracketCanvas.Children.Add(toNextRoundLine);
+            }
         }
     }
 
@@ -1015,6 +1149,13 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         var rulesWindow = new GameRulesWindow(TournamentClass.GameRules, _localizationService);
         rulesWindow.Owner = Window.GetWindow(this);
+        
+        // Subscribe to data changes
+        rulesWindow.DataChanged += (s, args) =>
+        {
+            System.Diagnostics.Debug.WriteLine("TournamentTab: GameRulesWindow DataChanged received, triggering OnDataChanged...");
+            OnDataChanged();
+        };
         
         if (rulesWindow.ShowDialog() == true)
         {
@@ -1047,12 +1188,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             var title = _localizationService?.GetString("RemoveGroupTitle") ?? "Gruppe entfernen";
             var message = _localizationService?.GetString("RemoveGroupConfirm", selectedGroup.Name) ?? 
-                         $"M√∂chten Sie die Gruppe '{selectedGroup.Name}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.";
+                         $"Mˆchten Sie die Gruppe '{selectedGroup.Name}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.";
 
             // Add warning about tournament reset if in advanced phase
             if (TournamentClass.CurrentPhase?.PhaseType != TournamentPhaseType.GroupPhase)
             {
-                message += "\n\n" + (_localizationService?.GetString("TournamentResetWarning") ?? "‚ö†Ô∏è WARNUNG: Das Turnier wird auf die Gruppenphase zur√ºckgesetzt!");
+                message += "\n\n" + (_localizationService?.GetString("TournamentResetWarning") ?? "??WARNUNG: Das Turnier wird auf die Gruppenphase zur¸ckgesetzt!");
             }
 
             var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -1073,8 +1214,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
         else
         {
-            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew√§hlt";
-            var message = _localizationService?.GetString("NoGroupSelected") ?? "Bitte w√§hlen Sie eine Gruppe aus, die entfernt werden soll.";
+            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew‰hlt";
+            var message = _localizationService?.GetString("NoGroupSelected") ?? "Bitte w‰hlen Sie eine Gruppe aus, die entfernt werden soll.";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
@@ -1115,9 +1256,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         
         try
         {
-            var title = _localizationService?.GetString("ResetTournamentTitle") ?? "Turnier komplett zur√ºcksetzen";
+            var title = _localizationService?.GetString("ResetTournamentTitle") ?? "Turnier komplett zur¸cksetzen";
             var message = _localizationService?.GetString("ResetTournamentConfirm") ?? 
-                         "M√∂chten Sie das gesamte Turnier wirklich zur√ºcksetzen?\n\n‚ö†Ô∏è ALLE Spiele und Phasen werden gel√∂scht!\nNur Gruppen und Spieler bleiben erhalten.";
+                         "Mˆchten Sie das gesamte Turnier wirklich zur¸cksetzen?\n\n?? ALLE Spiele und Phasen werden gelˆscht!\nNur Gruppen und Spieler bleiben erhalten.";
 
             var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
@@ -1182,13 +1323,13 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 OnDataChanged();
                 
                 // Show success message
-                var successMessage = _localizationService?.GetString("TournamentResetComplete") ?? "Turnier wurde erfolgreich zur√ºckgesetzt.";
+                var successMessage = _localizationService?.GetString("TournamentResetComplete") ?? "Turnier wurde erfolgreich zur¸ckgesetzt.";
                 MessageBox.Show(successMessage, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Fehler beim Zur√ºcksetzen des Turniers: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Fehler beim Zur¸cksetzen des Turniers: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
         {
@@ -1209,11 +1350,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 // SOFORTIGE UI-Aktualisierung nach Spielergebnis-Eingabe
                 System.Diagnostics.Debug.WriteLine("Match result saved - forcing immediate UI update");
                 
-                // Stoppe den Timer falls er l√§uft, um Throttling zu umgehen
+                // Stoppe den Timer falls er l‰uft, um Throttling zu umgehen
                 _refreshTimer?.Stop();
                 _refreshTimer = null;
                 
-                // Sofortige Aktualisierung mit h√∂chster Priorit√§t
+                // Sofortige Aktualisierung mit hˆchster Priorit‰t
                 Dispatcher.Invoke(() =>
                 {
                     try
@@ -1244,7 +1385,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     {
                         System.Diagnostics.Debug.WriteLine($"Error in immediate UI update: {ex.Message}");
                     }
-                }, DispatcherPriority.Render); // H√∂chste Priorit√§t f√ºr sofortige Anzeige
+                }, DispatcherPriority.Render); // Hˆchste Priorit‰t f¸r sofortige Anzeige
                 
                 OnDataChanged();
             }
@@ -1303,14 +1444,15 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             if (resultWindow.ShowDialog() == true)
             {
                 // Copy results back to KnockoutMatch
-                selectedMatch.Player1Sets = tempMatch.Player1Sets;
-                selectedMatch.Player2Sets = tempMatch.Player2Sets;
-                selectedMatch.Player1Legs = tempMatch.Player1Legs;
-                selectedMatch.Player2Legs = tempMatch.Player2Legs;
-                selectedMatch.Winner = tempMatch.Winner;
-                selectedMatch.Loser = tempMatch.Winner == tempMatch.Player1 ? tempMatch.Player2 : tempMatch.Player1;
-                selectedMatch.Status = tempMatch.Status;
-                selectedMatch.Notes = tempMatch.Notes;
+                var match = resultWindow.InternalMatch;
+                selectedMatch.Player1Sets = match.Player1Sets;
+                selectedMatch.Player2Sets = match.Player2Sets;
+                selectedMatch.Player1Legs = match.Player1Legs;
+                selectedMatch.Player2Legs = match.Player2Legs;
+                selectedMatch.Winner = match.Winner;
+                selectedMatch.Loser = match.Winner == match.Player1 ? match.Player2 : match.Player1;
+                selectedMatch.Status = match.Status;
+                selectedMatch.Notes = match.Notes;
                 selectedMatch.EndTime = DateTime.Now;
 
                 // Update next round matches if needed
@@ -1350,7 +1492,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
-                // Validierung hinzuf√ºgen bevor K.O.-Tab angezeigt wird
+                // Validierung hinzuf¸gen bevor K.O.-Tab angezeigt wird
                 var qualifiedParticipants = TournamentClass.CurrentPhase.QualifiedPlayers?.Count ?? 0;
                 
                 if (!KnockoutMatch.CanStartKnockoutPhase(qualifiedParticipants))
@@ -1359,7 +1501,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     MessageBox.Show(error ?? "K.O.-Phase noch nicht aktiv", 
                                    "K.O.-Phase Warnung", MessageBoxButton.OK, MessageBoxImage.Information);
                     
-                    // Zur√ºck zum Gruppen-Tab
+                    // Zur¸ck zum Gruppen-Tab
                     MainTabControl.SelectedItem = GroupPhaseTabItem;
                     return;
                 }
@@ -1372,7 +1514,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             }
             else
             {
-                // Nicht in K.O.-Phase - zur√ºck zur Gruppenphase
+                // Nicht in K.O.-Phase - zur¸ck zur Gruppenphase
                 MessageBox.Show("K.O.-Phase ist noch nicht aktiv.", "Information", 
                                MessageBoxButton.OK, MessageBoxImage.Information);
                 MainTabControl.SelectedItem = GroupPhaseTabItem;
@@ -1387,7 +1529,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             }
             else
             {
-                // Nicht in Finalrunde - zur√ºck zur Gruppenphase
+                // Nicht in Finalrunde - zur¸ck zur Gruppenphase
                 MessageBox.Show("Finalrunde ist noch nicht aktiv.", "Information", 
                                MessageBoxButton.OK, MessageBoxImage.Information);
                 MainTabControl.SelectedItem = GroupPhaseTabItem;
@@ -1423,35 +1565,25 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (selectedMatch != null && _localizationService != null)
         {
-            // Convert KnockoutMatch to Match for the result window
-            var tempMatch = new Match
-            {
-                Id = selectedMatch.Id,
-                Player1 = selectedMatch.Player1,
-                Player2 = selectedMatch.Player2,
-                Player1Sets = selectedMatch.Player1Sets,
-                Player2Sets = selectedMatch.Player2Sets,
-                Player1Legs = selectedMatch.Player1Legs,
-                Player2Legs = selectedMatch.Player2Legs,
-                Winner = selectedMatch.Winner,
-                Status = selectedMatch.Status,
-                Notes = selectedMatch.Notes
-            };
-
-            var resultWindow = new MatchResultWindow(tempMatch, TournamentClass.GameRules, _localizationService);
+            // Get round-specific rules for this knockout match
+            var roundRules = TournamentClass.GameRules.GetRulesForRound(selectedMatch.Round);
+            
+            // Use the new constructor with round-specific rules
+            var resultWindow = new MatchResultWindow(selectedMatch, roundRules, TournamentClass.GameRules, _localizationService);
             resultWindow.Owner = Window.GetWindow(this);
             
             if (resultWindow.ShowDialog() == true)
             {
                 // Copy results back to KnockoutMatch
-                selectedMatch.Player1Sets = tempMatch.Player1Sets;
-                selectedMatch.Player2Sets = tempMatch.Player2Sets;
-                selectedMatch.Player1Legs = tempMatch.Player1Legs;
-                selectedMatch.Player2Legs = tempMatch.Player2Legs;
-                selectedMatch.Winner = tempMatch.Winner;
-                selectedMatch.Loser = tempMatch.Winner == tempMatch.Player1 ? tempMatch.Player2 : tempMatch.Player1;
-                selectedMatch.Status = tempMatch.Status;
-                selectedMatch.Notes = tempMatch.Notes;
+                var match = resultWindow.InternalMatch;
+                selectedMatch.Player1Sets = match.Player1Sets;
+                selectedMatch.Player2Sets = match.Player2Sets;
+                selectedMatch.Player1Legs = match.Player1Legs;
+                selectedMatch.Player2Legs = match.Player2Legs;
+                selectedMatch.Winner = match.Winner;
+                selectedMatch.Loser = match.Winner == match.Player1 ? match.Player2 : match.Player1;
+                selectedMatch.Status = match.Status;
+                selectedMatch.Notes = match.Notes;
                 selectedMatch.EndTime = DateTime.Now;
 
                 // Update next round matches if needed
@@ -1525,7 +1657,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 }
             }
             
-            // WICHTIG: Validierung hinzuf√ºgen bevor GetDynamicRoundDisplay aufgerufen werden k√∂nnte
+            // WICHTIG: Validierung hinzuf¸gen bevor GetDynamicRoundDisplay aufgerufen werden kˆnnte
             if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
                 System.Diagnostics.Debug.WriteLine($"GroupPhaseGroupsList_SelectionChanged: We are in KO phase - validating");
@@ -1543,7 +1675,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     MessageBox.Show(validationError, "K.O.-Phase Fehler", 
                                    MessageBoxButton.OK, MessageBoxImage.Warning);
                     
-                    // Zur√ºck zur Gruppenphase wechseln
+                    // Zur¸ck zur Gruppenphase wechseln
                     ResetToGroupPhase();
                     return;
                 }
@@ -1553,7 +1685,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 }
             }
             
-            // ZUS√ÑTZLICHER SCHUTZ: Auch in anderen Phasen auf Null-Werte pr√ºfen
+            // ZUSƒTZLICHER SCHUTZ: Auch in anderen Phasen auf Null-Werte pr¸fen
             if (newSelectedGroup != null && TournamentClass?.CurrentPhase != null)
             {
                 var currentPhase = TournamentClass.CurrentPhase.PhaseType;
@@ -1580,7 +1712,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             System.Diagnostics.Debug.WriteLine($"Critical error in GroupPhaseGroupsList_SelectionChanged: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             
-            // Bei kritischem Fehler: Zur Gruppenphase zur√ºckkehren
+            // Bei kritischem Fehler: Zur Gruppenphase zur¸ckkehren
             try
             {
                 ResetToGroupPhase();
@@ -1592,7 +1724,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             }
             
             // Show error but don't crash
-            MessageBox.Show($"Unerwarteter Fehler beim Gruppenwechsel: {ex.Message}\n\nDas Turnier wurde zur Gruppenphase zur√ºckgesetzt.", 
+            MessageBox.Show($"Unerwarteter Fehler beim Gruppenwechsel: {ex.Message}\n\nDas Turnier wurde zur Gruppenphase zur¸ckgesetzt.", 
                            "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         // Kein automatischer Tab-Wechsel zur KO-Phase
@@ -1661,7 +1793,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 {
                     _refreshTimer = new DispatcherTimer
                     {
-                        Interval = TimeSpan.FromMilliseconds(100) // 100ms Verz√∂gerung
+                        Interval = TimeSpan.FromMilliseconds(100) // 100ms Verzˆgerung
                     };
                     _refreshTimer.Tick += (s, args) =>
                     {
@@ -1767,7 +1899,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                             StandingsDataGrid.ItemsSource = null;
                         }
                         
-                        // ENTFERNT: Items.Refresh() - kann zu Endlosschleifen f√ºhren
+                        // ENTFERNT: Items.Refresh() - kann zu Endlosschleifen f¸hren
                         // MatchesDataGrid.Items.Refresh();
                         // StandingsDataGrid.Items.Refresh();
                     }
@@ -1834,8 +1966,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (SelectedGroup == null)
         {
-            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew√§hlt";
-            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte w√§hlen Sie zuerst eine Gruppe aus.";
+            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew‰hlt";
+            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte w‰hlen Sie zuerst eine Gruppe aus.";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -1863,8 +1995,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (SelectedGroup == null)
         {
-            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew√§hlt";
-            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte w√§hlen Sie zuerst eine Gruppe aus.";
+            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgew‰hlt";
+            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte w‰hlen Sie zuerst eine Gruppe aus.";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -1873,12 +2005,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             var title = _localizationService?.GetString("RemovePlayerTitle") ?? "Spieler entfernen";
             var message = _localizationService?.GetString("RemovePlayerConfirm", SelectedPlayer.Name) ?? 
-                         $"M√∂chten Sie den Spieler '{SelectedPlayer.Name}' wirklich entfernen?";
+                         $"Mˆchten Sie den Spieler '{SelectedPlayer.Name}' wirklich entfernen?";
 
             // Add warning about tournament reset if in advanced phase
             if (TournamentClass.CurrentPhase?.PhaseType != TournamentPhaseType.GroupPhase)
             {
-                message += "\n\n" + (_localizationService?.GetString("TournamentResetWarning") ?? "‚ö†Ô∏è WARNUNG: Das Turnier wird auf die Gruppenphase zur√ºckgesetzt!");
+                message += "\n\n" + (_localizationService?.GetString("TournamentResetWarning") ?? "?? WARNUNG: Das Turnier wird auf die Gruppenphase zur¸ckgesetzt!");
             }
 
             var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
@@ -1907,8 +2039,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
         else
         {
-            var title = _localizationService?.GetString("NoPlayerSelectedTitle") ?? "Kein Spieler ausgew√§hlt";
-            var message = _localizationService?.GetString("NoPlayerSelected") ?? "Bitte w√§hlen Sie einen Spieler aus, der entfernt werden soll.";
+            var title = _localizationService?.GetString("NoPlayerSelectedTitle") ?? "Kein Spieler ausgew‰hlt";
+            var message = _localizationService?.GetString("NoPlayerSelected") ?? "Bitte w‰hlen Sie einen Spieler aus, der entfernt werden soll.";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
@@ -1920,13 +2052,13 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (SelectedGroup == null || SelectedGroup.Players.Count < 2)
             {
-                MessageBox.Show("Mindestens 2 Spieler sind erforderlich um Spiele zu generieren.", "Nicht gen√ºgend Spieler", 
+                MessageBox.Show("Mindestens 2 Spieler sind erforderlich um Spiele zu generieren.", "Nicht gen¸gend Spieler", 
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             var title = _localizationService?.GetString("GenerateMatches") ?? "Spiele generieren";
-            var message = $"M√∂chten Sie die Spiele f√ºr Gruppe '{SelectedGroup.Name}' generieren?\n" +
+            var message = $"Mˆchten Sie die Spiele f¸r Gruppe '{SelectedGroup.Name}' generieren?\n" +
                          $"Spielmodus: {TournamentClass.GameRules}\n" +
                          $"Anzahl Spiele: {SelectedGroup.Players.Count * (SelectedGroup.Players.Count - 1) / 2}";
 
@@ -1950,13 +2082,13 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
             if (finalsGroup == null || finalsGroup.Players.Count < 2)
             {
-                MessageBox.Show("Nicht gen√ºgend qualifizierte Spieler f√ºr die Finalrunde.", "Fehler", 
+                MessageBox.Show("Nicht gen¸gend qualifizierte Spieler f¸r die Finalrunde.", "Fehler", 
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             var title = _localizationService?.GetString("GenerateMatches") ?? "Spiele generieren";
-            var message = $"M√∂chten Sie die Spiele f√ºr die Finalrunde generieren?\n" +
+            var message = $"Mˆchten Sie die Spiele f¸r die Finalrunde generieren?\n" +
                          $"Teilnehmer: {finalsGroup.Players.Count}\n" +
                          $"Anzahl Spiele: {finalsGroup.Players.Count * (finalsGroup.Players.Count - 1) / 2}";
 
@@ -1987,9 +2119,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             return;
         }
 
-        var title = _localizationService?.GetString("ResetMatchesTitle") ?? "Spiele zur√ºcksetzen";
+        var title = _localizationService?.GetString("ResetMatchesTitle") ?? "Spiele zur¸cksetzen";
         var message = _localizationService?.GetString("ResetMatchesConfirm", SelectedGroup.Name) ?? 
-                     $"M√∂chten Sie alle Spiele f√ºr Gruppe '{SelectedGroup.Name}' wirklich zur√ºcksetzen?\nAlle Ergebnisse gehen verloren!";
+                     $"Mˆchten Sie alle Spiele f¸r Gruppe '{SelectedGroup.Name}' wirklich zur¸cksetzen?\nAlle Ergebnisse gehen verloren!";
 
         var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
@@ -2004,7 +2136,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             UpdatePlayersView(); // Update to disable reset button
             OnDataChanged();
             
-            var successMessage = _localizationService?.GetString("MatchesReset") ?? "Spiele wurden zur√ºckgesetzt!";
+            var successMessage = _localizationService?.GetString("MatchesReset") ?? "Spiele wurden zur¸ckgesetzt!";
             MessageBox.Show(successMessage, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
@@ -2013,8 +2145,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (!TournamentClass.CanProceedToNextPhase())
         {
-            var cannotAdvanceTitle = _localizationService?.GetString("CannotAdvancePhase") ?? "Kann nicht zur n√§chsten Phase";
-            var cannotAdvanceMessage = _localizationService?.GetString("CannotAdvancePhase") ?? "Alle Spiele der aktuellen Phase m√ºssen beendet sein.";
+            var cannotAdvanceTitle = _localizationService?.GetString("CannotAdvancePhase") ?? "Kann nicht zur n‰chsten Phase";
+            var cannotAdvanceMessage = _localizationService?.GetString("CannotAdvancePhase") ?? "Alle Spiele der aktuellen Phase m¸ssen beendet sein.";
             MessageBox.Show(cannotAdvanceMessage, cannotAdvanceTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
@@ -2022,19 +2154,19 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         var nextPhase = TournamentClass.GetNextPhase();
         if (nextPhase == null)
         {
-            MessageBox.Show("Keine weitere Phase verf√ºgbar.", "Phase", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Keine weitere Phase verf¸gbar.", "Phase", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         var qualifiedPlayersCount = TournamentClass.CurrentPhase?.GetQualifiedPlayers(TournamentClass.GameRules.QualifyingPlayersPerGroup).Count ?? 0;
 
-        // Validierung hinzuf√ºgen f√ºr K.O.-Phase
+        // Validierung hinzuf¸gen f¸r K.O.-Phase
         if (nextPhase.PhaseType == TournamentPhaseType.KnockoutPhase)
         {
             string? validationError = KnockoutMatch.ValidateKnockoutPhaseStart(qualifiedPlayersCount);
             if (validationError != null)
             {
-                MessageBox.Show(validationError, "K.O.-Phase nicht m√∂glich", 
+                MessageBox.Show(validationError, "K.O.-Phase nicht mˆglich", 
                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -2044,12 +2176,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             TournamentPhaseType.RoundRobinFinals => _localizationService?.GetString("FinalsPhase") ?? "Finalrunde",
             TournamentPhaseType.KnockoutPhase => _localizationService?.GetString("KnockoutPhase") ?? "KO-Phase",
-            _ => "N√§chste Phase"
+            _ => "N‰chste Phase"
         };
 
-        var advanceTitle = _localizationService?.GetString("AdvanceToNextPhase") ?? "N√§chste Phase starten";
+        var advanceTitle = _localizationService?.GetString("AdvanceToNextPhase") ?? "N‰chste Phase starten";
         
-        var advanceMessage = $"M√∂chten Sie zur {nextPhaseText} wechseln?\n\n" +
+        var advanceMessage = $"Mˆchten Sie zur {nextPhaseText} wechseln?\n\n" +
                            $"Qualifizierte Spieler: {qualifiedPlayersCount}\n" +
                            $"Modus: {TournamentClass.GameRules.PostGroupPhaseMode}";
 
@@ -2078,14 +2210,14 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
                 if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
                 {
-                    successMessage += "\n\nGenerieren Sie jetzt die Spiele f√ºr die Finalrunde.";
+                    successMessage += "\n\nGenerieren Sie jetzt die Spiele f¸r die Finalrunde.";
                 }
 
                 MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch ( Exception ex)
             {
-                MessageBox.Show($"Fehler beim Wechsel zur n√§chsten Phase: {ex.Message}", "Fehler", 
+                MessageBox.Show($"Fehler beim Wechsel zur n‰chsten Phase: {ex.Message}", "Fehler", 
                                MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -2098,9 +2230,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             return;
         }
 
-        var title = _localizationService?.GetString("ResetKnockoutTitle") ?? "KO-Phase zur√ºcksetzen";
+        var title = _localizationService?.GetString("ResetKnockoutTitle") ?? "KO-Phase zur¸cksetzen";
         var message = _localizationService?.GetString("ResetKnockoutConfirm") ?? 
-                     "M√∂chten Sie die KO-Phase wirklich zur√ºcksetzen?\n\n‚ö†Ô∏è Alle KO-Spiele und der Turnierbaum werden gel√∂scht!\nDas Turnier wird zur Gruppenphase zur√ºckgesetzt.";
+                     "Mˆchten Sie die KO-Phase wirklich zur¸cksetzen?\n\n?? Alle KO-Spiele und der Turnierbaum werden gelˆscht!\nDas Turnier wird zur Gruppenphase zur¸ckgesetzt.";
 
         var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
@@ -2151,12 +2283,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 OnDataChanged();
                 
                 // Show success message
-                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "KO-Phase wurde erfolgreich zur√ºckgesetzt.";
+                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "KO-Phase wurde erfolgreich zur¸ckgesetzt.";
                 MessageBox.Show(successMessage, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Zur√ºcksetzen der KO-Phase: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Fehler beim Zur¸cksetzen der KO-Phase: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
@@ -2214,6 +2346,28 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
+    private Brush GetMatchBackground(MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.NotStarted => Brushes.LightGray,
+            MatchStatus.InProgress => Brushes.LightYellow,
+            MatchStatus.Finished => Brushes.LightGreen,
+            _ => Brushes.White
+        };
+    }
+
+    private Brush GetLoserMatchBackground(MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.NotStarted => Brushes.LightCoral,
+            MatchStatus.InProgress => Brushes.Orange,
+            MatchStatus.Finished => Brushes.LightPink,
+            _ => Brushes.White
+        };
+    }
+
     public event EventHandler? DataChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -2248,10 +2402,10 @@ public class KnockoutMatchViewModel
     { 
         get
         {
-            // Zus√§tzliche Validierung im ViewModel
+            // Zus‰tzliche Validierung im ViewModel
             if (!KnockoutMatch.CanStartKnockoutPhase(_totalParticipants))
             {
-                return "Fehler: Ung√ºltige Teilnehmeranzahl";
+                return "Fehler: Ung¸ltige Teilnehmeranzahl";
             }
             
             return _match.GetDynamicRoundDisplay(_totalParticipants, _localizationService);

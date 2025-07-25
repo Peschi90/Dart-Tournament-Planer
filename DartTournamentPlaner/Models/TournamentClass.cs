@@ -294,10 +294,11 @@ public class TournamentClass : INotifyPropertyChanged
             var matches = new List<KnockoutMatch>();
             int matchId = 1;
 
-            // Calculate rounds needed
+            // Calculate bracket structure
             int playersCount = shuffledPlayers.Count;
             System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: playersCount = {playersCount}");
             
+            // Find next power of 2
             int nextPowerOf2 = 1;
             while (nextPowerOf2 < playersCount)
             {
@@ -305,54 +306,63 @@ public class TournamentClass : INotifyPropertyChanged
             }
             System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: nextPowerOf2 = {nextPowerOf2}");
 
-            // Add byes if needed
+            // Calculate byes and actual matches in first round
             int byesNeeded = nextPowerOf2 - playersCount;
+            int playersWithoutBye = playersCount - byesNeeded;
+            int firstRoundMatches = playersWithoutBye / 2;
+            
             System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: byesNeeded = {byesNeeded}");
-            
-            for (int i = 0; i < byesNeeded; i++)
-            {
-                shuffledPlayers.Add(null!); // null represents a bye
-            }
+            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: playersWithoutBye = {playersWithoutBye}");
+            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: firstRoundMatches = {firstRoundMatches}");
 
-            // Calculate total rounds needed for this tournament
-            var totalRounds = (int)Math.Ceiling(Math.Log2(playersCount));
-            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: totalRounds = {totalRounds}");
-            
-            // Determine starting round based on player count and German terminology
-            KnockoutRound startingRound = GetStartingRound(playersCount);
+            // Determine starting round based on final bracket size
+            KnockoutRound startingRound = GetStartingRound(nextPowerOf2);
             System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: startingRound = {startingRound}");
 
-            // Generate first round
-            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: Generating first round with {shuffledPlayers.Count} participants");
+            // Create first round matches
+            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: Generating first round with {firstRoundMatches} actual matches");
             var currentRoundMatches = new List<KnockoutMatch>();
-            for (int i = 0; i < shuffledPlayers.Count; i += 2)
+            
+            // First, create matches with actual players (no byes)
+            int playerIndex = 0;
+            for (int i = 0; i < firstRoundMatches; i++)
             {
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
-                    Player1 = shuffledPlayers[i],
-                    Player2 = i + 1 < shuffledPlayers.Count ? shuffledPlayers[i + 1] : null,
+                    Player1 = shuffledPlayers[playerIndex++],
+                    Player2 = shuffledPlayers[playerIndex++],
                     BracketType = BracketType.Winner,
                     Round = startingRound,
-                    Position = i / 2
+                    Position = i
                 };
 
-                // Handle byes
-                if (match.Player2 == null)
-                {
-                    match.Winner = match.Player1;
-                    match.Status = MatchStatus.Finished;
-                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} gets bye");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}");
-                }
-
+                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}");
                 currentRoundMatches.Add(match);
                 matches.Add(match);
             }
-            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: Generated {currentRoundMatches.Count} first round matches");
+
+            // Then, create "bye matches" for remaining players
+            for (int i = 0; i < byesNeeded; i++)
+            {
+                var byeMatch = new KnockoutMatch
+                {
+                    Id = matchId++,
+                    Player1 = shuffledPlayers[playerIndex++],
+                    Player2 = null, // Bye
+                    Winner = shuffledPlayers[playerIndex - 1], // Player with bye automatically wins
+                    Status = MatchStatus.Finished,
+                    BracketType = BracketType.Winner,
+                    Round = startingRound,
+                    Position = firstRoundMatches + i
+                };
+
+                System.Diagnostics.Debug.WriteLine($"  Match {byeMatch.Id}: {byeMatch.Player1?.Name} gets bye");
+                currentRoundMatches.Add(byeMatch);
+                matches.Add(byeMatch);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: Generated {currentRoundMatches.Count} first round matches ({firstRoundMatches} actual + {byesNeeded} byes)");
 
             // Generate subsequent rounds
             var currentRound = startingRound;
@@ -395,6 +405,10 @@ public class TournamentClass : INotifyPropertyChanged
 
             phase.WinnerBracket = new ObservableCollection<KnockoutMatch>(matches);
             
+            // WICHTIG: Nach der Generierung alle abgeschlossenen Matches (Bye-Matches) verarbeiten
+            // und deren Gewinner automatisch in die nächsten Runden übertragen
+            PropagateCompletedMatches(phase.WinnerBracket);
+            
             System.Diagnostics.Debug.WriteLine($"GenerateSingleEliminationBracket: Total matches generated: {matches.Count}");
             System.Diagnostics.Debug.WriteLine($"=== GenerateSingleEliminationBracket END ===");
         }
@@ -406,30 +420,109 @@ public class TournamentClass : INotifyPropertyChanged
         }
     }
 
-    /// <summary>
-    /// Determines the starting round based on player count and German tournament terminology
-    /// </summary>
-    private static KnockoutRound GetStartingRound(int playerCount)
+    private void GenerateDoubleEliminationBracket(TournamentPhase phase, List<Player> players)
     {
-        // For 6 players: Quarterfinal (4 matches) → Semifinal (2 matches) → Final (1 match)
-        // For 4 players: Semifinal (2 matches) → Final (1 match)
-        // For 8 players: Quarterfinal (4 matches) → Semifinal (2 matches) → Final (1 match)
-        
-        // Calculate bracket size (next power of 2)
-        int bracketSize = 1;
-        while (bracketSize < playerCount)
+        try
         {
-            bracketSize *= 2; // FIXED: War bracketSize *= 1 → Endlosschleife!
-        }
+            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket START ===");
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: {players.Count} players");
 
+            // First generate single elimination winner bracket
+            GenerateSingleEliminationBracket(phase, players);
+
+            // Generate the loser bracket
+            GenerateLoserBracket(phase);
+
+            // Connect brackets for grand final if needed
+            if (phase.WinnerBracket.Any() && phase.LoserBracket.Any())
+            {
+                GenerateGrandFinal(phase);
+            }
+
+            // WICHTIG: Nach der kompletten Generierung alle Brackets propagieren
+            // Das Winner Bracket wurde bereits in GenerateSingleEliminationBracket propagiert
+            // Jetzt das Loser Bracket propagieren
+            if (phase.LoserBracket.Any())
+            {
+                PropagateCompletedMatches(phase.LoserBracket);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Generated {phase.WinnerBracket.Count} winner matches and {phase.LoserBracket.Count} loser matches");
+            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket END ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Propagates winners from completed matches (especially bye matches) to subsequent rounds
+    /// </summary>
+    private void PropagateCompletedMatches(ObservableCollection<KnockoutMatch> matches)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== PropagateCompletedMatches START ===");
+            
+            var allMatches = matches.ToList();
+            var completedMatches = allMatches.Where(m => m.Status == MatchStatus.Finished && m.Winner != null).ToList();
+            
+            System.Diagnostics.Debug.WriteLine($"PropagateCompletedMatches: Found {completedMatches.Count} completed matches to propagate");
+            
+            foreach (var completedMatch in completedMatches)
+            {
+                System.Diagnostics.Debug.WriteLine($"PropagateCompletedMatches: Processing completed match {completedMatch.Id} (Winner: {completedMatch.Winner?.Name})");
+                
+                // Find matches that reference this completed match as a source
+                var dependentMatches = allMatches.Where(m => 
+                    m.SourceMatch1 == completedMatch || m.SourceMatch2 == completedMatch).ToList();
+                
+                foreach (var dependentMatch in dependentMatches)
+                {
+                    if (dependentMatch.SourceMatch1 == completedMatch && dependentMatch.Player1FromWinner)
+                    {
+                        dependentMatch.Player1 = completedMatch.Winner;
+                        System.Diagnostics.Debug.WriteLine($"  Set Player1 of match {dependentMatch.Id} to {completedMatch.Winner?.Name}");
+                    }
+                    else if (dependentMatch.SourceMatch2 == completedMatch && dependentMatch.Player2FromWinner)
+                    {
+                        dependentMatch.Player2 = completedMatch.Winner;
+                        System.Diagnostics.Debug.WriteLine($"  Set Player2 of match {dependentMatch.Id} to {completedMatch.Winner?.Name}");
+                    }
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"=== PropagateCompletedMatches END ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"PropagateCompletedMatches: ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"PropagateCompletedMatches: Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Determines the starting round based on bracket size and German tournament terminology
+    /// </summary>
+    private static KnockoutRound GetStartingRound(int bracketSize)
+    {
+        // bracketSize is already a power of 2 representing the full bracket size
+        // For 11 players: bracketSize = 16 → "Beste 16" 
+        // For 6 players: bracketSize = 8 → "Viertelfinale"
+        // For 4 players: bracketSize = 4 → "Halbfinale"
+        
         return bracketSize switch
         {
-            64 => KnockoutRound.Best64,      // 64+ → "Beste 64"
-            32 => KnockoutRound.Best32,         // 32 → "Beste 32" 
-            16 => KnockoutRound.Best16,   // 16 → "Achtelfinale"
-            8 => KnockoutRound.Quarterfinal,    // 8 → "Viertelfinale" (bei 5-8 Spielern)
-            4 => KnockoutRound.Semifinal,       // 4 → "Halbfinale" (bei 3-4 Spielern)
-            2 => KnockoutRound.Final,           // 2 → "Finale"
+            128 => KnockoutRound.Best64,      // 128 → "Beste 64"
+            64 => KnockoutRound.Best32,       // 64 → "Beste 32" 
+            32 => KnockoutRound.Best16,       // 32 → "Beste 16"
+            16 => KnockoutRound.Best16,       // 16 → "Beste 16" (Achtelfinale bei 9-16 Spielern)
+            8 => KnockoutRound.Quarterfinal,  // 8 → "Viertelfinale" (bei 5-8 Spielern)
+            4 => KnockoutRound.Semifinal,     // 4 → "Halbfinale" (bei 3-4 Spielern)
+            2 => KnockoutRound.Final,         // 2 → "Finale"
             _ => KnockoutRound.Final
         };
     }
@@ -474,36 +567,6 @@ public class TournamentClass : INotifyPropertyChanged
             KnockoutRound.Semifinal => KnockoutRound.Final, // Halbfinale → Finale
             _ => KnockoutRound.Final
         };
-    }
-
-    private void GenerateDoubleEliminationBracket(TournamentPhase phase, List<Player> players)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket START ===");
-            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: {players.Count} players");
-
-            // First generate single elimination winner bracket
-            GenerateSingleEliminationBracket(phase, players);
-
-            // Generate the loser bracket
-            GenerateLoserBracket(phase);
-
-            // Connect brackets for grand final if needed
-            if (phase.WinnerBracket.Any() && phase.LoserBracket.Any())
-            {
-                GenerateGrandFinal(phase);
-            }
-
-            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Generated {phase.WinnerBracket.Count} winner matches and {phase.LoserBracket.Count} loser matches");
-            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket END ===");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: CRITICAL ERROR: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Stack trace: {ex.StackTrace}");
-            throw;
-        }
     }
 
     private void GenerateLoserBracket(TournamentPhase phase)

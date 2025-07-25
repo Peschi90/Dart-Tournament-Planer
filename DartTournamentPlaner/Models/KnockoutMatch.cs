@@ -523,13 +523,12 @@ public class KnockoutMatch : INotifyPropertyChanged
         // Determine round name based on players in round
         string roundKey = playersInRound switch
         {
-            64 => "Best64",    // Beste 64
+            64 => "Best64",       // Beste 64
             32 => "Best32",       // Beste 32
-            16 => "Best16",       // Beste 16  
-            8 => "Best8",         // Achtelfinale
-            4 => "Best4",         // Viertelfinale  
-            2 => "Best2",         // Halbfinale
-            1 => "Final",         // Finale
+            16 => "Best16",         // Beste 16
+            8 => "Best8",         // Viertelfinale  
+            4 => "Best4",         // Halbfinale
+            2 => "Final",         // Finale
             _ => "LastOfRound"    // Runde X
         };
 

@@ -11,6 +11,9 @@ public partial class GameRulesWindow : Window
     private readonly GameRules _gameRules;
     private readonly LocalizationService _localizationService;
 
+    // Event für Datenänderungen
+    public event EventHandler? DataChanged;
+
     public GameRulesWindow(GameRules gameRules, LocalizationService localizationService)
     {
         _gameRules = gameRules;
@@ -64,6 +67,7 @@ public partial class GameRulesWindow : Window
         PreviewLabel.Text = _localizationService.GetString("RulesPreview") + ":";
         SaveButton.Content = _localizationService.GetString("Save");
         CancelButton.Content = _localizationService.GetString("Cancel");
+        ConfigureRoundRulesButton.Content = _localizationService.GetString("ConfigureRoundRules");
         
         UpdateComboBoxContents();
     }
@@ -174,6 +178,8 @@ public partial class GameRulesWindow : Window
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine("GameRulesWindow.SaveButton_Click: START");
+            
             // Validate and save basic rules
             if (Enum.TryParse<GameMode>(GameModeComboBox.SelectedValue?.ToString(), out var gameMode))
                 _gameRules.GameMode = gameMode;
@@ -207,6 +213,11 @@ public partial class GameRulesWindow : Window
 
             _gameRules.IncludeGroupPhaseLosersBracket = IncludeGroupPhaseLosersBracketCheckBox.IsChecked == true;
 
+            System.Diagnostics.Debug.WriteLine("GameRulesWindow.SaveButton_Click: Rules saved, triggering DataChanged event");
+            
+            // Trigger data changed event
+            DataChanged?.Invoke(this, EventArgs.Empty);
+
             DialogResult = true;
             Close();
         }
@@ -220,5 +231,20 @@ public partial class GameRulesWindow : Window
     {
         DialogResult = false;
         Close();
+    }
+
+    private void ConfigureRoundRulesButton_Click(object sender, RoutedEventArgs e)
+    {
+        var roundRulesWindow = new RoundRulesWindow(_gameRules, _localizationService);
+        roundRulesWindow.Owner = this;
+        
+        // Subscribe to RoundRulesWindow data changes
+        roundRulesWindow.DataChanged += (s, args) =>
+        {
+            System.Diagnostics.Debug.WriteLine("GameRulesWindow: RoundRulesWindow DataChanged received, propagating...");
+            DataChanged?.Invoke(this, EventArgs.Empty);
+        };
+        
+        roundRulesWindow.ShowDialog();
     }
 }
