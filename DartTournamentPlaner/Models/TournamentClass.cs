@@ -478,17 +478,337 @@ public class TournamentClass : INotifyPropertyChanged
 
     private void GenerateDoubleEliminationBracket(TournamentPhase phase, List<Player> players)
     {
-        // First generate single elimination winner bracket
-        GenerateSingleEliminationBracket(phase, players);
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket START ===");
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: {players.Count} players");
 
-        // Then generate loser bracket
-        var loserMatches = new List<KnockoutMatch>();
-        int matchId = phase.WinnerBracket.Count + 1;
+            // First generate single elimination winner bracket
+            GenerateSingleEliminationBracket(phase, players);
 
-        // TODO: Implement full double elimination loser bracket logic
-        // This is quite complex and would need careful bracket structure
+            // Generate the loser bracket
+            GenerateLoserBracket(phase);
 
-        phase.LoserBracket = new ObservableCollection<KnockoutMatch>(loserMatches);
+            // Connect brackets for grand final if needed
+            if (phase.WinnerBracket.Any() && phase.LoserBracket.Any())
+            {
+                GenerateGrandFinal(phase);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Generated {phase.WinnerBracket.Count} winner matches and {phase.LoserBracket.Count} loser matches");
+            System.Diagnostics.Debug.WriteLine($"=== GenerateDoubleEliminationBracket END ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"GenerateDoubleEliminationBracket: Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    private void GenerateLoserBracket(TournamentPhase phase)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== GenerateLoserBracket START ===");
+
+            var loserMatches = new List<KnockoutMatch>();
+            int matchId = phase.WinnerBracket.Count + 1;
+
+            // Get winner bracket matches grouped by round
+            var winnerMatchesByRound = phase.WinnerBracket
+                .GroupBy(m => m.Round)
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Winner bracket has {winnerMatchesByRound.Count} rounds");
+
+            if (winnerMatchesByRound.Count < 2)
+            {
+                System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Not enough winner rounds for loser bracket");
+                phase.LoserBracket = new ObservableCollection<KnockoutMatch>();
+                return;
+            }
+
+            // LOSER BRACKET STRUCTURE:
+            // Potential LR0: Group phase losers (if IncludeGroupPhaseLosersBracket is enabled)
+            // LR1: Losers from WR1 play each other
+            // LR2: Winners from LR1 vs Losers from WR2
+            // LR3: Winners from LR2 play each other  
+            // LR4: Winners from LR3 vs Losers from WR3
+            // ... and so on until loser bracket final
+
+            var loserRoundEnums = new[]
+            {
+                KnockoutRound.LoserRound1, KnockoutRound.LoserRound2, KnockoutRound.LoserRound3,
+                KnockoutRound.LoserRound4, KnockoutRound.LoserRound5, KnockoutRound.LoserRound6,
+                KnockoutRound.LoserRound7, KnockoutRound.LoserRound8, KnockoutRound.LoserRound9,
+                KnockoutRound.LoserRound10, KnockoutRound.LoserRound11, KnockoutRound.LoserRound12,
+                KnockoutRound.LoserFinal
+            };
+
+            var loserRoundCounter = 0;
+            var previousLoserMatches = new List<KnockoutMatch>();
+
+            // Check if we should include group phase losers
+            if (GameRules.IncludeGroupPhaseLosersBracket)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Including group phase losers in loser bracket");
+                
+                // Get group phase losers (players who didn't qualify for knockout)
+                var groupPhase = Phases.First(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+                var qualifiedPlayers = groupPhase.GetQualifiedPlayers(GameRules.QualifyingPlayersPerGroup);
+                var allGroupPlayers = groupPhase.Groups.SelectMany(g => g.Players).ToList();
+                var groupPhaseLosers = allGroupPlayers.Where(p => !qualifiedPlayers.Contains(p)).ToList();
+                
+                System.Diagnostics.Debug.WriteLine($"  Found {groupPhaseLosers.Count} group phase losers");
+                
+                if (groupPhaseLosers.Count > 1)
+                {
+                    // Create initial loser bracket matches for group phase losers
+                    var currentLoserRoundMatches = new List<KnockoutMatch>();
+                    
+                    // Pair up group phase losers
+                    for (int i = 0; i < groupPhaseLosers.Count; i += 2)
+                    {
+                        if (loserRoundCounter >= loserRoundEnums.Length) break;
+                        
+                        var loserMatch = new KnockoutMatch
+                        {
+                            Id = matchId++,
+                            BracketType = BracketType.Loser,
+                            Round = loserRoundEnums[loserRoundCounter],
+                            Position = i / 2,
+                            Player1 = groupPhaseLosers[i],
+                            Player2 = i + 1 < groupPhaseLosers.Count ? groupPhaseLosers[i + 1] : null,
+                            Player1FromWinner = false, // Direct assignment from group phase
+                            Player2FromWinner = false
+                        };
+
+                        // Handle bye if odd number of group phase losers
+                        if (loserMatch.Player2 == null)
+                        {
+                            loserMatch.Winner = loserMatch.Player1;
+                            loserMatch.Status = MatchStatus.Finished;
+                            System.Diagnostics.Debug.WriteLine($"    LR{loserRoundCounter + 1} Match {loserMatch.Id}: {loserMatch.Player1?.Name} gets bye");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"    LR{loserRoundCounter + 1} Match {loserMatch.Id}: {loserMatch.Player1?.Name} vs {loserMatch.Player2?.Name}");
+                        }
+
+                        currentLoserRoundMatches.Add(loserMatch);
+                        loserMatches.Add(loserMatch);
+                    }
+                    
+                    previousLoserMatches = currentLoserRoundMatches;
+                    loserRoundCounter++;
+                }
+            }
+
+            // Process each winner bracket round (except the final)
+            for (int wrRoundIndex = 0; wrRoundIndex < winnerMatchesByRound.Count - 1; wrRoundIndex++)
+            {
+                var winnerRound = winnerMatchesByRound[wrRoundIndex];
+                var winnerMatches = winnerRound.ToList();
+
+                System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Processing Winner Round {wrRoundIndex + 1} with {winnerMatches.Count} matches");
+
+                if (wrRoundIndex == 0 && !GameRules.IncludeGroupPhaseLosersBracket)
+                {
+                    // LR1: First eliminated players from WR1 play against each other (only if no group phase losers)
+                    System.Diagnostics.Debug.WriteLine($"  Creating LR{loserRoundCounter + 1}: Losers from WR1 vs each other");
+                    
+                    var currentLoserRoundMatches = new List<KnockoutMatch>();
+                    
+                    // Pair up losers from first winner round
+                    for (int i = 0; i < winnerMatches.Count; i += 2)
+                    {
+                        if (loserRoundCounter >= loserRoundEnums.Length) break;
+                        
+                        var loserMatch = new KnockoutMatch
+                        {
+                            Id = matchId++,
+                            BracketType = BracketType.Loser,
+                            Round = loserRoundEnums[loserRoundCounter],
+                            Position = i / 2,
+                            SourceMatch1 = winnerMatches[i],
+                            SourceMatch2 = i + 1 < winnerMatches.Count ? winnerMatches[i + 1] : null,
+                            Player1FromWinner = false, // Loser from source match
+                            Player2FromWinner = false
+                        };
+
+                        currentLoserRoundMatches.Add(loserMatch);
+                        loserMatches.Add(loserMatch);
+                        
+                        System.Diagnostics.Debug.WriteLine($"    LR{loserRoundCounter + 1} Match {loserMatch.Id}: Loser of W{winnerMatches[i].Id} vs Loser of W{winnerMatches[i + 1]?.Id ?? 0}");
+                    }
+                    
+                    previousLoserMatches = currentLoserRoundMatches;
+                    loserRoundCounter++;
+                }
+                else
+                {
+                    // Subsequent rounds: Two different patterns alternating
+                    
+                    // Pattern 1: Winners from previous loser round vs Losers from current winner round
+                    if (loserRoundCounter < loserRoundEnums.Length)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Creating LR{loserRoundCounter + 1}: Winners from LR{loserRoundCounter} vs Losers from WR{wrRoundIndex + 1}");
+                        
+                        var currentLoserRoundMatches = new List<KnockoutMatch>();
+                        
+                        // Match winners from previous loser round with losers from current winner round
+                        var previousLoserWinners = previousLoserMatches.ToList();
+                        var currentWinnerLosers = winnerMatches.ToList();
+                        
+                        int maxMatches = Math.Max(previousLoserWinners.Count, currentWinnerLosers.Count);
+                        
+                        for (int i = 0; i < maxMatches && i < Math.Min(previousLoserWinners.Count, currentWinnerLosers.Count); i++)
+                        {
+                            var previousLoserMatch = previousLoserWinners[i];
+                            var currentWinnerMatch = currentWinnerLosers[i];
+                            
+                            var loserMatch = new KnockoutMatch
+                            {
+                                Id = matchId++,
+                                BracketType = BracketType.Loser,
+                                Round = loserRoundEnums[loserRoundCounter],
+                                Position = i,
+                                SourceMatch1 = previousLoserMatch,  // Winner from previous loser round
+                                SourceMatch2 = currentWinnerMatch, // Loser from current winner round
+                                Player1FromWinner = true,  // Winner from loser match
+                                Player2FromWinner = false  // Loser from winner match
+                            };
+
+                            currentLoserRoundMatches.Add(loserMatch);
+                            loserMatches.Add(loserMatch);
+                            
+                            System.Diagnostics.Debug.WriteLine($"    LR{loserRoundCounter + 1} Match {loserMatch.Id}: Winner of L{previousLoserMatch.Id} vs Loser of W{currentWinnerMatch.Id}");
+                        }
+                        
+                        previousLoserMatches = currentLoserRoundMatches;
+                        loserRoundCounter++;
+                    }
+                    
+                    // Pattern 2: Winners from current loser round play each other (consolidation)
+                    if (previousLoserMatches.Count > 1 && loserRoundCounter < loserRoundEnums.Length)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Creating LR{loserRoundCounter + 1}: Consolidation round - Winners from LR{loserRoundCounter} vs each other");
+                        
+                        var consolidationMatches = new List<KnockoutMatch>();
+                        
+                        for (int i = 0; i < previousLoserMatches.Count; i += 2)
+                        {
+                            var loserMatch = new KnockoutMatch
+                            {
+                                Id = matchId++,
+                                BracketType = BracketType.Loser,
+                                Round = loserRoundEnums[loserRoundCounter],
+                                Position = i / 2,
+                                SourceMatch1 = previousLoserMatches[i],
+                                SourceMatch2 = i + 1 < previousLoserMatches.Count ? previousLoserMatches[i + 1] : null,
+                                Player1FromWinner = true, // Winner from previous loser match
+                                Player2FromWinner = true  // Winner from previous loser match
+                            };
+
+                            consolidationMatches.Add(loserMatch);
+                            loserMatches.Add(loserMatch);
+                            
+                            System.Diagnostics.Debug.WriteLine($"    LR{loserRoundCounter + 1} Match {loserMatch.Id}: Winner of L{previousLoserMatches[i].Id} vs Winner of L{previousLoserMatches[i + 1]?.Id ?? 0}");
+                        }
+                        
+                        previousLoserMatches = consolidationMatches;
+                        loserRoundCounter++;
+                    }
+                }
+            }
+
+            // Create loser bracket final if we have more than one match remaining
+            if (previousLoserMatches.Count > 1 && loserRoundCounter < loserRoundEnums.Length)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Creating Loser Final: Final consolidation");
+                
+                for (int i = 0; i < previousLoserMatches.Count; i += 2)
+                {
+                    var loserFinalMatch = new KnockoutMatch
+                    {
+                        Id = matchId++,
+                        BracketType = BracketType.Loser,
+                        Round = KnockoutRound.LoserFinal,
+                        Position = i / 2,
+                        SourceMatch1 = previousLoserMatches[i],
+                        SourceMatch2 = i + 1 < previousLoserMatches.Count ? previousLoserMatches[i + 1] : null,
+                        Player1FromWinner = true,
+                        Player2FromWinner = true
+                    };
+
+                    loserMatches.Add(loserFinalMatch);
+                    System.Diagnostics.Debug.WriteLine($"    Loser Final Match {loserFinalMatch.Id}: Winner of L{previousLoserMatches[i].Id} vs Winner of L{previousLoserMatches[i + 1]?.Id ?? 0}");
+                }
+            }
+
+            phase.LoserBracket = new ObservableCollection<KnockoutMatch>(loserMatches);
+            
+            System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Generated {loserMatches.Count} loser bracket matches across {loserRoundCounter} rounds");
+            System.Diagnostics.Debug.WriteLine($"=== GenerateLoserBracket END ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Stack trace: {ex.StackTrace}");
+            throw;
+        }
+    }
+
+    private void GenerateGrandFinal(TournamentPhase phase)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== GenerateGrandFinal START ===");
+
+            // Get the winner bracket final match
+            var winnerFinal = phase.WinnerBracket.LastOrDefault();
+            var loserFinal = phase.LoserBracket.LastOrDefault();
+
+            if (winnerFinal == null || loserFinal == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Missing winner or loser final");
+                return;
+            }
+
+            int matchId = Math.Max(
+                phase.WinnerBracket.Max(m => m.Id),
+                phase.LoserBracket.Max(m => m.Id)
+            ) + 1;
+
+            // Create grand final match
+            var grandFinal = new KnockoutMatch
+            {
+                Id = matchId,
+                BracketType = BracketType.Winner, // Grand final is technically part of winner bracket
+                Round = KnockoutRound.GrandFinal,
+                Position = 0,
+                SourceMatch1 = winnerFinal,  // Winner bracket champion
+                SourceMatch2 = loserFinal,   // Loser bracket champion
+                Player1FromWinner = true,
+                Player2FromWinner = true
+            };
+
+            // Add grand final to winner bracket (it's the ultimate winner match)
+            var winnerMatches = phase.WinnerBracket.ToList();
+            winnerMatches.Add(grandFinal);
+            phase.WinnerBracket = new ObservableCollection<KnockoutMatch>(winnerMatches);
+
+            System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Created Grand Final match {grandFinal.Id}");
+            System.Diagnostics.Debug.WriteLine($"=== GenerateGrandFinal END ===");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

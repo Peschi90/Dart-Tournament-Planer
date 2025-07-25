@@ -197,6 +197,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["GroupPhaseTab"] = "Gruppenphase", 
                 ["FinalsTab"] = "Finalrunde",
                 ["KnockoutTab"] = "KO-Runde",
+                ["LoserBracketTab"] = "Loser Bracket",
+                ["LoserBracketTreeTab"] = "Loser Bracket Baum",
                 ["GroupSetup"] = "Gruppenerstellung",
                 ["MatchArea"] = "Spielbereich",
 
@@ -400,6 +402,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["GroupPhaseTab"] = "Group Phase",
                 ["FinalsTab"] = "Finals Round", 
                 ["KnockoutTab"] = "Knockout Round",
+                ["LoserBracketTab"] = "Loser Bracket",
+                ["LoserBracketTreeTab"] = "Loser Bracket Tree",
                 ["GroupSetup"] = "Group Creation",
                 ["MatchArea"] = "Match Area",
 

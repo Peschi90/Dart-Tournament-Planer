@@ -472,6 +472,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             FinalsTabItem.Visibility = hasRoundRobinFinals ? Visibility.Visible : Visibility.Collapsed;
             KnockoutTabItem.Visibility = hasKnockout ? Visibility.Visible : Visibility.Collapsed;
             LoserBracketTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
+            LoserBracketTreeTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
 
             // Check if we can advance to next phase
             bool canAdvance = false;
@@ -588,38 +589,35 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
         {
-            var qualifiedParticipants = TournamentClass.CurrentPhase.QualifiedPlayers?.Count ?? 0;
-            
-            // Validierung hinzufügen bevor GetDynamicRoundDisplay aufgerufen wird
-            if (!KnockoutMatch.CanStartKnockoutPhase(qualifiedParticipants))
-            {
-                string? error = KnockoutMatch.ValidateKnockoutPhaseStart(qualifiedParticipants);
-                MessageBox.Show(error ?? "K.O.-Phase kann nicht angezeigt werden", 
-                               "K.O.-Phase Fehler", MessageBoxButton.OK, MessageBoxImage.Warning);
-                               
-                // Zur Gruppenphase zurückkehren
-                ResetToGroupPhase();
-                return;
-            }
-
             KnockoutParticipantsListBox.ItemsSource = TournamentClass.CurrentPhase.QualifiedPlayers;
             
-            // Create a dynamic view of matches with correct round names - nur wenn Teilnehmer vorhanden
+            // Create a dynamic view of matches with correct round names
             var winnerBracketMatches = TournamentClass.CurrentPhase.WinnerBracket.Select(match =>
-                new KnockoutMatchViewModel(match, qualifiedParticipants, _localizationService)).ToList();
+                new KnockoutMatchViewModel(match, TournamentClass.CurrentPhase.QualifiedPlayers.Count, _localizationService)).ToList();
             
             KnockoutMatchesDataGrid.ItemsSource = winnerBracketMatches;
             
             if (TournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
             {
                 var loserBracketMatches = TournamentClass.CurrentPhase.LoserBracket.Select(match =>
-                    new KnockoutMatchViewModel(match, qualifiedParticipants, _localizationService)).ToList();
+                    new KnockoutMatchViewModel(match, TournamentClass.CurrentPhase.QualifiedPlayers.Count, _localizationService)).ToList();
                 
                 LoserBracketDataGrid.ItemsSource = loserBracketMatches;
+                
+                // Show loser bracket tabs for double elimination
+                LoserBracketTab.Visibility = Visibility.Visible;
+                LoserBracketTreeTab.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                // Hide loser bracket tabs for single elimination
+                LoserBracketTab.Visibility = Visibility.Collapsed;
+                LoserBracketTreeTab.Visibility = Visibility.Collapsed;
             }
             
             // Update bracket visualization
             DrawBracketTree();
+            DrawLoserBracketTree();
         }
     }
 
@@ -728,13 +726,18 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 Canvas.SetLeft(matchBorder, x);
                 Canvas.SetTop(matchBorder, y);
                 
-                // Add click event for match editing
+                // Add click event for match editing - Support both single and double click
                 matchBorder.MouseLeftButtonDown += (sender, e) =>
                 {
                     if (match.Player1 != null && match.Player2 != null)
                     {
-                        KnockoutMatchesDataGrid.SelectedItem = match;
-                        KnockoutMatchesDataGrid_MouseDoubleClick(sender, new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Left));
+                        KnockoutMatchesDataGrid.SelectedItem = new KnockoutMatchViewModel(match, TournamentClass.CurrentPhase.QualifiedPlayers.Count, _localizationService);
+                        
+                        // Handle double click for result entry
+                        if (e.ClickCount == 2)
+                        {
+                            OpenMatchResultWindow(match);
+                        }
                     }
                 };
                 
@@ -750,6 +753,162 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 }
             }
         }
+    }
+
+    private void DrawLoserBracketTree()
+    {
+        if (TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase || LoserBracketCanvas == null)
+            return;
+
+        LoserBracketCanvas.Children.Clear();
+        
+        var matches = TournamentClass.CurrentPhase.LoserBracket.OrderBy(m => m.Round).ThenBy(m => m.Position).ToList();
+        if (!matches.Any()) return;
+
+        // Calculate bracket dimensions
+        var rounds = matches.GroupBy(m => m.Round).Count();
+        var maxMatchesInRound = matches.GroupBy(m => m.Round).Max(g => g.Count());
+        
+        double matchWidth = 200;
+        double matchHeight = 70;
+        double roundSpacing = 250;
+        double matchSpacing = 80;
+        
+        // Calculate canvas size
+        double canvasWidth = rounds * roundSpacing + matchWidth;
+        double canvasHeight = maxMatchesInRound * matchSpacing + matchHeight;
+        
+        LoserBracketCanvas.Width = Math.Max(800, canvasWidth);
+        LoserBracketCanvas.Height = Math.Max(600, canvasHeight);
+
+        // Group matches by round
+        var matchesByRound = matches.GroupBy(m => m.Round).OrderBy(g => g.Key).ToList();
+        
+        for (int roundIndex = 0; roundIndex < matchesByRound.Count; roundIndex++)
+        {
+            var roundMatches = matchesByRound[roundIndex].OrderBy(m => m.Position).ToList();
+            double x = roundIndex * roundSpacing + 50;
+            
+            for (int matchIndex = 0; matchIndex < roundMatches.Count; matchIndex++)
+            {
+                var match = roundMatches[matchIndex];
+                
+                // Calculate Y position (center matches vertically)
+                double totalRoundHeight = roundMatches.Count * matchSpacing;
+                double startY = (canvasHeight - totalRoundHeight) / 2;
+                double y = startY + matchIndex * matchSpacing;
+                
+                // Draw match box with loser bracket styling
+                var matchBorder = new Border
+                {
+                    Width = matchWidth,
+                    Height = matchHeight,
+                    Background = GetLoserMatchBackground(match.Status),
+                    BorderBrush = Brushes.DarkRed,
+                    BorderThickness = new Thickness(2),
+                    CornerRadius = new CornerRadius(5)
+                };
+                
+                var matchStackPanel = new StackPanel
+                {
+                    Orientation = Orientation.Vertical,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                
+                // Match title with loser bracket indication
+                var titleText = new TextBlock
+                {
+                    Text = match.GetDynamicRoundDisplay(TournamentClass.CurrentPhase.QualifiedPlayers.Count, _localizationService),
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 10,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = Brushes.DarkRed
+                };
+                matchStackPanel.Children.Add(titleText);
+                
+                // Player names and score
+                var player1Text = new TextBlock
+                {
+                    Text = match.Player1?.Name ?? "TBD",
+                    FontSize = 11,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                
+                var scoreText = new TextBlock
+                {
+                    Text = match.ScoreDisplay,
+                    FontSize = 10,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontWeight = FontWeights.Bold
+                };
+                
+                var player2Text = new TextBlock
+                {
+                    Text = match.Player2?.Name ?? "TBD",
+                    FontSize = 11,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                
+                matchStackPanel.Children.Add(player1Text);
+                matchStackPanel.Children.Add(scoreText);
+                matchStackPanel.Children.Add(player2Text);
+                
+                matchBorder.Child = matchStackPanel;
+                
+                // Position the match
+                Canvas.SetLeft(matchBorder, x);
+                Canvas.SetTop(matchBorder, y);
+                
+                // Add click event for match editing - Support both single and double click
+                matchBorder.MouseLeftButtonDown += (sender, e) =>
+                {
+                    if (match.Player1 != null && match.Player2 != null)
+                    {
+                        LoserBracketDataGrid.SelectedItem = new KnockoutMatchViewModel(match, TournamentClass.CurrentPhase.QualifiedPlayers.Count, _localizationService);
+                        
+                        // Handle double click for result entry
+                        if (e.ClickCount == 2)
+                        {
+                            OpenMatchResultWindow(match);
+                        }
+                    }
+                };
+                
+                matchBorder.Cursor = Cursors.Hand;
+                LoserBracketCanvas.Children.Add(matchBorder);
+                
+                // Draw connection lines to next round (except for final)
+                if (roundIndex < matchesByRound.Count - 1)
+                {
+                    DrawLoserConnectionLine(x + matchWidth, y + matchHeight / 2, 
+                                           x + roundSpacing, y + matchHeight / 2, 
+                                           matchIndex, roundMatches.Count);
+                }
+            }
+        }
+    }
+
+    private Brush GetMatchBackground(MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.NotStarted => Brushes.LightGray,
+            MatchStatus.InProgress => Brushes.LightYellow,
+            MatchStatus.Finished => Brushes.LightGreen,
+            _ => Brushes.White
+        };
+    }
+
+    private Brush GetLoserMatchBackground(MatchStatus status)
+    {
+        return status switch
+        {
+            MatchStatus.NotStarted => Brushes.LightCoral,
+            MatchStatus.InProgress => Brushes.Orange,
+            MatchStatus.Finished => Brushes.LightPink,
+            _ => Brushes.White
+        };
     }
 
     private void DrawConnectionLine(double startX, double startY, double endX, double endY, int matchIndex, int totalMatches)
@@ -801,15 +960,53 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
-    private Brush GetMatchBackground(MatchStatus status)
+    private void DrawLoserConnectionLine(double startX, double startY, double endX, double endY, int matchIndex, int totalMatches)
     {
-        return status switch
+        // Draw horizontal line from match to middle point (red style for loser bracket)
+        var horizontalLine = new Line
         {
-            MatchStatus.NotStarted => Brushes.LightGray,
-            MatchStatus.InProgress => Brushes.LightYellow,
-            MatchStatus.Finished => Brushes.LightGreen,
-            _ => Brushes.White
+            X1 = startX,
+            Y1 = startY,
+            X2 = startX + 80,
+            Y2 = startY,
+            Stroke = Brushes.DarkRed,
+            StrokeThickness = 2
         };
+        LoserBracketCanvas.Children.Add(horizontalLine);
+        
+        // For pairs of matches, draw vertical connector and line to next round
+        if (matchIndex % 2 == 0 && matchIndex + 1 < totalMatches)
+        {
+            // Calculate positions for vertical connector
+            double verticalX = startX + 80;
+            double currentY = startY;
+            double nextMatchY = startY + 80; // Next match down
+            double midY = (currentY + nextMatchY) / 2;
+            
+            // Vertical line connecting two matches (red style)
+            var verticalLine = new Line
+            {
+                X1 = verticalX,
+                Y1 = currentY,
+                X2 = verticalX,
+                Y2 = nextMatchY,
+                Stroke = Brushes.DarkRed,
+                StrokeThickness = 2
+            };
+            LoserBracketCanvas.Children.Add(verticalLine);
+            
+            // Horizontal line to next round (red style)
+            var toNextRoundLine = new Line
+            {
+                X1 = verticalX,
+                Y1 = midY,
+                X2 = endX,
+                Y2 = midY,
+                Stroke = Brushes.DarkRed,
+                StrokeThickness = 2
+            };
+            LoserBracketCanvas.Children.Add(toNextRoundLine);
+        }
     }
 
     private void ConfigureRulesButton_Click(object sender, RoutedEventArgs e)
@@ -960,6 +1157,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 if (BracketCanvas != null)
                 {
                     BracketCanvas.Children.Clear();
+                }
+                
+                // Clear loser bracket canvas visually
+                if (LoserBracketCanvas != null)
+                {
+                    LoserBracketCanvas.Children.Clear();
                 }
                 
                 // Clear knockout view data sources
@@ -1197,20 +1400,64 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         if (TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase || completedMatch.Winner == null)
             return;
 
-        // Find matches that depend on this completed match
-        var nextRoundMatches = TournamentClass.CurrentPhase.WinnerBracket
-            .Where(m => m.SourceMatch1 == completedMatch || m.SourceMatch2 == completedMatch)
-            .ToList();
+        // Collect all matches for the update
+        var allMatches = new List<KnockoutMatch>();
+        allMatches.AddRange(TournamentClass.CurrentPhase.WinnerBracket);
+        allMatches.AddRange(TournamentClass.CurrentPhase.LoserBracket);
 
-        foreach (var nextMatch in nextRoundMatches)
+        // Update next round matches using the new helper method
+        KnockoutMatch.UpdateNextRoundFromCompletedMatch(completedMatch, allMatches);
+
+        // If this was a winner bracket match, also update the loser bracket
+        if (completedMatch.BracketType == BracketType.Winner)
         {
-            if (nextMatch.SourceMatch1 == completedMatch)
+            KnockoutMatch.UpdateLoserBracketFromWinnerMatch(completedMatch, TournamentClass.CurrentPhase.LoserBracket);
+        }
+    }
+
+    /// <summary>
+    /// Opens the match result window for a knockout match
+    /// </summary>
+    /// <param name="selectedMatch">The knockout match to edit</param>
+    private void OpenMatchResultWindow(KnockoutMatch selectedMatch)
+    {
+        if (selectedMatch != null && _localizationService != null)
+        {
+            // Convert KnockoutMatch to Match for the result window
+            var tempMatch = new Match
             {
-                nextMatch.Player1 = completedMatch.Winner;
-            }
-            else if (nextMatch.SourceMatch2 == completedMatch)
+                Id = selectedMatch.Id,
+                Player1 = selectedMatch.Player1,
+                Player2 = selectedMatch.Player2,
+                Player1Sets = selectedMatch.Player1Sets,
+                Player2Sets = selectedMatch.Player2Sets,
+                Player1Legs = selectedMatch.Player1Legs,
+                Player2Legs = selectedMatch.Player2Legs,
+                Winner = selectedMatch.Winner,
+                Status = selectedMatch.Status,
+                Notes = selectedMatch.Notes
+            };
+
+            var resultWindow = new MatchResultWindow(tempMatch, TournamentClass.GameRules, _localizationService);
+            resultWindow.Owner = Window.GetWindow(this);
+            
+            if (resultWindow.ShowDialog() == true)
             {
-                nextMatch.Player2 = completedMatch.Winner;
+                // Copy results back to KnockoutMatch
+                selectedMatch.Player1Sets = tempMatch.Player1Sets;
+                selectedMatch.Player2Sets = tempMatch.Player2Sets;
+                selectedMatch.Player1Legs = tempMatch.Player1Legs;
+                selectedMatch.Player2Legs = tempMatch.Player2Legs;
+                selectedMatch.Winner = tempMatch.Winner;
+                selectedMatch.Loser = tempMatch.Winner == tempMatch.Player1 ? tempMatch.Player2 : tempMatch.Player1;
+                selectedMatch.Status = tempMatch.Status;
+                selectedMatch.Notes = tempMatch.Notes;
+                selectedMatch.EndTime = DateTime.Now;
+
+                // Update next round matches if needed
+                UpdateKnockoutProgression(selectedMatch);
+                RefreshKnockoutView();
+                OnDataChanged();
             }
         }
     }
@@ -1316,7 +1563,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 if (currentPhase != TournamentPhaseType.GroupPhase && 
                     currentPhase != TournamentPhaseType.RoundRobinFinals)
                 {
-                    System.Diagnostics.Debug.WriteLine("GroupPhaseGroupsList_SelectionChanged: Preventing group selection in KO phase");
+                    System.Diagnostics.Debug.WriteLine($"GroupPhaseGroupsList_SelectionChanged: Preventing group selection in KO phase ({currentPhase})");
                     return;
                 }
             }
@@ -1836,7 +2083,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
                 MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            catch (Exception ex)
+            catch ( Exception ex)
             {
                 MessageBox.Show($"Fehler beim Wechsel zur nächsten Phase: {ex.Message}", "Fehler", 
                                MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1886,10 +2133,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     BracketCanvas.Children.Clear();
                 }
                 
-                // Clear knockout view data sources
-                KnockoutParticipantsListBox.ItemsSource = null;
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
+                // Clear loser bracket canvas visually
+                if (LoserBracketCanvas != null)
+                {
+                    LoserBracketCanvas.Children.Clear();
+                }
                 
                 // Update UI
                 UpdatePhaseDisplay();

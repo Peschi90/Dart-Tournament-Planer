@@ -12,13 +12,29 @@ public enum BracketType
 
 public enum KnockoutRound
 {
+    // Winner Bracket Rounds
     Best64,
     Best32,
     Best16,
     Quarterfinal,
     Semifinal,
     Final,
-    GrandFinal
+    GrandFinal,
+    
+    // Loser Bracket Rounds (numbered system)
+    LoserRound1,
+    LoserRound2,
+    LoserRound3,
+    LoserRound4,
+    LoserRound5,
+    LoserRound6,
+    LoserRound7,
+    LoserRound8,
+    LoserRound9,
+    LoserRound10,
+    LoserRound11,
+    LoserRound12,
+    LoserFinal
 }
 
 public class KnockoutMatch : INotifyPropertyChanged
@@ -298,11 +314,24 @@ public class KnockoutMatch : INotifyPropertyChanged
         KnockoutRound.Semifinal => "Halbfinale",
         KnockoutRound.Final => "Finale",
         KnockoutRound.GrandFinal => "Grand Final",
+        KnockoutRound.LoserRound1 => "LR1",
+        KnockoutRound.LoserRound2 => "LR2",
+        KnockoutRound.LoserRound3 => "LR3",
+        KnockoutRound.LoserRound4 => "LR4",
+        KnockoutRound.LoserRound5 => "LR5",
+        KnockoutRound.LoserRound6 => "LR6",
+        KnockoutRound.LoserRound7 => "LR7",
+        KnockoutRound.LoserRound8 => "LR8",
+        KnockoutRound.LoserRound9 => "LR9",
+        KnockoutRound.LoserRound10 => "LR10",
+        KnockoutRound.LoserRound11 => "LR11",
+        KnockoutRound.LoserRound12 => "LR12",
+        KnockoutRound.LoserFinal => "LF",
         _ => ""
     };
 
     /// <summary>
-    /// Gets the dynamic round display name based on tournament context
+    /// Gets the dynamic round display name based on tournament context and bracket type
     /// </summary>
     /// <param name="totalParticipants">Total number of participants</param>
     /// <param name="localizationService">Localization service</param>
@@ -331,8 +360,29 @@ public class KnockoutMatch : INotifyPropertyChanged
 
         try
         {
-            // For the new system, we need to map the enum to the actual round position
-            // based on the bracket structure and participant count
+            // Handle Loser Bracket rounds separately
+            if (BracketType == BracketType.Loser)
+            {
+                return Round switch
+                {
+                    KnockoutRound.LoserRound1 => "Loser Runde 1",
+                    KnockoutRound.LoserRound2 => "Loser Runde 2",
+                    KnockoutRound.LoserRound3 => "Loser Runde 3",
+                    KnockoutRound.LoserRound4 => "Loser Runde 4",
+                    KnockoutRound.LoserRound5 => "Loser Runde 5",
+                    KnockoutRound.LoserRound6 => "Loser Runde 6",
+                    KnockoutRound.LoserRound7 => "Loser Runde 7",
+                    KnockoutRound.LoserRound8 => "Loser Runde 8",
+                    KnockoutRound.LoserRound9 => "Loser Runde 9",
+                    KnockoutRound.LoserRound10 => "Loser Runde 10",
+                    KnockoutRound.LoserRound11 => "Loser Runde 11",
+                    KnockoutRound.LoserRound12 => "Loser Runde 12",
+                    KnockoutRound.LoserFinal => "Loser Finale",
+                    _ => RoundDisplay
+                };
+            }
+
+            // Handle Winner Bracket rounds with dynamic naming
             int bracketSize = 1;
             int iterations = 0;
             
@@ -350,6 +400,12 @@ public class KnockoutMatch : INotifyPropertyChanged
                 return "Fehler: Berechnung fehlgeschlagen";
             }
 
+            // Special handling for Grand Final
+            if (Round == KnockoutRound.GrandFinal)
+            {
+                return localizationService?.GetString("GrandFinal") ?? "Grand Final";
+            }
+
             // Calculate which "logical round" this enum represents in the context of this tournament
             int logicalRound = Round switch
             {
@@ -359,7 +415,6 @@ public class KnockoutMatch : INotifyPropertyChanged
                 KnockoutRound.Quarterfinal => GetQuarterfinalLogicalRound(bracketSize),
                 KnockoutRound.Semifinal => GetSemifinalLogicalRound(bracketSize),
                 KnockoutRound.Final => GetFinalLogicalRound(bracketSize),
-                KnockoutRound.GrandFinal => GetFinalLogicalRound(bracketSize) + 1,
                 _ => 1
             };
 
@@ -455,7 +510,7 @@ public class KnockoutMatch : INotifyPropertyChanged
 
         // Calculate total rounds needed
         var totalRounds = (int)Math.Ceiling(Math.Log2(totalParticipants));
-
+        
         // Validierung der Rundenzahl
         if (currentRound > totalRounds)
         {
@@ -533,6 +588,59 @@ public class KnockoutMatch : INotifyPropertyChanged
         return null; // Alles in Ordnung
     }
 
+    /// <summary>
+    /// Updates loser bracket matches with eliminated players from winner bracket
+    /// This should be called when a winner bracket match is completed
+    /// </summary>
+    /// <param name="completedWinnerMatch">The completed winner bracket match</param>
+    /// <param name="loserBracket">The loser bracket matches</param>
+    public static void UpdateLoserBracketFromWinnerMatch(KnockoutMatch completedWinnerMatch, IEnumerable<KnockoutMatch> loserBracket)
+    {
+        if (completedWinnerMatch.BracketType != BracketType.Winner || completedWinnerMatch.Loser == null)
+            return;
 
+        // Find loser bracket matches that should receive this eliminated player
+        var targetLoserMatches = loserBracket
+            .Where(lm => lm.SourceMatch1 == completedWinnerMatch || lm.SourceMatch2 == completedWinnerMatch)
+            .ToList();
+
+        foreach (var loserMatch in targetLoserMatches)
+        {
+            if (loserMatch.SourceMatch1 == completedWinnerMatch && !loserMatch.Player1FromWinner)
+            {
+                loserMatch.Player1 = completedWinnerMatch.Loser;
+            }
+            else if (loserMatch.SourceMatch2 == completedWinnerMatch && !loserMatch.Player2FromWinner)
+            {
+                loserMatch.Player2 = completedWinnerMatch.Loser;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Updates next round matches with winners from completed matches (both brackets)
+    /// </summary>
+    /// <param name="completedMatch">The completed match</param>
+    /// <param name="allMatches">All matches in the tournament</param>
+    public static void UpdateNextRoundFromCompletedMatch(KnockoutMatch completedMatch, IEnumerable<KnockoutMatch> allMatches)
+    {
+        if (completedMatch.Winner == null) return;
+
+        var nextRoundMatches = allMatches
+            .Where(m => m.SourceMatch1 == completedMatch || m.SourceMatch2 == completedMatch)
+            .ToList();
+
+        foreach (var nextMatch in nextRoundMatches)
+        {
+            if (nextMatch.SourceMatch1 == completedMatch && nextMatch.Player1FromWinner)
+            {
+                nextMatch.Player1 = completedMatch.Winner;
+            }
+            else if (nextMatch.SourceMatch2 == completedMatch && nextMatch.Player2FromWinner)
+            {
+                nextMatch.Player2 = completedMatch.Winner;
+            }
+        }
+    }
 }
 

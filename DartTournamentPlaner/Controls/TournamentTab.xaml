@@ -515,6 +515,12 @@
                                     </DataGrid>
                                 </DockPanel>
                             </TabItem>
+                            
+                            <TabItem Name="LoserBracketTreeTab" Header="Loser Bracket Baum" Visibility="Collapsed">
+                                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <Canvas Name="LoserBracketCanvas" Background="White" MinWidth="800" MinHeight="600"/>
+                                </ScrollViewer>
+                            </TabItem>
                         </TabControl>
                     </Border>
                 </Grid>
