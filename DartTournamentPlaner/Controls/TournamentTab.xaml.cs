@@ -1003,6 +1003,46 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             
             if (resultWindow.ShowDialog() == true)
             {
+                // SOFORTIGE UI-Aktualisierung nach Spielergebnis-Eingabe
+                System.Diagnostics.Debug.WriteLine("Match result saved - forcing immediate UI update");
+                
+                // Stoppe den Timer falls er läuft, um Throttling zu umgehen
+                _refreshTimer?.Stop();
+                _refreshTimer = null;
+                
+                // Sofortige Aktualisierung mit höchster Priorität
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        // Force refresh der DataGrids
+                        if (MatchesDataGrid.ItemsSource != null)
+                        {
+                            MatchesDataGrid.Items.Refresh();
+                        }
+                        
+                        if (StandingsDataGrid.ItemsSource != null)
+                        {
+                            // Neuberechnung der Standings
+                            if (SelectedGroup?.Players.Count > 0)
+                            {
+                                var standings = SelectedGroup.GetStandings();
+                                StandingsDataGrid.ItemsSource = standings;
+                            }
+                            StandingsDataGrid.Items.Refresh();
+                        }
+                        
+                        // Update der Phasen-Anzeige
+                        UpdatePhaseDisplay();
+                        
+                        System.Diagnostics.Debug.WriteLine("Immediate UI update completed");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in immediate UI update: {ex.Message}");
+                    }
+                }, DispatcherPriority.Render); // Höchste Priorität für sofortige Anzeige
+                
                 OnDataChanged();
             }
         }
