@@ -304,6 +304,89 @@ public class LocalizationService : INotifyPropertyChanged
                 ["LoserBracketMatches"] = "Loser Bracket Spiele",
                 ["BracketTree"] = "Turnierbaum",
                 ["Matches"] = "Spiele",
+
+                // Help System
+                ["HelpTitle"] = "Hilfe - Dart Turnier Planer",
+                ["HelpGeneral"] = "Allgemeine Bedienung",
+                ["HelpTournamentSetup"] = "Turnier-Setup",
+                ["HelpGroupManagement"] = "Gruppenverwaltung", 
+                ["HelpGameRules"] = "Spielregeln",
+                ["HelpMatches"] = "Spiele & Ergebnisse",
+                ["HelpTournamentPhases"] = "Turnierphasen",
+                ["HelpMenus"] = "Menüs & Funktionen",
+                ["HelpTips"] = "Tipps & Tricks",
+                
+                // Help Content - General
+                ["HelpGeneralContent"] = "Das Dart Turnier Planer hilft Ihnen bei der Verwaltung von Dart-Turnieren mit bis zu 4 verschiedenen Klassen (Platin, Gold, Silber, Bronze).\n\n" +
+                    "• Verwenden Sie die Tabs oben, um zwischen den Klassen zu wechseln\n" +
+                    "• Alle Änderungen werden automatisch gespeichert (wenn aktiviert)\n" +
+                    "• Die Statusleiste zeigt den aktuellen Speicherstatus an\n" +
+                    "• Sprache kann in den Einstellungen geändert werden",
+                
+                // Help Content - Tournament Setup
+                ["HelpTournamentSetupContent"] = "So richten Sie ein neues Turnier ein:\n\n" +
+                    "1. Wählen Sie eine Turnierklasse (Platin, Gold, Silber, Bronze)\n" +
+                    "2. Klicken Sie auf 'Gruppe hinzufügen' um Gruppen zu erstellen\n" +
+                    "3. Fügen Sie Spieler zu den Gruppen hinzu\n" +
+                    "4. Konfigurieren Sie die Spielregeln über den 'Regeln konfigurieren' Button\n" +
+                    "5. Stellen Sie den Modus nach der Gruppenphase ein (Nur Gruppen, Finalrunde, KO-System)\n\n" +
+                    "Tipp: Mindestens 2 Spieler pro Gruppe sind erforderlich für die Spielgenerierung.",
+                
+                // Help Content - Group Management
+                ["HelpGroupManagementContent"] = "Gruppenverwaltung:\n\n" +
+                    "• 'Gruppe hinzufügen': Erstellt eine neue Gruppe\n" +
+                    "• 'Gruppe entfernen': Löscht die ausgewählte Gruppe (Warnung erscheint)\n" +
+                    "• 'Spieler hinzufügen': Fügt einen Spieler zur ausgewählten Gruppe hinzu\n" +
+                    "• 'Spieler entfernen': Entfernt den ausgewählten Spieler\n\n" +
+                    "Die Spielerliste zeigt alle Spieler der aktuell ausgewählten Gruppe.\n" +
+                    "Gruppen können beliebig benannt werden und sollten aussagekräftige Namen haben.",
+                
+                // Help Content - Game Rules
+                ["HelpGameRulesContent"] = "Spielregeln konfigurieren:\n\n" +
+                    "• Spielmodus: 301, 401 oder 501 Punkte\n" +
+                    "• Finish-Modus: Single Out oder Double Out\n" +
+                    "• Legs zum Sieg: Anzahl der Legs für einen Sieg\n" +
+                    "• Mit Sets spielen: Aktiviert das Set-System\n" +
+                    "• Sets zum Sieg: Anzahl der Sets für einen Turniersieg\n" +
+                    "• Legs pro Set: Anzahl der Legs pro Set\n\n" +
+                    "Für verschiedene Turnierrunden können unterschiedliche Regeln festgelegt werden.",
+                
+                // Help Content - Matches
+                ["HelpMatchesContent"] = "Spiele verwalten:\n\n" +
+                    "• 'Spiele generieren': Erstellt alle Spiele für die Gruppe (Round-Robin)\n" +
+                    "• Klicken Sie auf ein Spiel, um das Ergebnis einzugeben\n" +
+                    "• Status: Nicht gestartet (grau), Läuft (gelb), Beendet (grün)\n" +
+                    "• Rechtsklick auf Spiele für weitere Optionen (Freilos, etc.)\n" +
+                    "• 'Spiele zurücksetzen': Löscht alle Ergebnisse der Gruppe\n\n" +
+                    "Die Tabelle zeigt automatisch die aktuelle Platzierung aller Spieler.",
+                
+                // Help Content - Tournament Phases
+                ["HelpTournamentPhasesContent"] = "Turnierphasen:\n\n" +
+                    "1. Gruppenphase: Round-Robin innerhalb jeder Gruppe\n" +
+                    "2. Nach der Gruppenphase (optional):\n" +
+                    "   • Nur Gruppenphase: Turnier endet nach den Gruppen\n" +
+                    "   • Finalrunde: Top-Spieler spielen Round-Robin\n" +
+                    "   • KO-System: Einzel- oder Doppel-Eliminierung\n\n" +
+                    "Der 'Nächste Phase starten' Button wird verfügbar, wenn alle Spiele beendet sind.\n" +
+                    "KO-System kann Winner Bracket und Loser Bracket haben.",
+                
+                // Help Content - Menus
+                ["HelpMenusContent"] = "Menü-Funktionen:\n\n" +
+                    "Datei:\n• Neu: Erstellt ein leeres Turnier\n• Öffnen/Speichern: Lädt/Speichert Turnierdaten\n• Beenden: Schließt die Anwendung\n\n" +
+                    "Ansicht:\n• Turnier-Übersicht: Zeigt eine Vollbild-Ansicht aller Klassen\n\n" +
+                    "Einstellungen:\n• Sprache, Design und Auto-Speicher-Einstellungen\n\n" +
+                    "Hilfe:\n• Diese Hilfe-Seite\n• Über-Dialog mit Versionsinformationen",
+                
+                // Help Content - Tips
+                ["HelpTipsContent"] = "Tipps & Tricks:\n\n" +
+                    "• Verwenden Sie aussagekräftige Gruppennamen (z.B. 'Gruppe A', 'Anfänger')\n" +
+                    "• Aktivieren Sie Auto-Speichern in den Einstellungen\n" +
+                    "• Die Turnier-Übersicht eignet sich perfekt für Beamer-Präsentationen\n" +
+                    "• Rechtsklick auf Spiele zeigt zusätzliche Optionen\n" +
+                    "• Bei ungerader Spielerzahl wird automatisch ein Freilos vergeben\n" +
+                    "• Sets und Legs werden automatisch validiert\n" +
+                    "• Verschiedene Regeln für verschiedene Turnierrunden möglich\n" +
+                    "• Export/Import von Turnierdaten über das Datei-Menü",
             },
             
             ["en"] = new Dictionary<string, string>
@@ -598,6 +681,89 @@ public class LocalizationService : INotifyPropertyChanged
                 ["LoserBracketMatches"] = "Loser Bracket Matches",
                 ["BracketTree"] = "Tournament Tree",
                 ["Matches"] = "Matches",
+
+                // Help System
+                ["HelpTitle"] = "Help - Dart Tournament Planner",
+                ["HelpGeneral"] = "General Usage",
+                ["HelpTournamentSetup"] = "Tournament Setup",
+                ["HelpGroupManagement"] = "Group Management",
+                ["HelpGameRules"] = "Game Rules",
+                ["HelpMatches"] = "Matches & Results",
+                ["HelpTournamentPhases"] = "Tournament Phases",
+                ["HelpMenus"] = "Menus & Functions",
+                ["HelpTips"] = "Tips & Tricks",
+                
+                // Help Content - General
+                ["HelpGeneralContent"] = "The Dart Tournament Planner helps you manage dart tournaments with up to 4 different classes (Platinum, Gold, Silver, Bronze).\n\n" +
+                    "• Use the tabs at the top to switch between classes\n" +
+                    "• All changes are automatically saved (if enabled)\n" +
+                    "• The status bar shows the current save status\n" +
+                    "• Language can be changed in settings",
+                
+                // Help Content - Tournament Setup
+                ["HelpTournamentSetupContent"] = "How to set up a new tournament:\n\n" +
+                    "1. Select a tournament class (Platinum, Gold, Silver, Bronze)\n" +
+                    "2. Click 'Add Group' to create groups\n" +
+                    "3. Add players to the groups\n" +
+                    "4. Configure game rules via the 'Configure Rules' button\n" +
+                    "5. Set the post-group phase mode (Groups only, Finals round, Knockout system)\n\n" +
+                    "Tip: At least 2 players per group are required for match generation.",
+                
+                // Help Content - Group Management
+                ["HelpGroupManagementContent"] = "Group management:\n\n" +
+                    "• 'Add Group': Creates a new group\n" +
+                    "• 'Remove Group': Deletes the selected group (warning appears)\n" +
+                    "• 'Add Player': Adds a player to the selected group\n" +
+                    "• 'Remove Player': Removes the selected player\n\n" +
+                    "The player list shows all players of the currently selected group.\n" +
+                    "Groups can be named arbitrarily and should have meaningful names.",
+                
+                // Help Content - Game Rules
+                ["HelpGameRulesContent"] = "Configure game rules:\n\n" +
+                    "• Game mode: 301, 401 or 501 points\n" +
+                    "• Finish mode: Single Out or Double Out\n" +
+                    "• Legs to win: Number of legs for a victory\n" +
+                    "• Play with sets: Enables the set system\n" +
+                    "• Sets to win: Number of sets for a tournament victory\n" +
+                    "• Legs per set: Number of legs per set\n\n" +
+                    "Different rules can be set for different tournament rounds.",
+                
+                // Help Content - Matches
+                ["HelpMatchesContent"] = "Manage matches:\n\n" +
+                    "• 'Generate Matches': Creates all matches for the group (Round-Robin)\n" +
+                    "• Click on a match to enter the result\n" +
+                    "• Status: Not started (gray), Running (yellow), Finished (green)\n" +
+                    "• Right-click on matches for additional options (bye, etc.)\n" +
+                    "• 'Reset Matches': Deletes all results of the group\n\n" +
+                    "The standings automatically show the current ranking of all players.",
+                
+                // Help Content - Tournament Phases
+                ["HelpTournamentPhasesContent"] = "Tournament phases:\n\n" +
+                    "1. Group phase: Round-Robin within each group\n" +
+                    "2. Post-group phase (optional):\n" +
+                    "   • Groups only: Tournament ends after groups\n" +
+                    "   • Finals round: Top players play Round-Robin\n" +
+                    "   • Knockout system: Single or double elimination\n\n" +
+                    "The 'Advance to Next Phase' button becomes available when all matches are finished.\n" +
+                    "Knockout system can have Winner Bracket and Loser Bracket.",
+                
+                // Help Content - Menus
+                ["HelpMenusContent"] = "Menu functions:\n\n" +
+                    "File:\n• New: Creates an empty tournament\n• Open/Save: Loads/Saves tournament data\n• Exit: Closes the application\n\n" +
+                    "View:\n• Tournament Overview: Shows a full-screen view of all classes\n\n" +
+                    "Settings:\n• Language, theme and auto-save settings\n\n" +
+                    "Help:\n• This help page\n• About dialog with version information",
+                
+                // Help Content - Tips
+                ["HelpTipsContent"] = "Tips & Tricks:\n\n" +
+                    "• Use meaningful group names (e.g. 'Group A', 'Beginners')\n" +
+                    "• Enable auto-save in settings\n" +
+                    "• Tournament overview is perfect for projector presentations\n" +
+                    "• Right-click on matches shows additional options\n" +
+                    "• With odd number of players, a bye is automatically assigned\n" +
+                    "• Sets and legs are automatically validated\n" +
+                    "• Different rules possible for different tournament rounds\n" +
+                    "• Export/import tournament data via the File menu",
             }
         };
     }

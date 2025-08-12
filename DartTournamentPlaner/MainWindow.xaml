@@ -161,6 +161,8 @@
             </MenuItem>
             <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
             <MenuItem Name="HelpMenuItem" Header="Help">
+                <MenuItem Name="HelpContentMenuItem" Header="📖 Help" Click="Help_Click"/>
+                <Separator/>
                 <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
             </MenuItem>
         </Menu>

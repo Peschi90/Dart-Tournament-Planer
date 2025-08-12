@@ -198,6 +198,7 @@ public partial class MainWindow : Window
         ExitMenuItem.Header = _localizationService.GetString("Exit");
         SettingsMenuItem.Header = _localizationService.GetString("Settings");
         HelpMenuItem.Header = _localizationService.GetString("Help");
+        HelpContentMenuItem.Header = "📖 " + _localizationService.GetString("Help");
         AboutMenuItem.Header = _localizationService.GetString("About");
 
         // Update tab headers
@@ -545,6 +546,21 @@ public partial class MainWindow : Window
     {
         MessageBox.Show("Dart Tournament Planner v1.0\n\nA modern tournament management application.", 
             "About", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
+    private void Help_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var helpWindow = new HelpWindow(_localizationService);
+            helpWindow.Owner = this;
+            helpWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error opening help: {ex.Message}", "Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private async void Exit_Click(object sender, RoutedEventArgs e)
