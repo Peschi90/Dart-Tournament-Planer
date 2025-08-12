@@ -296,6 +296,14 @@ public class LocalizationService : INotifyPropertyChanged
                 ["InvalidSubTabInterval"] = "Ungültiges Untertab-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
                 ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnier-Übersicht: {0}",
                 ["Close"] = "Schließen",
+                
+                // Tournament Tree View
+                ["WinnerBracketTree"] = "Winner Bracket Baum",
+                ["LoserBracketTree"] = "Loser Bracket Baum",
+                ["WinnerBracketMatches"] = "Winner Bracket Spiele",
+                ["LoserBracketMatches"] = "Loser Bracket Spiele",
+                ["BracketTree"] = "Turnierbaum",
+                ["Matches"] = "Spiele",
             },
             
             ["en"] = new Dictionary<string, string>
@@ -582,6 +590,14 @@ public class LocalizationService : INotifyPropertyChanged
                 ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number >= 1.",
                 ["ErrorOpeningOverview"] = "Error opening tournament overview: {0}",
                 ["Close"] = "Close",
+                
+                // Tournament Tree View
+                ["WinnerBracketTree"] = "Winner Bracket Tree",
+                ["LoserBracketTree"] = "Loser Bracket Tree",
+                ["WinnerBracketMatches"] = "Winner Bracket Matches",
+                ["LoserBracketMatches"] = "Loser Bracket Matches",
+                ["BracketTree"] = "Tournament Tree",
+                ["Matches"] = "Matches",
             }
         };
     }
