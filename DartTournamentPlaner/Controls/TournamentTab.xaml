@@ -9,6 +9,104 @@
              Background="White">
     
     <UserControl.Resources>
+        <!-- Converter für Boolean zu Visibility -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        
+        <!-- Modern TabControl Style -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="TabStripPlacement" Value="Top"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Tab Headers -->
+                            <Border Grid.Row="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                                <TabPanel x:Name="HeaderPanel" 
+                                         IsItemsHost="True" 
+                                         Panel.ZIndex="1" 
+                                         Background="Transparent"
+                                         Margin="10,0"/>
+                            </Border>
+                            
+                            <!-- Content Area -->
+                            <Border Grid.Row="1" 
+                                    Background="White" 
+                                    BorderBrush="#E0E0E0" 
+                                    BorderThickness="0">
+                                <ContentPresenter x:Name="PART_SelectedContentHost"
+                                                ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern TabItem Style -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border x:Name="Border"
+                                    Background="Transparent"
+                                    BorderBrush="#CCCCCC"
+                                    BorderThickness="1,1,1,0"
+                                    CornerRadius="8,8,0,0"
+                                    Margin="2,0,2,0"
+                                    Padding="16,10,16,10">
+                                <ContentPresenter x:Name="ContentSite"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                ContentSource="Header"
+                                                RecognizesAccessKey="True"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- Selected Tab -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="2,2,2,0"/>
+                                <Setter Property="Panel.ZIndex" Value="100"/>
+                                <Setter Property="Foreground" Value="#1976D2"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                            
+                            <!-- Hover Effect -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#F0F8FF"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#64B5F6"/>
+                            </Trigger>
+                            
+                            <!-- Disabled -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Border" Property="Background" Value="#F5F5F5"/>
+                                <Setter Property="Foreground" Value="#AAAAAA"/>
+                            </Trigger>
+                            
+                            <!-- Combination: Selected and Hover -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Border" Property="Background" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#1565C0"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
         <!-- Modern Button Style -->
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Background" Value="#2196F3"/>
@@ -189,7 +287,6 @@
                                             </Trigger>
                                             <Trigger Property="IsEnabled" Value="False">
                                                 <Setter Property="Background" Value="#CCCCCC"/>
-                                                <Setter Property="Foreground" Value="#888888"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -496,6 +593,36 @@
                                             <DataGridTextColumn Header="Match" Binding="{Binding DisplayName}" Width="*"/>
                                             <DataGridTextColumn Header="Result" Binding="{Binding ScoreDisplay}" Width="100"/>
                                             <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100"/>
+                                            <DataGridTemplateColumn Header="Freilos" Width="120">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Name="GiveByeButton" Content="✓ Bye" 
+                                                                    Click="GiveByeButton_Click"
+                                                                    Tag="{Binding}"
+                                                                    Background="#4CAF50" 
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    Padding="4,2" 
+                                                                    Margin="2,0"
+                                                                    FontSize="10"
+                                                                    Visibility="{Binding ShowGiveByeButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                    ToolTip="Freilos vergeben"/>
+                                                            <Button Name="UndoByeButton" Content="✗ Undo" 
+                                                                    Click="UndoByeButton_Click"
+                                                                    Tag="{Binding}"
+                                                                    Background="#FF9800" 
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    Padding="4,2" 
+                                                                    Margin="2,0"
+                                                                    FontSize="10"
+                                                                    Visibility="{Binding ShowUndoByeButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                    ToolTip="Freilos rückgängig machen"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>
@@ -511,6 +638,36 @@
                                             <DataGridTextColumn Header="Match" Binding="{Binding DisplayName}" Width="*"/>
                                             <DataGridTextColumn Header="Result" Binding="{Binding ScoreDisplay}" Width="100"/>
                                             <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100"/>
+                                            <DataGridTemplateColumn Header="Freilos" Width="120">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button Name="GiveByeButtonLB" Content="✓ Bye" 
+                                                                    Click="GiveByeButton_Click"
+                                                                    Tag="{Binding}"
+                                                                    Background="#4CAF50" 
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    Padding="4,2" 
+                                                                    Margin="2,0"
+                                                                    FontSize="10"
+                                                                    Visibility="{Binding ShowGiveByeButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                    ToolTip="Freilos vergeben"/>
+                                                            <Button Name="UndoByeButtonLB" Content="✗ Undo" 
+                                                                    Click="UndoByeButton_Click"
+                                                                    Tag="{Binding}"
+                                                                    Background="#FF9800" 
+                                                                    Foreground="White"
+                                                                    BorderThickness="0"
+                                                                    Padding="4,2" 
+                                                                    Margin="2,0"
+                                                                    FontSize="10"
+                                                                    Visibility="{Binding ShowUndoByeButton, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                                    ToolTip="Freilos rückgängig machen"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                 </DockPanel>

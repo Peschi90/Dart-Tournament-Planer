@@ -1,4 +1,4 @@
-using System.ComponentModel;
+ï»¿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace DartTournamentPlaner.Services;
@@ -24,25 +24,25 @@ public class LocalizationService : INotifyPropertyChanged
                 // Tournament Tab
                 ["Groups"] = "Gruppen:",
                 ["Players"] = "Spieler:",
-                ["AddGroup"] = "Gruppe hinzufügen",
+                ["AddGroup"] = "Gruppe hinzufÃ¼gen",
                 ["RemoveGroup"] = "Gruppe entfernen",
-                ["AddPlayer"] = "Spieler hinzufügen",
+                ["AddPlayer"] = "Spieler hinzufÃ¼gen",
                 ["RemovePlayer"] = "Spieler entfernen",
                 ["NewGroup"] = "Neue Gruppe",
                 ["GroupName"] = "Geben Sie den Namen der neuen Gruppe ein:",
-                ["RemoveGroupConfirm"] = "Möchten Sie die Gruppe '{0}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.",
+                ["RemoveGroupConfirm"] = "MÃ¶chten Sie die Gruppe '{0}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.",
                 ["RemoveGroupTitle"] = "Gruppe entfernen",
-                ["RemovePlayerConfirm"] = "Möchten Sie den Spieler '{0}' wirklich entfernen?",
+                ["RemovePlayerConfirm"] = "MÃ¶chten Sie den Spieler '{0}' wirklich entfernen?",
                 ["RemovePlayerTitle"] = "Spieler entfernen",
-                ["NoGroupSelected"] = "Bitte wählen Sie eine Gruppe aus, die entfernt werden soll.",
-                ["NoGroupSelectedTitle"] = "Keine Gruppe ausgewählt",
-                ["NoPlayerSelected"] = "Bitte wählen Sie einen Spieler aus, der entfernt werden soll.",
-                ["NoPlayerSelectedTitle"] = "Kein Spieler ausgewählt",
-                ["SelectGroupFirst"] = "Bitte wählen Sie zuerst eine Gruppe aus.",
+                ["NoGroupSelected"] = "Bitte wÃ¤hlen Sie eine Gruppe aus, die entfernt werden soll.",
+                ["NoGroupSelectedTitle"] = "Keine Gruppe ausgewÃ¤hlt",
+                ["NoPlayerSelected"] = "Bitte wÃ¤hlen Sie einen Spieler aus, der entfernt werden soll.",
+                ["NoPlayerSelectedTitle"] = "Kein Spieler ausgewÃ¤hlt",
+                ["SelectGroupFirst"] = "Bitte wÃ¤hlen Sie zuerst eine Gruppe aus.",
                 ["EnterPlayerName"] = "Bitte geben Sie einen Spielernamen ein.",
                 ["NoNameEntered"] = "Kein Name eingegeben",
                 ["PlayersInGroup"] = "Spieler in {0}:",
-                ["NoGroupSelectedPlayers"] = "Spieler: (Keine Gruppe ausgewählt)",
+                ["NoGroupSelectedPlayers"] = "Spieler: (Keine Gruppe ausgewÃ¤hlt)",
                 ["Group"] = "Gruppe {0}",
                 
                 // Game Rules
@@ -66,9 +66,9 @@ public class LocalizationService : INotifyPropertyChanged
                 ["ConfigureRoundRules"] = "Rundenregeln konfigurieren",
                 ["WinnerBracketRules"] = "Winner Bracket Regeln",
                 ["LoserBracketRules"] = "Loser Bracket Regeln",
-                ["RoundRulesFor"] = "Regeln für {0}",
+                ["RoundRulesFor"] = "Regeln fÃ¼r {0}",
                 ["DefaultRules"] = "Standard-Regeln",
-                ["ResetToDefault"] = "Auf Standard zurücksetzen",
+                ["ResetToDefault"] = "Auf Standard zurÃ¼cksetzen",
                 ["RoundRulesConfiguration"] = "Rundenregeln-Konfiguration",
                 ["Best64Rules"] = "Beste 64 Regeln",
                 ["Best32Rules"] = "Beste 32 Regeln",
@@ -96,13 +96,13 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Standings"] = "Tabelle:",
                 ["GenerateMatches"] = "Spiele generieren",
                 ["MatchesGenerated"] = "Spiele wurden erfolgreich generiert!",
-                ["ResetMatches"] = "Spiele zurücksetzen",
-                ["ResetMatchesConfirm"] = "Möchten Sie alle Spiele für Gruppe '{0}' wirklich zurücksetzen?\nAlle Ergebnisse gehen verloren!",
-                ["ResetMatchesTitle"] = "Spiele zurücksetzen",
-                ["MatchesReset"] = "Spiele wurden zurückgesetzt!",
+                ["ResetMatches"] = "Spiele zurÃ¼cksetzen",
+                ["ResetMatchesConfirm"] = "MÃ¶chten Sie alle Spiele fÃ¼r Gruppe '{0}' wirklich zurÃ¼cksetzen?\nAlle Ergebnisse gehen verloren!",
+                ["ResetMatchesTitle"] = "Spiele zurÃ¼cksetzen",
+                ["MatchesReset"] = "Spiele wurden zurÃ¼ckgesetzt!",
                 ["EnterResult"] = "Ergebnis eingeben",
                 ["MatchNotStarted"] = "Nicht gestartet",
-                ["MatchInProgress"] = "Läuft",
+                ["MatchInProgress"] = "LÃ¤uft",
                 ["MatchFinished"] = "Beendet",
                 ["MatchBye"] = "Freilos",
                 ["Player1"] = "Spieler 1",
@@ -139,21 +139,21 @@ public class LocalizationService : INotifyPropertyChanged
                 
                 // Enhanced Validation Messages
                 ["ValidationError"] = "Validierungsfehler",
-                ["InvalidWinCondition"] = "Ungültige Siegbedingung: {0} benötigt {1} {2} zum Sieg, aber hat nur {3}.",
-                ["NoWinnerFound"] = "Kein Sieger ermittelt. Mindestens ein Spieler muss die Siegbedingung erfüllen.",
-                ["BothPlayersWon"] = "Beide Spieler erfüllen die Siegbedingung. Das ist nicht möglich.",
-                ["IncompleteScore"] = "Unvollständige Punkte: Bitte geben Sie Sets und Legs für beide Spieler ein.",
+                ["InvalidWinCondition"] = "UngÃ¼ltige Siegbedingung: {0} benÃ¶tigt {1} {2} zum Sieg, aber hat nur {3}.",
+                ["NoWinnerFound"] = "Kein Sieger ermittelt. Mindestens ein Spieler muss die Siegbedingung erfÃ¼llen.",
+                ["BothPlayersWon"] = "Beide Spieler erfÃ¼llen die Siegbedingung. Das ist nicht mÃ¶glich.",
+                ["IncompleteScore"] = "UnvollstÃ¤ndige Punkte: Bitte geben Sie Sets und Legs fÃ¼r beide Spieler ein.",
                 ["NegativeValues"] = "Negative Werte sind nicht erlaubt.",
-                ["InvalidNumbers"] = "Bitte geben Sie gültige Zahlen ein.",
+                ["InvalidNumbers"] = "Bitte geben Sie gÃ¼ltige Zahlen ein.",
                 ["MatchIncomplete"] = "Das Spiel ist noch nicht beendet. Mindestens ein Spieler muss gewinnen.",
-                ["InvalidSetCount"] = "Ungültige Set-Anzahl: Maximal {0} Sets sind bei Best-of-{1} möglich.",
-                ["InvalidLegCount"] = "Ungültige Leg-Anzahl: Maximal {0} Legs sind bei Best-of-{1} möglich.",
-                ["InvalidSetRatio"] = "Ungültiges Set-Verhältnis: Bei {0}:{1} Sets sollten die Legs ungefähr {2}:{3} betragen.",
-                ["InconsistentResult"] = "Inkonsistentes Ergebnis: Das Legs-Verhältnis passt nicht zum Set-Ergebnis.",
-                ["ExcessiveLegs"] = "Zu viele Legs: Bei {0}:{1} Sets sind maximal {2} Legs pro Spieler möglich.",
-                ["InsufficientLegsForSet"] = "Nicht genügend Legs für Set-Sieg: {0} benötigt {1} Legs um ein Set zu gewinnen.",
-                ["TooManyLegsInDecidingSet"] = "Zu viele Legs im entscheidenden Set: Maximal {0} Legs sind möglich.",
-                ["LegsExceedSetRequirement"] = "{0} hat genug Legs für ein Set gewonnen, aber die Set-Anzahl stimmt nicht überein.",
+                ["InvalidSetCount"] = "UngÃ¼ltige Set-Anzahl: Maximal {0} Sets sind bei Best-of-{1} mÃ¶glich.",
+                ["InvalidLegCount"] = "UngÃ¼ltige Leg-Anzahl: Maximal {0} Legs sind bei Best-of-{1} mÃ¶glich.",
+                ["InvalidSetRatio"] = "UngÃ¼ltiges Set-VerhÃ¤ltnis: Bei {0}:{1} Sets sollten die Legs ungefÃ¤hr {2}:{3} betragen.",
+                ["InconsistentResult"] = "Inkonsistentes Ergebnis: Das Legs-VerhÃ¤ltnis passt nicht zum Set-Ergebnis.",
+                ["ExcessiveLegs"] = "Zu viele Legs: Bei {0}:{1} Sets sind maximal {2} Legs pro Spieler mÃ¶glich.",
+                ["InsufficientLegsForSet"] = "Nicht genÃ¼gend Legs fÃ¼r Set-Sieg: {0} benÃ¶tigt {1} Legs um ein Set zu gewinnen.",
+                ["TooManyLegsInDecidingSet"] = "Zu viele Legs im entscheidenden Set: Maximal {0} Legs sind mÃ¶glich.",
+                ["LegsExceedSetRequirement"] = "{0} hat genug Legs fÃ¼r ein Set gewonnen, aber die Set-Anzahl stimmt nicht Ã¼berein.",
                 ["SaveBlocked"] = "Speicherung verhindert: Das Ergebnis entspricht nicht den konfigurierten Spielregeln.",
                 
                 // Settings
@@ -168,17 +168,17 @@ public class LocalizationService : INotifyPropertyChanged
                 // Menu
                 ["File"] = "Datei",
                 ["New"] = "Neu",
-                ["Open"] = "Öffnen",
+                ["Open"] = "Ã–ffnen",
                 ["Save"] = "Speichern",
                 ["SaveAs"] = "Speichern unter",
                 ["Exit"] = "Beenden",
                 ["Edit"] = "Bearbeiten",
                 ["View"] = "Ansicht",
                 ["Help"] = "Hilfe",
-                ["About"] = "Über",
+                ["About"] = "Ãœber",
                 
                 // Status
-                ["HasUnsavedChanges"] = "Geändert",
+                ["HasUnsavedChanges"] = "GeÃ¤ndert",
                 ["NotSaved"] = "Nicht gespeichert",
                 ["Saved"] = "Gespeichert",
                 ["Ready"] = "Bereit",
@@ -200,8 +200,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["SingleElimination"] = "Einfaches KO",
                 ["DoubleElimination"] = "Doppeltes KO (Winner + Loser Bracket)",
                 ["IncludeGroupPhaseLosersBracket"] = "Gruppenphase-Verlierer ins Loser Bracket",
-                ["AdvanceToNextPhase"] = "Nächste Phase starten",
-                ["CannotAdvancePhase"] = "Alle Spiele der aktuellen Phase müssen beendet sein",
+                ["AdvanceToNextPhase"] = "NÃ¤chste Phase starten",
+                ["CannotAdvancePhase"] = "Alle Spiele der aktuellen Phase mÃ¼ssen beendet sein",
                 ["PhaseCompleted"] = "Phase abgeschlossen",
                 ["GroupPhase"] = "Gruppenphase",
                 ["FinalsPhase"] = "Finalrunde", 
@@ -233,18 +233,37 @@ public class LocalizationService : INotifyPropertyChanged
                 ["MatchArea"] = "Spielbereich",
 
                 // Tournament Reset
-                ["TournamentReset"] = "Turnier zurückgesetzt",
-                ["TournamentResetWarning"] = "?? WARNUNG: Das Turnier wird auf die Gruppenphase zurückgesetzt!",
-                ["ResetTournament"] = "Turnier zurücksetzen",
-                ["ResetTournamentTitle"] = "Turnier komplett zurücksetzen", 
-                ["ResetTournamentConfirm"] = "Möchten Sie das gesamte Turnier wirklich zurücksetzen?\n\n?? ALLE Spiele und Phasen werden gelöscht!\nNur Gruppen und Spieler bleiben erhalten.",
-                ["TournamentResetComplete"] = "Turnier wurde erfolgreich zurückgesetzt.",
+                ["TournamentReset"] = "Turnier zurÃ¼ckgesetzt",
+                ["TournamentResetWarning"] = "âš  WARNUNG: Das Turnier wird auf die Gruppenphase zurÃ¼ckgesetzt!",
+                ["ResetTournament"] = "Turnier zurÃ¼cksetzen",
+                ["ResetTournamentTitle"] = "Turnier komplett zurÃ¼cksetzen", 
+                ["ResetTournamentConfirm"] = "MÃ¶chten Sie das gesamte Turnier wirklich zurÃ¼cksetzen?\n\nâš  ALLE Spiele und Phasen werden gelÃ¶scht!\nNur Gruppen und Spieler bleiben erhalten.",
+                ["TournamentResetComplete"] = "Turnier wurde erfolgreich zurÃ¼ckgesetzt.",
                 
                 // KO Reset
-                ["ResetKnockoutPhase"] = "KO-Phase zurücksetzen",
-                ["ResetKnockoutTitle"] = "KO-Phase zurücksetzen",
-                ["ResetKnockoutConfirm"] = "Möchten Sie die KO-Phase wirklich zurücksetzen?\n\n?? Alle KO-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird zur Gruppenphase zurückgesetzt.",
-                ["ResetKnockoutComplete"] = "KO-Phase wurde erfolgreich zurückgesetzt.",
+                ["ResetKnockoutPhase"] = "KO-Phase zurÃ¼cksetzen",
+                ["ResetKnockoutTitle"] = "KO-Phase zurÃ¼cksetzen",
+                ["ResetKnockoutConfirm"] = "MÃ¶chten Sie die KO-Phase wirklich zurÃ¼cksetzen?\n\nâš  Alle KO-Spiele und der Turnierbaum werden gelÃ¶scht!\nDas Turnier wird zur Gruppenphase zurÃ¼ckgesetzt.",
+                ["ResetKnockoutComplete"] = "KO-Phase wurde erfolgreich zurÃ¼ckgesetzt.",
+                
+                // Bye (Freilos) System
+                ["GiveBye"] = "Freilos vergeben",
+                ["UndoBye"] = "Freilos rÃ¼ckgÃ¤ngig machen",
+                ["ByeGiven"] = "Freilos wurde vergeben",
+                ["ByeUndone"] = "Freilos wurde rÃ¼ckgÃ¤ngig gemacht",
+                ["SelectByeWinner"] = "WÃ¤hlen Sie den Spieler aus, der das Freilos erhalten soll:",
+                ["ByeCannotBeUndone"] = "Freilos kann nicht rÃ¼ckgÃ¤ngig gemacht werden - nachfolgende Matches bereits gespielt",
+                ["ByeOperationFailed"] = "Freilos-Operation fehlgeschlagen",
+                ["AutomaticByeDetected"] = "Automatisches Freilos erkannt fÃ¼r {0}",
+                
+                // Rechtsklick KontextmenÃ¼
+                ["EnterResult"] = "Ergebnis eingeben",
+                ["GiveByeToPlayer"] = "Freilos an {0} vergeben",
+                ["SelectByeWinner"] = "Freilos-Gewinner wÃ¤hlen",
+                ["RemoveBye"] = "Freilos entfernen",
+                ["NoActionPossible"] = "Keine Aktion mÃ¶glich",
+                ["MatchFinished"] = "Match bereits beendet",
+                ["MatchInProgress"] = "Match lÃ¤uft bereits",
             },
             
             ["en"] = new Dictionary<string, string>
@@ -469,17 +488,36 @@ public class LocalizationService : INotifyPropertyChanged
 
                 // Tournament Reset
                 ["TournamentReset"] = "Tournament Reset",
-                ["TournamentResetWarning"] = "?? WARNING: Tournament will be reset to group phase!",
+                ["TournamentResetWarning"] = "âš  WARNING: Tournament will be reset to group phase!",
                 ["ResetTournament"] = "Reset Tournament",
                 ["ResetTournamentTitle"] = "Reset Tournament Completely",
-                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n?? ALL matches and phases will be deleted!\nOnly groups and players will remain.",
+                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\nâš  ALL matches and phases will be deleted!\nOnly groups and players will remain.",
                 ["TournamentResetComplete"] = "Tournament has been successfully reset.",
                 
                 // KO Reset
                 ["ResetKnockoutPhase"] = "Reset Knockout Phase",
                 ["ResetKnockoutTitle"] = "Reset Knockout Phase",
-                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n?? All knockout matches and bracket tree will be deleted!\nTournament will be reset to group phase.",
+                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\nâš  All knockout matches and bracket tree will be deleted!\nTournament will be reset to group phase.",
                 ["ResetKnockoutComplete"] = "Knockout phase has been successfully reset.",
+                
+                // Bye (Freilos) System
+                ["GiveBye"] = "Give Bye",
+                ["UndoBye"] = "Undo Bye",
+                ["ByeGiven"] = "Bye has been given",
+                ["ByeUndone"] = "Bye has been undone",
+                ["SelectByeWinner"] = "Select the player who should receive the bye:",
+                ["ByeCannotBeUndone"] = "Bye cannot be undone - subsequent matches have already been played",
+                ["ByeOperationFailed"] = "Bye operation failed",
+                ["AutomaticByeDetected"] = "Automatic bye detected for {0}",
+                
+                // Right-click Context Menu
+                ["EnterResult"] = "Enter Result",
+                ["GiveByeToPlayer"] = "Give Bye to {0}",
+                ["SelectByeWinner"] = "Select Bye Winner",
+                ["RemoveBye"] = "Remove Bye",
+                ["NoActionPossible"] = "No Action Possible",
+                ["MatchFinished"] = "Match already finished",
+                ["MatchInProgress"] = "Match already in progress",
             }
         };
     }
@@ -528,4 +566,4 @@ public class LocalizationService : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
-}
+} 

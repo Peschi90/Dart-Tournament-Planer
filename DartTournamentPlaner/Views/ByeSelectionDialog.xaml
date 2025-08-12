@@ -1,0 +1,39 @@
+<Window x:Class="DartTournamentPlaner.Views.ByeSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Freilos vergeben" Height="200" Width="350"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Name="MessageTextBlock" Grid.Row="0" 
+                   Text="Select the player who should receive the bye:"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,20"
+                   FontWeight="Medium"/>
+        
+        <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Button Name="Player1Button" Content="Player 1" 
+                    Width="200" Height="40" Margin="5"
+                    Background="#4CAF50" Foreground="White"
+                    FontSize="14" FontWeight="Medium"
+                    Click="Player1Button_Click"/>
+            
+            <Button Name="Player2Button" Content="Player 2" 
+                    Width="200" Height="40" Margin="5"
+                    Background="#4CAF50" Foreground="White"
+                    FontSize="14" FontWeight="Medium"
+                    Click="Player2Button_Click"/>
+        </StackPanel>
+        
+        <Button Grid.Row="2" Name="CancelButton" Content="Cancel" 
+                Width="100" Height="30"
+                HorizontalAlignment="Center"
+                Click="CancelButton_Click"/>
+    </Grid>
+</Window>

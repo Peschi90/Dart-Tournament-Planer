@@ -15,7 +15,7 @@ public class ConfigService
 
     public async Task LoadConfigAsync()
     {
-        try
+        try 
         {
             if (File.Exists(_configPath))
             {

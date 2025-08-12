@@ -8,7 +8,7 @@ public enum TournamentPhaseType
 {
     GroupPhase,
     RoundRobinFinals,
-    KnockoutPhase
+    KnockoutPhase 
 }
 
 public class TournamentPhase : INotifyPropertyChanged

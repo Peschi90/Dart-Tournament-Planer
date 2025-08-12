@@ -55,7 +55,7 @@ public partial class MainWindow : Window
         GoldTab.DataChanged += (s, e) => MarkAsChanged();
         SilberTab.DataChanged += (s, e) => MarkAsChanged();
         BronzeTab.DataChanged += (s, e) => MarkAsChanged();
-    }
+    } 
 
     private void SubscribeToChanges(TournamentClass tournamentClass)
     {
