@@ -55,6 +55,7 @@ public class KnockoutMatch : INotifyPropertyChanged
     private string _notes = string.Empty;
     private DateTime? _startTime;
     private DateTime? _endTime;
+    private bool _usesSets = false; // NEW: Tracks if this match uses sets
 
     // For determining where players come from
     private KnockoutMatch? _sourceMatch1; // First source match
@@ -232,6 +233,20 @@ public class KnockoutMatch : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// NEW: Indicates if this match should display sets or legs-only
+    /// </summary>
+    public bool UsesSets
+    {
+        get => _usesSets;
+        set
+        {
+            _usesSets = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ScoreDisplay));
+        }
+    }
+
     // Source matches for bracket progression
     public KnockoutMatch? SourceMatch1
     {
@@ -282,7 +297,8 @@ public class KnockoutMatch : INotifyPropertyChanged
         {
             if (Status == MatchStatus.NotStarted) return "-:-";
             
-            return Player1Sets > 0 || Player2Sets > 0 
+            // NEW: Use UsesSets to determine display format
+            return UsesSets 
                 ? $"{Player1Sets}:{Player2Sets} ({Player1Legs}:{Player2Legs})"
                 : $"{Player1Legs}:{Player2Legs}";
         }
@@ -460,21 +476,51 @@ public class KnockoutMatch : INotifyPropertyChanged
 
     public void SetResult(int player1Sets, int player2Sets, int player1Legs, int player2Legs)
     {
+        UsesSets = player1Sets > 0 || player2Sets > 0; // Set UsesSets based on whether sets are used
+        
         Player1Sets = player1Sets;
         Player2Sets = player2Sets;
         Player1Legs = player1Legs;
         Player2Legs = player2Legs;
 
-        // Determine winner and loser
-        if (player1Sets > player2Sets || (player1Sets == player2Sets && player1Legs > player2Legs))
+        // Determine winner and loser based on UsesSets
+        if (UsesSets)
         {
-            Winner = Player1;
-            Loser = Player2;
+            // Winner is determined by sets first
+            if (player1Sets > player2Sets)
+            {
+                Winner = Player1;
+                Loser = Player2;
+            }
+            else if (player2Sets > player1Sets)
+            {
+                Winner = Player2;
+                Loser = Player1;
+            }
+            else if (player1Legs > player2Legs)
+            {
+                Winner = Player1;
+                Loser = Player2;
+            }
+            else if (player2Legs > player1Legs)
+            {
+                Winner = Player2;
+                Loser = Player1;
+            }
         }
-        else if (player2Sets > player1Sets || (player1Sets == player2Sets && player2Legs > player1Legs))
+        else
         {
-            Winner = Player2;
-            Loser = Player1;
+            // Winner is determined by legs only
+            if (player1Legs > player2Legs)
+            {
+                Winner = Player1;
+                Loser = Player2;
+            }
+            else if (player2Legs > player1Legs)
+            {
+                Winner = Player2;
+                Loser = Player1;
+            }
         }
 
         Status = MatchStatus.Finished;

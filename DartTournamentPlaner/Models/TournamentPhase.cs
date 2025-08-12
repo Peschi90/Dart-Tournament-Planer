@@ -118,30 +118,25 @@ public class TournamentPhase : INotifyPropertyChanged
                 return false;
             }
             
+            bool allGroupsComplete = true;
+            
             foreach (var group in Groups)
             {
+                var status = group.CheckCompletionStatus();
+                
                 System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: Group '{group.Name}':");
-                System.Diagnostics.Debug.WriteLine($"  - MatchesGenerated: {group.MatchesGenerated}");
-                System.Diagnostics.Debug.WriteLine($"  - Total matches: {group.Matches.Count}");
+                System.Diagnostics.Debug.WriteLine($"  - Status: {status}");
+                System.Diagnostics.Debug.WriteLine($"  - IsComplete: {status.IsComplete}");
                 
-                if (!group.MatchesGenerated)
+                if (!status.IsComplete)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - Group has no matches generated");
-                    return false;
-                }
-                
-                var finishedMatches = group.Matches.Count(m => m.Status == MatchStatus.Finished || m.IsBye);
-                System.Diagnostics.Debug.WriteLine($"  - Finished matches: {finishedMatches}/{group.Matches.Count}");
-                
-                if (!group.Matches.All(m => m.Status == MatchStatus.Finished || m.IsBye))
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - Group has unfinished matches");
-                    return false;
+                    System.Diagnostics.Debug.WriteLine($"  - Group '{group.Name}' is NOT complete: {status.StatusMessage}");
+                    allGroupsComplete = false;
                 }
             }
             
-            System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: All groups complete");
-            return true;
+            System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: All groups complete = {allGroupsComplete}");
+            return allGroupsComplete;
         }
         catch (Exception ex)
         {

@@ -26,6 +26,7 @@ public class Match : INotifyPropertyChanged
     private DateTime? _startTime;
     private DateTime? _endTime;
     private string _notes = string.Empty;
+    private bool _usesSets = false; // NEW: Tracks if this match uses sets
 
     public int Id
     {
@@ -170,6 +171,20 @@ public class Match : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// NEW: Indicates if this match should display sets or legs-only
+    /// </summary>
+    public bool UsesSets
+    {
+        get => _usesSets;
+        set
+        {
+            _usesSets = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ScoreDisplay));
+        }
+    }
+
     // Display Properties
     public string DisplayName => IsBye ? $"{Player1?.Name ?? "TBD"} - Freilos" : $"{Player1?.Name ?? "TBD"} vs {Player2?.Name ?? "TBD"}";
 
@@ -180,7 +195,8 @@ public class Match : INotifyPropertyChanged
             if (IsBye) return "Freilos";
             if (Status == MatchStatus.NotStarted) return "-:-";
             
-            return Player1Sets > 0 || Player2Sets > 0 
+            // NEW: Use UsesSets to determine display format
+            return UsesSets 
                 ? $"{Player1Sets}:{Player2Sets} ({Player1Legs}:{Player2Legs})"
                 : $"{Player1Legs}:{Player2Legs}";
         }
@@ -202,25 +218,64 @@ public class Match : INotifyPropertyChanged
         IsBye = Player2 == null;
     }
 
-    public void SetResult(int player1Sets, int player2Sets, int player1Legs, int player2Legs)
+    /// <summary>
+    /// UPDATED: SetResult now includes usesSets parameter
+    /// </summary>
+    public void SetResult(int player1Sets, int player2Sets, int player1Legs, int player2Legs, bool usesSets = false)
     {
+        UsesSets = usesSets; // Set the display mode
+        
         Player1Sets = player1Sets;
         Player2Sets = player2Sets;
         Player1Legs = player1Legs;
         Player2Legs = player2Legs;
 
-        // Determine winner
-        if (player1Sets > player2Sets || (player1Sets == player2Sets && player1Legs > player2Legs))
+        // Determine winner based on whether sets or legs are used
+        if (UsesSets)
         {
-            Winner = Player1;
+            // Winner is determined by sets first
+            if (player1Sets > player2Sets)
+            {
+                Winner = Player1;
+            }
+            else if (player2Sets > player1Sets)
+            {
+                Winner = Player2;
+            }
+            else if (player1Legs > player2Legs)
+            {
+                Winner = Player1;
+            }
+            else if (player2Legs > player1Legs)
+            {
+                Winner = Player2;
+            }
         }
-        else if (player2Sets > player1Sets || (player1Sets == player2Sets && player2Legs > player1Legs))
+        else
         {
-            Winner = Player2;
+            // Winner is determined by legs only
+            if (player1Legs > player2Legs)
+            {
+                Winner = Player1;
+            }
+            else if (player2Legs > player1Legs)
+            {
+                Winner = Player2;
+            }
         }
 
         Status = MatchStatus.Finished;
         EndTime = DateTime.Now;
+    }
+
+    /// <summary>
+    /// LEGACY: Overload for backward compatibility
+    /// </summary>
+    public void SetResult(int player1Sets, int player2Sets, int player1Legs, int player2Legs)
+    {
+        // Determine usesSets based on whether sets were actually used
+        bool usesSets = player1Sets > 0 || player2Sets > 0;
+        SetResult(player1Sets, player2Sets, player1Legs, player2Legs, usesSets);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -228,5 +283,13 @@ public class Match : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+    
+    /// <summary>
+    /// NEUE METHODE: Öffentliche Version von OnPropertyChanged für externe Aufrufe
+    /// </summary>
+    public void ForcePropertyChanged(string propertyName)
+    {
+        OnPropertyChanged(propertyName);
     }
 }

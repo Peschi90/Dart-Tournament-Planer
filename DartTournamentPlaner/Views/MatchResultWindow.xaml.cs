@@ -501,7 +501,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             }
 
             // Alle Validierungen bestanden - Ergebnis speichern
-            _match.SetResult(p1Sets, p2Sets, p1Legs, p2Legs);
+            _match.SetResult(p1Sets, p2Sets, p1Legs, p2Legs, _gameRules.PlayWithSets);
             _match.Notes = NotesTextBox.Text;
 
             if (_match.Status == MatchStatus.NotStarted)

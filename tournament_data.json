@@ -3,69 +3,680 @@
     {
       "Id": 1,
       "Name": "Platin",
+      "GameRules": {
+        "GameMode": 0,
+        "FinishMode": 1,
+        "LegsToWin": 3,
+        "PlayWithSets": false,
+        "SetsToWin": 3,
+        "LegsPerSet": 3,
+        "PostGroupPhaseMode": 0,
+        "QualifyingPlayersPerGroup": 2,
+        "KnockoutMode": 0,
+        "IncludeGroupPhaseLosersBracket": false,
+        "KnockoutRoundRules": {
+          "Rules": {
+            "Best64": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best32": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best16": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Quarterfinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Semifinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "Final": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            },
+            "GrandFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 8,
+              "LegsPerSet": 3
+            },
+            "LoserRound1": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound2": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound3": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound4": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound5": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound6": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound7": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound8": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound9": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound10": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound11": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound12": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            }
+          }
+        }
+      },
+      "CurrentPhase": {
+        "Name": "Gruppenphase",
+        "PhaseType": 0,
+        "IsActive": true,
+        "IsCompleted": false,
+        "Groups": [
+          {
+            "Id": 1,
+            "Name": "Gruppe 1",
+            "MatchesGenerated": false,
+            "Players": [
+              {
+                "Id": 1,
+                "Name": "Marcel"
+              }
+            ],
+            "Matches": []
+          }
+        ],
+        "FinalsGroup": null,
+        "WinnerBracket": [],
+        "LoserBracket": [],
+        "QualifiedPlayers": []
+      },
       "Groups": [
         {
           "Id": 1,
           "Name": "Gruppe 1",
+          "MatchesGenerated": false,
           "Players": [
             {
               "Id": 1,
-              "Name": "karl"
-            },
-            {
-              "Id": 2,
-              "Name": "joinas"
-            },
-            {
-              "Id": 3,
-              "Name": "peter"
-            },
-            {
-              "Id": 4,
-              "Name": "frank"
+              "Name": "Marcel"
             }
-          ]
+          ],
+          "Matches": []
+        }
+      ],
+      "Phases": [
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [
+            {
+              "Id": 1,
+              "Name": "Gruppe 1",
+              "MatchesGenerated": false,
+              "Players": [
+                {
+                  "Id": 1,
+                  "Name": "Marcel"
+                }
+              ],
+              "Matches": []
+            }
+          ],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
         },
         {
-          "Id": 2,
-          "Name": "Gruppe 2",
-          "Players": [
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [
             {
-              "Id": 5,
-              "Name": "Sina"
-            },
-            {
-              "Id": 6,
-              "Name": "Milas"
-            },
-            {
-              "Id": 7,
-              "Name": "Marcel"
-            },
-            {
-              "Id": 8,
-              "Name": "Bailey"
+              "Id": 1,
+              "Name": "Gruppe 1",
+              "MatchesGenerated": false,
+              "Players": [
+                {
+                  "Id": 1,
+                  "Name": "Marcel"
+                }
+              ],
+              "Matches": []
             }
-          ]
+          ],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
         }
       ]
     },
     {
       "Id": 2,
       "Name": "Gold",
-      "Groups": []
+      "GameRules": {
+        "GameMode": 0,
+        "FinishMode": 1,
+        "LegsToWin": 3,
+        "PlayWithSets": false,
+        "SetsToWin": 3,
+        "LegsPerSet": 3,
+        "PostGroupPhaseMode": 0,
+        "QualifyingPlayersPerGroup": 2,
+        "KnockoutMode": 0,
+        "IncludeGroupPhaseLosersBracket": false,
+        "KnockoutRoundRules": {
+          "Rules": {
+            "Best64": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best32": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best16": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Quarterfinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Semifinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "Final": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            },
+            "GrandFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 8,
+              "LegsPerSet": 3
+            },
+            "LoserRound1": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound2": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound3": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound4": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound5": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound6": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound7": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound8": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound9": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound10": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound11": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound12": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            }
+          }
+        }
+      },
+      "CurrentPhase": {
+        "Name": "Gruppenphase",
+        "PhaseType": 0,
+        "IsActive": true,
+        "IsCompleted": false,
+        "Groups": [],
+        "FinalsGroup": null,
+        "WinnerBracket": [],
+        "LoserBracket": [],
+        "QualifiedPlayers": []
+      },
+      "Groups": [],
+      "Phases": [
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        },
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        }
+      ]
     },
     {
       "Id": 3,
       "Name": "Silber",
-      "Groups": []
+      "GameRules": {
+        "GameMode": 0,
+        "FinishMode": 1,
+        "LegsToWin": 3,
+        "PlayWithSets": false,
+        "SetsToWin": 3,
+        "LegsPerSet": 3,
+        "PostGroupPhaseMode": 0,
+        "QualifyingPlayersPerGroup": 2,
+        "KnockoutMode": 0,
+        "IncludeGroupPhaseLosersBracket": false,
+        "KnockoutRoundRules": {
+          "Rules": {
+            "Best64": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best32": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best16": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Quarterfinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Semifinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "Final": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            },
+            "GrandFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 8,
+              "LegsPerSet": 3
+            },
+            "LoserRound1": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound2": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound3": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound4": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound5": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound6": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound7": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound8": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound9": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound10": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound11": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound12": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            }
+          }
+        }
+      },
+      "CurrentPhase": {
+        "Name": "Gruppenphase",
+        "PhaseType": 0,
+        "IsActive": true,
+        "IsCompleted": false,
+        "Groups": [],
+        "FinalsGroup": null,
+        "WinnerBracket": [],
+        "LoserBracket": [],
+        "QualifiedPlayers": []
+      },
+      "Groups": [],
+      "Phases": [
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        },
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        }
+      ]
     },
     {
       "Id": 4,
       "Name": "Bronze",
-      "Groups": []
+      "GameRules": {
+        "GameMode": 0,
+        "FinishMode": 1,
+        "LegsToWin": 3,
+        "PlayWithSets": false,
+        "SetsToWin": 3,
+        "LegsPerSet": 3,
+        "PostGroupPhaseMode": 0,
+        "QualifyingPlayersPerGroup": 2,
+        "KnockoutMode": 0,
+        "IncludeGroupPhaseLosersBracket": false,
+        "KnockoutRoundRules": {
+          "Rules": {
+            "Best64": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best32": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Best16": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Quarterfinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "Semifinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "Final": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            },
+            "GrandFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 8,
+              "LegsPerSet": 3
+            },
+            "LoserRound1": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound2": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound3": {
+              "SetsToWin": 0,
+              "LegsToWin": 2,
+              "LegsPerSet": 3
+            },
+            "LoserRound4": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound5": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound6": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound7": {
+              "SetsToWin": 0,
+              "LegsToWin": 3,
+              "LegsPerSet": 3
+            },
+            "LoserRound8": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound9": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound10": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound11": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserRound12": {
+              "SetsToWin": 0,
+              "LegsToWin": 4,
+              "LegsPerSet": 3
+            },
+            "LoserFinal": {
+              "SetsToWin": 0,
+              "LegsToWin": 6,
+              "LegsPerSet": 3
+            }
+          }
+        }
+      },
+      "CurrentPhase": {
+        "Name": "Gruppenphase",
+        "PhaseType": 0,
+        "IsActive": true,
+        "IsCompleted": false,
+        "Groups": [],
+        "FinalsGroup": null,
+        "WinnerBracket": [],
+        "LoserBracket": [],
+        "QualifiedPlayers": []
+      },
+      "Groups": [],
+      "Phases": [
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        },
+        {
+          "Name": "Gruppenphase",
+          "PhaseType": 0,
+          "IsActive": true,
+          "IsCompleted": false,
+          "Groups": [],
+          "FinalsGroup": null,
+          "WinnerBracket": [],
+          "LoserBracket": [],
+          "QualifiedPlayers": []
+        }
+      ]
     }
   ],
-  "LastModified": "2025-07-23T09:56:38.3563405+02:00",
+  "LastModified": "2025-08-12T16:35:21.0816357+02:00",
   "Version": "1.0"
 }

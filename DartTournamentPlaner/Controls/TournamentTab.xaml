@@ -245,6 +245,13 @@
                                     Click="ConfigureRulesButton_Click"
                                     Margin="0,0,0,15"/>
                             
+                            <!-- Refresh UI Button -->
+                            <Button DockPanel.Dock="Top" Name="RefreshUIButton" Content="🔄 UI aktualisieren" 
+                                    Style="{StaticResource PrimaryButton}"
+                                    Click="RefreshUIButton_Click"
+                                    Margin="0,0,0,15"
+                                    ToolTip="Aktualisiert die Benutzeroberfläche und überprüft den Gruppenstatus"/>
+                            
                             <!-- Phase Info -->
                             <Border DockPanel.Dock="Top" Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="1" 
                                     CornerRadius="4" Padding="8" Margin="0,0,0,15" Name="CurrentPhaseInfo">

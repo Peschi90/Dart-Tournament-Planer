@@ -258,12 +258,44 @@ public class LocalizationService : INotifyPropertyChanged
                 
                 // Rechtsklick Kontextmenü
                 ["EnterResult"] = "Ergebnis eingeben",
+                ["EditResult"] = "Ergebnis bearbeiten",
                 ["GiveByeToPlayer"] = "Freilos an {0} vergeben",
+                ["GiveAutoByeToPlayer"] = "Automatisches Freilos an {0}",
                 ["SelectByeWinner"] = "Freilos-Gewinner wählen",
                 ["RemoveBye"] = "Freilos entfernen",
                 ["NoActionPossible"] = "Keine Aktion möglich",
+                ["NoActionPossibleBothTBD"] = "Keine Aktion möglich (beide Spieler TBD)",
                 ["MatchFinished"] = "Match bereits beendet",
                 ["MatchInProgress"] = "Match läuft bereits",
+                
+                // UI Refresh
+                ["RefreshUI"] = "UI aktualisieren",
+                ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche und überprüft den Gruppenstatus",
+                ["UIRefreshed"] = "Benutzeroberfläche wurde aktualisiert",
+                
+                // Tournament Overview
+                ["TournamentOverview"] = "📺 Turnier-Übersicht",
+                ["View"] = "Ansicht",
+                ["OverviewMode"] = "Übersichtsmodus",
+                ["StartCycling"] = "▶ Start",
+                ["StopCycling"] = "⏸ Stop",
+                ["ClassInterval"] = "Klassen-Intervall",
+                ["SubTabInterval"] = "Untertab-Intervall",
+                ["OnlyActiveClasses"] = "Nur aktive Klassen",
+                ["Configure"] = "⚙ Konfigurieren",
+                ["ManualMode"] = "Manueller Modus",
+                ["AutoCyclingActive"] = "Auto-Cycling aktiv",
+                ["CyclingStopped"] = "Cycling gestoppt",
+                ["ManualControl"] = "Manuelle Kontrolle",
+                ["Showing"] = "Zeigt",
+                ["OverviewConfiguration"] = "Übersichts-Konfiguration",
+                ["ClassIntervalSeconds"] = "Klassen-Intervall (Sekunden):",
+                ["SubTabIntervalSeconds"] = "Untertab-Intervall (Sekunden):",
+                ["ShowOnlyClassesWithGroups"] = "Nur Klassen mit Gruppen anzeigen",
+                ["InvalidClassInterval"] = "Ungültiges Klassen-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
+                ["InvalidSubTabInterval"] = "Ungültiges Untertab-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
+                ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnier-Übersicht: {0}",
+                ["Close"] = "Schließen",
             },
             
             ["en"] = new Dictionary<string, string>
@@ -512,12 +544,44 @@ public class LocalizationService : INotifyPropertyChanged
                 
                 // Right-click Context Menu
                 ["EnterResult"] = "Enter Result",
+                ["EditResult"] = "Edit Result",
                 ["GiveByeToPlayer"] = "Give Bye to {0}",
+                ["GiveAutoByeToPlayer"] = "Automatic Bye to {0}",
                 ["SelectByeWinner"] = "Select Bye Winner",
                 ["RemoveBye"] = "Remove Bye",
                 ["NoActionPossible"] = "No Action Possible",
+                ["NoActionPossibleBothTBD"] = "No Action Possible (both players TBD)",
                 ["MatchFinished"] = "Match already finished",
                 ["MatchInProgress"] = "Match already in progress",
+                
+                // UI Refresh
+                ["RefreshUI"] = "Refresh UI",
+                ["RefreshUITooltip"] = "Refreshes the user interface and checks group status",
+                ["UIRefreshed"] = "User interface has been refreshed",
+                
+                // Tournament Overview
+                ["TournamentOverview"] = "📺 Tournament Overview",
+                ["View"] = "View",
+                ["OverviewMode"] = "Overview Mode",
+                ["StartCycling"] = "▶ Start",
+                ["StopCycling"] = "⏸ Stop",
+                ["ClassInterval"] = "Class Interval",
+                ["SubTabInterval"] = "Sub-Tab Interval",
+                ["OnlyActiveClasses"] = "Only Active Classes",
+                ["Configure"] = "⚙ Configure",
+                ["ManualMode"] = "Manual Mode",
+                ["AutoCyclingActive"] = "Auto-cycling active",
+                ["CyclingStopped"] = "Cycling stopped",
+                ["ManualControl"] = "Manual control",
+                ["Showing"] = "Showing",
+                ["OverviewConfiguration"] = "Overview Configuration",
+                ["ClassIntervalSeconds"] = "Class Interval (seconds):",
+                ["SubTabIntervalSeconds"] = "Sub-Tab Interval (seconds):",
+                ["ShowOnlyClassesWithGroups"] = "Show only classes with groups",
+                ["InvalidClassInterval"] = "Invalid class interval. Please enter a number >= 1.",
+                ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number >= 1.",
+                ["ErrorOpeningOverview"] = "Error opening tournament overview: {0}",
+                ["Close"] = "Close",
             }
         };
     }
@@ -566,4 +630,9 @@ public class LocalizationService : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
-} 
+
+    public void SetLanguage(string language)
+    {
+        CurrentLanguage = language;
+    }
+}

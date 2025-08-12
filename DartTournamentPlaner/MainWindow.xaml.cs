@@ -7,6 +7,8 @@ using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Views;
 using Microsoft.Win32;
+using System.Collections.ObjectModel;
+using System.Reflection;
 
 namespace DartTournamentPlaner;
 
@@ -44,6 +46,13 @@ public partial class MainWindow : Window
         SilberTab.TournamentClass = new TournamentClass { Id = 3, Name = "Silber" };
         BronzeTab.TournamentClass = new TournamentClass { Id = 4, Name = "Bronze" };
 
+        // WICHTIG: Nach der Initialisierung GroupPhase sicherstellen
+        System.Diagnostics.Debug.WriteLine("InitializeTournamentClasses: Ensuring GroupPhase exists for all tournament classes...");
+        PlatinTab.TournamentClass.EnsureGroupPhaseExists();
+        GoldTab.TournamentClass.EnsureGroupPhaseExists();
+        SilberTab.TournamentClass.EnsureGroupPhaseExists();
+        BronzeTab.TournamentClass.EnsureGroupPhaseExists();
+
         // Subscribe to changes
         SubscribeToChanges(PlatinTab.TournamentClass);
         SubscribeToChanges(GoldTab.TournamentClass);
@@ -57,16 +66,59 @@ public partial class MainWindow : Window
         BronzeTab.DataChanged += (s, e) => MarkAsChanged();
     } 
 
+    // Track subscribed tournament classes to prevent double subscription
+    private readonly HashSet<TournamentClass> _subscribedTournaments = new HashSet<TournamentClass>();
+
     private void SubscribeToChanges(TournamentClass tournamentClass)
     {
-        tournamentClass.Groups.CollectionChanged += (s, e) => MarkAsChanged();
-        foreach (var group in tournamentClass.Groups)
+        System.Diagnostics.Debug.WriteLine($"=== SubscribeToChanges START for {tournamentClass.Name} ===");
+        
+        // WICHTIG: Prüfe ob bereits abonniert, um doppelte Event-Handler zu vermeiden
+        if (_subscribedTournaments.Contains(tournamentClass))
         {
-            group.Players.CollectionChanged += (s, e) => MarkAsChanged();
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: {tournamentClass.Name} already subscribed, skipping");
+            return;
         }
         
-        // Subscribe to GameRules changes for automatic saving
-        tournamentClass.GameRules.PropertyChanged += (s, e) => MarkAsChanged();
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to Groups.CollectionChanged for {tournamentClass.Name}");
+            tournamentClass.Groups.CollectionChanged += (s, e) => 
+            {
+                System.Diagnostics.Debug.WriteLine($"Groups.CollectionChanged triggered for {tournamentClass.Name}: {e.Action}");
+                MarkAsChanged();
+            };
+            
+            // WICHTIG: Direkte Zugriffe auf Groups vermeiden während der Subscription
+            // Verwende stattdessen direkten Zugriff auf die GroupPhase
+            var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+            if (groupPhase != null)
+            {
+                foreach (var group in groupPhase.Groups)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to Players.CollectionChanged for group {group.Name}");
+                    group.Players.CollectionChanged += (s, e) => MarkAsChanged();
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: No GroupPhase found for {tournamentClass.Name}, skipping group subscriptions");
+            }
+            
+            // Subscribe to GameRules changes for automatic saving
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to GameRules.PropertyChanged for {tournamentClass.Name}");
+            tournamentClass.GameRules.PropertyChanged += (s, e) => MarkAsChanged();
+            
+            // Markiere als abonniert
+            _subscribedTournaments.Add(tournamentClass);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: ERROR for {tournamentClass.Name}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Stack trace: {ex.StackTrace}");
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"=== SubscribeToChanges END for {tournamentClass.Name} ===");
     }
 
     private void InitializeServices()
@@ -113,7 +165,9 @@ public partial class MainWindow : Window
 
     private void MarkAsChanged()
     {
-        System.Diagnostics.Debug.WriteLine("MarkAsChanged: Data has been marked as changed");
+        System.Diagnostics.Debug.WriteLine("=== MarkAsChanged triggered ===");
+        System.Diagnostics.Debug.WriteLine($"MarkAsChanged: Data has been marked as changed at {DateTime.Now:HH:mm:ss.fff}");
+        
         _hasUnsavedChanges = true;
         UpdateStatusBar();
         
@@ -127,6 +181,8 @@ public partial class MainWindow : Window
             _autoSaveTimer.Interval = TimeSpan.FromSeconds(2);
             _autoSaveTimer.Start();
         }
+        
+        System.Diagnostics.Debug.WriteLine("=== MarkAsChanged end ===");
     }
 
     private void UpdateTranslations()
@@ -207,7 +263,20 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"Before loading - Platin groups: {PlatinTab.TournamentClass?.Groups?.Count ?? 0}");
                 System.Diagnostics.Debug.WriteLine($"Before loading - Gold groups: {GoldTab.TournamentClass?.Groups?.Count ?? 0}");
                 
-                // Direkt die geladenen TournamentClass-Objekte zuweisen
+                // Debug: Log loaded data
+                for (int i = 0; i < data.TournamentClasses.Count; i++)
+                {
+                    var tc = data.TournamentClasses[i];
+                    System.Diagnostics.Debug.WriteLine($"Loaded TournamentClass[{i}]: Name={tc.Name}, Groups={tc.Groups.Count}");
+                    foreach (var group in tc.Groups)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"  Group: {group.Name} (ID: {group.Id}) with {group.Players.Count} players");
+                    }
+                }
+                
+                // WICHTIG: Direkt die geladenen TournamentClass-Objekte zuweisen
+                // Das triggert automatisch UI-Updates durch das TournamentClass Property
+                System.Diagnostics.Debug.WriteLine($"LoadData: Assigning loaded tournament classes to tabs...");
                 PlatinTab.TournamentClass = data.TournamentClasses[0];
                 GoldTab.TournamentClass = data.TournamentClasses[1];
                 SilberTab.TournamentClass = data.TournamentClasses[2];
@@ -228,7 +297,15 @@ public partial class MainWindow : Window
                 SilberTab.TournamentClass.Id = 3;
                 BronzeTab.TournamentClass.Id = 4;
 
-                // Event-Handler für die neuen Objekte abonnieren
+                // WICHTIG: Nach JSON-Loading GroupPhase-Existenz sicherstellen und Duplikate bereinigen
+                System.Diagnostics.Debug.WriteLine($"LoadData: Ensuring GroupPhase exists and cleaning up duplicates...");
+                CleanupDuplicatePhasesAndEnsureGroupPhase(PlatinTab.TournamentClass);
+                CleanupDuplicatePhasesAndEnsureGroupPhase(GoldTab.TournamentClass);
+                CleanupDuplicatePhasesAndEnsureGroupPhase(SilberTab.TournamentClass);
+                CleanupDuplicatePhasesAndEnsureGroupPhase(BronzeTab.TournamentClass);
+
+                // Event-Handler für die neuen Objekte abonnieren (mit Duplikat-Schutz)
+                System.Diagnostics.Debug.WriteLine($"LoadData: Subscribing to changes for loaded tournament classes...");
                 SubscribeToChanges(PlatinTab.TournamentClass);
                 SubscribeToChanges(GoldTab.TournamentClass);
                 SubscribeToChanges(SilberTab.TournamentClass);
@@ -261,34 +338,113 @@ public partial class MainWindow : Window
     
     private void UnsubscribeFromChanges(TournamentClass? tournamentClass)
     {
-        if (tournamentClass?.Groups == null) return;
+        if (tournamentClass == null) 
+        {
+            System.Diagnostics.Debug.WriteLine("UnsubscribeFromChanges: tournamentClass is null, skipping");
+            return;
+        }
         
         try
         {
-            System.Diagnostics.Debug.WriteLine($"UnsubscribeFromChanges: Unsubscribing from {tournamentClass.Name}");
+            System.Diagnostics.Debug.WriteLine($"=== UnsubscribeFromChanges START for {tournamentClass.Name} ===");
             
-            // Entferne Collection-Event-Handler
-            tournamentClass.Groups.CollectionChanged -= (s, e) => MarkAsChanged();
-            
-            // Entferne Player-Event-Handler für alle Gruppen
-            foreach (var group in tournamentClass.Groups)
+            // Entferne aus dem Tracking
+            if (_subscribedTournaments.Contains(tournamentClass))
             {
-                if (group?.Players != null)
-                {
-                    group.Players.CollectionChanged -= (s, e) => MarkAsChanged();
-                }
+                _subscribedTournaments.Remove(tournamentClass);
+                System.Diagnostics.Debug.WriteLine($"UnsubscribeFromChanges: Removed {tournamentClass.Name} from subscription tracking");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"UnsubscribeFromChanges: {tournamentClass.Name} was not in subscription tracking");
             }
             
-            // Entferne GameRules Event-Handler
-            if (tournamentClass.GameRules != null)
-            {
-                tournamentClass.GameRules.PropertyChanged -= (s, e) => MarkAsChanged();
-            }
+            // Hinweis: Da wir Lambda-Ausdrücke verwenden, können wir die Event-Handler nicht direkt entfernen
+            // Das ist jedoch in Ordnung, da wir durch das Tracking-System doppelte Registrierungen verhindern
+            // und die alten TournamentClass-Objekte für Garbage Collection freigegeben werden
+            
+            System.Diagnostics.Debug.WriteLine($"=== UnsubscribeFromChanges END for {tournamentClass.Name} ===");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"UnsubscribeFromChanges: ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"UnsubscribeFromChanges: ERROR for {tournamentClass?.Name}: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// NEUE METHODE: Bereinigt Duplikat-Phases und stellt eine korrekte GroupPhase sicher
+    /// </summary>
+    private void CleanupDuplicatePhasesAndEnsureGroupPhase(TournamentClass tournamentClass)
+    {
+        System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase START for {tournamentClass.Name} ===");
+        System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Before cleanup - {tournamentClass.Phases.Count} phases");
+        
+        try
+        {
+            // Debug: Liste alle Phases vor der Bereinigung
+            for (int i = 0; i < tournamentClass.Phases.Count; i++)
+            {
+                var phase = tournamentClass.Phases[i];
+                System.Diagnostics.Debug.WriteLine($"  Phase[{i}]: {phase.Name} ({phase.PhaseType}) - Groups: {phase.Groups.Count}");
+            }
+
+            // Finde alle GroupPhase-Duplikate
+            var groupPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.GroupPhase).ToList();
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Found {groupPhases.Count} GroupPhases");
+
+            if (groupPhases.Count > 1)
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Found {groupPhases.Count} duplicate GroupPhases - consolidating...");
+
+                // Behalte die erste GroupPhase mit den meisten Groups oder die erste mit Gruppen
+                var primaryPhase = groupPhases.OrderByDescending(p => p.Groups.Count).First();
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Selected primary phase with {primaryPhase.Groups.Count} groups");
+
+                // Entferne alle anderen GroupPhases
+                var duplicatesToRemove = groupPhases.Where(p => p != primaryPhase).ToList();
+                foreach (var duplicate in duplicatesToRemove)
+                {
+                    System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Removing duplicate GroupPhase with {duplicate.Groups.Count} groups");
+                    tournamentClass.Phases.Remove(duplicate);
+                }
+
+                // Setze die primäre Phase als CurrentPhase
+                tournamentClass.CurrentPhase = primaryPhase;
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Set primary GroupPhase as CurrentPhase");
+            }
+            else if (groupPhases.Count == 1)
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Single GroupPhase found - setting as CurrentPhase");
+                tournamentClass.CurrentPhase = groupPhases.First();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: No GroupPhase found - calling EnsureGroupPhaseExists");
+                tournamentClass.EnsureGroupPhaseExists();
+            }
+
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: After cleanup - {tournamentClass.Phases.Count} phases");
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: CurrentPhase = {tournamentClass.CurrentPhase?.PhaseType}");
+            // WICHTIG: Groups.Count nicht hier aufrufen - das könnte zu Rekursion führen!
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Groups are now accessible via CurrentPhase");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: ERROR for {tournamentClass.Name}: {ex.Message}");
+            
+            // Fallback: Notfall-Bereinigung
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Attempting emergency cleanup...");
+                tournamentClass.EnsureGroupPhaseExists();
+            }
+            catch (Exception fallbackEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Emergency cleanup failed: {fallbackEx.Message}");
+            }
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase END ===");
     }
 
     private async Task SaveDataInternal()
@@ -433,6 +589,30 @@ public partial class MainWindow : Window
         else
         {
             Application.Current.Shutdown();
+        }
+    }
+
+    private void OverviewMode_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Get all tournament classes
+            var tournamentClasses = new List<TournamentClass>
+            {
+                PlatinTab.TournamentClass,
+                GoldTab.TournamentClass,
+                SilberTab.TournamentClass,
+                BronzeTab.TournamentClass
+            };
+
+            // Create and show the overview window
+            var overviewWindow = new TournamentOverviewWindow(tournamentClasses, _localizationService);
+            overviewWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error opening tournament overview: {ex.Message}", "Error", 
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

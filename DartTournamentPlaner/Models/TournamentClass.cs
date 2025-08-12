@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace DartTournamentPlaner.Models;
@@ -58,6 +59,31 @@ public class TournamentClass : INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups getter called for {Name}");
             
+            // NEUE STRATEGIE: Stelle sicher dass GroupPhase existiert (nach JSON-Loading)
+            EnsureGroupPhaseExists();
+            
+            // WICHTIG: Erst schauen ob direkt Groups auf TournamentClass-Ebene vorhanden sind (für Legacy/Loading)
+            if (_directGroups != null && _directGroups.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Using direct groups collection with {_directGroups.Count} groups");
+                
+                // Einmalige Migration: Kopiere direkte Groups in die aktuelle Phase
+                if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase && CurrentPhase.Groups.Count == 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Migrating {_directGroups.Count} groups to CurrentPhase");
+                    foreach (var group in _directGroups)
+                    {
+                        CurrentPhase.Groups.Add(group);
+                    }
+                    
+                    // Nach der Migration direkte Groups leeren
+                    _directGroups.Clear();
+                    System.Diagnostics.Debug.WriteLine($"  Migration completed, cleared direct groups");
+                }
+                
+                return CurrentPhase?.Groups ?? new ObservableCollection<Group>();
+            }
+            
             if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
                 System.Diagnostics.Debug.WriteLine($"  Current phase is GroupPhase, returning {CurrentPhase.Groups.Count} groups");
@@ -66,12 +92,51 @@ public class TournamentClass : INotifyPropertyChanged
             
             // If we're in later phases, return the groups from the group phase
             var groupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
-            var count = groupPhase?.Groups?.Count ?? 0;
-            System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {count} groups");
             
-            return groupPhase?.Groups ?? new ObservableCollection<Group>();
+            if (groupPhase?.Groups != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {groupPhase.Groups.Count} groups");
+                return groupPhase.Groups;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"  ERROR: No GroupPhase found after EnsureGroupPhaseExists - this should not happen!");
+            // Fallback: Notfall-GroupPhase erstellen
+            var emergencyGroupPhase = new TournamentPhase
+            {
+                Name = "Gruppenphase",
+                PhaseType = TournamentPhaseType.GroupPhase,
+                IsActive = true
+            };
+            Phases.Add(emergencyGroupPhase);
+            CurrentPhase = emergencyGroupPhase;
+            
+            return emergencyGroupPhase.Groups;
+        }
+        set 
+        {
+            System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups setter called for {Name} with {value?.Count ?? 0} groups");
+            
+            // Für JSON-Deserialisierung: Speichere Groups temporär
+            _directGroups = value ?? new ObservableCollection<Group>();
+            
+            // Wenn bereits eine CurrentPhase existiert, kopiere sofort
+            if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase && CurrentPhase.Groups.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Immediately copying {_directGroups.Count} groups to CurrentPhase");
+                CurrentPhase.Groups.Clear();
+                foreach (var group in _directGroups)
+                {
+                    CurrentPhase.Groups.Add(group);
+                }
+                _directGroups.Clear();
+            }
+            
+            OnPropertyChanged();
         }
     }
+    
+    // Temporärer Storage für Groups beim JSON-Loading
+    private ObservableCollection<Group>? _directGroups;
 
     // All tournament phases
     public ObservableCollection<TournamentPhase> Phases { get; set; } = new ObservableCollection<TournamentPhase>();
@@ -80,21 +145,63 @@ public class TournamentClass : INotifyPropertyChanged
     {
         System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor START ===");
         
-        // Initialize with Group Phase
-        var groupPhase = new TournamentPhase
-        {
-            Name = "Gruppenphase",
-            PhaseType = TournamentPhaseType.GroupPhase,
-            IsActive = true
-        };
+        // WICHTIG: KEINE automatische GroupPhase-Erstellung im Constructor!
+        // Das würde bei JSON-Deserialisierung zu Duplikaten führen, da:
+        // 1. Constructor erstellt GroupPhase (Phases ist noch leer)
+        // 2. JSON-Deserialisierung fügt weitere Phases hinzu
+        // 3. Resultat: Duplikat-GroupPhases!
         
-        System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Created new TournamentPhase with {groupPhase.Groups.Count} groups");
+        // Stattdessen: Verwende eine Lazy Initialization-Strategie
+        System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Phases collection initialized, count = {Phases.Count}");
         
-        Phases.Add(groupPhase);
-        CurrentPhase = groupPhase;
-        
-        System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Set CurrentPhase, Groups count = {Groups.Count}");
         System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor END ===");
+    }
+
+    /// <summary>
+    /// NEUE METHODE: Stellt sicher, dass mindestens eine GroupPhase existiert
+    /// Wird nach JSON-Deserialisierung oder bei erstem Zugriff aufgerufen
+    /// </summary>
+    public void EnsureGroupPhaseExists()
+    {
+        System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists START for {Name} ===");
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Current Phases count = {Phases.Count}");
+        
+        // Prüfe ob bereits eine GroupPhase existiert
+        var existingGroupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+        
+        if (existingGroupPhase == null)
+        {
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: No GroupPhase found, creating new one");
+            
+            // Erstelle eine neue GroupPhase
+            var groupPhase = new TournamentPhase
+            {
+                Name = "Gruppenphase",
+                PhaseType = TournamentPhaseType.GroupPhase,
+                IsActive = true
+            };
+            
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new TournamentPhase with {groupPhase.Groups.Count} groups");
+        
+            Phases.Add(groupPhase);
+            CurrentPhase = groupPhase;
+            
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new GroupPhase, total phases = {Phases.Count}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: GroupPhase already exists, setting as CurrentPhase");
+            
+            // Setze die existierende GroupPhase als CurrentPhase wenn noch keine gesetzt
+            if (CurrentPhase == null)
+            {
+                CurrentPhase = existingGroupPhase;
+            }
+        }
+        
+        // WICHTIG: KEINE Groups.Count Aufrufe hier - das würde zu Rekursion führen!
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase = {CurrentPhase?.PhaseType}");
+        System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END ===");
     }
 
     public bool CanProceedToNextPhase()
@@ -327,6 +434,9 @@ public class TournamentClass : INotifyPropertyChanged
             int playerIndex = 0;
             for (int i = 0; i < firstRoundMatches; i++)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln
+                var roundRules = GameRules.GetRulesForRound(startingRound);
+                
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -334,10 +444,11 @@ public class TournamentClass : INotifyPropertyChanged
                     Player2 = shuffledPlayers[playerIndex++],
                     BracketType = BracketType.Winner,
                     Round = startingRound,
-                    Position = i
+                    Position = i,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
 
-                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}");
+                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}, Round: {startingRound}, UsesSets: {match.UsesSets}");
                 currentRoundMatches.Add(match);
                 matches.Add(match);
             }
@@ -345,6 +456,9 @@ public class TournamentClass : INotifyPropertyChanged
             // Then, create "bye matches" for remaining players
             for (int i = 0; i < byesNeeded; i++)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                var roundRules = GameRules.GetRulesForRound(startingRound);
+                
                 var byeMatch = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -354,10 +468,11 @@ public class TournamentClass : INotifyPropertyChanged
                     Status = MatchStatus.Bye,
                     BracketType = BracketType.Winner,
                     Round = startingRound,
-                    Position = firstRoundMatches + i
+                    Position = firstRoundMatches + i,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
                 };
 
-                System.Diagnostics.Debug.WriteLine($"  Match {byeMatch.Id}: {byeMatch.Player1?.Name} gets bye");
+                System.Diagnostics.Debug.WriteLine($"  Match {byeMatch.Id}: {byeMatch.Player1?.Name} gets bye, Round: {startingRound}, UsesSets: {byeMatch.UsesSets}");
                 currentRoundMatches.Add(byeMatch);
                 matches.Add(byeMatch);
             }
@@ -379,6 +494,9 @@ public class TournamentClass : INotifyPropertyChanged
                 
                 for (int i = 0; i < currentRoundMatches.Count; i += 2)
                 {
+                    // WICHTIG: Bestimme rundenspezifische Regeln für jede Runde
+                    var roundRules = GameRules.GetRulesForRound(nextRound);
+                    
                     var match = new KnockoutMatch
                     {
                         Id = matchId++,
@@ -388,10 +506,11 @@ public class TournamentClass : INotifyPropertyChanged
                         Round = nextRound,
                         Position = i / 2,
                         Player1FromWinner = true,
-                        Player2FromWinner = true
+                        Player2FromWinner = true,
+                        UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                     };
 
-                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: Winner of {match.SourceMatch1?.Id} vs Winner of {match.SourceMatch2?.Id ?? 0}");
+                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: Winner of {match.SourceMatch1?.Id} vs Winner of {match.SourceMatch2?.Id ?? 0}, Round: {nextRound}, UsesSets: {match.UsesSets}");
                     nextRoundMatches.Add(match);
                     matches.Add(match);
                 }
@@ -477,6 +596,9 @@ public class TournamentClass : INotifyPropertyChanged
         // Create first round actual matches
         for (int i = 0; i < firstRoundMatches; i++)
         {
+            // WICHTIG: Bestimme rundenspezifische Regeln
+            var roundRules = GameRules.GetRulesForRound(startingRound);
+            
             var match = new KnockoutMatch
             {
                 Id = matchId++,
@@ -484,7 +606,8 @@ public class TournamentClass : INotifyPropertyChanged
                 Player2 = shuffledPlayers[playerIndex++],
                 BracketType = BracketType.Winner,
                 Round = startingRound,
-                Position = i
+                Position = i,
+                UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
             };
             currentRoundMatches.Add(match);
             matches.Add(match);
@@ -493,6 +616,9 @@ public class TournamentClass : INotifyPropertyChanged
         // Create bye matches
         for (int i = 0; i < byesNeeded; i++)
         {
+            // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+            var roundRules = GameRules.GetRulesForRound(startingRound);
+            
             var byeMatch = new KnockoutMatch
             {
                 Id = matchId++,
@@ -502,7 +628,8 @@ public class TournamentClass : INotifyPropertyChanged
                 Status = MatchStatus.Bye,
                 BracketType = BracketType.Winner,
                 Round = startingRound,
-                Position = firstRoundMatches + i
+                Position = firstRoundMatches + i,
+                UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
             };
             currentRoundMatches.Add(byeMatch);
             matches.Add(byeMatch);
@@ -517,6 +644,9 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < currentRoundMatches.Count; i += 2)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln für jede Runde
+                var roundRules = GameRules.GetRulesForRound(nextRound);
+                
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -526,7 +656,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Round = nextRound,
                     Position = i / 2,
                     Player1FromWinner = true,
-                    Player2FromWinner = true
+                    Player2FromWinner = true,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
                 nextRoundMatches.Add(match);
                 matches.Add(match);
@@ -563,6 +694,9 @@ public class TournamentClass : INotifyPropertyChanged
             int position = 0;
             for (int i = 0; i < groupPhaseLosers.Count - 1; i += 2)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln für Loser Bracket
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -570,7 +704,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Player2 = groupPhaseLosers[i + 1],
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
-                    Position = position++
+                    Position = position++,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
                 currentRound.Add(match);
                 loserMatches.Add(match);
@@ -579,6 +714,9 @@ public class TournamentClass : INotifyPropertyChanged
             // Handle odd number with bye
             if (groupPhaseLosers.Count % 2 == 1)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var byeMatch = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -588,7 +726,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Status = MatchStatus.Bye,
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
-                    Position = position++
+                    Position = position++,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
                 };
                 currentRound.Add(byeMatch);
                 loserMatches.Add(byeMatch);
@@ -611,12 +750,16 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < allParticipants.Count - 1; i += 2)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln für jede Loser Bracket Runde
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
-                    Position = position++
+                    Position = position++,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
 
                 SetLoserBracketParticipant(match, allParticipants[i], true);
@@ -629,6 +772,9 @@ public class TournamentClass : INotifyPropertyChanged
             // Handle odd number
             if (allParticipants.Count % 2 == 1)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var byeMatch = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -636,7 +782,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Status = MatchStatus.Bye,
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
-                    Position = position++
+                    Position = position++,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
                 };
 
                 SetLoserBracketParticipant(byeMatch, allParticipants.Last(), true);
@@ -661,6 +808,9 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < currentRound.Count - 1; i += 2)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln für jede weitere Runde
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var match = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -670,7 +820,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Round = currentLoserRound,
                     Position = position++,
                     Player1FromWinner = true,
-                    Player2FromWinner = true
+                    Player2FromWinner = true,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
                 nextRound.Add(match);
                 loserMatches.Add(match);
@@ -678,6 +829,9 @@ public class TournamentClass : INotifyPropertyChanged
 
             if (currentRound.Count % 2 == 1)
             {
+                // WICHTIG: Bestimme rundenspezifische Regeln auch für finale Bye-Matches
+                var roundRules = GameRules.GetRulesForRound(currentLoserRound);
+                
                 var byeMatch = new KnockoutMatch
                 {
                     Id = matchId++,
@@ -687,7 +841,8 @@ public class TournamentClass : INotifyPropertyChanged
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
                     Position = position++,
-                    Player1FromWinner = true
+                    Player1FromWinner = true,
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für finale Bye-Matches
                 };
                 nextRound.Add(byeMatch);
                 loserMatches.Add(byeMatch);
@@ -1617,6 +1772,39 @@ public class TournamentClass : INotifyPropertyChanged
             System.Diagnostics.Debug.WriteLine($"ProcessMatchResult ERROR: {ex.Message}");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Gets Winner Bracket matches for the overview display
+    /// </summary>
+    public ObservableCollection<KnockoutMatch> GetWinnerBracketMatches()
+    {
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            return new ObservableCollection<KnockoutMatch>();
+            
+        return CurrentPhase.WinnerBracket ?? new ObservableCollection<KnockoutMatch>();
+    }
+    
+    /// <summary>
+    /// Gets Loser Bracket matches for the overview display
+    /// </summary>
+    public ObservableCollection<KnockoutMatch> GetLoserBracketMatches()
+    {
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            return new ObservableCollection<KnockoutMatch>();
+            
+        return CurrentPhase.LoserBracket ?? new ObservableCollection<KnockoutMatch>();
+    }
+    
+    /// <summary>
+    /// Gets Finals matches for the overview display
+    /// </summary>
+    public ObservableCollection<Match> GetFinalsMatches()
+    {
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.RoundRobinFinals)
+            return new ObservableCollection<Match>();
+            
+        return CurrentPhase.FinalsGroup?.Matches ?? new ObservableCollection<Match>();
     }
 }
 
