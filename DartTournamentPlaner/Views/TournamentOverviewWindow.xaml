@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:DartTournamentPlaner.Controls"
         mc:Ignorable="d"
-        Title="Tournament Overview" Height="800" Width="1200"
+        Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         Background="#F5F5F5"
@@ -165,7 +165,7 @@
 
                 <!-- Left Side Controls -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Tournament Overview Mode" FontSize="18" FontWeight="Bold" Margin="0,0,30,0" VerticalAlignment="Center"/>
+                    <TextBlock Name="OverviewModeText" Text="Tournament Overview Mode" FontSize="18" FontWeight="Bold" Margin="0,0,30,0" VerticalAlignment="Center"/>
                     
                     <!-- Simple Start/Stop Button -->
                     <Button Name="StartStopButton" Content="Start" 

@@ -22,6 +22,10 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Bronze"] = "Bronze",
                 
                 // Tournament Tab
+                ["SetupTab"] = "Turnier-Setup",
+                ["GroupPhaseTab"] = "Gruppenphase",
+                ["FinalsTab"] = "Finalrunde",
+                ["KnockoutTab"] = "KO-Runde",
                 ["Groups"] = "Gruppen:",
                 ["Players"] = "Spieler:",
                 ["AddGroup"] = "Gruppe hinzufügen",
@@ -44,6 +48,16 @@ public class LocalizationService : INotifyPropertyChanged
                 ["PlayersInGroup"] = "Spieler in {0}:",
                 ["NoGroupSelectedPlayers"] = "Spieler: (Keine Gruppe ausgewählt)",
                 ["Group"] = "Gruppe {0}",
+                ["AdvanceToNextPhase"] = "Nächste Phase starten",
+                ["ResetTournament"] = "Turnier zurücksetzen",
+                ["ResetKnockoutPhase"] = "KO-Phase zurücksetzen",
+                ["RefreshUI"] = "UI aktualisieren",
+                ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche",
+                
+                // Phases
+                ["GroupPhase"] = "Gruppenphase",
+                ["FinalsPhase"] = "Finalrunde",
+                ["KnockoutPhase"] = "KO-Phase",
                 
                 // Game Rules
                 ["GameRules"] = "Spielregeln",
@@ -61,36 +75,6 @@ public class LocalizationService : INotifyPropertyChanged
                 ["ConfigureRules"] = "Regeln konfigurieren",
                 ["RulesPreview"] = "Regelvorschau",
                 
-                // Round-specific Rules
-                ["RoundSpecificRules"] = "Rundenspezifische Regeln",
-                ["ConfigureRoundRules"] = "Rundenregeln konfigurieren",
-                ["WinnerBracketRules"] = "Winner Bracket Regeln",
-                ["LoserBracketRules"] = "Loser Bracket Regeln",
-                ["RoundRulesFor"] = "Regeln für {0}",
-                ["DefaultRules"] = "Standard-Regeln",
-                ["ResetToDefault"] = "Auf Standard zurücksetzen",
-                ["RoundRulesConfiguration"] = "Rundenregeln-Konfiguration",
-                ["Best64Rules"] = "Beste 64 Regeln",
-                ["Best32Rules"] = "Beste 32 Regeln",
-                ["Best16Rules"] = "Beste 16 Regeln",
-                ["QuarterfinalRules"] = "Viertelfinale Regeln",
-                ["SemifinalRules"] = "Halbfinale Regeln",
-                ["FinalRules"] = "Finale Regeln",
-                ["GrandFinalRules"] = "Grand Final Regeln",
-                ["LoserRound1Rules"] = "LR1 Regeln",
-                ["LoserRound2Rules"] = "LR2 Regeln",
-                ["LoserRound3Rules"] = "LR3 Regeln",
-                ["LoserRound4Rules"] = "LR4 Regeln",
-                ["LoserRound5Rules"] = "LR5 Regeln",
-                ["LoserRound6Rules"] = "LR6 Regeln",
-                ["LoserRound7Rules"] = "LR7 Regeln",
-                ["LoserRound8Rules"] = "LR8 Regeln",
-                ["LoserRound9Rules"] = "LR9 Regeln",
-                ["LoserRound10Rules"] = "LR10 Regeln",
-                ["LoserRound11Rules"] = "LR11 Regeln",
-                ["LoserRound12Rules"] = "LR12 Regeln",
-                ["LoserFinalRules"] = "Loser Final Regeln",
-
                 // Matches
                 ["Matches"] = "Spiele:",
                 ["Standings"] = "Tabelle:",
@@ -105,56 +89,10 @@ public class LocalizationService : INotifyPropertyChanged
                 ["MatchInProgress"] = "Läuft",
                 ["MatchFinished"] = "Beendet",
                 ["MatchBye"] = "Freilos",
-                ["Player1"] = "Spieler 1",
-                ["Player2"] = "Spieler 2",
+                ["Round"] = "Runde",
                 ["Sets"] = "Sets",
                 ["Legs"] = "Legs",
-                ["Winner"] = "Sieger",
-                ["Result"] = "Ergebnis",
                 ["Score"] = "Punkte",
-                ["Position"] = "Platz",
-                ["MatchesPlayed"] = "Spiele",
-                ["Wins"] = "Siege",
-                ["Losses"] = "Niederlagen",
-                ["Draws"] = "Unentschieden",
-                ["SetsWon"] = "Sets gewonnen",
-                ["SetsLost"] = "Sets verloren",
-                ["LegsWon"] = "Legs gewonnen",
-                ["LegsLost"] = "Legs verloren",
-                ["SetDifference"] = "Set-Differenz",
-                ["LegDifference"] = "Leg-Differenz",
-                ["Match"] = "Spiel",
-                ["Status"] = "Status",
-                ["Player"] = "Spieler",
-                ["Notes"] = "Notizen",
-                
-                // Match Entry Dialog
-                ["EnterMatchResult"] = "Spielergebnis eingeben",
-                ["Player1Sets"] = "Sets Spieler 1",
-                ["Player2Sets"] = "Sets Spieler 2", 
-                ["Player1Legs"] = "Legs Spieler 1",
-                ["Player2Legs"] = "Legs Spieler 2",
-                ["SaveResult"] = "Ergebnis speichern",
-                ["MatchResultSaved"] = "Ergebnis wurde gespeichert",
-                
-                // Enhanced Validation Messages
-                ["ValidationError"] = "Validierungsfehler",
-                ["InvalidWinCondition"] = "Ungültige Siegbedingung: {0} benötigt {1} {2} zum Sieg, aber hat nur {3}.",
-                ["NoWinnerFound"] = "Kein Sieger ermittelt. Mindestens ein Spieler muss die Siegbedingung erfüllen.",
-                ["BothPlayersWon"] = "Beide Spieler erfüllen die Siegbedingung. Das ist nicht möglich.",
-                ["IncompleteScore"] = "Unvollständige Punkte: Bitte geben Sie Sets und Legs für beide Spieler ein.",
-                ["NegativeValues"] = "Negative Werte sind nicht erlaubt.",
-                ["InvalidNumbers"] = "Bitte geben Sie gültige Zahlen ein.",
-                ["MatchIncomplete"] = "Das Spiel ist noch nicht beendet. Mindestens ein Spieler muss gewinnen.",
-                ["InvalidSetCount"] = "Ungültige Set-Anzahl: Maximal {0} Sets sind bei Best-of-{1} möglich.",
-                ["InvalidLegCount"] = "Ungültige Leg-Anzahl: Maximal {0} Legs sind bei Best-of-{1} möglich.",
-                ["InvalidSetRatio"] = "Ungültiges Set-Verhältnis: Bei {0}:{1} Sets sollten die Legs ungefähr {2}:{3} betragen.",
-                ["InconsistentResult"] = "Inkonsistentes Ergebnis: Das Legs-Verhältnis passt nicht zum Set-Ergebnis.",
-                ["ExcessiveLegs"] = "Zu viele Legs: Bei {0}:{1} Sets sind maximal {2} Legs pro Spieler möglich.",
-                ["InsufficientLegsForSet"] = "Nicht genügend Legs für Set-Sieg: {0} benötigt {1} Legs um ein Set zu gewinnen.",
-                ["TooManyLegsInDecidingSet"] = "Zu viele Legs im entscheidenden Set: Maximal {0} Legs sind möglich.",
-                ["LegsExceedSetRequirement"] = "{0} hat genug Legs für ein Set gewonnen, aber die Set-Anzahl stimmt nicht überein.",
-                ["SaveBlocked"] = "Speicherung verhindert: Das Ergebnis entspricht nicht den konfigurierten Spielregeln.",
                 
                 // Settings
                 ["Settings"] = "Einstellungen",
@@ -169,7 +107,6 @@ public class LocalizationService : INotifyPropertyChanged
                 ["File"] = "Datei",
                 ["New"] = "Neu",
                 ["Open"] = "Öffnen",
-                ["Save"] = "Speichern",
                 ["SaveAs"] = "Speichern unter",
                 ["Exit"] = "Beenden",
                 ["Edit"] = "Bearbeiten",
@@ -183,212 +120,141 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Saved"] = "Gespeichert",
                 ["Ready"] = "Bereit",
                 
-                // Messages
-                ["SaveSuccess"] = "Daten erfolgreich gespeichert.",
-                ["LoadSuccess"] = "Daten erfolgreich geladen.",
-                ["SaveError"] = "Fehler beim Speichern der Daten.",
-                ["LoadError"] = "Fehler beim Laden der Daten.",
-
-                // Post-Group Phase
-                ["PostGroupPhase"] = "Nach der Gruppenphase",
-                ["PostGroupPhaseMode"] = "Modus nach Gruppenphase",
-                ["PostGroupPhaseNone"] = "Nur Gruppenphase",
-                ["PostGroupPhaseRoundRobin"] = "Finalrunde (Round Robin)",
-                ["PostGroupPhaseKnockout"] = "KO-System",
-                ["QualifyingPlayersPerGroup"] = "Qualifizierte pro Gruppe",
-                ["KnockoutMode"] = "KO-Modus", 
-                ["SingleElimination"] = "Einfaches KO",
-                ["DoubleElimination"] = "Doppeltes KO (Winner + Loser Bracket)",
-                ["IncludeGroupPhaseLosersBracket"] = "Gruppenphase-Verlierer ins Loser Bracket",
-                ["AdvanceToNextPhase"] = "Nächste Phase starten",
-                ["CannotAdvancePhase"] = "Alle Spiele der aktuellen Phase müssen beendet sein",
-                ["PhaseCompleted"] = "Phase abgeschlossen",
-                ["GroupPhase"] = "Gruppenphase",
-                ["FinalsPhase"] = "Finalrunde", 
-                ["KnockoutPhase"] = "KO-Phase",
-                ["WinnerBracket"] = "Winner Bracket",
-                ["LoserBracket"] = "Loser Bracket",
-                ["Round"] = "Runde",
-                ["Quarterfinal"] = "Viertelfinale",
-                ["Semifinal"] = "Halbfinale",
-                ["Final"] = "Finale",
-                ["GrandFinal"] = "Grand Final",
-                
-                // German KO Round Names based on player count
-                ["Best64"] = "Beste 64",
-                ["Best32"] = "Beste 32", 
-                ["Best16"] = "Achtelfinale",
-                ["Best8"] = "Viertelfinale",
-                ["Best4"] = "Halbfinale",
-                ["LastOfRound"] = "Runde {0}",
-                
-                // Tabs
-                ["SetupTab"] = "Turnier-Setup",
-                ["GroupPhaseTab"] = "Gruppenphase", 
-                ["FinalsTab"] = "Finalrunde",
-                ["KnockoutTab"] = "KO-Runde",
-                ["LoserBracketTab"] = "Loser Bracket",
-                ["LoserBracketTreeTab"] = "Loser Bracket Baum",
-                ["GroupSetup"] = "Gruppenerstellung",
-                ["MatchArea"] = "Spielbereich",
-
-                // Tournament Reset
-                ["TournamentReset"] = "Turnier zurückgesetzt",
-                ["TournamentResetWarning"] = "⚠ WARNUNG: Das Turnier wird auf die Gruppenphase zurückgesetzt!",
-                ["ResetTournament"] = "Turnier zurücksetzen",
-                ["ResetTournamentTitle"] = "Turnier komplett zurücksetzen", 
-                ["ResetTournamentConfirm"] = "Möchten Sie das gesamte Turnier wirklich zurücksetzen?\n\n⚠ ALLE Spiele und Phasen werden gelöscht!\nNur Gruppen und Spieler bleiben erhalten.",
-                ["TournamentResetComplete"] = "Turnier wurde erfolgreich zurückgesetzt.",
-                
-                // KO Reset
-                ["ResetKnockoutPhase"] = "KO-Phase zurücksetzen",
-                ["ResetKnockoutTitle"] = "KO-Phase zurücksetzen",
-                ["ResetKnockoutConfirm"] = "Möchten Sie die KO-Phase wirklich zurücksetzen?\n\n⚠ Alle KO-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird zur Gruppenphase zurückgesetzt.",
-                ["ResetKnockoutComplete"] = "KO-Phase wurde erfolgreich zurückgesetzt.",
-                
-                // Bye (Freilos) System
-                ["GiveBye"] = "Freilos vergeben",
-                ["UndoBye"] = "Freilos rückgängig machen",
-                ["ByeGiven"] = "Freilos wurde vergeben",
-                ["ByeUndone"] = "Freilos wurde rückgängig gemacht",
-                ["SelectByeWinner"] = "Wählen Sie den Spieler aus, der das Freilos erhalten soll:",
-                ["ByeCannotBeUndone"] = "Freilos kann nicht rückgängig gemacht werden - nachfolgende Matches bereits gespielt",
-                ["ByeOperationFailed"] = "Freilos-Operation fehlgeschlagen",
-                ["AutomaticByeDetected"] = "Automatisches Freilos erkannt für {0}",
-                
-                // Rechtsklick Kontextmenü
-                ["EnterResult"] = "Ergebnis eingeben",
-                ["EditResult"] = "Ergebnis bearbeiten",
-                ["GiveByeToPlayer"] = "Freilos an {0} vergeben",
-                ["GiveAutoByeToPlayer"] = "Automatisches Freilos an {0}",
-                ["SelectByeWinner"] = "Freilos-Gewinner wählen",
-                ["RemoveBye"] = "Freilos entfernen",
-                ["NoActionPossible"] = "Keine Aktion möglich",
-                ["NoActionPossibleBothTBD"] = "Keine Aktion möglich (beide Spieler TBD)",
-                ["MatchFinished"] = "Match bereits beendet",
-                ["MatchInProgress"] = "Match läuft bereits",
-                
-                // UI Refresh
-                ["RefreshUI"] = "UI aktualisieren",
-                ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche und überprüft den Gruppenstatus",
-                ["UIRefreshed"] = "Benutzeroberfläche wurde aktualisiert",
-                
                 // Tournament Overview
                 ["TournamentOverview"] = "📺 Turnier-Übersicht",
-                ["View"] = "Ansicht",
                 ["OverviewMode"] = "Übersichtsmodus",
-                ["StartCycling"] = "▶ Start",
-                ["StopCycling"] = "⏸ Stop",
-                ["ClassInterval"] = "Klassen-Intervall",
-                ["SubTabInterval"] = "Untertab-Intervall",
-                ["OnlyActiveClasses"] = "Nur aktive Klassen",
                 ["Configure"] = "⚙ Konfigurieren",
                 ["ManualMode"] = "Manueller Modus",
                 ["AutoCyclingActive"] = "Auto-Cycling aktiv",
                 ["CyclingStopped"] = "Cycling gestoppt",
                 ["ManualControl"] = "Manuelle Kontrolle",
                 ["Showing"] = "Zeigt",
-                ["OverviewConfiguration"] = "Übersichts-Konfiguration",
-                ["ClassIntervalSeconds"] = "Klassen-Intervall (Sekunden):",
-                ["SubTabIntervalSeconds"] = "Untertab-Intervall (Sekunden):",
-                ["ShowOnlyClassesWithGroups"] = "Nur Klassen mit Gruppen anzeigen",
-                ["InvalidClassInterval"] = "Ungültiges Klassen-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
-                ["InvalidSubTabInterval"] = "Ungültiges Untertab-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
-                ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnier-Übersicht: {0}",
                 ["Close"] = "Schließen",
                 
-                // Tournament Tree View
-                ["WinnerBracketTree"] = "Winner Bracket Baum",
-                ["LoserBracketTree"] = "Loser Bracket Baum",
+                // Additional common terms
+                ["Start"] = "Start",
+                ["Stop"] = "Stop",
+                ["Player"] = "Spieler",
+                ["Match"] = "Spiel",
+                ["Result"] = "Ergebnis",
+                ["Status"] = "Status",
+                ["Position"] = "Platz",
+                ["Winner"] = "Sieger",
+                
+                // Match Status Translations
+                ["Unknown"] = "Unbekannt",
+                
+                // Tournament Overview specific
+                ["StartCycling"] = "Starten",
+                ["StopCycling"] = "Stoppen", 
                 ["WinnerBracketMatches"] = "Winner Bracket Spiele",
-                ["LoserBracketMatches"] = "Loser Bracket Spiele",
-                ["BracketTree"] = "Turnierbaum",
-                ["Matches"] = "Spiele",
+                ["WinnerBracketTree"] = "Winner Bracket Baum",
+                ["LoserBracketMatches"] = "Loser Bracket Spiele", 
+                ["LoserBracketTree"] = "Loser Bracket Baum",
+                ["RoundColumn"] = "Runde",
+                ["PositionShort"] = "Platz",
+                ["PointsShort"] = "Pkt",
+                ["WinDrawLoss"] = "S-U-N",
+                ["NoLoserBracketMatches"] = "Keine Loser Bracket Spiele vorhanden",
+                ["NoWinnerBracketMatches"] = "Keine Winner Bracket Spiele vorhanden", 
+                ["TournamentTreeWillShow"] = "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
+                
+                // Additional Group Phase terms
+                ["SelectGroup"] = "Gruppe auswählen",
+                ["NoGroupSelected"] = "Keine Gruppe ausgewählt",
+                
+                // OverviewConfigDialog translations
+                ["OverviewConfiguration"] = "Übersichts-Konfiguration", 
+                ["TournamentOverviewConfiguration"] = "Turnier Übersicht Konfiguration",
+                ["TimeBetweenClasses"] = "Zeit zwischen Turnierklassen:",
+                ["TimeBetweenSubTabs"] = "Zeit zwischen Unter-Tabs:",
+                ["Seconds"] = "Sekunden",
+                ["ShowOnlyActiveClassesText"] = "Nur Klassen mit aktiven Gruppen anzeigen",
+                ["OverviewInfoText"] = "Die Übersicht durchläuft automatisch die Turnierklassen und ihre Gruppen/Brackets endlos. Sie können dieses Fenster auf einen zweiten Monitor verschieben.",
+                ["OK"] = "OK",
+                ["InvalidClassInterval"] = "Ungültiges Klassen-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
+                ["InvalidSubTabInterval"] = "Ungültiges Unter-Tab-Intervall. Bitte geben Sie eine Zahl >= 1 ein.",
+                ["Error"] = "Fehler",
+                
+                // Tournament Overview Texts
+                ["TournamentName"] = "🏆 Turnier:",
+                ["CurrentPhase"] = "🎯 Aktuelle Phase:",
+                ["GroupsCount"] = "👥 Gruppen:",
+                ["PlayersTotal"] = "🎮 Spieler gesamt:",
+                ["GameRulesColon"] = "📋 Spielregeln:",
+                ["CompletedGroups"] = "✅ Abgeschlossene Gruppen:",
+                ["QualifiedPlayers"] = "🏅 Qualifizierte Spieler:",
+                ["KnockoutMatches"] = "⚔️ KO-Spiele:",
+                ["Completed"] = "beendet",
+                
+                // Weitere hardcodierte Texte
+                ["Finalists"] = "Finalisten",
+                ["KnockoutParticipants"] = "KO-Teilnehmer",
+                ["PlayersText"] = "Spieler",
+                ["OverviewModeTitle"] = "Tournament Overview Mode",
+                ["Information"] = "Information",
+                ["Warning"] = "Warnung",
+                ["NewTournament"] = "Neues Turnier",
+                ["CreateNewTournament"] = "Neues Turnier erstellen? Ungespeicherte Änderungen gehen verloren.",
+                ["UnsavedChanges"] = "Ungespeicherte Änderungen",
+                ["SaveBeforeExit"] = "Sie haben ungespeicherte Änderungen. Möchten Sie vor dem Beenden speichern?",
+                ["CustomFileNotImplemented"] = "Benutzerdefiniertes Laden von Dateien ist noch nicht implementiert.",
+                ["CustomFileSaveNotImplemented"] = "Benutzerdefiniertes Speichern von Dateien ist noch nicht implementiert.",
+                ["ErrorOpeningHelp"] = "Fehler beim Öffnen der Hilfe:",
+                ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnier-Übersicht:",
+                ["AboutText"] = "Dart Tournament Planner v1.0\n\nEine moderne Turnierverwaltungsanwendung.",
+                ["ErrorSavingData"] = "Fehler beim Speichern der Daten:",
+                
+                // MessageBox Texte für TournamentTab
+                ["MinimumTwoPlayers"] = "Mindestens 2 Spieler sind erforderlich.",
+                ["ErrorGeneratingMatches"] = "Fehler beim Generieren der Spiele:",
+                ["MatchesGeneratedSuccess"] = "Spiele wurden erfolgreich generiert!",
+                ["MatchesResetSuccess"] = "Spiele wurden zurückgesetzt!",
+                ["ResetTournamentConfirm"] = "Möchten Sie das gesamte Turnier wirklich zurücksetzen?\n\n⚠ ALLE Spiele und Phasen werden gelöscht!\nNur Gruppen und Spieler bleiben erhalten.",
+                ["TournamentResetComplete"] = "Turnier wurde erfolgreich zurückgesetzt.",
+                ["ResetKnockoutConfirm"] = "Möchten Sie die KO-Phase wirklich zurücksetzen?\n\n⚠ Alle KO-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird zur Gruppenphase zurückgesetzt.",
+                ["ResetKnockoutComplete"] = "KO-Phase wurde erfolgreich zurückgesetzt.",
+                ["ErrorResettingTournament"] = "Fehler beim Zurücksetzen des Turniers:",
+                ["CannotAdvancePhase"] = "Alle Spiele der aktuellen Phase müssen beendet sein",
+                ["ErrorAdvancingPhase"] = "Fehler beim Wechsel zur nächsten Phase:",
+                ["UIRefreshed"] = "Benutzeroberfläche wurde aktualisiert",
+                ["ErrorRefreshing"] = "Fehler beim Aktualisieren:",
+                ["KOPhaseActiveMSB"] = "K.O.-Phase ist noch nicht aktiv.",
+                ["KOPhaseNotEnoughUserMSB"] = "Nicht genügend Teilnehmer für K.O.-Phase (mindestens 2 erforderlich)",
 
-                // Help System
-                ["HelpTitle"] = "Hilfe - Dart Turnier Planer",
-                ["HelpGeneral"] = "Allgemeine Bedienung",
-                ["HelpTournamentSetup"] = "Turnier-Setup",
-                ["HelpGroupManagement"] = "Gruppenverwaltung", 
-                ["HelpGameRules"] = "Spielregeln",
-                ["HelpMatches"] = "Spiele & Ergebnisse",
-                ["HelpTournamentPhases"] = "Turnierphasen",
-                ["HelpMenus"] = "Menüs & Funktionen",
-                ["HelpTips"] = "Tipps & Tricks",
+                // MessageBox Title
+                ["KOPhaseUsrWarnTitel"] = "K.O.-Phase Warnung",
+
+                // Tab-Überschriften für UpdatePlayersView
+                ["FinalistsCount"] = "Finalisten ({0} Spieler):",
+                ["KnockoutParticipantsCount"] = "KO-Teilnehmer ({0} Spieler):",
                 
-                // Help Content - General
-                ["HelpGeneralContent"] = "Das Dart Turnier Planer hilft Ihnen bei der Verwaltung von Dart-Turnieren mit bis zu 4 verschiedenen Klassen (Platin, Gold, Silber, Bronze).\n\n" +
-                    "• Verwenden Sie die Tabs oben, um zwischen den Klassen zu wechseln\n" +
-                    "• Alle Änderungen werden automatisch gespeichert (wenn aktiviert)\n" +
-                    "• Die Statusleiste zeigt den aktuellen Speicherstatus an\n" +
-                    "• Sprache kann in den Einstellungen geändert werden",
+                // Weitere Phase-Texte
+                ["NextPhaseStart"] = "{0} starten",
                 
-                // Help Content - Tournament Setup
-                ["HelpTournamentSetupContent"] = "So richten Sie ein neues Turnier ein:\n\n" +
-                    "1. Wählen Sie eine Turnierklasse (Platin, Gold, Silber, Bronze)\n" +
-                    "2. Klicken Sie auf 'Gruppe hinzufügen' um Gruppen zu erstellen\n" +
-                    "3. Fügen Sie Spieler zu den Gruppen hinzu\n" +
-                    "4. Konfigurieren Sie die Spielregeln über den 'Regeln konfigurieren' Button\n" +
-                    "5. Stellen Sie den Modus nach der Gruppenphase ein (Nur Gruppen, Finalrunde, KO-System)\n\n" +
-                    "Tipp: Mindestens 2 Spieler pro Gruppe sind erforderlich für die Spielgenerierung.",
+                // MatchResultWindow Übersetzungen
+                ["EnterMatchResult"] = "Ergebnis eingeben",
+                ["SaveResult"] = "Ergebnis speichern",
+                ["Notes"] = "Notizen",
+                ["InvalidNumbers"] = "Ungültige Zahlen",
+                ["NegativeValues"] = "Negative Werte sind nicht erlaubt",
+                ["InvalidSetCount"] = "Ungültige Set-Anzahl. Maximum: {0}, Gesamt: {1}",
+                ["BothPlayersWon"] = "Beide Spieler können nicht gleichzeitig gewinnen",
+                ["MatchIncomplete"] = "Das Spiel ist noch nicht beendet",
+                ["InsufficientLegsForSet"] = "{0} hat nicht genügend Legs für die gewonnenen Sets. Minimum: {1}",
+                ["ExcessiveLegs"] = "Zu viele Legs für die Set-Kombination {0}:{1}. Maximum: {2}",
+                ["LegsExceedSetRequirement"] = "{0} hat mehr Legs als für Sets erforderlich",
+                ["InvalidLegCount"] = "Ungültige Leg-Anzahl. Maximum: {0}, Gesamt: {1}",
+                ["SaveBlocked"] = "Speichern blockiert",
+                ["ValidationError"] = "Validierungsfehler",
+                ["NoWinnerFound"] = "Kein Gewinner gefunden",
+                ["GiveBye"] = "Freilos vergeben",
+                ["SelectByeWinner"] = "Wählen Sie den Spieler aus, der das Freilos erhalten soll:",
                 
-                // Help Content - Group Management
-                ["HelpGroupManagementContent"] = "Gruppenverwaltung:\n\n" +
-                    "• 'Gruppe hinzufügen': Erstellt eine neue Gruppe\n" +
-                    "• 'Gruppe entfernen': Löscht die ausgewählte Gruppe (Warnung erscheint)\n" +
-                    "• 'Spieler hinzufügen': Fügt einen Spieler zur ausgewählten Gruppe hinzu\n" +
-                    "• 'Spieler entfernen': Entfernt den ausgewählten Spieler\n\n" +
-                    "Die Spielerliste zeigt alle Spieler der aktuell ausgewählten Gruppe.\n" +
-                    "Gruppen können beliebig benannt werden und sollten aussagekräftige Namen haben.",
-                
-                // Help Content - Game Rules
-                ["HelpGameRulesContent"] = "Spielregeln konfigurieren:\n\n" +
-                    "• Spielmodus: 301, 401 oder 501 Punkte\n" +
-                    "• Finish-Modus: Single Out oder Double Out\n" +
-                    "• Legs zum Sieg: Anzahl der Legs für einen Sieg\n" +
-                    "• Mit Sets spielen: Aktiviert das Set-System\n" +
-                    "• Sets zum Sieg: Anzahl der Sets für einen Turniersieg\n" +
-                    "• Legs pro Set: Anzahl der Legs pro Set\n\n" +
-                    "Für verschiedene Turnierrunden können unterschiedliche Regeln festgelegt werden.",
-                
-                // Help Content - Matches
-                ["HelpMatchesContent"] = "Spiele verwalten:\n\n" +
-                    "• 'Spiele generieren': Erstellt alle Spiele für die Gruppe (Round-Robin)\n" +
-                    "• Klicken Sie auf ein Spiel, um das Ergebnis einzugeben\n" +
-                    "• Status: Nicht gestartet (grau), Läuft (gelb), Beendet (grün)\n" +
-                    "• Rechtsklick auf Spiele für weitere Optionen (Freilos, etc.)\n" +
-                    "• 'Spiele zurücksetzen': Löscht alle Ergebnisse der Gruppe\n\n" +
-                    "Die Tabelle zeigt automatisch die aktuelle Platzierung aller Spieler.",
-                
-                // Help Content - Tournament Phases
-                ["HelpTournamentPhasesContent"] = "Turnierphasen:\n\n" +
-                    "1. Gruppenphase: Round-Robin innerhalb jeder Gruppe\n" +
-                    "2. Nach der Gruppenphase (optional):\n" +
-                    "   • Nur Gruppenphase: Turnier endet nach den Gruppen\n" +
-                    "   • Finalrunde: Top-Spieler spielen Round-Robin\n" +
-                    "   • KO-System: Einzel- oder Doppel-Eliminierung\n\n" +
-                    "Der 'Nächste Phase starten' Button wird verfügbar, wenn alle Spiele beendet sind.\n" +
-                    "KO-System kann Winner Bracket und Loser Bracket haben.",
-                
-                // Help Content - Menus
-                ["HelpMenusContent"] = "Menü-Funktionen:\n\n" +
-                    "Datei:\n• Neu: Erstellt ein leeres Turnier\n• Öffnen/Speichern: Lädt/Speichert Turnierdaten\n• Beenden: Schließt die Anwendung\n\n" +
-                    "Ansicht:\n• Turnier-Übersicht: Zeigt eine Vollbild-Ansicht aller Klassen\n\n" +
-                    "Einstellungen:\n• Sprache, Design und Auto-Speicher-Einstellungen\n\n" +
-                    "Hilfe:\n• Diese Hilfe-Seite\n• Über-Dialog mit Versionsinformationen",
-                
-                // Help Content - Tips
-                ["HelpTipsContent"] = "Tipps & Tricks:\n\n" +
-                    "• Verwenden Sie aussagekräftige Gruppennamen (z.B. 'Gruppe A', 'Anfänger')\n" +
-                    "• Aktivieren Sie Auto-Speichern in den Einstellungen\n" +
-                    "• Die Turnier-Übersicht eignet sich perfekt für Beamer-Präsentationen\n" +
-                    "• Rechtsklick auf Spiele zeigt zusätzliche Optionen\n" +
-                    "• Bei ungerader Spielerzahl wird automatisch ein Freilos vergeben\n" +
-                    "• Sets und Legs werden automatisch validiert\n" +
-                    "• Verschiedene Regeln für verschiedene Turnierrunden möglich\n" +
-                    "• Export/Import von Turnierdaten über das Datei-Menü",
+                // ShowInputDialog Übersetzungen
+                ["InputDialog"] = "Eingabe",
+                ["EnterName"] = "Name eingeben:",
             },
-            
             ["en"] = new Dictionary<string, string>
             {
                 // Main Window
@@ -399,6 +265,10 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Bronze"] = "Bronze",
                 
                 // Tournament Tab
+                ["SetupTab"] = "Tournament Setup",
+                ["GroupPhaseTab"] = "Group Phase",
+                ["FinalsTab"] = "Finals",
+                ["KnockoutTab"] = "Knockout",
                 ["Groups"] = "Groups:",
                 ["Players"] = "Players:",
                 ["AddGroup"] = "Add Group",
@@ -419,8 +289,18 @@ public class LocalizationService : INotifyPropertyChanged
                 ["EnterPlayerName"] = "Please enter a player name.",
                 ["NoNameEntered"] = "No Name Entered",
                 ["PlayersInGroup"] = "Players in {0}:",
-                ["NoGroupSelectedPlayers"] = "Players: (No group selected)",
+                ["NoGroupSelectedPlayers"] = "Players: (No Group Selected)",
                 ["Group"] = "Group {0}",
+                ["AdvanceToNextPhase"] = "Start Next Phase",
+                ["ResetTournament"] = "Reset Tournament",
+                ["ResetKnockoutPhase"] = "Reset Knockout Phase",
+                ["RefreshUI"] = "Refresh UI",
+                ["RefreshUITooltip"] = "Refreshes the user interface",
+                
+                // Phases
+                ["GroupPhase"] = "Group Phase",
+                ["FinalsPhase"] = "Finals",
+                ["KnockoutPhase"] = "Knockout Phase",
                 
                 // Game Rules
                 ["GameRules"] = "Game Rules",
@@ -438,41 +318,11 @@ public class LocalizationService : INotifyPropertyChanged
                 ["ConfigureRules"] = "Configure Rules",
                 ["RulesPreview"] = "Rules Preview",
                 
-                // Round-specific Rules
-                ["RoundSpecificRules"] = "Round-specific Rules",
-                ["ConfigureRoundRules"] = "Configure Round Rules",
-                ["WinnerBracketRules"] = "Winner Bracket Rules",
-                ["LoserBracketRules"] = "Loser Bracket Rules",
-                ["RoundRulesFor"] = "Rules for {0}",
-                ["DefaultRules"] = "Default Rules",
-                ["ResetToDefault"] = "Reset to Default",
-                ["RoundRulesConfiguration"] = "Round Rules Configuration",
-                ["Best64Rules"] = "Round of 64 Rules",
-                ["Best32Rules"] = "Round of 32 Rules",
-                ["Best16Rules"] = "Round of 16 Rules",
-                ["QuarterfinalRules"] = "Quarterfinal Rules",
-                ["SemifinalRules"] = "Semifinal Rules",
-                ["FinalRules"] = "Final Rules",
-                ["GrandFinalRules"] = "Grand Final Rules",
-                ["LoserRound1Rules"] = "LR1 Rules",
-                ["LoserRound2Rules"] = "LR2 Rules",
-                ["LoserRound3Rules"] = "LR3 Rules",
-                ["LoserRound4Rules"] = "LR4 Rules",
-                ["LoserRound5Rules"] = "LR5 Rules",
-                ["LoserRound6Rules"] = "LR6 Rules",
-                ["LoserRound7Rules"] = "LR7 Rules",
-                ["LoserRound8Rules"] = "LR8 Rules",
-                ["LoserRound9Rules"] = "LR9 Rules",
-                ["LoserRound10Rules"] = "LR10 Rules",
-                ["LoserRound11Rules"] = "LR11 Rules",
-                ["LoserRound12Rules"] = "LR12 Rules",
-                ["LoserFinalRules"] = "Loser Final Rules",
-
                 // Matches
                 ["Matches"] = "Matches:",
                 ["Standings"] = "Standings:",
                 ["GenerateMatches"] = "Generate Matches",
-                ["MatchesGenerated"] = "Matches generated successfully!",
+                ["MatchesGenerated"] = "Matches have been generated successfully!",
                 ["ResetMatches"] = "Reset Matches",
                 ["ResetMatchesConfirm"] = "Do you really want to reset all matches for group '{0}'?\nAll results will be lost!",
                 ["ResetMatchesTitle"] = "Reset Matches",
@@ -482,63 +332,17 @@ public class LocalizationService : INotifyPropertyChanged
                 ["MatchInProgress"] = "In Progress",
                 ["MatchFinished"] = "Finished",
                 ["MatchBye"] = "Bye",
-                ["Player1"] = "Player 1",
-                ["Player2"] = "Player 2",
+                ["Round"] = "Round",
                 ["Sets"] = "Sets",
                 ["Legs"] = "Legs",
-                ["Winner"] = "Winner",
-                ["Result"] = "Result",
-                ["Score"] = "Points",
-                ["Position"] = "Position",
-                ["MatchesPlayed"] = "Played",
-                ["Wins"] = "Wins",
-                ["Losses"] = "Losses",
-                ["Draws"] = "Draws",
-                ["SetsWon"] = "Sets Won",
-                ["SetsLost"] = "Sets Lost",
-                ["LegsWon"] = "Legs Won",
-                ["LegsLost"] = "Legs Lost",
-                ["SetDifference"] = "Set Difference",
-                ["LegDifference"] = "Leg Difference",
-                ["Match"] = "Match",
-                ["Status"] = "Status",
-                ["Player"] = "Player",
-                ["Notes"] = "Notes",
-                
-                // Match Entry Dialog
-                ["EnterMatchResult"] = "Enter Match Result",
-                ["Player1Sets"] = "Player 1 Sets",
-                ["Player2Sets"] = "Player 2 Sets",
-                ["Player1Legs"] = "Player 1 Legs",
-                ["Player2Legs"] = "Player 2 Legs",
-                ["SaveResult"] = "Save Result",
-                ["MatchResultSaved"] = "Match result has been saved",
-                
-                // Enhanced Validation Messages
-                ["ValidationError"] = "Validation Error",
-                ["InvalidWinCondition"] = "Invalid win condition: {0} needs {1} {2} to win, but only has {3}.",
-                ["NoWinnerFound"] = "No winner determined. At least one player must meet the win condition.",
-                ["BothPlayersWon"] = "Both players meet the win condition. This is not possible.",
-                ["IncompleteScore"] = "Incomplete score: Please enter sets and legs for both players.",
-                ["NegativeValues"] = "Negative values are not allowed.",
-                ["InvalidNumbers"] = "Please enter valid numbers.",
-                ["MatchIncomplete"] = "The match is not finished. At least one player must win.",
-                ["InvalidSetCount"] = "Invalid set count: Maximum {0} sets possible in best-of-{1}.",
-                ["InvalidLegCount"] = "Invalid leg count: Maximum {0} legs possible in best-of-{1}.",
-                ["InvalidSetRatio"] = "Invalid set ratio: With {0}:{1} sets, legs should be approximately {2}:{3}.",
-                ["InconsistentResult"] = "Inconsistent result: The leg ratio doesn't match the set result.",
-                ["ExcessiveLegs"] = "Too many legs: With {0}:{1} sets, maximum {2} legs per player possible.",
-                ["InsufficientLegsForSet"] = "Insufficient legs for set win: {0} needs {1} legs to win a set.",
-                ["TooManyLegsInDecidingSet"] = "Too many legs in deciding set: Maximum {0} legs possible.",
-                ["LegsExceedSetRequirement"] = "{0} has enough legs to win a set, but set count doesn't match.",
-                ["SaveBlocked"] = "Save blocked: The result doesn't comply with the configured game rules.",
+                ["Score"] = "Score",
                 
                 // Settings
                 ["Settings"] = "Settings",
                 ["Language"] = "Language",
                 ["Theme"] = "Theme",
                 ["AutoSave"] = "Auto Save",
-                ["AutoSaveInterval"] = "Save Interval (Minutes)",
+                ["AutoSaveInterval"] = "Save Interval (minutes)",
                 ["Save"] = "Save",
                 ["Cancel"] = "Cancel",
                 
@@ -546,7 +350,6 @@ public class LocalizationService : INotifyPropertyChanged
                 ["File"] = "File",
                 ["New"] = "New",
                 ["Open"] = "Open",
-                ["Save"] = "Save",
                 ["SaveAs"] = "Save As",
                 ["Exit"] = "Exit",
                 ["Edit"] = "Edit",
@@ -555,215 +358,145 @@ public class LocalizationService : INotifyPropertyChanged
                 ["About"] = "About",
                 
                 // Status
-                ["HasUnsavedChanges"] = "Modified",
+                ["HasUnsavedChanges"] = "Changed",
                 ["NotSaved"] = "Not saved",
                 ["Saved"] = "Saved",
                 ["Ready"] = "Ready",
                 
-                // Messages
-                ["SaveSuccess"] = "Data saved successfully.",
-                ["LoadSuccess"] = "Data loaded successfully.",
-                ["SaveError"] = "Error saving data.",
-                ["LoadError"] = "Error loading data.",
-
-                // Post-Group Phase
-                ["PostGroupPhase"] = "Post-Group Phase",
-                ["PostGroupPhaseMode"] = "Post-Group Phase Mode",
-                ["PostGroupPhaseNone"] = "Group Phase Only",
-                ["PostGroupPhaseRoundRobin"] = "Finals Round (Round Robin)",
-                ["PostGroupPhaseKnockout"] = "Knockout System",
-                ["QualifyingPlayersPerGroup"] = "Qualifying Players per Group",
-                ["KnockoutMode"] = "Knockout Mode",
-                ["SingleElimination"] = "Single Elimination",
-                ["DoubleElimination"] = "Double Elimination (Winner + Loser Bracket)",
-                ["IncludeGroupPhaseLosersBracket"] = "Include Group Phase Losers in Loser Bracket",
-                ["AdvanceToNextPhase"] = "Advance to Next Phase",
-                ["CannotAdvancePhase"] = "All matches in current phase must be completed",
-                ["PhaseCompleted"] = "Phase completed",
-                ["GroupPhase"] = "Group Phase",
-                ["FinalsPhase"] = "Finals Phase",
-                ["KnockoutPhase"] = "Knockout Phase",
-                ["WinnerBracket"] = "Winner Bracket",
-                ["LoserBracket"] = "Loser Bracket",
-                ["Round"] = "Round",
-                ["Quarterfinal"] = "Quarterfinal",
-                ["Semifinal"] = "Semifinal",
-                ["Final"] = "Final",
-                ["GrandFinal"] = "Grand Final",
-
-                // English KO Round Names based on player count  
-                ["Best64"] = "Round of 64",
-                ["Best32"] = "Round of 32",
-                ["Best16"] = "Round of 16",
-                ["Best8"] = "Quarterfinal",
-                ["Best4"] = "Semifinal",
-                ["LastOfRound"] = "Round {0}",
-                
-                // Tabs
-                ["SetupTab"] = "Tournament Setup",
-                ["GroupPhaseTab"] = "Group Phase",
-                ["FinalsTab"] = "Finals Round", 
-                ["KnockoutTab"] = "Knockout Round",
-                ["LoserBracketTab"] = "Loser Bracket",
-                ["LoserBracketTreeTab"] = "Loser Bracket Tree",
-                ["GroupSetup"] = "Group Creation",
-                ["MatchArea"] = "Match Area",
-
-                // Tournament Reset
-                ["TournamentReset"] = "Tournament Reset",
-                ["TournamentResetWarning"] = "⚠ WARNING: Tournament will be reset to group phase!",
-                ["ResetTournament"] = "Reset Tournament",
-                ["ResetTournamentTitle"] = "Reset Tournament Completely",
-                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will remain.",
-                ["TournamentResetComplete"] = "Tournament has been successfully reset.",
-                
-                // KO Reset
-                ["ResetKnockoutPhase"] = "Reset Knockout Phase",
-                ["ResetKnockoutTitle"] = "Reset Knockout Phase",
-                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All knockout matches and bracket tree will be deleted!\nTournament will be reset to group phase.",
-                ["ResetKnockoutComplete"] = "Knockout phase has been successfully reset.",
-                
-                // Bye (Freilos) System
-                ["GiveBye"] = "Give Bye",
-                ["UndoBye"] = "Undo Bye",
-                ["ByeGiven"] = "Bye has been given",
-                ["ByeUndone"] = "Bye has been undone",
-                ["SelectByeWinner"] = "Select the player who should receive the bye:",
-                ["ByeCannotBeUndone"] = "Bye cannot be undone - subsequent matches have already been played",
-                ["ByeOperationFailed"] = "Bye operation failed",
-                ["AutomaticByeDetected"] = "Automatic bye detected for {0}",
-                
-                // Right-click Context Menu
-                ["EnterResult"] = "Enter Result",
-                ["EditResult"] = "Edit Result",
-                ["GiveByeToPlayer"] = "Give Bye to {0}",
-                ["GiveAutoByeToPlayer"] = "Automatic Bye to {0}",
-                ["SelectByeWinner"] = "Select Bye Winner",
-                ["RemoveBye"] = "Remove Bye",
-                ["NoActionPossible"] = "No Action Possible",
-                ["NoActionPossibleBothTBD"] = "No Action Possible (both players TBD)",
-                ["MatchFinished"] = "Match already finished",
-                ["MatchInProgress"] = "Match already in progress",
-                
-                // UI Refresh
-                ["RefreshUI"] = "Refresh UI",
-                ["RefreshUITooltip"] = "Refreshes the user interface and checks group status",
-                ["UIRefreshed"] = "User interface has been refreshed",
-                
                 // Tournament Overview
                 ["TournamentOverview"] = "📺 Tournament Overview",
-                ["View"] = "View",
                 ["OverviewMode"] = "Overview Mode",
-                ["StartCycling"] = "▶ Start",
-                ["StopCycling"] = "⏸ Stop",
-                ["ClassInterval"] = "Class Interval",
-                ["SubTabInterval"] = "Sub-Tab Interval",
-                ["OnlyActiveClasses"] = "Only Active Classes",
-                ["Configure"] = "⚙ Configure",
+                ["Configure"] = "Configure",
                 ["ManualMode"] = "Manual Mode",
                 ["AutoCyclingActive"] = "Auto-cycling active",
                 ["CyclingStopped"] = "Cycling stopped",
                 ["ManualControl"] = "Manual control",
                 ["Showing"] = "Showing",
-                ["OverviewConfiguration"] = "Overview Configuration",
-                ["ClassIntervalSeconds"] = "Class Interval (seconds):",
-                ["SubTabIntervalSeconds"] = "Sub-Tab Interval (seconds):",
-                ["ShowOnlyClassesWithGroups"] = "Show only classes with groups",
-                ["InvalidClassInterval"] = "Invalid class interval. Please enter a number >= 1.",
-                ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number >= 1.",
-                ["ErrorOpeningOverview"] = "Error opening tournament overview: {0}",
                 ["Close"] = "Close",
                 
-                // Tournament Tree View
-                ["WinnerBracketTree"] = "Winner Bracket Tree",
-                ["LoserBracketTree"] = "Loser Bracket Tree",
+                // Additional common terms
+                ["Start"] = "Start",
+                ["Stop"] = "Stop",
+                ["Player"] = "Player",
+                ["Match"] = "Match",
+                ["Result"] = "Result",
+                ["Status"] = "Status",
+                ["Position"] = "Position",
+                ["Winner"] = "Winner",
+                
+                // Match Status Translations
+                ["Unknown"] = "Unknown",
+                
+                // Tournament Overview specific
+                ["StartCycling"] = "Start",
+                ["StopCycling"] = "Stop",
                 ["WinnerBracketMatches"] = "Winner Bracket Matches",
+                ["WinnerBracketTree"] = "Winner Bracket Tree",
                 ["LoserBracketMatches"] = "Loser Bracket Matches",
-                ["BracketTree"] = "Tournament Tree",
-                ["Matches"] = "Matches",
+                ["LoserBracketTree"] = "Loser Bracket Tree", 
+                ["RoundColumn"] = "Round",
+                ["PositionShort"] = "Pos",
+                ["PointsShort"] = "Pts",
+                ["WinDrawLoss"] = "W-D-L",
+                ["NoLoserBracketMatches"] = "No Loser Bracket matches available",
+                ["NoWinnerBracketMatches"] = "No Winner Bracket matches available",
+                ["TournamentTreeWillShow"] = "The tournament tree will be displayed once the knockout phase begins",
+                
+                // Additional Group Phase terms
+                ["SelectGroup"] = "Select Group", 
+                ["NoGroupSelected"] = "No Group Selected",
+                
+                // OverviewConfigDialog translations
+                ["OverviewConfiguration"] = "Overview Configuration",
+                ["TournamentOverviewConfiguration"] = "Tournament Overview Configuration", 
+                ["TimeBetweenClasses"] = "Time between tournament classes:",
+                ["TimeBetweenSubTabs"] = "Time between sub-tabs:",
+                ["Seconds"] = "seconds",
+                ["ShowOnlyActiveClassesText"] = "Show only classes with active groups",
+                ["OverviewInfoText"] = "The overview automatically cycles through the tournament classes and their groups/brackets endlessly. You can move this window to a second monitor.",
+                ["OK"] = "OK",
+                ["InvalidClassInterval"] = "Invalid class interval. Please enter a number >= 1.",
+                ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number >= 1.",
+                ["Error"] = "Error",
+                
+                // Tournament Overview Texts
+                ["TournamentName"] = "🏆 Tournament:",
+                ["CurrentPhase"] = "🎯 Current Phase:",
+                ["GroupsCount"] = "👥 Groups:",
+                ["PlayersTotal"] = "🎮 Total Players:",
+                ["GameRulesColon"] = "📋 Game Rules:",
+                ["CompletedGroups"] = "✅ Completed Groups:",
+                ["QualifiedPlayers"] = "🏅 Qualified Players:",
+                ["KnockoutMatches"] = "⚔️ Knockout Matches:",
+                ["Completed"] = "completed",
+                
+                // More hardcoded texts
+                ["Finalists"] = "Finalists",
+                ["KnockoutParticipants"] = "Knockout Participants",
+                ["PlayersText"] = "Players",
+                ["OverviewModeTitle"] = "Tournament Overview Mode",
+                ["Information"] = "Information",
+                ["Warning"] = "Warning",
+                ["NewTournament"] = "New Tournament",
+                ["CreateNewTournament"] = "Create new tournament? Unsaved changes will be lost.",
+                ["UnsavedChanges"] = "Unsaved Changes",
+                ["SaveBeforeExit"] = "You have unsaved changes. Do you want to save before exiting?",
+                ["CustomFileNotImplemented"] = "Custom file loading not implemented yet.",
+                ["CustomFileSaveNotImplemented"] = "Custom file saving not implemented yet.",
+                ["ErrorOpeningHelp"] = "Error opening help:",
+                ["ErrorOpeningOverview"] = "Error opening tournament overview:",
+                ["AboutText"] = "Dart Tournament Planner v1.0\n\nA modern tournament management application.",
+                ["ErrorSavingData"] = "Error saving data:",
+                
+                // MessageBox texts for TournamentTab
+                ["MinimumTwoPlayers"] = "At least 2 players are required.",
+                ["ErrorGeneratingMatches"] = "Error generating matches:",
+                ["MatchesGeneratedSuccess"] = "Matches have been generated successfully!",
+                ["MatchesResetSuccess"] = "Matches have been reset!",
+                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will remain.",
+                ["TournamentResetComplete"] = "Tournament has been successfully reset.",
+                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All knockout matches and the tournament tree will be deleted!\nThe tournament will be reset to group phase.",
+                ["ResetKnockoutComplete"] = "Knockout phase has been successfully reset.",
+                ["ErrorResettingTournament"] = "Error resetting tournament:",
+                ["CannotAdvancePhase"] = "All matches in the current phase must be completed",
+                ["ErrorAdvancingPhase"] = "Error advancing to next phase:",
+                ["UIRefreshed"] = "User interface has been refreshed",
+                ["ErrorRefreshing"] = "Error refreshing:",
+                ["KOPhaseActiveMSB"] = "K.O.-Phase is not active",
+                ["KOPhaseNotEnoughUserMSB"] = "Not enough participants for knockout phase (at least 2 required)",
 
-                // Help System
-                ["HelpTitle"] = "Help - Dart Tournament Planner",
-                ["HelpGeneral"] = "General Usage",
-                ["HelpTournamentSetup"] = "Tournament Setup",
-                ["HelpGroupManagement"] = "Group Management",
-                ["HelpGameRules"] = "Game Rules",
-                ["HelpMatches"] = "Matches & Results",
-                ["HelpTournamentPhases"] = "Tournament Phases",
-                ["HelpMenus"] = "Menus & Functions",
-                ["HelpTips"] = "Tips & Tricks",
+                // MessageBox Titles
+                ["KOPhaseUsrWarnTitel"] = "K.O.-Phase Warning",
+
+                // Tab headers for UpdatePlayersView
+                ["FinalistsCount"] = "Finalists ({0} players):",
+                ["KnockoutParticipantsCount"] = "Knockout Participants ({0} players):",
                 
-                // Help Content - General
-                ["HelpGeneralContent"] = "The Dart Tournament Planner helps you manage dart tournaments with up to 4 different classes (Platinum, Gold, Silver, Bronze).\n\n" +
-                    "• Use the tabs at the top to switch between classes\n" +
-                    "• All changes are automatically saved (if enabled)\n" +
-                    "• The status bar shows the current save status\n" +
-                    "• Language can be changed in settings",
+                // More phase texts
+                ["NextPhaseStart"] = "Start {0}",
                 
-                // Help Content - Tournament Setup
-                ["HelpTournamentSetupContent"] = "How to set up a new tournament:\n\n" +
-                    "1. Select a tournament class (Platinum, Gold, Silver, Bronze)\n" +
-                    "2. Click 'Add Group' to create groups\n" +
-                    "3. Add players to the groups\n" +
-                    "4. Configure game rules via the 'Configure Rules' button\n" +
-                    "5. Set the post-group phase mode (Groups only, Finals round, Knockout system)\n\n" +
-                    "Tip: At least 2 players per group are required for match generation.",
+                // MatchResultWindow Translations
+                ["EnterMatchResult"] = "Enter Match Result",
+                ["SaveResult"] = "Save Result",
+                ["Notes"] = "Notes",
+                ["InvalidNumbers"] = "Invalid numbers",
+                ["NegativeValues"] = "Negative values are not allowed",
+                ["InvalidSetCount"] = "Invalid set count. Maximum: {0}, Total: {1}",
+                ["BothPlayersWon"] = "Both players cannot win simultaneously",
+                ["MatchIncomplete"] = "The match is not yet complete",
+                ["InsufficientLegsForSet"] = "{0} does not have enough legs for the won sets. Minimum: {1}",
+                ["ExcessiveLegs"] = "Too many legs for the set combination {0}:{1}. Maximum: {2}",
+                ["LegsExceedSetRequirement"] = "{0} has more legs than required for sets",
+                ["InvalidLegCount"] = "Invalid leg count. Maximum: {0}, Total: {1}",
+                ["SaveBlocked"] = "Save blocked",
+                ["ValidationError"] = "Validation error",
+                ["NoWinnerFound"] = "No winner found",
+                ["GiveBye"] = "Give Bye",
+                ["SelectByeWinner"] = "Select the player who should receive the bye:",
                 
-                // Help Content - Group Management
-                ["HelpGroupManagementContent"] = "Group management:\n\n" +
-                    "• 'Add Group': Creates a new group\n" +
-                    "• 'Remove Group': Deletes the selected group (warning appears)\n" +
-                    "• 'Add Player': Adds a player to the selected group\n" +
-                    "• 'Remove Player': Removes the selected player\n\n" +
-                    "The player list shows all players of the currently selected group.\n" +
-                    "Groups can be named arbitrarily and should have meaningful names.",
-                
-                // Help Content - Game Rules
-                ["HelpGameRulesContent"] = "Configure game rules:\n\n" +
-                    "• Game mode: 301, 401 or 501 points\n" +
-                    "• Finish mode: Single Out or Double Out\n" +
-                    "• Legs to win: Number of legs for a victory\n" +
-                    "• Play with sets: Enables the set system\n" +
-                    "• Sets to win: Number of sets for a tournament victory\n" +
-                    "• Legs per set: Number of legs per set\n\n" +
-                    "Different rules can be set for different tournament rounds.",
-                
-                // Help Content - Matches
-                ["HelpMatchesContent"] = "Manage matches:\n\n" +
-                    "• 'Generate Matches': Creates all matches for the group (Round-Robin)\n" +
-                    "• Click on a match to enter the result\n" +
-                    "• Status: Not started (gray), Running (yellow), Finished (green)\n" +
-                    "• Right-click on matches for additional options (bye, etc.)\n" +
-                    "• 'Reset Matches': Deletes all results of the group\n\n" +
-                    "The standings automatically show the current ranking of all players.",
-                
-                // Help Content - Tournament Phases
-                ["HelpTournamentPhasesContent"] = "Tournament phases:\n\n" +
-                    "1. Group phase: Round-Robin within each group\n" +
-                    "2. Post-group phase (optional):\n" +
-                    "   • Groups only: Tournament ends after groups\n" +
-                    "   • Finals round: Top players play Round-Robin\n" +
-                    "   • Knockout system: Single or double elimination\n\n" +
-                    "The 'Advance to Next Phase' button becomes available when all matches are finished.\n" +
-                    "Knockout system can have Winner Bracket and Loser Bracket.",
-                
-                // Help Content - Menus
-                ["HelpMenusContent"] = "Menu functions:\n\n" +
-                    "File:\n• New: Creates an empty tournament\n• Open/Save: Loads/Saves tournament data\n• Exit: Closes the application\n\n" +
-                    "View:\n• Tournament Overview: Shows a full-screen view of all classes\n\n" +
-                    "Settings:\n• Language, theme and auto-save settings\n\n" +
-                    "Help:\n• This help page\n• About dialog with version information",
-                
-                // Help Content - Tips
-                ["HelpTipsContent"] = "Tips & Tricks:\n\n" +
-                    "• Use meaningful group names (e.g. 'Group A', 'Beginners')\n" +
-                    "• Enable auto-save in settings\n" +
-                    "• Tournament overview is perfect for projector presentations\n" +
-                    "• Right-click on matches shows additional options\n" +
-                    "• With odd number of players, a bye is automatically assigned\n" +
-                    "• Sets and legs are automatically validated\n" +
-                    "• Different rules possible for different tournament rounds\n" +
-                    "• Export/import tournament data via the File menu",
+                // ShowInputDialog Translations
+                ["InputDialog"] = "Input",
+                ["EnterName"] = "Enter name:",
             }
         };
     }
@@ -775,9 +508,16 @@ public class LocalizationService : INotifyPropertyChanged
         {
             if (_currentLanguage != value && _translations.ContainsKey(value))
             {
+                var oldLanguage = _currentLanguage;
                 _currentLanguage = value;
+                
+                System.Diagnostics.Debug.WriteLine($"LocalizationService.CurrentLanguage: Changed from '{oldLanguage}' to '{_currentLanguage}'");
+                
+                // Fire PropertyChanged events immediately
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CurrentTranslations));
+                
+                System.Diagnostics.Debug.WriteLine($"LocalizationService.CurrentLanguage: PropertyChanged events fired");
             }
         }
     }
@@ -815,6 +555,16 @@ public class LocalizationService : INotifyPropertyChanged
 
     public void SetLanguage(string language)
     {
-        CurrentLanguage = language;
+        System.Diagnostics.Debug.WriteLine($"LocalizationService.SetLanguage: Changing from '{_currentLanguage}' to '{language}'");
+        
+        if (_translations.ContainsKey(language))
+        {
+            CurrentLanguage = language;
+            System.Diagnostics.Debug.WriteLine($"LocalizationService.SetLanguage: Successfully changed to '{language}'");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"LocalizationService.SetLanguage: Language '{language}' not found in translations");
+        }
     }
 }

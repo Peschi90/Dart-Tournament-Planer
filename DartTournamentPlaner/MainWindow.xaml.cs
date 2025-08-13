@@ -123,8 +123,59 @@ public partial class MainWindow : Window
 
     private void InitializeServices()
     {
-        _localizationService.PropertyChanged += (s, e) => UpdateTranslations();
-        _configService.LanguageChanged += (s, language) => UpdateLanguageStatus();
+        _localizationService.PropertyChanged += (s, e) => 
+        {
+            System.Diagnostics.Debug.WriteLine($"MainWindow: LocalizationService PropertyChanged - {e.PropertyName}");
+            UpdateTranslations();
+        };
+        
+        _configService.LanguageChanged += (s, language) => 
+        {
+            System.Diagnostics.Debug.WriteLine($"MainWindow: LanguageChanged event received - changing from '{_localizationService.CurrentLanguage}' to '{language}'");
+            
+            // Setze die Sprache im LocalizationService
+            _localizationService.SetLanguage(language);
+            
+            // Force immediate UI update for all components
+            Dispatcher.BeginInvoke(() =>
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Performing immediate UI updates after language change");
+                
+                UpdateLanguageStatus();
+                UpdateTranslations();
+                ForceUIUpdate();
+                
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Language change UI updates completed");
+            }, System.Windows.Threading.DispatcherPriority.Render);
+        };
+    }
+
+    /// <summary>
+    /// Forces an immediate UI update for all components
+    /// </summary>
+    private void ForceUIUpdate()
+    {
+        System.Diagnostics.Debug.WriteLine("MainWindow: ForceUIUpdate starting...");
+        
+        try
+        {
+            // Update main window components
+            UpdateTranslations();
+            UpdateLanguageStatus();
+            UpdateStatusBar();
+            
+            // Force child controls to update their translations immediately (synchronously)
+            PlatinTab?.UpdateTranslations();
+            GoldTab?.UpdateTranslations();
+            SilberTab?.UpdateTranslations();
+            BronzeTab?.UpdateTranslations();
+            
+            System.Diagnostics.Debug.WriteLine("MainWindow: ForceUIUpdate completed successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"MainWindow: ForceUIUpdate ERROR: {ex.Message}");
+        }
     }
 
     private void InitializeAutoSave()
@@ -196,6 +247,8 @@ public partial class MainWindow : Window
         SaveMenuItem.Header = _localizationService.GetString("Save");
         SaveAsMenuItem.Header = _localizationService.GetString("SaveAs");
         ExitMenuItem.Header = _localizationService.GetString("Exit");
+        ViewMenuItem.Header = _localizationService.GetString("View");
+        OverviewModeMenuItem.Header = _localizationService.GetString("TournamentOverview");
         SettingsMenuItem.Header = _localizationService.GetString("Settings");
         HelpMenuItem.Header = _localizationService.GetString("Help");
         HelpContentMenuItem.Header = "📖 " + _localizationService.GetString("Help");
@@ -216,6 +269,12 @@ public partial class MainWindow : Window
 
         UpdateLanguageStatus();
         UpdateStatusBar();
+        
+        // Force child controls to update their translations
+        PlatinTab?.Dispatcher.BeginInvoke(() => PlatinTab?.UpdateTranslations());
+        GoldTab?.Dispatcher.BeginInvoke(() => GoldTab?.UpdateTranslations());
+        SilberTab?.Dispatcher.BeginInvoke(() => SilberTab?.UpdateTranslations());
+        BronzeTab?.Dispatcher.BeginInvoke(() => BronzeTab?.UpdateTranslations());
     }
 
     private TextBlock? FindTextBlockInHeader(TabItem tabItem)
@@ -476,7 +535,9 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SaveDataInternal: ERROR: {ex.Message}");
-            MessageBox.Show($"Error saving data: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("ErrorSavingData")} {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
             throw;
         }
     }
@@ -484,8 +545,9 @@ public partial class MainWindow : Window
     // Menu Event Handlers
     private void New_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show("Create new tournament? Unsaved changes will be lost.", "New Tournament", 
-            MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var title = _localizationService.GetString("NewTournament");
+        var message = _localizationService.GetString("CreateNewTournament");
+        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
         
         if (result == MessageBoxResult.Yes)
         {
@@ -506,7 +568,9 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             // Implementation for loading from custom file
-            MessageBox.Show("Custom file loading not implemented yet.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            var title = _localizationService.GetString("Information");
+            var message = _localizationService.GetString("CustomFileNotImplemented");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -526,7 +590,9 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() == true)
         {
             // Implementation for saving to custom file
-            MessageBox.Show("Custom file saving not implemented yet.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            var title = _localizationService.GetString("Information");
+            var message = _localizationService.GetString("CustomFileSaveNotImplemented");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
@@ -544,8 +610,9 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show("Dart Tournament Planner v1.0\n\nA modern tournament management application.", 
-            "About", MessageBoxButton.OK, MessageBoxImage.Information);
+        var title = _localizationService.GetString("About");
+        var message = _localizationService.GetString("AboutText");
+        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     private void Help_Click(object sender, RoutedEventArgs e)
@@ -558,8 +625,9 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening help: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("ErrorOpeningHelp")} {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -578,8 +646,9 @@ public partial class MainWindow : Window
     {
         if (_hasUnsavedChanges)
         {
-            var result = MessageBox.Show("You have unsaved changes. Do you want to save before exiting?", 
-                "Unsaved Changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            var title = _localizationService.GetString("UnsavedChanges");
+            var message = _localizationService.GetString("SaveBeforeExit");
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
             switch (result)
             {
@@ -627,8 +696,9 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error opening tournament overview: {ex.Message}", "Error", 
-                MessageBoxButton.OK, MessageBoxImage.Error);
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("ErrorOpeningOverview")} {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

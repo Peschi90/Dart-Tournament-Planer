@@ -21,7 +21,7 @@ public enum KnockoutRound
     Final,
     GrandFinal,
     
-    // Loser Bracket Rounds (numbered system)
+    // Loser Bracket Rounds
     LoserRound1,
     LoserRound2,
     LoserRound3,
@@ -42,26 +42,27 @@ public class KnockoutMatch : INotifyPropertyChanged
     private int _id;
     private Player? _player1;
     private Player? _player2;
-    private Player? _winner;
-    private Player? _loser;
     private int _player1Sets = 0;
     private int _player2Sets = 0;
     private int _player1Legs = 0;
     private int _player2Legs = 0;
     private MatchStatus _status = MatchStatus.NotStarted;
+    private Player? _winner;
+    private Player? _loser;
+    private KnockoutRound _round;
+    private int _position;
     private BracketType _bracketType = BracketType.Winner;
-    private KnockoutRound _round = KnockoutRound.Best64;
-    private int _position = 0;
-    private string _notes = string.Empty;
+    private KnockoutMatch? _sourceMatch1;
+    private KnockoutMatch? _sourceMatch2;
     private DateTime? _startTime;
     private DateTime? _endTime;
-    private bool _usesSets = false; // NEW: Tracks if this match uses sets
+    private string _notes = string.Empty;
+    private bool _usesSets = false;
+    private bool _player1FromWinner = false;
+    private bool _player2FromWinner = false;
 
-    // For determining where players come from
-    private KnockoutMatch? _sourceMatch1; // First source match
-    private KnockoutMatch? _sourceMatch2; // Second source match
-    private bool _player1FromWinner = true; // True if Player1 comes from winner of sourceMatch1
-    private bool _player2FromWinner = true; // True if Player2 comes from winner of sourceMatch2
+    // Static reference to localization service
+    public static LocalizationService? LocalizationService { get; set; }
 
     public int Id
     {
@@ -306,10 +307,10 @@ public class KnockoutMatch : INotifyPropertyChanged
 
     public string StatusDisplay => Status switch
     {
-        MatchStatus.NotStarted => "Nicht gestartet",
-        MatchStatus.InProgress => "Läuft",
-        MatchStatus.Finished => "Beendet",
-        _ => "Unbekannt"
+        MatchStatus.NotStarted => LocalizationService?.GetString("MatchNotStarted") ?? "Nicht gestartet",
+        MatchStatus.InProgress => LocalizationService?.GetString("MatchInProgress") ?? "Läuft",
+        MatchStatus.Finished => LocalizationService?.GetString("MatchFinished") ?? "Beendet",
+        _ => LocalizationService?.GetString("Unknown") ?? "Unbekannt"
     };
 
     public string WinnerDisplay => Winner?.Name ?? "";

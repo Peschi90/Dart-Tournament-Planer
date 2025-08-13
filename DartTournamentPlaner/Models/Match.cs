@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using DartTournamentPlaner.Services;
 
 namespace DartTournamentPlaner.Models;
 
@@ -27,6 +28,9 @@ public class Match : INotifyPropertyChanged
     private DateTime? _endTime;
     private string _notes = string.Empty;
     private bool _usesSets = false; // NEW: Tracks if this match uses sets
+
+    // Static reference to localization service (will be set by App)
+    public static LocalizationService? LocalizationService { get; set; }
 
     public int Id
     {
@@ -186,13 +190,15 @@ public class Match : INotifyPropertyChanged
     }
 
     // Display Properties
-    public string DisplayName => IsBye ? $"{Player1?.Name ?? "TBD"} - Freilos" : $"{Player1?.Name ?? "TBD"} vs {Player2?.Name ?? "TBD"}";
+    public string DisplayName => IsBye 
+        ? $"{Player1?.Name ?? "TBD"} - {LocalizationService?.GetString("MatchBye") ?? "Freilos"}" 
+        : $"{Player1?.Name ?? "TBD"} vs {Player2?.Name ?? "TBD"}";
 
     public string ScoreDisplay
     {
         get
         {
-            if (IsBye) return "Freilos";
+            if (IsBye) return LocalizationService?.GetString("MatchBye") ?? "Freilos";
             if (Status == MatchStatus.NotStarted) return "-:-";
             
             // NEW: Use UsesSets to determine display format
@@ -204,11 +210,11 @@ public class Match : INotifyPropertyChanged
 
     public string StatusDisplay => Status switch
     {
-        MatchStatus.NotStarted => "Nicht gestartet",
-        MatchStatus.InProgress => "Läuft",
-        MatchStatus.Finished => "Beendet",
-        MatchStatus.Bye => "Freilos",
-        _ => "Unbekannt"
+        MatchStatus.NotStarted => LocalizationService?.GetString("MatchNotStarted") ?? "Nicht gestartet",
+        MatchStatus.InProgress => LocalizationService?.GetString("MatchInProgress") ?? "Läuft",
+        MatchStatus.Finished => LocalizationService?.GetString("MatchFinished") ?? "Beendet",
+        MatchStatus.Bye => LocalizationService?.GetString("MatchBye") ?? "Freilos",
+        _ => LocalizationService?.GetString("Unknown") ?? "Unbekannt"
     };
 
     public string WinnerDisplay => Winner?.Name ?? (IsBye ? Player1?.Name ?? "" : "");

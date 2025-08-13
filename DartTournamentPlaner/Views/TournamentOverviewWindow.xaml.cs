@@ -230,28 +230,28 @@ public partial class TournamentOverviewWindow : Window
 
             dataGrid.Columns.Add(new DataGridTextColumn
             {
-                Header = "Round",
+                Header = _localizationService.GetString("RoundColumn"),
                 Binding = new System.Windows.Data.Binding("RoundDisplay"),
                 Width = new DataGridLength(100)
             });
 
             dataGrid.Columns.Add(new DataGridTextColumn
             {
-                Header = "Match",
+                Header = _localizationService.GetString("Match"),
                 Binding = new System.Windows.Data.Binding("DisplayName"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star)
             });
 
             dataGrid.Columns.Add(new DataGridTextColumn
             {
-                Header = "Result",
+                Header = _localizationService.GetString("Result"),
                 Binding = new System.Windows.Data.Binding("ScoreDisplay"),
                 Width = new DataGridLength(100)
             });
 
             dataGrid.Columns.Add(new DataGridTextColumn
             {
-                Header = "Status",
+                Header = _localizationService.GetString("Status"),
                 Binding = new System.Windows.Data.Binding("StatusDisplay"),
                 Width = new DataGridLength(100)
             });
@@ -264,7 +264,7 @@ public partial class TournamentOverviewWindow : Window
 
     private TabItem CreateFinalsTab(TournamentClass tournamentClass)
     {
-        var tabItem = new TabItem { Header = "Finals" };
+        var tabItem = new TabItem { Header = _localizationService.GetString("FinalsTab") };
 
         // Similar to knockout but for finals matches
         var finalsMatches = tournamentClass.GetFinalsMatches();
@@ -280,21 +280,21 @@ public partial class TournamentOverviewWindow : Window
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Match",
+            Header = _localizationService.GetString("Match"),
             Binding = new System.Windows.Data.Binding("DisplayName"),
             Width = new DataGridLength(1, DataGridLengthUnitType.Star)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Result",
+            Header = _localizationService.GetString("Result"),
             Binding = new System.Windows.Data.Binding("ScoreDisplay"),
             Width = new DataGridLength(100)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Status",
+            Header = _localizationService.GetString("Status"),
             Binding = new System.Windows.Data.Binding("StatusDisplay"),
             Width = new DataGridLength(100)
         });
@@ -317,21 +317,21 @@ public partial class TournamentOverviewWindow : Window
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Match",
+            Header = _localizationService.GetString("Match"),
             Binding = new System.Windows.Data.Binding("DisplayName"),
             Width = new DataGridLength(1, DataGridLengthUnitType.Star)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Result",
+            Header = _localizationService.GetString("Result"),
             Binding = new System.Windows.Data.Binding("ScoreDisplay"),
             Width = new DataGridLength(100)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Status",
+            Header = _localizationService.GetString("Status"),
             Binding = new System.Windows.Data.Binding("StatusDisplay"),
             Width = new DataGridLength(100)
         });
@@ -354,42 +354,42 @@ public partial class TournamentOverviewWindow : Window
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Pos",
+            Header = _localizationService.GetString("PositionShort"),
             Binding = new System.Windows.Data.Binding("Position"),
             Width = new DataGridLength(50)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Player",
+            Header = _localizationService.GetString("Player"),
             Binding = new System.Windows.Data.Binding("Player.Name"),
             Width = new DataGridLength(1, DataGridLengthUnitType.Star)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Pts",
+            Header = _localizationService.GetString("PointsShort"),
             Binding = new System.Windows.Data.Binding("Points"),
             Width = new DataGridLength(50)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "W-D-L",
+            Header = _localizationService.GetString("WinDrawLoss"),
             Binding = new System.Windows.Data.Binding("RecordDisplay"),
             Width = new DataGridLength(80)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Sets",
+            Header = _localizationService.GetString("Sets"),
             Binding = new System.Windows.Data.Binding("SetRecordDisplay"),
             Width = new DataGridLength(70)
         });
 
         dataGrid.Columns.Add(new DataGridTextColumn
         {
-            Header = "Legs",
+            Header = _localizationService.GetString("Legs"),
             Binding = new System.Windows.Data.Binding("LegRecordDisplay"),
             Width = new DataGridLength(70)
         });
@@ -667,17 +667,23 @@ public partial class TournamentOverviewWindow : Window
     {
         Title = _localizationService.GetString("TournamentOverview");
         
-        // Update control text
-        var startStopText = StartStopButton.Content?.ToString() ?? "";
-        if (startStopText.Contains("Start"))
-            StartStopButton.Content = "▶ " + _localizationService.GetString("StartCycling");
-        else
-            StartStopButton.Content = "⏸ " + _localizationService.GetString("StopCycling");
-            
-        ConfigureButton.Content = "⚙ " + _localizationService.GetString("Configure");
-        CloseButton.Content = "✕ " + _localizationService.GetString("Close");
+        // Update main header text
+        OverviewModeText.Text = _localizationService.GetString("TournamentOverview");
         
-        // Update status
+        // Update control text
+        if (_isRunning)
+        {
+            StartStopButton.Content = "⏸ " + _localizationService.GetString("StopCycling");
+        }
+        else
+        {
+            StartStopButton.Content = "▶ " + _localizationService.GetString("StartCycling");
+        }
+            
+        ConfigureButton.Content = _localizationService.GetString("Configure");
+        CloseButton.Content = _localizationService.GetString("Close");
+        
+        // Update status if not running
         if (!_isRunning)
         {
             StatusTextBlock.Text = _localizationService.GetString("ManualMode");
@@ -726,7 +732,9 @@ public partial class TournamentOverviewWindow : Window
 
             var noMatchesText = new TextBlock
             {
-                Text = isLoserBracket ? "Keine Loser Bracket Spiele vorhanden" : "Keine Winner Bracket Spiele vorhanden",
+                Text = isLoserBracket 
+                    ? _localizationService.GetString("NoLoserBracketMatches") ?? "Keine Loser Bracket Spiele vorhanden" 
+                    : _localizationService.GetString("NoWinnerBracketMatches") ?? "Keine Winner Bracket Spiele vorhanden",
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -735,7 +743,7 @@ public partial class TournamentOverviewWindow : Window
 
             var subText = new TextBlock
             {
-                Text = "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
+                Text = _localizationService.GetString("TournamentTreeWillShow") ?? "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
                 FontSize = 12,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Foreground = System.Windows.Media.Brushes.Gray,
@@ -1050,18 +1058,21 @@ public partial class TournamentOverviewWindow : Window
 // Simple configuration dialog
 public partial class OverviewConfigDialog : Window
 {
+    private readonly LocalizationService _localizationService;
+    
     public int ClassInterval { get; set; }
     public int SubTabInterval { get; set; }
     public bool ShowOnlyActiveClasses { get; set; }
 
     public OverviewConfigDialog()
     {
+        _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not available");
         InitializeComponent();
     }
 
     private void InitializeComponent()
     {
-        Title = "Overview Configuration";
+        Title = _localizationService.GetString("OverviewConfiguration");
         Width = 450;
         Height = 300;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -1082,7 +1093,7 @@ public partial class OverviewConfigDialog : Window
 
         // Title
         var titleBlock = new TextBlock { 
-            Text = "Tournament Overview Configuration", 
+            Text = _localizationService.GetString("TournamentOverviewConfiguration"), 
             FontSize = 16, 
             FontWeight = FontWeights.Bold,
             Margin = new Thickness(15, 15, 15, 20) 
@@ -1093,7 +1104,7 @@ public partial class OverviewConfigDialog : Window
 
         // Class Interval
         var classLabel = new TextBlock { 
-            Text = "Time between tournament classes:", 
+            Text = _localizationService.GetString("TimeBetweenClasses"), 
             Margin = margin, 
             VerticalAlignment = VerticalAlignment.Center 
         };
@@ -1103,7 +1114,7 @@ public partial class OverviewConfigDialog : Window
 
         var classPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = margin };
         var classTextBox = new TextBox { Name = "ClassIntervalTextBox", Width = 60, TextAlignment = TextAlignment.Center };
-        var classSecondsLabel = new TextBlock { Text = " seconds", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
+        var classSecondsLabel = new TextBlock { Text = " " + _localizationService.GetString("Seconds"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
         classPanel.Children.Add(classTextBox);
         classPanel.Children.Add(classSecondsLabel);
         Grid.SetRow(classPanel, 1);
@@ -1112,7 +1123,7 @@ public partial class OverviewConfigDialog : Window
 
         // Sub-Tab Interval
         var subLabel = new TextBlock { 
-            Text = "Time between sub-tabs:", 
+            Text = _localizationService.GetString("TimeBetweenSubTabs"), 
             Margin = margin, 
             VerticalAlignment = VerticalAlignment.Center 
         };
@@ -1122,7 +1133,7 @@ public partial class OverviewConfigDialog : Window
 
         var subPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = margin };
         var subTextBox = new TextBox { Name = "SubTabIntervalTextBox", Width = 60, TextAlignment = TextAlignment.Center };
-        var subSecondsLabel = new TextBlock { Text = " seconds", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
+        var subSecondsLabel = new TextBlock { Text = " " + _localizationService.GetString("Seconds"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
         subPanel.Children.Add(subTextBox);
         subPanel.Children.Add(subSecondsLabel);
         Grid.SetRow(subPanel, 2);
@@ -1132,7 +1143,7 @@ public partial class OverviewConfigDialog : Window
         // Show Only Active Classes
         var activeCheckBox = new CheckBox { 
             Name = "ShowOnlyActiveCheckBox", 
-            Content = "Show only classes with active groups", 
+            Content = _localizationService.GetString("ShowOnlyActiveClassesText"), 
             Margin = margin 
         };
         Grid.SetRow(activeCheckBox, 3);
@@ -1141,7 +1152,7 @@ public partial class OverviewConfigDialog : Window
 
         // Info text
         var infoText = new TextBlock { 
-            Text = "The overview will automatically cycle through tournament classes and their groups/brackets endlessly. You can move this window to a second monitor for display purposes.",
+            Text = _localizationService.GetString("OverviewInfoText"),
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(15, 10, 15, 15),
             Foreground = System.Windows.Media.Brushes.Gray,
@@ -1159,7 +1170,7 @@ public partial class OverviewConfigDialog : Window
         };
         
         var okButton = new Button { 
-            Content = "OK", 
+            Content = _localizationService.GetString("OK"), 
             Padding = new Thickness(20, 5, 20, 5), 
             Margin = new Thickness(0, 0, 10, 0),
             IsDefault = true
@@ -1167,7 +1178,7 @@ public partial class OverviewConfigDialog : Window
         okButton.Click += (s, e) => { SaveAndClose(); };
         
         var cancelButton = new Button { 
-            Content = "Cancel", 
+            Content = _localizationService.GetString("Cancel"), 
             Padding = new Thickness(20, 5, 20, 5),
             IsCancel = true
         };
@@ -1206,7 +1217,7 @@ public partial class OverviewConfigDialog : Window
 
         if (!int.TryParse(classTextBox.Text, out int classInterval) || classInterval < 1)
         {
-            MessageBox.Show("Invalid class interval. Please enter a number >= 1.", "Error", 
+            MessageBox.Show(_localizationService.GetString("InvalidClassInterval"), _localizationService.GetString("Error"), 
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             classTextBox.Focus();
             classTextBox.SelectAll();
@@ -1215,7 +1226,7 @@ public partial class OverviewConfigDialog : Window
 
         if (!int.TryParse(subTextBox.Text, out int subTabInterval) || subTabInterval < 1)
         {
-            MessageBox.Show("Invalid sub-tab interval. Please enter a number >= 1.", "Error", 
+            MessageBox.Show(_localizationService.GetString("InvalidSubTabInterval"), _localizationService.GetString("Error"), 
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             subTextBox.Focus();
             subTextBox.SelectAll();

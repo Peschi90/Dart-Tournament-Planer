@@ -49,11 +49,24 @@ public class ConfigService
 
     public async Task ChangeLanguageAsync(string language)
     {
+        System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: Called with language '{language}'");
+        System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: Current language is '{_config.Language}'");
+        
         if (_config.Language != language)
         {
+            System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: Language changed - updating config and firing event");
+            
             _config.Language = language;
             await SaveConfigAsync();
+            
+            System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: Firing LanguageChanged event");
             LanguageChanged?.Invoke(this, language);
+            
+            System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: LanguageChanged event fired");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"ConfigService.ChangeLanguageAsync: No change needed - languages are the same");
         }
     }
 }
