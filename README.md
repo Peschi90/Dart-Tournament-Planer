@@ -1,4 +1,3 @@
-# Dart-Turnament-Planer
 # 🎯 Dart Tournament Planner
 
 A modern WPF application for managing dart tournaments with professional features for tournament organizers.
