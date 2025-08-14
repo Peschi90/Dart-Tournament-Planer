@@ -252,6 +252,7 @@ public partial class MainWindow : Window
         SettingsMenuItem.Header = _localizationService.GetString("Settings");
         HelpMenuItem.Header = _localizationService.GetString("Help");
         HelpContentMenuItem.Header = "📖 " + _localizationService.GetString("Help");
+        BugReportMenuItem.Header = _localizationService.GetString("BugReport");
         AboutMenuItem.Header = _localizationService.GetString("About");
 
         // Update tab headers
@@ -266,6 +267,10 @@ public partial class MainWindow : Window
         
         var bronzeTextBlock = FindTextBlockInHeader(BronzeTabItem);
         if (bronzeTextBlock != null) bronzeTextBlock.Text = _localizationService.GetString("Bronze");
+
+        // Update donation button
+        DonationButton.Content = _localizationService.GetString("Donate");
+        DonationButton.ToolTip = _localizationService.GetString("DonateTooltip");
 
         UpdateLanguageStatus();
         UpdateStatusBar();
@@ -759,6 +764,38 @@ public partial class MainWindow : Window
         {
             var title = _localizationService.GetString("Error");
             var message = $"{_localizationService.GetString("ErrorOpeningOverview")} {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void BugReport_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var bugReportDialog = new BugReportDialog(_localizationService);
+            bugReportDialog.Owner = this;
+            bugReportDialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void Donation_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var donationDialog = new DonationDialog(_localizationService);
+            donationDialog.Owner = this;
+            donationDialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

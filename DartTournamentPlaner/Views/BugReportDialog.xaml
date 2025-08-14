@@ -1,0 +1,201 @@
+<Window x:Class="DartTournamentPlaner.Views.BugReportDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Bug Report" Height="500" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        MinHeight="450" MinWidth="550"
+        Background="#F5F5F5">
+
+    <Window.Resources>
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1565C0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CancelButton" BasedOn="{StaticResource ModernButton}" TargetType="Button">
+            <Setter Property="Background" Value="#757575"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#616161"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#424242"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GitHubButton" BasedOn="{StaticResource ModernButton}" TargetType="Button">
+            <Setter Property="Background" Value="#333333"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#24292e"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1a1e22"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Name="TitleTextBlock" Text="Bug Report" 
+                       FontSize="24" FontWeight="Bold" 
+                       Foreground="#1976D2" Margin="0,0,0,5"/>
+            <TextBlock Name="DescriptionTextBlock" 
+                       Text="Describe the problem or your improvement idea:"
+                       FontSize="12" Foreground="#666666" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <TabControl Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="1">
+            <TabItem Name="DescriptionTab" Header="Description">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBox Name="DescriptionTextBox"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="12"
+                             Padding="8"
+                             BorderBrush="#CCCCCC"
+                             BorderThickness="1"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Name="StepsTab" Header="Steps">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="StepsHeaderTextBlock" Grid.Row="0" 
+                               Text="Steps to reproduce:"
+                               FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBox Name="StepsTextBox" Grid.Row="1"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="12"
+                             Padding="8"
+                             BorderBrush="#CCCCCC"
+                             BorderThickness="1"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Name="ExpectedTab" Header="Expected">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="ExpectedHeaderTextBlock" Grid.Row="0" 
+                               Text="Expected behavior:"
+                               FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBox Name="ExpectedTextBox" Grid.Row="1"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="12"
+                             Padding="8"
+                             BorderBrush="#CCCCCC"
+                             BorderThickness="1"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Name="ActualTab" Header="Actual">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="ActualHeaderTextBlock" Grid.Row="0" 
+                               Text="Actual behavior:"
+                               FontWeight="Bold" Margin="0,0,0,5"/>
+                    <TextBox Name="ActualTextBox" Grid.Row="1"
+                             TextWrapping="Wrap"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="12"
+                             Padding="8"
+                             BorderBrush="#CCCCCC"
+                             BorderThickness="1"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Name="SystemTab" Header="System">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10">
+                    <StackPanel>
+                        <TextBlock Name="SystemHeaderTextBlock" 
+                                   Text="System Information:"
+                                   FontWeight="Bold" Margin="0,0,0,10"/>
+                        <Border Background="#F8F8F8"
+                                Padding="10"
+                                BorderBrush="#DDDDDD"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <TextBlock Name="SystemInfoTextBlock"
+                                       FontSize="11"
+                                       FontFamily="Consolas, Monaco, monospace"
+                                       TextWrapping="Wrap"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+            <Button Name="EmailButton" Style="{StaticResource ModernButton}" 
+                    Content="Send via Email" Click="EmailButton_Click" MinWidth="130"/>
+            <Button Name="GitHubButton" Style="{StaticResource GitHubButton}" 
+                    Content="Open on GitHub" Click="GitHubButton_Click" MinWidth="130"/>
+            <Button Name="CancelButton" Style="{StaticResource CancelButton}" 
+                    Content="Cancel" Click="CancelButton_Click" MinWidth="90"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="3" Text="Thank you for your feedback! It helps us improve the program."
+                   FontSize="10" Foreground="#888888" HorizontalAlignment="Center" 
+                   Margin="0,10,0,0" TextAlignment="Center"/>
+    </Grid>
+</Window>

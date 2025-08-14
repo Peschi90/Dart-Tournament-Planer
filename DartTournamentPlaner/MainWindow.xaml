@@ -163,6 +163,7 @@
             <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
             <MenuItem Name="HelpMenuItem" Header="Help">
                 <MenuItem Name="HelpContentMenuItem" Header="📖 Help" Click="Help_Click"/>
+                <MenuItem Name="BugReportMenuItem" Header="🐛 Bug melden" Click="BugReport_Click"/>
                 <Separator/>
                 <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
             </MenuItem>
@@ -210,6 +211,36 @@
                 <controls:TournamentTab x:Name="BronzeTab"/>
             </TabItem>
         </TabControl>
+
+        <!-- Donation Button - dezent in der unteren rechten Ecke -->
+        <Button Name="DonationButton" 
+                Grid.Row="1" 
+                Content="💝 Spenden"
+                ToolTip="Unterstützen Sie die Entwicklung dieses Projekts"
+                Click="Donation_Click"
+                HorizontalAlignment="Right" 
+                VerticalAlignment="Bottom"
+                Margin="0,0,25,25"
+                Width="100"
+                Height="35"
+                FontSize="11">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
+                    <Setter Property="Background" Value="#FF9800"/>
+                    <Setter Property="Opacity" Value="0.8"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#F57C00"/>
+                            <Setter Property="Opacity" Value="1.0"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#EF6C00"/>
+                            <Setter Property="Opacity" Value="1.0"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
 
         <!-- Status Bar -->
         <StatusBar Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0">

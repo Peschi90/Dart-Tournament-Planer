@@ -371,7 +371,30 @@ public class LocalizationService : INotifyPropertyChanged
 
                 // Eingabedialog
                 ["InputDialog"] = "Eingabe",
-                ["EnterName"] = "Name eingeben:"
+                ["EnterName"] = "Name eingeben:",
+
+                // Donation & Bug Report
+                ["Donate"] = "💝 Spenden",
+                ["DonateTooltip"] = "Unterstützen Sie die Entwicklung dieses Projekts",
+                ["BugReport"] = "🐛 Bug melden",
+                ["BugReportTooltip"] = "Melden Sie Bugs oder schlagen Sie Verbesserungen vor",
+                ["BugReportTitle"] = "Bug Report",
+                ["BugReportDescription"] = "Beschreiben Sie das Problem oder Ihre Verbesserungsidee:",
+                ["BugReportEmailSubject"] = "Dart Tournament Planner - Bug Report",
+                ["BugReportSteps"] = "Schritte zur Reproduktion:",
+                ["BugReportExpected"] = "Erwartetes Verhalten:",
+                ["BugReportActual"] = "Tatsächliches Verhalten:",
+                ["BugReportSystemInfo"] = "System Information:",
+                ["BugReportVersion"] = "Version:",
+                ["BugReportOS"] = "Betriebssystem:",
+                ["BugReportSubmitEmail"] = "Per E-Mail senden",
+                ["BugReportSubmitGitHub"] = "Auf GitHub öffnen",
+                ["ThankYouSupport"] = "Vielen Dank für Ihre Unterstützung!",
+                ["BugReportSent"] = "Bug Report wurde erfolgreich gesendet. Vielen Dank!",
+                ["ErrorSendingBugReport"] = "Fehler beim Senden des Bug Reports:",
+                ["SupportDevelopment"] = "Entwicklung unterstützen",
+                ["DonationMessage"] = "Gefällt Ihnen dieser Dart Tournament Planner?\n\nUnterstützen Sie die weitere Entwicklung mit einer kleinen Spende.\nJeder Beitrag hilft bei der Verbesserung und Wartung der Software.",
+                ["OpenDonationPage"] = "Spenden-Seite öffnen"
             },
             
             ["en"] = new Dictionary<string, string>
@@ -730,10 +753,33 @@ public class LocalizationService : INotifyPropertyChanged
                 ["NoWinnerFound"] = "No winner found",
                 ["GiveBye"] = "Give Bye",
                 ["SelectByeWinner"] = "Select the player who should receive the bye:",
-                
+
                 // ShowInputDialog Translations
                 ["InputDialog"] = "Input",
-                ["EnterName"] = "Enter name:"
+                ["EnterName"] = "Enter name:",
+
+                // Donation & Bug Report
+                ["Donate"] = "💝 Donate",
+                ["DonateTooltip"] = "Support the development of this project",
+                ["BugReport"] = "🐛 Report Bug",
+                ["BugReportTooltip"] = "Report bugs or suggest improvements",
+                ["BugReportTitle"] = "Bug Report",
+                ["BugReportDescription"] = "Describe the problem or your improvement idea:",
+                ["BugReportEmailSubject"] = "Dart Tournament Planner - Bug Report",
+                ["BugReportSteps"] = "Steps to reproduce:",
+                ["BugReportExpected"] = "Expected behavior:",
+                ["BugReportActual"] = "Actual behavior:",
+                ["BugReportSystemInfo"] = "System Information:",
+                ["BugReportVersion"] = "Version:",
+                ["BugReportOS"] = "Operating System:",
+                ["BugReportSubmitEmail"] = "Send via Email",
+                ["BugReportSubmitGitHub"] = "Open on GitHub",
+                ["ThankYouSupport"] = "Thank you for your support!",
+                ["BugReportSent"] = "Bug report was sent successfully. Thank you!",
+                ["ErrorSendingBugReport"] = "Error sending bug report:",
+                ["SupportDevelopment"] = "Support Development",
+                ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps improve and maintain the software.",
+                ["OpenDonationPage"] = "Open Donation Page"
             }
         };
     }
