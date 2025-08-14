@@ -10,7 +10,8 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         MinHeight="800" MinWidth="1400"
-        Background="#F5F5F5">
+        Background="#F5F5F5"
+        Icon="Assets/Images/favicon.ico">
     
     <Window.Resources>
         <!-- Modern TabControl Style -->
@@ -172,7 +173,7 @@
             <TabItem Name="PlatinTabItem" Background="#E8EAF6">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="#9C27B0" Margin="0,0,8,0"/>
+                        <Ellipse Width="12" Height="12" Fill="SeaShell" Margin="0,0,8,0"/>
                         <TextBlock Text="Platinum" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
@@ -192,7 +193,7 @@
             <TabItem Name="SilverTabItem" Background="#F3E5F5">
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="#795548" Margin="0,0,8,0"/>
+                        <Ellipse Width="12" Height="12" Fill="Silver" Margin="0,0,8,0"/>
                         <TextBlock Text="Silver" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>

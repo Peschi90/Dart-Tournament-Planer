@@ -1,7 +1,14 @@
-using System.Collections.ObjectModel;
+ï»¿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Windows.Shapes;
+using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Views;
 
 namespace DartTournamentPlaner.Models;
 
@@ -62,7 +69,7 @@ public class TournamentClass : INotifyPropertyChanged
             // NEUE STRATEGIE: Stelle sicher dass GroupPhase existiert (nach JSON-Loading)
             EnsureGroupPhaseExists();
             
-            // WICHTIG: Erst schauen ob direkt Groups auf TournamentClass-Ebene vorhanden sind (für Legacy/Loading)
+            // WICHTIG: Erst schauen ob direkt Groups auf TournamentClass-Ebene vorhanden sind (fÃ¼r Legacy/Loading)
             if (_directGroups != null && _directGroups.Count > 0)
             {
                 System.Diagnostics.Debug.WriteLine($"  Using direct groups collection with {_directGroups.Count} groups");
@@ -116,7 +123,7 @@ public class TournamentClass : INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups setter called for {Name} with {value?.Count ?? 0} groups");
             
-            // Für JSON-Deserialisierung: Speichere Groups temporär
+            // FÃ¼r JSON-Deserialisierung: Speichere Groups temporÃ¤r
             _directGroups = value ?? new ObservableCollection<Group>();
             
             // Wenn bereits eine CurrentPhase existiert, kopiere sofort
@@ -135,7 +142,7 @@ public class TournamentClass : INotifyPropertyChanged
         }
     }
     
-    // Temporärer Storage für Groups beim JSON-Loading
+    // TemporÃ¤rer Storage fÃ¼r Groups beim JSON-Loading
     private ObservableCollection<Group>? _directGroups;
 
     // All tournament phases
@@ -146,9 +153,9 @@ public class TournamentClass : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor START ===");
         
         // WICHTIG: KEINE automatische GroupPhase-Erstellung im Constructor!
-        // Das würde bei JSON-Deserialisierung zu Duplikaten führen, da:
+        // Das wÃ¼rde bei JSON-Deserialisierung zu Duplikaten fÃ¼hren, da:
         // 1. Constructor erstellt GroupPhase (Phases ist noch leer)
-        // 2. JSON-Deserialisierung fügt weitere Phases hinzu
+        // 2. JSON-Deserialisierung fÃ¼gt weitere Phases hinzu
         // 3. Resultat: Duplikat-GroupPhases!
         
         // Stattdessen: Verwende eine Lazy Initialization-Strategie
@@ -166,7 +173,7 @@ public class TournamentClass : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists START for {Name} ===");
         System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Current Phases count = {Phases.Count}");
         
-        // Prüfe ob bereits eine GroupPhase existiert
+        // PrÃ¼fe ob bereits eine GroupPhase existiert
         var existingGroupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
         
         if (existingGroupPhase == null)
@@ -199,7 +206,7 @@ public class TournamentClass : INotifyPropertyChanged
             }
         }
         
-        // WICHTIG: KEINE Groups.Count Aufrufe hier - das würde zu Rekursion führen!
+        // WICHTIG: KEINE Groups.Count Aufrufe hier - das wÃ¼rde zu Rekursion fÃ¼hren!
         System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase = {CurrentPhase?.PhaseType}");
         System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END ===");
     }
@@ -356,11 +363,11 @@ public class TournamentClass : INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine($"  - {player.Name}");
             }
 
-            // WICHTIGE VALIDIERUNG: Prüfen ob genügend Spieler vorhanden
+            // WICHTIGE VALIDIERUNG: PrÃ¼fen ob genÃ¼gend Spieler vorhanden
             if (qualifiedPlayers.Count <= 1)
             {
                 System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: ERROR - Not enough players ({qualifiedPlayers.Count})");
-                throw new InvalidOperationException($"Nicht genügend Spieler für K.O.-Phase: {qualifiedPlayers.Count}");
+                throw new InvalidOperationException($"Nicht genÃ¼gend Spieler fÃ¼r K.O.-Phase: {qualifiedPlayers.Count}");
             }
 
             knockoutPhase.QualifiedPlayers = new ObservableCollection<Player>(qualifiedPlayers);
@@ -448,7 +455,7 @@ public class TournamentClass : INotifyPropertyChanged
                     UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
 
-                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}, Round: {startingRound}, UsesSets: {match.UsesSets}");
+                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}, Round: {startingRound}, UsesSets: {match.UsesSets} (SetsToWin: {roundRules.SetsToWin})");
                 currentRoundMatches.Add(match);
                 matches.Add(match);
             }
@@ -456,7 +463,7 @@ public class TournamentClass : INotifyPropertyChanged
             // Then, create "bye matches" for remaining players
             for (int i = 0; i < byesNeeded; i++)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r Bye-Matches
                 var roundRules = GameRules.GetRulesForRound(startingRound);
                 
                 var byeMatch = new KnockoutMatch
@@ -469,10 +476,10 @@ public class TournamentClass : INotifyPropertyChanged
                     BracketType = BracketType.Winner,
                     Round = startingRound,
                     Position = firstRoundMatches + i,
-                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r Bye-Matches
                 };
 
-                System.Diagnostics.Debug.WriteLine($"  Match {byeMatch.Id}: {byeMatch.Player1?.Name} gets bye, Round: {startingRound}, UsesSets: {byeMatch.UsesSets}");
+                System.Diagnostics.Debug.WriteLine($"  Match {byeMatch.Id}: {byeMatch.Player1?.Name} gets bye, Round: {startingRound}, UsesSets: {byeMatch.UsesSets} (SetsToWin: {roundRules.SetsToWin})");
                 currentRoundMatches.Add(byeMatch);
                 matches.Add(byeMatch);
             }
@@ -494,7 +501,7 @@ public class TournamentClass : INotifyPropertyChanged
                 
                 for (int i = 0; i < currentRoundMatches.Count; i += 2)
                 {
-                    // WICHTIG: Bestimme rundenspezifische Regeln für jede Runde
+                    // WICHTIG: Bestimme rundenspezifische Regeln fÃ¼r jede Runde
                     var roundRules = GameRules.GetRulesForRound(nextRound);
                     
                     var match = new KnockoutMatch
@@ -510,7 +517,7 @@ public class TournamentClass : INotifyPropertyChanged
                         UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                     };
 
-                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: Winner of {match.SourceMatch1?.Id} vs Winner of {match.SourceMatch2?.Id ?? 0}, Round: {nextRound}, UsesSets: {match.UsesSets}");
+                    System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: Winner of {match.SourceMatch1?.Id} vs Winner of {match.SourceMatch2?.Id ?? 0}, Round: {nextRound}, UsesSets: {match.UsesSets} (SetsToWin: {roundRules.SetsToWin})");
                     nextRoundMatches.Add(match);
                     matches.Add(match);
                 }
@@ -609,6 +616,8 @@ public class TournamentClass : INotifyPropertyChanged
                 Position = i,
                 UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
             };
+
+            System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}, Round: {startingRound}, UsesSets: {match.UsesSets} (SetsToWin: {roundRules.SetsToWin})");
             currentRoundMatches.Add(match);
             matches.Add(match);
         }
@@ -616,7 +625,7 @@ public class TournamentClass : INotifyPropertyChanged
         // Create bye matches
         for (int i = 0; i < byesNeeded; i++)
         {
-            // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+            // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r Bye-Matches
             var roundRules = GameRules.GetRulesForRound(startingRound);
             
             var byeMatch = new KnockoutMatch
@@ -629,7 +638,7 @@ public class TournamentClass : INotifyPropertyChanged
                 BracketType = BracketType.Winner,
                 Round = startingRound,
                 Position = firstRoundMatches + i,
-                UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
+                UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r Bye-Matches
             };
             currentRoundMatches.Add(byeMatch);
             matches.Add(byeMatch);
@@ -644,7 +653,7 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < currentRoundMatches.Count; i += 2)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln für jede Runde
+                // WICHTIG: Bestimme rundenspezifische Regeln fÃ¼r jede Runde
                 var roundRules = GameRules.GetRulesForRound(nextRound);
                 
                 var match = new KnockoutMatch
@@ -659,6 +668,8 @@ public class TournamentClass : INotifyPropertyChanged
                     Player2FromWinner = true,
                     UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets basierend auf Rundenregeln
                 };
+
+                System.Diagnostics.Debug.WriteLine($"  Match {match.Id}: Winner of {match.SourceMatch1?.Id} vs Winner of {match.SourceMatch2?.Id ?? 0}, Round: {nextRound}, UsesSets: {match.UsesSets} (SetsToWin: {roundRules.SetsToWin})");
                 nextRoundMatches.Add(match);
                 matches.Add(match);
             }
@@ -694,7 +705,7 @@ public class TournamentClass : INotifyPropertyChanged
             int position = 0;
             for (int i = 0; i < groupPhaseLosers.Count - 1; i += 2)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln für Loser Bracket
+                // WICHTIG: Bestimme rundenspezifische Regeln fÃ¼r Loser Bracket
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var match = new KnockoutMatch
@@ -714,7 +725,7 @@ public class TournamentClass : INotifyPropertyChanged
             // Handle odd number with bye
             if (groupPhaseLosers.Count % 2 == 1)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r Bye-Matches
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var byeMatch = new KnockoutMatch
@@ -727,7 +738,7 @@ public class TournamentClass : INotifyPropertyChanged
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
                     Position = position++,
-                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r Bye-Matches
                 };
                 currentRound.Add(byeMatch);
                 loserMatches.Add(byeMatch);
@@ -750,7 +761,7 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < allParticipants.Count - 1; i += 2)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln für jede Loser Bracket Runde
+                // WICHTIG: Bestimme rundenspezifische Regeln fÃ¼r jede Loser Bracket Runde
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var match = new KnockoutMatch
@@ -772,7 +783,7 @@ public class TournamentClass : INotifyPropertyChanged
             // Handle odd number
             if (allParticipants.Count % 2 == 1)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln auch für Bye-Matches
+                // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r Bye-Matches
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var byeMatch = new KnockoutMatch
@@ -783,7 +794,7 @@ public class TournamentClass : INotifyPropertyChanged
                     BracketType = BracketType.Loser,
                     Round = currentLoserRound,
                     Position = position++,
-                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Bye-Matches
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r Bye-Matches
                 };
 
                 SetLoserBracketParticipant(byeMatch, allParticipants.Last(), true);
@@ -808,7 +819,7 @@ public class TournamentClass : INotifyPropertyChanged
 
             for (int i = 0; i < currentRound.Count - 1; i += 2)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln für jede weitere Runde
+                // WICHTIG: Bestimme rundenspezifische Regeln fÃ¼r jede weitere Runde
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var match = new KnockoutMatch
@@ -829,7 +840,7 @@ public class TournamentClass : INotifyPropertyChanged
 
             if (currentRound.Count % 2 == 1)
             {
-                // WICHTIG: Bestimme rundenspezifische Regeln auch für finale Bye-Matches
+                // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r finale Bye-Matches
                 var roundRules = GameRules.GetRulesForRound(currentLoserRound);
                 
                 var byeMatch = new KnockoutMatch
@@ -842,7 +853,7 @@ public class TournamentClass : INotifyPropertyChanged
                     Round = currentLoserRound,
                     Position = position++,
                     Player1FromWinner = true,
-                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für finale Bye-Matches
+                    UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r finale Bye-Matches
                 };
                 nextRound.Add(byeMatch);
                 loserMatches.Add(byeMatch);
@@ -890,6 +901,9 @@ public class TournamentClass : INotifyPropertyChanged
             phase.LoserBracket.Max(m => m.Id)
         ) + 1;
 
+        // WICHTIG: Bestimme rundenspezifische Regeln auch fÃ¼r Grand Final
+        var roundRules = GameRules.GetRulesForRound(KnockoutRound.GrandFinal);
+
         var grandFinal = new KnockoutMatch
         {
             Id = matchId,
@@ -899,7 +913,8 @@ public class TournamentClass : INotifyPropertyChanged
             SourceMatch1 = winnerFinal,
             SourceMatch2 = loserFinal,
             Player1FromWinner = true,
-            Player2FromWinner = true
+            Player2FromWinner = true,
+            UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch fÃ¼r Grand Final
         };
 
         var winnerMatches = phase.WinnerBracket.ToList();
@@ -975,7 +990,7 @@ public class TournamentClass : INotifyPropertyChanged
 
     #endregion
 
-    #region Propagation Methods - VOLLSTÄNDIGE FREILOS-LÖSUNG
+    #region Propagation Methods - VOLLSTÃ„NDIGE FREILOS-LÃ–SUNG
 
     /// <summary>
     /// HAUPTMETHODE: Propagiert initiale Bye-Matches und aktiviert automatische Freilos-Erkennung
@@ -997,7 +1012,7 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// KERNMETHODE: Propagiert Match-Ergebnisse und überprüft automatisch auf neue Freilose
+    /// KERNMETHODE: Propagiert Match-Ergebnisse und Ã¼berprÃ¼ft automatisch auf neue Freilose
     /// </summary>
     private void PropagateMatchResultWithAutomaticByes(KnockoutMatch completedMatch, ObservableCollection<KnockoutMatch> sameBracket, ObservableCollection<KnockoutMatch>? otherBracket)
     {
@@ -1054,7 +1069,7 @@ public class TournamentClass : INotifyPropertyChanged
             }
         }
 
-        // 3. KRITISCH: Prüfe nach der Propagation auf neue automatische Freilose
+        // 3. KRITISCH: PrÃ¼fe nach der Propagation auf neue automatische Freilose
         CheckAndHandleAutomaticByes(sameBracket, otherBracket);
         if (otherBracket != null)
         {
@@ -1063,13 +1078,15 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Direkte Match-Propagation ohne weitere Bye-Checks (verhindert Rekursion)
+    /// Direktes Propagieren von Spielergewinnen-Nachrichten ohne Nachverfolgung von Freilosen
     /// </summary>
     private void PropagateMatchResultDirectly(KnockoutMatch completedMatch, ObservableCollection<KnockoutMatch> sameBracket, ObservableCollection<KnockoutMatch>? otherBracket)
     {
         if (completedMatch.Winner == null) return;
 
-        // Propagiere nur die direkten Abhängigkeiten
+        System.Diagnostics.Debug.WriteLine($"    Directly propagating match {completedMatch.Id} (winner: {completedMatch.Winner.Name})");
+
+        // 1. Propagiere Gewinner in das gleiche Bracket
         var sameBracketDependents = sameBracket.Where(m => 
             (m.SourceMatch1?.Id == completedMatch.Id && m.Player1FromWinner) ||
             (m.SourceMatch2?.Id == completedMatch.Id && m.Player2FromWinner)).ToList();
@@ -1079,20 +1096,24 @@ public class TournamentClass : INotifyPropertyChanged
             if (dependent.SourceMatch1?.Id == completedMatch.Id && dependent.Player1FromWinner)
             {
                 dependent.Player1 = completedMatch.Winner;
+                System.Diagnostics.Debug.WriteLine($"      Set winner {completedMatch.Winner.Name} as Player1 in match {dependent.Id}");
             }
             
             if (dependent.SourceMatch2?.Id == completedMatch.Id && dependent.Player2FromWinner)
             {
                 dependent.Player2 = completedMatch.Winner;
+                System.Diagnostics.Debug.WriteLine($"      Set winner {completedMatch.Winner.Name} as Player2 in match {dependent.Id}");
             }
         }
 
-        // Propagiere Verlierer ins andere Bracket
+        // 2. Propagiere Verlierer ins andere Bracket (Winner ? Loser)
         if (otherBracket != null && completedMatch.BracketType == BracketType.Winner)
         {
             var loser = GetMatchLoser(completedMatch);
             if (loser != null)
             {
+                System.Diagnostics.Debug.WriteLine($"      WB Match {completedMatch.Id}: Loser {loser.Name} goes to LB");
+                
                 var crossBracketDependents = otherBracket.Where(m => 
                     (m.SourceMatch1?.Id == completedMatch.Id && !m.Player1FromWinner) ||
                     (m.SourceMatch2?.Id == completedMatch.Id && !m.Player2FromWinner)).ToList();
@@ -1102,11 +1123,13 @@ public class TournamentClass : INotifyPropertyChanged
                     if (dependent.SourceMatch1?.Id == completedMatch.Id && !dependent.Player1FromWinner)
                     {
                         dependent.Player1 = loser;
+                        System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player1 in LB match {dependent.Id}");
                     }
                     
                     if (dependent.SourceMatch2?.Id == completedMatch.Id && !dependent.Player2FromWinner)
                     {
                         dependent.Player2 = loser;
+                        System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player2 in LB match {dependent.Id}");
                     }
                 }
             }
@@ -1114,8 +1137,8 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// VERBESSERTE LÖSUNG: Überprüft ALLE Arten von automatischen Freilosen
-    /// WICHTIG: Nur für Freilos-Szenarien, nicht für normale Match-Ergebnisse
+    /// VERBESSERTE LÃ–SUNG: ÃœberprÃ¼ft ALLE Arten von automatischen Freilosen
+    /// WICHTIG: Nur fÃ¼r Freilos-Szenarien, nicht fÃ¼r normale Match-Ergebnisse
     /// </summary>
     private void CheckAndHandleAutomaticByes(ObservableCollection<KnockoutMatch> bracket, ObservableCollection<KnockoutMatch>? otherBracket)
     {
@@ -1123,7 +1146,7 @@ public class TournamentClass : INotifyPropertyChanged
         
         bool foundNewByes;
         int iterations = 0;
-        const int maxIterations = 15; // Erhöht für komplexere Szenarien
+        const int maxIterations = 15; // ErhÃ¶ht fÃ¼r komplexe Szenarien
 
         do
         {
@@ -1132,13 +1155,13 @@ public class TournamentClass : INotifyPropertyChanged
             
             System.Diagnostics.Debug.WriteLine($"        Iteration {iterations}: Checking for automatic byes...");
 
-            // FALL 1: Neue Freilose durch Spieler-Hinzufügung (aber nicht bei bereits beendeten Matches)
+            // FALL 1: Neue Freilose durch Spieler-HinzufÃ¼gung (aber nicht bei bereits beendeten Matches)
             var newByeMatches = bracket.Where(m => 
                 m.Status == MatchStatus.NotStarted && 
                 ShouldBeAutomaticBye(m))
                 .ToList();
 
-            // FALL 2: Ursprünglich Bye-markierte Matches mit neuen Spielern (aber keine finished matches)
+            // FALL 2: UrsprÃ¼nglich Bye-markierte Matches mit neuen Spielern (aber keine finished matches)
             var convertedMatches = bracket.Where(m => 
                 m.Status == MatchStatus.Bye && 
                 m.Winner == null && 
@@ -1155,7 +1178,7 @@ public class TournamentClass : INotifyPropertyChanged
                 if (automaticWinner != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"        NEW AUTO BYE: Match {match.Id} - {automaticWinner.Name} advances automatically");
-                    
+    
                     match.Status = MatchStatus.Bye;
                     match.Winner = automaticWinner;
                     foundNewByes = true;
@@ -1194,18 +1217,18 @@ public class TournamentClass : INotifyPropertyChanged
 
     /// <summary>
     /// NEU: Bestimmt ob ein Match automatisch als Bye behandelt werden sollte
-    /// WICHTIG: Nur für NotStarted Matches, nicht für bereits fertige Matches
+    /// WICHTIG: Nur fÃ¼r NotStarted Matches, nicht fÃ¼r bereits fertige Matches
     /// </summary>
     private bool ShouldBeAutomaticBye(KnockoutMatch match)
     {
-        // SICHERHEITSCHECK: Keine Automatic-Byes für bereits beendete oder laufende Matches
+        // SICHERHEITSCHECK: Keine Automatic-Byes fÃ¼r bereits beendete oder laufende Matches
         if (match.Status != MatchStatus.NotStarted)
         {
             System.Diagnostics.Debug.WriteLine($"        ShouldBeAutomaticBye: Match {match.Id} not NotStarted, skipping");
             return false;
         }
 
-        // Hilfsfunktion: Prüft ob ein Player gültig ist (nicht null und nicht "TBD")
+        // Hilfsfunktion: PrÃ¼ft ob ein Player gÃ¼ltig ist (nicht null und nicht "TBD")
         bool IsValidPlayer(Player? player)
         {
             return player != null && 
@@ -1214,26 +1237,23 @@ public class TournamentClass : INotifyPropertyChanged
                    !player.Name.Equals("To Be Determined", StringComparison.OrdinalIgnoreCase);
         }
 
-        System.Diagnostics.Debug.WriteLine($"        ShouldBeAutomaticBye: Match {match.Id}");
-        System.Diagnostics.Debug.WriteLine($"          Player1: {match.Player1?.Name ?? "null"}, Valid: {IsValidPlayer(match.Player1)}");
-        System.Diagnostics.Debug.WriteLine($"          Player2: {match.Player2?.Name ?? "null"}, Valid: {IsValidPlayer(match.Player2)}");
-        System.Diagnostics.Debug.WriteLine($"          SourceMatch1: {match.SourceMatch1?.Id ?? 0}, SourceMatch2: {match.SourceMatch2?.Id ?? 0}");
+        System.Diagnostics.Debug.WriteLine($"        ShouldBeAutomaticBye: Match {match.Id} - Player1: {match.Player1?.Name ?? "null"}, Player2: {match.Player2?.Name ?? "null"}");
 
-        // Fall 1: Ein gültiger Spieler vorhanden, kein zweiter erwartet
+        // Fall 1: Ein gÃ¼ltiger Spieler vorhanden, kein zweiter erwartet
         if (IsValidPlayer(match.Player1) && match.Player2 == null && match.SourceMatch2 == null)
         {
             System.Diagnostics.Debug.WriteLine($"          -> Should be bye: Valid Player1, no Player2 expected");
             return true;
         }
             
-        // Fall 2: Ein gültiger Spieler vorhanden, kein erster erwartet  
+        // Fall 2: Ein gÃ¼ltiger Spieler vorhanden, kein erster erwartet  
         if (match.Player1 == null && IsValidPlayer(match.Player2) && match.SourceMatch1 == null)
         {
             System.Diagnostics.Debug.WriteLine($"          -> Should be bye: Valid Player2, no Player1 expected");
             return true;
         }
 
-        // Fall 3: Ein gültiger Spieler + ein TBD Spieler, aber keine wartenden Matches
+        // Fall 3: Ein gÃ¼ltiger Spieler + ein TBD Spieler, aber keine wartenden Matches
         if (IsValidPlayer(match.Player1) && match.Player2 != null && !IsValidPlayer(match.Player2) && match.SourceMatch2 == null)
         {
             System.Diagnostics.Debug.WriteLine($"          -> Should be bye: Valid Player1, Player2 is TBD, no SourceMatch2");
@@ -1251,7 +1271,7 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// NEU: Bestimmt ob ein ursprüngliches Bye-Match zu einem automatischen Bye konvertiert werden sollte
+    /// NEU: Bestimmt ob ein ursprÃ¼ngliches Bye-Match zu einem automatischen Bye konvertiert werden sollte
     /// </summary>
     private bool ShouldConvertByeToAutomatic(KnockoutMatch match)
     {
@@ -1264,7 +1284,7 @@ public class TournamentClass : INotifyPropertyChanged
     /// </summary>
     private Player? DetermineAutomaticWinner(KnockoutMatch match)
     {
-        // Hilfsfunktion: Prüft ob ein Player gültig ist (nicht null und nicht "TBD")
+        // Hilfsfunktion: PrÃ¼ft ob ein Player gÃ¼ltig ist (nicht null und nicht "TBD")
         bool IsValidPlayer(Player? player)
         {
             return player != null && 
@@ -1277,21 +1297,21 @@ public class TournamentClass : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"          Player1: {match.Player1?.Name ?? "null"}");
         System.Diagnostics.Debug.WriteLine($"          Player2: {match.Player2?.Name ?? "null"}");
 
-        // Fall 1: Nur Player1 ist ein gültiger Spieler
+        // Fall 1: Nur Player1 ist ein gÃ¼ltiger Spieler
         if (IsValidPlayer(match.Player1) && !IsValidPlayer(match.Player2))
         {
             System.Diagnostics.Debug.WriteLine($"          -> Player1 {match.Player1.Name} wins automatically (Player2 is TBD/null)");
             return match.Player1;
         }
             
-        // Fall 2: Nur Player2 ist ein gültiger Spieler
+        // Fall 2: Nur Player2 ist ein gÃ¼ltiger Spieler
         if (!IsValidPlayer(match.Player1) && IsValidPlayer(match.Player2))
         {
             System.Diagnostics.Debug.WriteLine($"          -> Player2 {match.Player2.Name} wins automatically (Player1 is TBD/null)");
             return match.Player2;
         }
             
-        // Fall 3: Beide Spieler sind gültig - kein automatisches Bye
+        // Fall 3: Beide Spieler sind gÃ¼ltig - kein automatisches Bye
         if (IsValidPlayer(match.Player1) && IsValidPlayer(match.Player2))
         {
             System.Diagnostics.Debug.WriteLine($"          -> Both players valid, no automatic bye");
@@ -1304,7 +1324,7 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ÖFFENTLICHE METHODE: Manueller Refresh aller Freilose
+    /// Ã–FFENTLICHE METHODE: Manueller Refresh aller Freilose
     /// </summary>
     public void RefreshAllByeMatches()
     {
@@ -1331,11 +1351,11 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// NEU: ÖFFENTLICHE METHODE für manuelle Freilos-Vergabe
+    /// NEU: Ã–FFENTLICHE METHODE fÃ¼r manuelle Freilos-Vergabe
     /// </summary>
     /// <param name="match">Das Match, in dem ein Freilos vergeben werden soll</param>
     /// <param name="byeWinner">Der Spieler, der das Freilos bekommen soll (null = automatisch bestimmen)</param>
-    /// <returns>True wenn erfolgreich, False wenn nicht möglich</returns>
+    /// <returns>True wenn erfolgreich, False wenn nicht mÃ¶glich</returns>
     public bool GiveManualBye(KnockoutMatch match, Player? byeWinner = null)
     {
         System.Diagnostics.Debug.WriteLine($"=== GiveManualBye START for match {match.Id} ===");
@@ -1368,7 +1388,7 @@ public class TournamentClass : INotifyPropertyChanged
                 else if (match.Player1 != null && match.Player2 != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"  Both players present in match {match.Id} - manual bye winner required");
-                    return false; // Beide Spieler vorhanden - explizite Auswahl nötig
+                    return false; // Beide Spieler vorhanden - explizite Auswahl nÃ¶tig
                 }
                 else
                 {
@@ -1392,7 +1412,7 @@ public class TournamentClass : INotifyPropertyChanged
                 return false;
             }
 
-            // Apply the bye
+            // Apply the bye - WICHTIG: Status wird auf Bye gesetzt fÃ¼r korrektes Design
             match.Status = MatchStatus.Bye;
             match.Winner = winner;
             match.Loser = null; // Freilos hat keinen Verlierer
@@ -1402,7 +1422,7 @@ public class TournamentClass : INotifyPropertyChanged
             match.Player2Legs = 0;
             match.EndTime = DateTime.Now;
 
-            System.Diagnostics.Debug.WriteLine($"  Manual bye given to {winner.Name} in match {match.Id}");
+            System.Diagnostics.Debug.WriteLine($"  Manual bye given to {winner.Name} in match {match.Id} - Status set to Bye");
 
             // Propagate the bye result
             var winnerBracket = CurrentPhase.WinnerBracket;
@@ -1417,6 +1437,10 @@ public class TournamentClass : INotifyPropertyChanged
                 PropagateMatchResultWithAutomaticByes(match, loserBracket, null);
             }
 
+            // WICHTIG: UI-Refresh triggern um visuelles Update zu erzwingen
+            TriggerUIRefresh();
+            System.Diagnostics.Debug.WriteLine($"  UI refresh triggered for manual bye in match {match.Id}");
+
             System.Diagnostics.Debug.WriteLine($"=== GiveManualBye SUCCESS for match {match.Id} ===");
             return true;
         }
@@ -1428,10 +1452,10 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// NEU: ÖFFENTLICHE METHODE zum Rückgängigmachen eines Freiloses
+    /// NEU: Ã–FFENTLICHE METHODE zum RÃ¼ckgÃ¤ngigmachen eines Freiloses
     /// </summary>
-    /// <param name="match">Das Match, dessen Freilos rückgängig gemacht werden soll</param>
-    /// <returns>True wenn erfolgreich, False wenn nicht möglich</returns>
+    /// <param name="match">Das Match, dessen Freilos rÃ¼ckgÃ¤ngig gemacht werden soll</param>
+    /// <returns>True wenn erfolgreich, False wenn nicht mÃ¶glich</returns>
     public bool UndoBye(KnockoutMatch match)
     {
         System.Diagnostics.Debug.WriteLine($"=== UndoBye START for match {match.Id} ===");
@@ -1466,7 +1490,7 @@ public class TournamentClass : INotifyPropertyChanged
                 return false;
             }
 
-            // Reset the match
+            // Reset the match - WICHTIG: Status wird zurÃ¼ck auf NotStarted gesetzt
             match.Status = MatchStatus.NotStarted;
             match.Winner = null;
             match.Loser = null;
@@ -1475,6 +1499,8 @@ public class TournamentClass : INotifyPropertyChanged
             match.Player1Legs = 0;
             match.Player2Legs = 0;
             match.EndTime = null;
+
+            System.Diagnostics.Debug.WriteLine($"  Bye undone for match {match.Id} - Status reset to NotStarted");
 
             // Clear dependent matches
             foreach (var dependent in dependentMatches)
@@ -1489,10 +1515,12 @@ public class TournamentClass : INotifyPropertyChanged
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"  Bye undone for match {match.Id}");
-            
             // Re-check for automatic byes after the change
             RefreshAllByeMatches();
+
+            // WICHTIG: ZusÃ¤tzlicher UI-Refresh um visuelles Update zu erzwingen  
+            TriggerUIRefresh();
+            System.Diagnostics.Debug.WriteLine($"  Additional UI refresh triggered after undo bye for match {match.Id}");
 
             System.Diagnostics.Debug.WriteLine($"=== UndoBye SUCCESS for match {match.Id} ===");
             return true;
@@ -1505,7 +1533,7 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// NEU: ÖFFENTLICHE METHODE zur Validierung von Freilos-Operationen
+    /// NEU: Ã–FFENTLICHE METHODE zur Validierung von Freilos-Operationen
     /// </summary>
     /// <param name="match">Das zu validierende Match</param>
     /// <returns>Validierungsresultat</returns>
@@ -1532,32 +1560,32 @@ public class TournamentClass : INotifyPropertyChanged
                 (m.Status == MatchStatus.Bye && m.Winner != null));
 
             canUndoBye = !hasProgressedDependents;
-            message = canUndoBye ? "Freilos kann rückgängig gemacht werden" : "Freilos kann nicht rückgängig gemacht werden - nachfolgende Matches bereits gespielt";
+            message = canUndoBye ? "Freilos kann rÃ¼ckgÃ¤ngig gemacht werden" : "Freilos kann nicht rÃ¼ckgÃ¤ngig gemacht werden - nachfolgende Matches bereits gespielt";
         }
         else if (match.Status == MatchStatus.NotStarted)
         {
             // Check if bye can be given
             bool hasPlayers = match.Player1 != null || match.Player2 != null;
             canGiveBye = hasPlayers;
-            message = hasPlayers ? "Freilos kann vergeben werden" : "Keine Spieler im Match - Freilos nicht möglich";
+            message = hasPlayers ? "Freilos kann vergeben werden" : "Keine Spieler im Match - Freilos nicht mÃ¶glich";
         }
         else if (match.Status == MatchStatus.Finished)
         {
-            message = "Match bereits beendet - keine Freilos-Operationen möglich";
+            message = "Match bereits beendet - keine Freilos-Operationen mÃ¶glich";
         }
         else
         {
-            message = "Match läuft - keine Freilos-Operationen möglich";
+            message = "Match lÃ¤uft - keine Freilos-Operationen mÃ¶glich";
         }
 
         return new ByeValidationResult(true, message, canGiveBye, canUndoBye);
     }
 
     /// <summary>
-    /// BEISPIEL: Status-Überprüfung für UI-Buttons
+    /// BEISPIEL: Status-ÃœberprÃ¼fung fÃ¼r UI-Buttons
     /// </summary>
     /// <param name="matchId">ID des Matches</param>
-    /// <returns>UI-Status für Freilos-Buttons</returns>
+    /// <returns>UI-Status fÃ¼r Freilos-Buttons</returns>
     public MatchByeUIStatus GetMatchByeUIStatus(int matchId)
     {
         if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
@@ -1595,103 +1623,704 @@ public class TournamentClass : INotifyPropertyChanged
         return null;
     }
 
-    #endregion
-
-    #region Öffentliche Beispiel-Methoden für UI-Integration
+    /// <summary>
+    /// Gets Finals matches for the overview display
+    /// </summary>
+    public ObservableCollection<Match> GetFinalsMatches()
+    {
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.RoundRobinFinals)
+            return new ObservableCollection<Match>();
+            
+        return CurrentPhase.FinalsGroup?.Matches ?? new ObservableCollection<Match>();
+    }
 
     /// <summary>
-    /// BEISPIEL: Wie die UI die neuen Freilos-Funktionen verwenden kann
+    /// NEUE INTERAKTIVE METHODE: Erstellt eine interaktive Turnierbaum-Ansicht
+    /// Direkt in das gegebene Canvas-Element eingebettet mit klickbaren Controls
     /// </summary>
-    /// <param name="matchId">ID des Matches</param>
-    /// <param name="winnerName">Name des Spielers, der das Freilos bekommen soll (optional)</param>
-    public void HandleByeAction(int matchId, string? winnerName = null)
+    /// <param name="targetCanvas">Das Canvas, in das der Turnierbaum gerendert werden soll</param>
+    /// <param name="isLoserBracket">True fÃ¼r Loser Bracket, False fÃ¼r Winner Bracket</param>
+    /// <param name="localizationService">Service fÃ¼r Ãœbersetzungen</param>
+    /// <returns>Das gerenderte FrameworkElement</returns>
+    public FrameworkElement? CreateTournamentTreeView(Canvas targetCanvas, bool isLoserBracket, LocalizationService? localizationService = null)
     {
-        System.Diagnostics.Debug.WriteLine($"=== EXAMPLE: HandleByeAction for match {matchId} ===");
-        
         if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
         {
-            System.Diagnostics.Debug.WriteLine("  Not in knockout phase");
-            return;
+            System.Diagnostics.Debug.WriteLine("CreateTournamentTreeView: Not in knockout phase");
+            return null;
         }
 
-        // Finde das Match
-        var allMatches = CurrentPhase.WinnerBracket.Concat(CurrentPhase.LoserBracket).ToList();
-        var match = allMatches.FirstOrDefault(m => m.Id == matchId);
-        
-        if (match == null)
-        {
-            System.Diagnostics.Debug.WriteLine($"  Match {matchId} not found");
-            return;
-        }
+        System.Diagnostics.Debug.WriteLine($"CreateTournamentTreeView: Creating interactive tree for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
 
-        // Validiere die Operation
-        var validation = ValidateByeOperation(match);
-        System.Diagnostics.Debug.WriteLine($"  Validation: {validation.Message}");
-        
-        if (!validation.IsValid)
+        try
         {
-            System.Diagnostics.Debug.WriteLine($"  Validation failed");
-            return;
-        }
+            targetCanvas.Children.Clear();
 
-        // Führe entsprechende Aktion aus
-        if (match.Status == MatchStatus.Bye && validation.CanUndoBye)
-        {
-            bool success = UndoBye(match);
-            System.Diagnostics.Debug.WriteLine($"  Undo bye result: {success}");
-        }
-        else if (match.Status == MatchStatus.NotStarted && validation.CanGiveBye)
-        {
-            Player? winner = null;
-            
-            if (!string.IsNullOrEmpty(winnerName))
+            var matches = isLoserBracket ? CurrentPhase.LoserBracket.ToList() : CurrentPhase.WinnerBracket.ToList();
+
+            if (matches.Count == 0)
             {
-                winner = match.Player1?.Name == winnerName ? match.Player1 : 
-                        match.Player2?.Name == winnerName ? match.Player2 : null;
+                CreateEmptyBracketMessage(targetCanvas, isLoserBracket, localizationService);
+                return targetCanvas;
             }
-            
-            bool success = GiveManualBye(match, winner);
-            System.Diagnostics.Debug.WriteLine($"  Give bye result: {success}");
-        }
-        
-        System.Diagnostics.Debug.WriteLine($"=== EXAMPLE: HandleByeAction END ===");
-    }
 
-    /// <summary>
-    /// BEISPIEL: Automatische Überprüfung nach Spieler-Hinzufügung
-    /// Sollte aufgerufen werden, wenn ein Spieler in ein Match gesetzt wird
-    /// </summary>
-    /// <param name="matchId">ID des Matches, das geändert wurde</param>
-    public void OnPlayerAddedToMatch(int matchId)
-    {
-        System.Diagnostics.Debug.WriteLine($"=== EXAMPLE: OnPlayerAddedToMatch for match {matchId} ===");
-        
-        if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            // Set canvas properties
+            targetCanvas.Background = System.Windows.Media.Brushes.White; // WeiÃŸer Hintergrund anstatt Gradient
+            targetCanvas.MinWidth = 1200;
+            targetCanvas.MinHeight = 800;
+
+            // Add title
+            CreateBracketTitle(targetCanvas, isLoserBracket, localizationService);
+
+            // Group matches by round for layout
+            var matchesByRound = matches
+                .GroupBy(m => m.Round)
+                .OrderBy(g => GetRoundOrderValue(g.Key, isLoserBracket))
+                .ToList();
+
+            double roundWidth = 250;
+            double matchHeight = 80;
+            double matchSpacing = 30;
+            double roundSpacing = 60;
+
+            // Create interactive match controls
+            for (int roundIndex = 0; roundIndex < matchesByRound.Count; roundIndex++)
+            {
+                var roundGroup = matchesByRound[roundIndex];
+                var roundMatches = roundGroup.OrderBy(m => m.Position).ToList();
+
+                double xPos = roundIndex * (roundWidth + roundSpacing) + 50;
+                double startY = 100;
+
+                // Calculate vertical spacing to center matches
+                double totalRoundHeight = roundMatches.Count * matchHeight + (roundMatches.Count - 1) * matchSpacing;
+                double roundStartY = Math.Max(startY, (targetCanvas.MinHeight - totalRoundHeight) / 2);
+
+                // Create round label
+                CreateRoundLabel(targetCanvas, xPos, roundMatches.First(), roundWidth, isLoserBracket, localizationService);
+
+                // Create match controls
+                for (int matchIndex = 0; matchIndex < roundMatches.Count; matchIndex++)
+                {
+                    var match = roundMatches[matchIndex];
+                    double yPos = roundStartY + matchIndex * (matchHeight + matchSpacing);
+
+                    var matchControl = CreateInteractiveMatchControl(match, roundWidth - 30, matchHeight - 20, localizationService);
+                    Canvas.SetLeft(matchControl, xPos);
+                    Canvas.SetTop(matchControl, yPos);
+                    targetCanvas.Children.Add(matchControl);
+
+                    // Verbindungslinien entfernt - keine CreateConnectionLine mehr
+                }
+            }
+
+            // Adjust canvas size based on content
+            targetCanvas.Width = Math.Max(1200, matchesByRound.Count * (roundWidth + roundSpacing) + 200);
+            targetCanvas.Height = Math.Max(800, matchesByRound.Max(r => r.Count()) * (matchHeight + matchSpacing) + 400);
+            targetCanvas.MinWidth = targetCanvas.Width;
+            targetCanvas.MinHeight = targetCanvas.Height;
+
+            System.Diagnostics.Debug.WriteLine($"CreateTournamentTreeView: Successfully created interactive tree with {matches.Count} matches");
+            return targetCanvas;
+        }
+        catch (Exception ex)
         {
-            return;
+            System.Diagnostics.Debug.WriteLine($"CreateTournamentTreeView: ERROR: {ex.Message}");
+            return null;
         }
-
-        // Trigger eine vollständige Überprüfung aller Freilose
-        RefreshAllByeMatches();
-        
-        System.Diagnostics.Debug.WriteLine($"=== EXAMPLE: OnPlayerAddedToMatch END ===");
     }
 
-    #endregion
+    private void CreateEmptyBracketMessage(Canvas canvas, bool isLoserBracket, LocalizationService? localizationService)
+    {
+        var messagePanel = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var icon = new TextBlock
+        {
+            Text = isLoserBracket ? "ðŸ¥ˆ" : "ðŸ†",
+            FontSize = 60,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 30)
+        };
+
+        var messageText = new TextBlock
+        {
+            Text = isLoserBracket 
+                ? (localizationService?.GetString("NoLoserBracketMatches") ?? "Keine Loser Bracket Spiele vorhanden")
+                : (localizationService?.GetString("NoWinnerBracketMatches") ?? "Keine Winner Bracket Spiele vorhanden"),
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.DarkGray
+        };
+
+        var subText = new TextBlock
+        {
+            Text = localizationService?.GetString("TournamentTreeWillShow") ?? "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
+            FontSize = 16,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            Margin = new Thickness(0, 20, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+            MaxWidth = 400
+        };
+
+        messagePanel.Children.Add(icon);
+        messagePanel.Children.Add(messageText);
+        messagePanel.Children.Add(subText);
+
+        Canvas.SetLeft(messagePanel, 350);
+        Canvas.SetTop(messagePanel, 300);
+        canvas.Children.Add(messagePanel);
+
+        canvas.Background = System.Windows.Media.Brushes.White; // WeiÃŸer Hintergrund anstatt Gradient
+    }
+
+    private void CreateBracketTitle(Canvas canvas, bool isLoserBracket, LocalizationService? localizationService)
+    {
+        var titleText = new TextBlock
+        {
+            Text = isLoserBracket 
+                ? (localizationService?.GetString("LoserBracket") ?? "ðŸ¥ˆ Loser Bracket")
+                : (localizationService?.GetString("WinnerBracket") ?? "ðŸ† Winner Bracket"),
+            FontSize = 32,
+            FontWeight = FontWeights.Bold,
+            Foreground = isLoserBracket 
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 92, 92))
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = System.Windows.Media.Colors.Gray,
+                Direction = 315,
+                ShadowDepth = 2,
+                BlurRadius = 4,
+                Opacity = 0.5
+            }
+        };
+
+        Canvas.SetLeft(titleText, 50);
+        Canvas.SetTop(titleText, 20);
+        canvas.Children.Add(titleText);
+    }
+
+    private void CreateRoundLabel(Canvas canvas, double xPos, KnockoutMatch sampleMatch, double roundWidth, bool isLoserBracket, LocalizationService? localizationService)
+    {
+        var roundLabelBorder = new Border
+        {
+            Background = isLoserBracket 
+                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(220, 255, 182, 193))
+                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(220, 144, 238, 144)),
+            CornerRadius = new CornerRadius(20),
+            Padding = new Thickness(20, 8, 20, 8),
+            BorderBrush = isLoserBracket 
+                ? System.Windows.Media.Brushes.IndianRed
+                : System.Windows.Media.Brushes.ForestGreen,
+            BorderThickness = new Thickness(3),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = System.Windows.Media.Colors.Gray,
+                Direction = 315,
+                ShadowDepth = 3,
+                BlurRadius = 5,
+                Opacity = 0.4
+            }
+        };
+
+        var roundLabel = new TextBlock
+        {
+            Text = sampleMatch.RoundDisplay,
+            FontWeight = FontWeights.Bold,
+            FontSize = 18,
+            Foreground = System.Windows.Media.Brushes.DarkSlateGray,
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+
+        roundLabelBorder.Child = roundLabel;
+        Canvas.SetLeft(roundLabelBorder, xPos + (roundWidth - 180) / 2);
+        Canvas.SetTop(roundLabelBorder, 70);
+        canvas.Children.Add(roundLabelBorder);
+    }
+
+    private Border CreateInteractiveMatchControl(KnockoutMatch match, double width, double height, LocalizationService? localizationService)
+    {
+        var border = new Border
+        {
+            Width = width,
+            Height = height,
+            CornerRadius = new CornerRadius(12),
+            Margin = new Thickness(5),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = System.Windows.Media.Colors.Gray,
+                Direction = 315,
+                ShadowDepth = 4,
+                BlurRadius = 6,
+                Opacity = 0.6
+            }
+        };
+
+        // Set background and border based on match status
+        SetMatchControlAppearance(border, match);
+
+        // Create content grid mit WENIGER Zeilen (Match ID entfernt)
+        var contentGrid = new Grid
+        {
+            Background = System.Windows.Media.Brushes.Transparent 
+        };
+        // NUR 2 Zeilen: Spieler-Bereich und Score/Status
+        contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Spieler bekommen mehr Platz
+        contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Score bleibt unten
+
+        // NEUER ANSATZ: Grid statt StackPanel fÃ¼r bessere Kontrolle Ã¼ber das Layout
+        var playersGrid = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(5, 8, 5, 8) // Mehr Margins da mehr Platz vorhanden
+        };
+
+        // Grid-Definitionen: 3 Zeilen fÃ¼r Player1, vs, Player2
+        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        // Player 1 LINKS positioniert - in Zeile 0 - GRÃ–SSERE SCHRIFT da mehr Platz
+        var player1Text = new TextBlock
+        {
+            Text = !string.IsNullOrEmpty(match.Player1?.Name) ? match.Player1.Name : "TBD",
+            FontSize = 14, // GrÃ¶ÃŸere Schrift da Match ID weg ist
+            FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Medium, 
+            HorizontalAlignment = HorizontalAlignment.Left, 
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = width - 20, 
+            Foreground = match.Winner?.Id == match.Player1?.Id 
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
+            Margin = new Thickness(2, 2, 2, 1), // Mehr vertikale Margins fÃ¼r bessere Verteilung
+            Background = System.Windows.Media.Brushes.Transparent,
+            TextAlignment = TextAlignment.Left
+        };
+        Grid.SetRow(player1Text, 0);
+
+        var vsText = new TextBlock
+        {
+            Text = "vs", 
+            FontSize = 11, // Auch grÃ¶ÃŸer da mehr Platz vorhanden
+            HorizontalAlignment = HorizontalAlignment.Center, 
+            FontStyle = FontStyles.Italic,
+            FontWeight = FontWeights.Normal, 
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)), 
+            Margin = new Thickness(0, 1, 0, 1), // Etwas mehr Margin fÃ¼r bessere Sichtbarkeit
+            TextAlignment = TextAlignment.Center
+        };
+        Grid.SetRow(vsText, 1);
+
+        // Player 2 RECHTS positioniert - in Zeile 2 - GRÃ–SSERE SCHRIFT da mehr Platz
+        var player2Text = new TextBlock
+        {
+            Text = !string.IsNullOrEmpty(match.Player2?.Name) ? match.Player2.Name : "TBD",
+            FontSize = 14, // GrÃ¶ÃŸere Schrift da Match ID weg ist
+            FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium, 
+            HorizontalAlignment = HorizontalAlignment.Right, 
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxWidth = width - 20, 
+            Foreground = match.Winner?.Id == match.Player2?.Id 
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
+            Margin = new Thickness(2, 1, 2, 2), // Mehr vertikale Margins fÃ¼r bessere Verteilung
+            Background = System.Windows.Media.Brushes.Transparent,
+            TextAlignment = TextAlignment.Right
+        };
+        Grid.SetRow(player2Text, 2);
+
+        playersGrid.Children.Add(player1Text);
+        playersGrid.Children.Add(vsText);
+        playersGrid.Children.Add(player2Text);
+
+        // DEBUGGING: Vergewissere dich, dass die Children hinzugefÃ¼gt wurden
+        System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} - OHNE Match ID Header");
+        System.Diagnostics.Debug.WriteLine($"  - PlayersGrid mit {playersGrid.Children.Count} children, grÃ¶ÃŸere Schrift (14px/11px)");
+        System.Diagnostics.Debug.WriteLine($"  - Player1: '{player1Text.Text}', Player2: '{player2Text.Text}', vs: '{vsText.Text}'");
+
+        Grid.SetRow(playersGrid, 0); // Spieler bekommen die erste (grÃ¶ÃŸere) Zeile
+        contentGrid.Children.Add(playersGrid);
+
+        // Score/Status area - jetzt in Zeile 1 statt 2
+        var scorePanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 4, 0, 6) // Mehr Margins fÃ¼r bessere Optik
+        };
+
+        // Score - auch etwas grÃ¶ÃŸer da mehr Platz
+        var scoreText = new TextBlock
+        {
+            Text = match.Status == MatchStatus.NotStarted ? "--:--" : match.ScoreDisplay,
+            FontSize = 13, // Etwas grÃ¶ÃŸer
+            FontWeight = FontWeights.Bold,
+            Foreground = System.Windows.Media.Brushes.DarkBlue,
+            Margin = new Thickness(0, 0, 10, 0) // Mehr Abstand zum Status-Indikator
+        };
+
+        // Status indicator - auch etwas grÃ¶ÃŸer
+        var statusIndicator = new Ellipse
+        {
+            Width = 10, // GrÃ¶ÃŸer
+            Height = 10, // GrÃ¶ÃŸer
+            Margin = new Thickness(4, 0, 0, 0)
+        };
+
+        statusIndicator.Fill = match.Status switch
+        {
+            MatchStatus.NotStarted => System.Windows.Media.Brushes.Gray,
+            MatchStatus.InProgress => System.Windows.Media.Brushes.Orange,
+            MatchStatus.Finished => System.Windows.Media.Brushes.Green,
+            MatchStatus.Bye => System.Windows.Media.Brushes.RoyalBlue,
+            _ => System.Windows.Media.Brushes.Gray
+        };
+
+        scorePanel.Children.Add(scoreText);
+        scorePanel.Children.Add(statusIndicator);
+
+        Grid.SetRow(scorePanel, 1); // Jetzt Zeile 1 statt 2
+        contentGrid.Children.Add(scorePanel);
+
+        // WICHTIG: Das contentGrid muss dem border hinzugefÃ¼gt werden!
+        border.Child = contentGrid;
+
+        System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} layout complete - MEHR PLATZ fÃ¼r Namen!");
+        System.Diagnostics.Debug.WriteLine($"  - ContentGrid: {contentGrid.Children.Count} children (ohne Match ID header)");
+        System.Diagnostics.Debug.WriteLine($"  - PlayersGrid: {playersGrid.Children.Count} text children mit 14px/11px Schrift");
+        System.Diagnostics.Debug.WriteLine($"  - ScorePanel in Zeile 1 mit grÃ¶ÃŸeren Elementen");
+
+        // Add interactivity
+        AddMatchInteractivity(border, match, localizationService);
+
+        // Enhanced tooltip - Match ID bleibt nur im Tooltip
+        CreateMatchTooltip(border, match, localizationService);
+
+        return border;
+    }
+
+    private void SetMatchControlAppearance(Border border, KnockoutMatch match)
+    {
+        switch (match.Status)
+        {
+            case MatchStatus.NotStarted:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250));
+                border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 200, 200));
+                border.BorderThickness = new Thickness(2);
+                break;
+            case MatchStatus.InProgress:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 248, 220));
+                border.BorderBrush = System.Windows.Media.Brushes.Orange;
+                border.BorderThickness = new Thickness(3);
+                break;
+            case MatchStatus.Finished:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 255, 240));
+                border.BorderBrush = System.Windows.Media.Brushes.Green;
+                border.BorderThickness = new Thickness(3);
+                break;
+            case MatchStatus.Bye:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 245, 255));
+                border.BorderBrush = System.Windows.Media.Brushes.RoyalBlue;
+                border.BorderThickness = new Thickness(3);
+                break;
+            default:
+                border.Background = System.Windows.Media.Brushes.White;
+                border.BorderBrush = System.Windows.Media.Brushes.Gray;
+                border.BorderThickness = new Thickness(2);
+                break;
+        }
+    }
+
+    private void AddMatchInteractivity(Border border, KnockoutMatch match, LocalizationService? localizationService)
+    {
+        // Mouse enter/leave effects
+        border.MouseEnter += (s, e) =>
+        {
+            var transform = new System.Windows.Media.ScaleTransform(1.05, 1.05);
+            border.RenderTransformOrigin = new Point(0.5, 0.5);
+            border.RenderTransform = transform;
+            
+            var dropShadow = (System.Windows.Media.Effects.DropShadowEffect?)border.Effect;
+            if (dropShadow != null)
+            {
+                dropShadow.ShadowDepth = 6;
+                dropShadow.BlurRadius = 8;
+            }
+        };
+
+        border.MouseLeave += (s, e) =>
+        {
+            border.RenderTransform = null;
+            
+            var dropShadow = (System.Windows.Media.Effects.DropShadowEffect?)border.Effect;
+            if (dropShadow != null)
+            {
+                dropShadow.ShadowDepth = 4;
+                dropShadow.BlurRadius = 6;
+            }
+        };
+
+        // Double-click to open match result dialog
+        border.MouseLeftButtonDown += (s, e) =>
+        {
+            if (e.ClickCount == 2)
+            {
+                // WICHTIG: Verwende OpenMatchResultDialog mit rundenspezifischen Regeln
+                OpenMatchResultDialog(match, localizationService);
+            }
+        };
+
+        // Context menu for advanced options
+        var contextMenu = CreateMatchContextMenu(match, localizationService);
+        border.ContextMenu = contextMenu;
+    }
+
+    private void CreateMatchTooltip(Border border, KnockoutMatch match, LocalizationService? localizationService)
+    {
+        var tooltipText = $"Match {match.Id} - {match.RoundDisplay}\n" +
+                         $"Status: {match.StatusDisplay}\n" +
+                         $"Spieler 1: {match.Player1?.Name ?? "TBD"}\n" +
+                         $"Spieler 2: {match.Player2?.Name ?? "TBD"}";
+
+        if (match.Status == MatchStatus.Finished && match.Winner != null)
+        {
+            tooltipText += $"\nðŸ† Sieger: {match.Winner.Name}";
+        }
+        else if (match.Status == MatchStatus.Bye && match.Winner != null)
+        {
+            tooltipText += $"\nðŸŽ¯ Freilos: {match.Winner.Name}";
+        }
+
+        tooltipText += "\n\nðŸ–±ï¸ Doppelklick: Ergebnis eingeben";
+        tooltipText += "\nðŸ–±ï¸ Rechtsklick: Weitere Optionen";
+
+        border.ToolTip = tooltipText;
+    }
+
+    private ContextMenu CreateMatchContextMenu(KnockoutMatch match, LocalizationService? localizationService)
+    {
+        var contextMenu = new ContextMenu();
+
+        // Enter/Edit result
+        if (match.Status != MatchStatus.Bye && match.Player1 != null && match.Player2 != null)
+        {
+            var resultMenuItem = new MenuItem
+            {
+                Header = match.Status == MatchStatus.Finished 
+                    ? (localizationService?.GetString("EditResult") ?? "Ergebnis bearbeiten")
+                    : (localizationService?.GetString("EnterResult") ?? "Ergebnis eingeben"),
+                Icon = new TextBlock { Text = "ðŸ“", FontSize = 12 }
+            };
+            // WICHTIG: Verwende OpenMatchResultDialog mit rundenspezifischen Regeln
+            resultMenuItem.Click += (s, e) => OpenMatchResultDialog(match, localizationService);
+            contextMenu.Items.Add(resultMenuItem);
+        }
+
+        // Bye options
+        if (match.Status == MatchStatus.NotStarted || match.Status == MatchStatus.Bye)
+        {
+            var validation = ValidateByeOperation(match);
+            
+            if (validation.CanGiveBye)
+            {
+                // Give bye to specific player
+                if (match.Player1 != null)
+                {
+                    var byePlayer1 = new MenuItem
+                    {
+                        Header = $"Freilos an {match.Player1.Name}",
+                        Icon = new TextBlock { Text = "ðŸŽ¯", FontSize = 12 }
+                    };
+                    byePlayer1.Click += (s, e) => GiveManualBye(match, match.Player1);
+                    contextMenu.Items.Add(byePlayer1);
+                }
+
+                if (match.Player2 != null)
+                {
+                    var byePlayer2 = new MenuItem
+                    {
+                        Header = $"Freilos an {match.Player2.Name}",
+                        Icon = new TextBlock { Text = "ðŸŽ¯", FontSize = 12 }
+                    };
+                    byePlayer2.Click += (s, e) => GiveManualBye(match, match.Player2);
+                    contextMenu.Items.Add(byePlayer2);
+                }
+
+                // Auto bye
+                var autoBye = new MenuItem
+                {
+                    Header = "Automatisches Freilos",
+                    Icon = new TextBlock { Text = "ðŸ¤–", FontSize = 12 }
+                };
+                autoBye.Click += (s, e) => GiveManualBye(match, null);
+                contextMenu.Items.Add(autoBye);
+            }
+
+            if (validation.CanUndoBye)
+            {
+                var undoBye = new MenuItem
+                {
+                    Header = "Freilos rÃ¼ckgÃ¤ngig machen",
+                    Icon = new TextBlock { Text = "â†©ï¸", FontSize = 12 }
+                };
+                undoBye.Click += (s, e) => UndoBye(match);
+                contextMenu.Items.Add(undoBye);
+            }
+        }
+
+        // Show info if no actions possible
+        if (contextMenu.Items.Count == 0)
+        {
+            var noActionItem = new MenuItem
+            {
+                Header = "Keine Aktionen verfÃ¼gbar",
+                IsEnabled = false,
+                Icon = new TextBlock { Text = "â„¹ï¸", FontSize = 12 }
+            };
+            contextMenu.Items.Add(noActionItem);
+        }
+
+        return contextMenu;
+    }
+
+    private void OpenMatchResultDialog(KnockoutMatch match, LocalizationService? localizationService)
+    {
+        if (match.Player1 == null || match.Player2 == null || match.Status == MatchStatus.Bye)
+            return;
+
+        try
+        {
+            // WICHTIG: Verwende rundenspezifische Regeln fÃ¼r KO-Matches
+            var roundRules = GameRules.GetRulesForRound(match.Round);
+            
+            System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} in {match.Round}");
+            System.Diagnostics.Debug.WriteLine($"  Round Rules: SetsToWin={roundRules.SetsToWin}, LegsToWin={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
+            System.Diagnostics.Debug.WriteLine($"  Using SPECIALIZED constructor for KnockoutMatch");
+
+            // KORREKTUR: Verwende den spezialisierten Constructor fÃ¼r KnockoutMatches
+            var resultWindow = new MatchResultWindow(match, roundRules, GameRules, localizationService);
+            
+            // Try to find parent window
+            var parentWindow = Application.Current.MainWindow;
+            if (parentWindow != null)
+            {
+                resultWindow.Owner = parentWindow;
+            }
+
+            if (resultWindow.ShowDialog() == true)
+            {
+                var internalMatch = resultWindow.InternalMatch;
+                match.Player1Sets = internalMatch.Player1Sets;
+                match.Player2Sets = internalMatch.Player2Sets;
+                match.Player1Legs = internalMatch.Player1Legs;
+                match.Player2Legs = internalMatch.Player2Legs;
+                match.Winner = internalMatch.Winner;
+                match.Status = internalMatch.Status;
+                match.Notes = internalMatch.Notes;
+                match.StartTime = internalMatch.StartTime;
+                match.EndTime = DateTime.Now;
+
+                System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} result saved");
+                System.Diagnostics.Debug.WriteLine($"  Winner: {match.Winner?.Name}, Sets: {match.Player1Sets}:{match.Player2Sets}, Legs: {match.Player1Legs}:{match.Player2Legs}");
+
+                // Process the result through the tournament system
+                ProcessMatchResult(match);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: ERROR: {ex.Message}");
+            MessageBox.Show($"Fehler beim Ã–ffnen des Ergebnis-Fensters: {ex.Message}", 
+                           "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private int GetRoundOrderValue(KnockoutRound round, bool isLoserBracket)
+    {
+        if (isLoserBracket)
+        {
+            return round switch
+            {
+                KnockoutRound.LoserRound1 => 1,
+                KnockoutRound.LoserRound2 => 2,
+                KnockoutRound.LoserRound3 => 3,
+                KnockoutRound.LoserRound4 => 4,
+                KnockoutRound.LoserRound5 => 5,
+                KnockoutRound.LoserRound6 => 6,
+                KnockoutRound.LoserRound7 => 7,
+                KnockoutRound.LoserRound8 => 8,
+                KnockoutRound.LoserRound9 => 9,
+                KnockoutRound.LoserRound10 => 10,
+                KnockoutRound.LoserRound11 => 11,
+                KnockoutRound.LoserRound12 => 12,
+                KnockoutRound.LoserFinal => 13,
+                _ => 99
+            };
+        }
+        else
+        {
+            return round switch
+            {
+                KnockoutRound.Best64 => 1,
+                KnockoutRound.Best32 => 2,
+                KnockoutRound.Best16 => 3,
+                KnockoutRound.Quarterfinal => 4,
+                KnockoutRound.Semifinal => 5,
+                KnockoutRound.Final => 6,
+                KnockoutRound.GrandFinal => 7,
+                _ => 99
+            };
+        }
+    }
 
     /// <summary>
-    /// NEU: Löst ein UI-Refresh-Event aus, um ViewModels zu aktualisieren
+    /// NEU: LÃ¶st ein UI-Refresh-Event aus, um ViewModels zu aktualisieren
+    /// VERBESSERT: ZusÃ¤tzliche Infos fÃ¼r UI-Updates bei Freilos-Ã„nderungen
     /// </summary>
     public void TriggerUIRefresh()
     {
         System.Diagnostics.Debug.WriteLine($"TriggerUIRefresh: Firing UIRefreshRequested event");
         UIRefreshRequested?.Invoke(this, EventArgs.Empty);
+        
+        // ZUSATZ: Benachrichtige auch Ã¼ber Property-Ã„nderungen fÃ¼r UI-Binding
+        OnPropertyChanged(nameof(CurrentPhase));
     }
 
     /// <summary>
-    /// NEU: Event für UI-Refreshs nach automatischen Freilos-Änderungen
+    /// NEU: Spezifischer Refresh fÃ¼r Match-Status-Ã„nderungen
+    /// Dieser sollte aufgerufen werden wenn sich der Status einzelner Matches Ã¤ndert
+    /// </summary>
+    /// <param name="matchId">ID des geÃ¤nderten Matches</param>
+    /// <param name="newStatus">Der neue Status des Matches</param>
+    public void TriggerMatchStatusRefresh(int matchId, MatchStatus newStatus)
+    {
+        System.Diagnostics.Debug.WriteLine($"TriggerMatchStatusRefresh: Match {matchId} changed to {newStatus}");
+        
+        // Standard UI-Refresh
+        TriggerUIRefresh();
+        
+        // ZusÃ¤tzliches Event fÃ¼r spezifische Match-Updates
+        MatchStatusChanged?.Invoke(this, new MatchStatusChangedEventArgs(matchId, newStatus));
+    }
+
+    /// <summary>
+    /// NEU: Event fÃ¼r UI-Refreshs nach automatischen Freilos-Ã„nderungen
     /// </summary>
     public event EventHandler? UIRefreshRequested;
+
+    /// <summary>
+    /// NEU: Event fÃ¼r spezifische Match-Status-Ã„nderungen
+    /// </summary>
+    public event EventHandler<MatchStatusChangedEventArgs>? MatchStatusChanged;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -1706,8 +2335,8 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ÖFFENTLICHE METHODE: Für normale Match-Ergebnis-Progression (nicht für Freilose)
-    /// Diese Methode sollte verwendet werden, wenn ein Match über die UI beendet wird
+    /// Ã–FFENTLICHE METHODE: FÃ¼r normale Match-Ergebnis-Progression (nicht fÃ¼r Freilose)
+    /// Diese Methode sollte verwendet werden, wenn ein Match Ã¼ber die UI beendet wird
     /// </summary>
     /// <param name="completedMatch">Das beendete Match</param>
     /// <returns>True wenn erfolgreich</returns>
@@ -1737,28 +2366,20 @@ public class TournamentClass : INotifyPropertyChanged
                 completedMatch.Loser = completedMatch.Winner.Id == completedMatch.Player1.Id ? completedMatch.Player2 : completedMatch.Player1;
             }
 
-            // Use the standard progression logic first
-            var allMatches = CurrentPhase.WinnerBracket.Concat(CurrentPhase.LoserBracket).ToList();
-            
-            System.Diagnostics.Debug.WriteLine($"  Using KnockoutMatch.UpdateNextRoundFromCompletedMatch");
-            KnockoutMatch.UpdateNextRoundFromCompletedMatch(completedMatch, allMatches);
-
-            // If this was a winner bracket match, also update the loser bracket
-            if (completedMatch.BracketType == BracketType.Winner)
-            {
-                System.Diagnostics.Debug.WriteLine($"  Winner bracket match - updating loser bracket");
-                KnockoutMatch.UpdateLoserBracketFromWinnerMatch(completedMatch, CurrentPhase.LoserBracket);
-            }
-
-            // Then check for automatic byes that might result from the progression
+            // WICHTIG: DIREKTE Spieler-Propagation verwenden statt externe Methoden!
             var winnerBracket = CurrentPhase.WinnerBracket;
             var loserBracket = CurrentPhase.LoserBracket;
             
-            System.Diagnostics.Debug.WriteLine($"  Checking for automatic byes after progression");
-            CheckAndHandleAutomaticByes(winnerBracket, loserBracket.Any() ? loserBracket : null);
-            if (loserBracket.Any())
+            System.Diagnostics.Debug.WriteLine($"  DIRECT propagation: Using PropagateMatchResultWithAutomaticByes");
+            
+            // Verwende UNSERE eigene Propagations-Logik die definitiv funktioniert
+            if (completedMatch.BracketType == BracketType.Winner)
             {
-                CheckAndHandleAutomaticByes(loserBracket, winnerBracket);
+                PropagateMatchResultWithAutomaticByes(completedMatch, winnerBracket, loserBracket);
+            }
+            else
+            {
+                PropagateMatchResultWithAutomaticByes(completedMatch, loserBracket, null);
             }
 
             // Trigger UI refresh
@@ -1780,7 +2401,9 @@ public class TournamentClass : INotifyPropertyChanged
     public ObservableCollection<KnockoutMatch> GetWinnerBracketMatches()
     {
         if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+        {
             return new ObservableCollection<KnockoutMatch>();
+        }
             
         return CurrentPhase.WinnerBracket ?? new ObservableCollection<KnockoutMatch>();
     }
@@ -1791,23 +2414,15 @@ public class TournamentClass : INotifyPropertyChanged
     public ObservableCollection<KnockoutMatch> GetLoserBracketMatches()
     {
         if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+        {
             return new ObservableCollection<KnockoutMatch>();
+        }
             
         return CurrentPhase.LoserBracket ?? new ObservableCollection<KnockoutMatch>();
     }
-    
-    /// <summary>
-    /// Gets Finals matches for the overview display
-    /// </summary>
-    public ObservableCollection<Match> GetFinalsMatches()
-    {
-        if (CurrentPhase?.PhaseType != TournamentPhaseType.RoundRobinFinals)
-            return new ObservableCollection<Match>();
-            
-        return CurrentPhase.FinalsGroup?.Matches ?? new ObservableCollection<Match>();
-    }
-}
 
+    #endregion
+}
 /// <summary>
 /// Ergebnis der Validierung von Freilos-Operationen
 /// </summary>
@@ -1828,7 +2443,7 @@ public class ByeValidationResult
 }
 
 /// <summary>
-/// UI-Status für Freilos-Buttons
+/// UI-Status fÃ¼r Freilos-Buttons
 /// </summary>
 public class MatchByeUIStatus
 {
@@ -1841,5 +2456,20 @@ public class MatchByeUIStatus
         ShowGiveByeButton = showGiveByeButton;
         ShowUndoByeButton = showUndoByeButton;
         StatusMessage = statusMessage;
+    }
+}
+
+/// <summary>
+/// Event-Argumente fÃ¼r Match-Status-Ã„nderungen
+/// </summary>
+public class MatchStatusChangedEventArgs : EventArgs
+{
+    public int MatchId { get; }
+    public MatchStatus NewStatus { get; }
+
+    public MatchStatusChangedEventArgs(int matchId, MatchStatus newStatus)
+    {
+        MatchId = matchId;
+        NewStatus = newStatus;
     }
 }

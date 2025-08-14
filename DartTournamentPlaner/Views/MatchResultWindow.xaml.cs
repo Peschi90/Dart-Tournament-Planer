@@ -503,11 +503,15 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             // Alle Validierungen bestanden - Ergebnis speichern
             _match.SetResult(p1Sets, p2Sets, p1Legs, p2Legs, _gameRules.PlayWithSets);
             _match.Notes = NotesTextBox.Text;
+            // WICHTIG: Setze UsesSets basierend auf den aktuell verwendeten GameRules
+            _match.UsesSets = _gameRules.PlayWithSets;
 
             if (_match.Status == MatchStatus.NotStarted)
             {
                 _match.StartTime = DateTime.Now;
             }
+
+            System.Diagnostics.Debug.WriteLine($"MatchResultWindow.SaveButton_Click: Match.UsesSets set to {_match.UsesSets}");
 
             DialogResult = true;
             Close();

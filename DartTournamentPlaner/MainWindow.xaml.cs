@@ -437,74 +437,135 @@ public partial class MainWindow : Window
     private void CleanupDuplicatePhasesAndEnsureGroupPhase(TournamentClass tournamentClass)
     {
         System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase START for {tournamentClass.Name} ===");
-        System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Before cleanup - {tournamentClass.Phases.Count} phases");
+        System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: Current Phases count = {tournamentClass.Phases.Count}");
         
         try
         {
-            // Debug: Liste alle Phases vor der Bereinigung
-            for (int i = 0; i < tournamentClass.Phases.Count; i++)
-            {
-                var phase = tournamentClass.Phases[i];
-                System.Diagnostics.Debug.WriteLine($"  Phase[{i}]: {phase.Name} ({phase.PhaseType}) - Groups: {phase.Groups.Count}");
-            }
-
-            // Finde alle GroupPhase-Duplikate
+            // Erstelle eine Liste der zu behaltenden Phasen
+            var cleanPhases = new List<TournamentPhase>();
+            
+            // 1. Stelle sicher, dass genau eine GroupPhase existiert
             var groupPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.GroupPhase).ToList();
-            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Found {groupPhases.Count} GroupPhases");
-
-            if (groupPhases.Count > 1)
+            TournamentPhase groupPhase;
+            
+            if (groupPhases.Any())
             {
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Found {groupPhases.Count} duplicate GroupPhases - consolidating...");
-
-                // Behalte die erste GroupPhase mit den meisten Groups oder die erste mit Gruppen
-                var primaryPhase = groupPhases.OrderByDescending(p => p.Groups.Count).First();
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Selected primary phase with {primaryPhase.Groups.Count} groups");
-
-                // Entferne alle anderen GroupPhases
-                var duplicatesToRemove = groupPhases.Where(p => p != primaryPhase).ToList();
-                foreach (var duplicate in duplicatesToRemove)
+                System.Diagnostics.Debug.WriteLine($"  Found {groupPhases.Count} GroupPhases, keeping the first one");
+                groupPhase = groupPhases.First();
+                
+                // Merge alle Groups aus anderen GroupPhases in die erste
+                for (int i = 1; i < groupPhases.Count; i++)
                 {
-                    System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Removing duplicate GroupPhase with {duplicate.Groups.Count} groups");
-                    tournamentClass.Phases.Remove(duplicate);
+                    var duplicatePhase = groupPhases[i];
+                    foreach (var group in duplicatePhase.Groups)
+                    {
+                        if (!groupPhase.Groups.Any(g => g.Id == group.Id))
+                        {
+                            groupPhase.Groups.Add(group);
+                            System.Diagnostics.Debug.WriteLine($"    Merged group {group.Name} from duplicate GroupPhase");
+                        }
+                    }
                 }
-
-                // Setze die primäre Phase als CurrentPhase
-                tournamentClass.CurrentPhase = primaryPhase;
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Set primary GroupPhase as CurrentPhase");
-            }
-            else if (groupPhases.Count == 1)
-            {
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Single GroupPhase found - setting as CurrentPhase");
-                tournamentClass.CurrentPhase = groupPhases.First();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: No GroupPhase found - calling EnsureGroupPhaseExists");
-                tournamentClass.EnsureGroupPhaseExists();
+                System.Diagnostics.Debug.WriteLine($"  No GroupPhases found, creating new one");
+                groupPhase = new TournamentPhase
+                {
+                    Name = "Gruppenphase", 
+                    PhaseType = TournamentPhaseType.GroupPhase,
+                    IsActive = false,
+                    IsCompleted = false
+                };
             }
-
-            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: After cleanup - {tournamentClass.Phases.Count} phases");
-            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: CurrentPhase = {tournamentClass.CurrentPhase?.PhaseType}");
-            // WICHTIG: Groups.Count nicht hier aufrufen - das könnte zu Rekursion führen!
-            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Groups are now accessible via CurrentPhase");
+            
+            cleanPhases.Add(groupPhase);
+            
+            // 2. Behalte nur die neueste/aktive Phase von jedem anderen Typ
+            var knockoutPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.KnockoutPhase).ToList();
+            var finalsPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals).ToList();
+            
+            System.Diagnostics.Debug.WriteLine($"  Found {knockoutPhases.Count} KnockoutPhases, {finalsPhases.Count} FinalsPhases");
+            
+            // Behalte nur die beste KnockoutPhase (falls vorhanden) - Priorisiere die mit den meisten Matches
+            if (knockoutPhases.Any())
+            {
+                var latestKnockout = knockoutPhases
+                    .OrderByDescending(p => p.WinnerBracket?.Count ?? 0)
+                    .ThenByDescending(p => p.LoserBracket?.Count ?? 0)
+                    .ThenByDescending(p => p.IsActive)
+                    .First();
+                    
+                System.Diagnostics.Debug.WriteLine($"  Keeping KnockoutPhase with {latestKnockout.WinnerBracket?.Count ?? 0} WB matches, {latestKnockout.LoserBracket?.Count ?? 0} LB matches");
+                latestKnockout.IsActive = true; // Stelle sicher dass sie aktiv ist
+                cleanPhases.Add(latestKnockout);
+            }
+            
+            // Behalte nur die letzte/aktivste FinalsPhase (falls vorhanden)
+            if (finalsPhases.Any())
+            {
+                var latestFinals = finalsPhases.OrderByDescending(p => p.IsActive).ThenBy(p => p.IsCompleted).First();
+                System.Diagnostics.Debug.WriteLine($"  Keeping FinalsPhase: {latestFinals.Name}, Active: {latestFinals.IsActive}");
+                cleanPhases.Add(latestFinals);
+            }
+            
+            // 3. Ersetze die Phases-Collection mit den bereinigten Phasen
+            tournamentClass.Phases.Clear();
+            foreach (var phase in cleanPhases)
+            {
+                tournamentClass.Phases.Add(phase);
+            }
+            
+            // 4. Bestimme die CurrentPhase korrekt
+            var activeKnockout = cleanPhases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
+            if (activeKnockout != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Setting CurrentPhase to KnockoutPhase");
+                activeKnockout.IsActive = true;
+                tournamentClass.CurrentPhase = activeKnockout;
+                groupPhase.IsActive = false;
+                groupPhase.IsCompleted = true;
+            }
+            else
+            {
+                var activeFinals = cleanPhases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals);
+                if (activeFinals != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Setting CurrentPhase to RoundRobinFinals");
+                    activeFinals.IsActive = true;
+                    tournamentClass.CurrentPhase = activeFinals;
+                    groupPhase.IsActive = false;
+                    groupPhase.IsCompleted = true;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"  No advanced phases found, setting to GroupPhase");
+                    groupPhase.IsActive = true;
+                    groupPhase.IsCompleted = false;
+                    tournamentClass.CurrentPhase = groupPhase;
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: Final Phases count = {tournamentClass.Phases.Count}");
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: CurrentPhase = {tournamentClass.CurrentPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase END ===");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: ERROR for {tournamentClass.Name}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: Stack trace: {ex.StackTrace}");
             
-            // Fallback: Notfall-Bereinigung
-            try
+            // Fallback: Erstelle eine saubere GroupPhase
+            tournamentClass.Phases.Clear();
+            var emergencyGroupPhase = new TournamentPhase
             {
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Attempting emergency cleanup...");
-                tournamentClass.EnsureGroupPhaseExists();
-            }
-            catch (Exception fallbackEx)
-            {
-                System.Diagnostics.Debug.WriteLine($"CleanupDuplicates: Emergency cleanup failed: {fallbackEx.Message}");
-            }
+                Name = "Gruppenphase",
+                PhaseType = TournamentPhaseType.GroupPhase,
+                IsActive = true
+            };
+            tournamentClass.Phases.Add(emergencyGroupPhase);
+            tournamentClass.CurrentPhase = emergencyGroupPhase;
         }
-        
-        System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase END ===");
     }
 
     private async Task SaveDataInternal()

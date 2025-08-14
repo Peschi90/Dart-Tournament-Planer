@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Collections.Specialized;
@@ -638,27 +639,329 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 LoserBracketTreeTab.Visibility = Visibility.Collapsed;
             }
             
+            // WICHTIG: Turnierbäume neu zeichnen
             DrawBracketTree();
             DrawLoserBracketTree();
+            
+            System.Diagnostics.Debug.WriteLine("RefreshKnockoutView: Tournament trees have been redrawn");
         }
     }
 
     private void DrawBracketTree()
     {
-        // Placeholder - komplexere Implementierung würde hier folgen
-        if (BracketCanvas != null)
+        if (BracketCanvas == null || TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            return;
+
+        BracketCanvas.Children.Clear();
+
+        try
         {
-            BracketCanvas.Children.Clear();
+            var winnerBracketContent = TournamentClass.CreateTournamentTreeView(BracketCanvas, false, _localizationService);
+            // Der Content wird direkt in den Canvas eingefügt von der TournamentClass
+            System.Diagnostics.Debug.WriteLine("DrawBracketTree: Interactive Winner Bracket tree created successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DrawBracketTree: Error creating interactive tree: {ex.Message}");
+            // Fallback zu alter Implementation
+            DrawStaticBracketTree(false);
         }
     }
 
     private void DrawLoserBracketTree()
     {
-        // Placeholder - komplexere Implementierung würde hier folgen
-        if (LoserBracketCanvas != null)
+        if (LoserBracketCanvas == null || TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            return;
+
+        LoserBracketCanvas.Children.Clear();
+
+        if (TournamentClass.GameRules.KnockoutMode != KnockoutMode.DoubleElimination)
         {
-            LoserBracketCanvas.Children.Clear();
+            DrawEmptyBracketMessage(LoserBracketCanvas, "Kein Loser Bracket (Single Elimination)", true);
+            return;
         }
+
+        try
+        {
+            var loserBracketContent = TournamentClass.CreateTournamentTreeView(LoserBracketCanvas, true, _localizationService);
+            // Der Content wird direkt in den Canvas eingefügt von der TournamentClass
+            System.Diagnostics.Debug.WriteLine("DrawLoserBracketTree: Interactive Loser Bracket tree created successfully");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DrawLoserBracketTree: Error creating interactive tree: {ex.Message}");
+            // Fallback zu alter Implementation
+            DrawStaticBracketTree(true);
+        }
+    }
+
+    // Fallback-Methoden für den Fall, dass die interaktiven Methoden nicht verfügbar sind
+    private void DrawStaticBracketTree(bool isLoserBracket)
+    {
+        var canvas = isLoserBracket ? LoserBracketCanvas : BracketCanvas;
+        if (canvas == null) return;
+
+        var matches = isLoserBracket 
+            ? TournamentClass.CurrentPhase.LoserBracket.ToList()
+            : TournamentClass.CurrentPhase.WinnerBracket.ToList();
+
+        if (matches.Count == 0)
+        {
+            DrawEmptyBracketMessage(canvas, 
+                isLoserBracket ? "Keine Loser Bracket Spiele vorhanden" : "Keine Winner Bracket Spiele vorhanden", 
+                isLoserBracket);
+            return;
+        }
+
+        DrawKnockoutBracket(canvas, matches, isLoserBracket);
+    }
+
+    private void DrawEmptyBracketMessage(Canvas canvas, string message, bool isLoserBracket)
+    {
+        canvas.MinWidth = 800;
+        canvas.MinHeight = 600;
+        canvas.Background = System.Windows.Media.Brushes.White; // Weißer Hintergrund anstatt Gradient
+
+        var messagePanel = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var icon = new TextBlock
+        {
+            Text = isLoserBracket ? "🥈" : "🏆",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+
+        var messageText = new TextBlock
+        {
+            Text = message,
+            FontSize = 18,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.DarkGray
+        };
+
+        var subText = new TextBlock
+        {
+            Text = "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+
+        messagePanel.Children.Add(icon);
+        messagePanel.Children.Add(messageText);
+        messagePanel.Children.Add(subText);
+
+        Canvas.SetLeft(messagePanel, 250);
+        Canvas.SetTop(messagePanel, 200);
+        canvas.Children.Add(messagePanel);
+    }
+
+    private void DrawKnockoutBracket(Canvas canvas, List<KnockoutMatch> matches, bool isLoserBracket)
+    {
+        canvas.Background = System.Windows.Media.Brushes.White; // Weißer Hintergrund anstatt Gradient
+
+        // Add title
+        var titleText = new TextBlock
+        {
+            Text = isLoserBracket ? "🥈 Loser Bracket" : "🏆 Winner Bracket",
+            FontSize = 24,
+            FontWeight = FontWeights.Bold,
+            Foreground = isLoserBracket 
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 92, 92))
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34)),
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        
+        Canvas.SetLeft(titleText, 20);
+        Canvas.SetTop(titleText, 10);
+        canvas.Children.Add(titleText);
+
+        // Simple message for now
+        var infoText = new TextBlock
+        {
+            Text = "Interaktiver Turnierbaum wird über TournamentClass erstellt",
+            FontSize = 14,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.DarkGray,
+            Margin = new Thickness(0, 50, 0, 0)
+        };
+        
+        Canvas.SetLeft(infoText, 200);
+        Canvas.SetTop(infoText, 60);
+        canvas.Children.Add(infoText);
+
+        // Adjust canvas size
+        canvas.Width = Math.Max(1000, 800);
+        canvas.Height = Math.Max(700, 600);
+        canvas.MinWidth = canvas.Width;
+        canvas.MinHeight = canvas.Height;
+    }
+
+    private Border CreateKnockoutMatchControl(KnockoutMatch match, double width, double height)
+    {
+        var border = new Border
+        {
+            Width = width,
+            Height = height,
+            BorderBrush = System.Windows.Media.Brushes.DarkSlateGray,
+            BorderThickness = new Thickness(2),
+            CornerRadius = new CornerRadius(8),
+            Margin = new Thickness(3),
+            Effect = new DropShadowEffect
+            {
+                Color = System.Windows.Media.Colors.Gray,
+                Direction = 315,
+                ShadowDepth = 3,
+                Opacity = 0.5
+            }
+        };
+
+        // Set background color and border based on match status
+        switch (match.Status)
+        {
+            case MatchStatus.NotStarted:
+                border.Background = System.Windows.Media.Brushes.WhiteSmoke;
+                border.BorderBrush = System.Windows.Media.Brushes.Silver;
+                break;
+            case MatchStatus.InProgress:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 200));
+                border.BorderBrush = System.Windows.Media.Brushes.Orange;
+                break;
+            case MatchStatus.Finished:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 255, 200));
+                border.BorderBrush = System.Windows.Media.Brushes.Green;
+                break;
+            case MatchStatus.Bye:
+                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 220, 255));
+                border.BorderBrush = System.Windows.Media.Brushes.RoyalBlue;
+                break;
+            default:
+                border.Background = System.Windows.Media.Brushes.White;
+                break;
+        }
+
+        var stackPanel = new StackPanel
+        {
+            Orientation = Orientation.Vertical,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        // Match ID/Position indicator
+        var matchIdText = new TextBlock
+        {
+            Text = $"#{match.Id}",
+            FontSize = 8,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            Margin = new Thickness(0, 0, 0, 2)
+        };
+
+        // Player names with winner highlighting
+        var player1Text = new TextBlock
+        {
+            Text = match.Player1?.Name ?? "TBD",
+            FontSize = 11,
+            FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Normal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = match.Winner?.Id == match.Player1?.Id 
+                ? System.Windows.Media.Brushes.DarkGreen 
+                : System.Windows.Media.Brushes.Black
+        };
+
+        var vsText = new TextBlock
+        {
+            Text = "vs",
+            FontSize = 9,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 2, 0, 2),
+            FontStyle = FontStyles.Italic,
+            Foreground = System.Windows.Media.Brushes.Gray
+        };
+
+        var player2Text = new TextBlock
+        {
+            Text = match.Player2?.Name ?? "TBD",
+            FontSize = 11,
+            FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Normal,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Foreground = match.Winner?.Id == match.Player2?.Id 
+                ? System.Windows.Media.Brushes.DarkGreen 
+                : System.Windows.Media.Brushes.Black
+        };
+
+        // Score display with better styling
+        var scoreText = new TextBlock
+        {
+            Text = match.Status == MatchStatus.NotStarted ? "--" : match.ScoreDisplay,
+            FontSize = 10,
+            FontWeight = FontWeights.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = System.Windows.Media.Brushes.DarkBlue,
+            Margin = new Thickness(0, 3, 0, 0)
+        };
+
+        stackPanel.Children.Add(matchIdText);
+        stackPanel.Children.Add(player1Text);
+        stackPanel.Children.Add(vsText);
+        stackPanel.Children.Add(player2Text);
+        stackPanel.Children.Add(scoreText);
+
+        border.Child = stackPanel;
+
+        // Enhanced tooltip with more match details
+        var tooltipText = $"Match {match.Id} - {match.RoundDisplay}\n" +
+                         $"Status: {match.StatusDisplay}\n" +
+                         $"Spieler 1: {match.Player1?.Name ?? "TBD"}\n" +
+                         $"Spieler 2: {match.Player2?.Name ?? "TBD"}";
+        
+        if (match.Status == MatchStatus.Finished && match.Winner != null)
+        {
+            tooltipText += $"\n🏆 Sieger: {match.Winner.Name}";
+        }
+
+        border.ToolTip = tooltipText;
+
+        return border;
+    }
+
+    private void DrawBracketConnectionLine(Canvas canvas, double x1, double y1, double x2, double y2)
+    {
+        var line = new Line
+        {
+            X1 = x1,
+            Y1 = y1,
+            X2 = x2,
+            Y2 = y2,
+            Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(70, 130, 180)),
+            StrokeThickness = 2,
+            Opacity = 0.7
+        };
+
+        // Create subtle dashed line effect
+        line.StrokeDashArray = new System.Windows.Media.DoubleCollection(new double[] { 5, 3 });
+
+        // Add subtle glow effect
+        line.Effect = new DropShadowEffect
+        {
+            Color = System.Windows.Media.Colors.SteelBlue,
+            Direction = 0,
+            ShadowDepth = 0,
+            BlurRadius = 2,
+            Opacity = 0.3
+        };
+
+        canvas.Children.Add(line);
     }
 
     private void ClearViewsSafely()
