@@ -117,7 +117,7 @@ public partial class BugReportDialog : Window
             var encodedBody = Uri.EscapeDataString(bugReportText);
             
             // GitHub Issues URL (replace with actual repository URL)
-            var githubUrl = "https://github.com/Peschi90/Dart-Turnament-Planer/issues/new" +
+            var githubUrl = "https://github.com/Peschi90/Dart-Tournament-Planer/issues/new" +
                            $"?title=Bug%20Report&body={encodedBody}";
             // https://github.com/Peschi90/Dart-Turnament-Planer/issues/new
             

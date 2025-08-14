@@ -37,7 +37,7 @@ public partial class DonationDialog : Window
         try
         {
             // PayPal donation link (replace with your actual PayPal donation URL)
-            var donationUrl = "https://www.paypal.com/donate/?hosted_button_id=YOUR_PAYPAL_BUTTON_ID";
+            var donationUrl = "https://www.paypal.com/paypalme/I3ull3t";
             
             // Alternative: Ko-fi, GitHub Sponsors, or other donation platform
             // var donationUrl = "https://ko-fi.com/yourusername";
