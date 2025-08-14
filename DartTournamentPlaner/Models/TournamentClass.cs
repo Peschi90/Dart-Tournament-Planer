@@ -1872,8 +1872,8 @@ public class TournamentClass : INotifyPropertyChanged
         {
             Background = System.Windows.Media.Brushes.Transparent 
         };
-        // NUR 2 Zeilen: Spieler-Bereich und Score/Status
-        contentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Spieler bekommen mehr Platz
+        // NUR 2 Zeilen: Spieler-Bereich und Score/Status DC
+        contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Spieler bekommen mehr Platz
         contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Score bleibt unten
 
         // NEUER ANSATZ: Grid statt StackPanel für bessere Kontrolle über das Layout
@@ -1885,58 +1885,114 @@ public class TournamentClass : INotifyPropertyChanged
         };
 
         // Grid-Definitionen: 3 Zeilen für Player1, vs, Player2
-        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+      //  playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+     //   playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+     //   playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Player 1 LINKS positioniert - in Zeile 0 - GRÖSSERE SCHRIFT da mehr Platz
+        // Grid-Definitionen: 3 Spalten für Player1, vs, Player2 (statt Zeilen)
+        playersGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Player1 - nimmt verfügbaren Platz
+        playersGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // "vs" - nur so breit wie nötig
+        playersGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Player2 - nimmt verfügbaren Platz
+                                                                                                                  // Player 1 LINKS positioniert - in Spalte 0
         var player1Text = new TextBlock
         {
             Text = !string.IsNullOrEmpty(match.Player1?.Name) ? match.Player1.Name : "TBD",
-            FontSize = 14, // Größere Schrift da Match ID weg ist
-            FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Medium, 
-            HorizontalAlignment = HorizontalAlignment.Left, 
+            FontSize = 14,
+            FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Medium,
+            HorizontalAlignment = HorizontalAlignment.Left,
             TextTrimming = TextTrimming.CharacterEllipsis,
-            MaxWidth = width - 20, 
-            Foreground = match.Winner?.Id == match.Player1?.Id 
-                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
-                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
-            Margin = new Thickness(2, 2, 2, 1), // Mehr vertikale Margins für bessere Verteilung
-            Background = System.Windows.Media.Brushes.Transparent,
-            TextAlignment = TextAlignment.Left
+            Foreground = match.Winner?.Id == match.Player1?.Id
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0))
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)),
+            Margin = new Thickness(10, 2, 2, 0),
+            TextAlignment = TextAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
         };
-        Grid.SetRow(player1Text, 0);
+        Grid.SetColumn(player1Text, 0); // Spalte 0 statt Zeile 0
 
         var vsText = new TextBlock
         {
-            Text = "vs", 
-            FontSize = 11, // Auch größer da mehr Platz vorhanden
-            HorizontalAlignment = HorizontalAlignment.Center, 
+            Text = "vs",
+            FontSize = 11,
+            HorizontalAlignment = HorizontalAlignment.Center,
             FontStyle = FontStyles.Italic,
-            FontWeight = FontWeights.Normal, 
-            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)), 
-            Margin = new Thickness(0, 1, 0, 1), // Etwas mehr Margin für bessere Sichtbarkeit
-            TextAlignment = TextAlignment.Center
+            FontWeight = FontWeights.Normal,
+            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)),
+            Margin = new Thickness(8, 0, 8, 0), // Horizontaler Abstand statt vertikaler
+            TextAlignment = TextAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
         };
-        Grid.SetRow(vsText, 1);
+        Grid.SetColumn(vsText, 1); // Spalte 1 statt Zeile 1
 
-        // Player 2 RECHTS positioniert - in Zeile 2 - GRÖSSERE SCHRIFT da mehr Platz
+        // Player 2 RECHTS positioniert - in Spalte 2
         var player2Text = new TextBlock
         {
             Text = !string.IsNullOrEmpty(match.Player2?.Name) ? match.Player2.Name : "TBD",
-            FontSize = 14, // Größere Schrift da Match ID weg ist
-            FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium, 
-            HorizontalAlignment = HorizontalAlignment.Right, 
+            FontSize = 14,
+            FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium,
+            HorizontalAlignment = HorizontalAlignment.Right,
             TextTrimming = TextTrimming.CharacterEllipsis,
-            MaxWidth = width - 20, 
-            Foreground = match.Winner?.Id == match.Player2?.Id 
-                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
-                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
-            Margin = new Thickness(2, 1, 2, 2), // Mehr vertikale Margins für bessere Verteilung
-            Background = System.Windows.Media.Brushes.Transparent,
-            TextAlignment = TextAlignment.Right
+            Foreground = match.Winner?.Id == match.Player2?.Id
+                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0))
+                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)),
+            Margin = new Thickness(2, 2, 10, 0),
+            TextAlignment = TextAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top
         };
-        Grid.SetRow(player2Text, 2);
+        Grid.SetColumn(player2Text, 2); // Spalte 2 statt Zeile 2
+
+
+        //// Player 1 LINKS positioniert - in Zeile 0 - GRÖSSERE SCHRIFT da mehr Platz
+        //var player1Text = new TextBlock
+        //{
+        //    Text = !string.IsNullOrEmpty(match.Player1?.Name) ? match.Player1.Name : "TBD",
+        //   // Text = "TBD", // Sicherstellen, dass es nie null ist
+        //    FontSize = 14, // Größere Schrift da Match ID weg ist
+        //    FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Medium,
+        //   // FontWeight = FontWeights.Medium,
+        //    HorizontalAlignment = HorizontalAlignment.Left, 
+        //    TextTrimming = TextTrimming.CharacterEllipsis,
+        //    MaxWidth = width - 20, 
+        //    Foreground = match.Winner?.Id == match.Player1?.Id 
+        //        ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
+        //        : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
+        //    Margin = new Thickness(2, 2, 2, 1), // Mehr vertikale Margins für bessere Verteilung
+        //    Background = System.Windows.Media.Brushes.Transparent,
+        //   // Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), // Standardfarbe
+        //    TextAlignment = TextAlignment.Left
+        //};
+        //Grid.SetRow(player1Text, 0);
+
+        //var vsText = new TextBlock
+        //{
+        //    Text = "vs", 
+        //    FontSize = 11, // Auch größer da mehr Platz vorhanden
+        //    HorizontalAlignment = HorizontalAlignment.Center, 
+        //    FontStyle = FontStyles.Italic,
+        //    FontWeight = FontWeights.Normal, 
+        //    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)), 
+        //    Margin = new Thickness(0, 1, 0, 1), // Etwas mehr Margin für bessere Sichtbarkeit
+        //    TextAlignment = TextAlignment.Center
+        //};
+        //Grid.SetRow(vsText, 1);
+
+        //// Player 2 RECHTS positioniert - in Zeile 2 - GRÖSSERE SCHRIFT da mehr Platz
+        //var player2Text = new TextBlock
+        //{
+        //    Text = !string.IsNullOrEmpty(match.Player2?.Name) ? match.Player2.Name : "TBD",
+        //    FontSize = 14, // Größere Schrift da Match ID weg ist
+        //    FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium, 
+        //    HorizontalAlignment = HorizontalAlignment.Right, 
+        //    TextTrimming = TextTrimming.CharacterEllipsis,
+        //    MaxWidth = width - 20, 
+        //    Foreground = match.Winner?.Id == match.Player2?.Id 
+        //        ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
+        //        : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
+        //    Margin = new Thickness(2, 1, 2, 2), // Mehr vertikale Margins für bessere Verteilung
+        //    Background = System.Windows.Media.Brushes.Transparent,
+        //    TextAlignment = TextAlignment.Right
+        //};
+        //Grid.SetRow(player2Text, 2);
 
         playersGrid.Children.Add(player1Text);
         playersGrid.Children.Add(vsText);
@@ -1955,7 +2011,7 @@ public class TournamentClass : INotifyPropertyChanged
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 4, 0, 6) // Mehr Margins für bessere Optik
+            Margin = new Thickness(0, 0, 0, 6) // Mehr Margins für bessere Optik
         };
 
         // Score - auch etwas größer da mehr Platz
