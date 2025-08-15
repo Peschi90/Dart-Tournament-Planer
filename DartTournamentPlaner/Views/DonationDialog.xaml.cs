@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Windows;
 using DartTournamentPlaner.Services;
 
@@ -28,7 +28,7 @@ public partial class DonationDialog : Window
         MessageTextBlock.Text = _localizationService.GetString("DonationMessage");
         
         // Buttons
-        DonateButton.Content = "?? " + _localizationService.GetString("OpenDonationPage");
+        DonateButton.Content = "💝 " + _localizationService.GetString("OpenDonationPage");
         CloseButton.Content = _localizationService.GetString("Close");
     }
 

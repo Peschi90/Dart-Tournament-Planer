@@ -196,7 +196,15 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         GroupsHeaderText.Text = _localizationService.GetString("Groups");
         MatchesHeaderText.Text = _localizationService.GetString("Matches");
         StandingsHeaderText.Text = _localizationService.GetString("Standings");
-        
+        GamesTabItem.Header = _localizationService.GetString("Matches");
+        TableTabItem.Header = _localizationService.GetString("Standings");
+        TournamentOverviewHeader.Text = _localizationService.GetString("TournamentOverview");
+
+
+
+        //Gruppenphasen Tab
+        SelectGroupText.Text = _localizationService.GetString("SelectGroup");
+
         if (RefreshUIButton != null)
         {
             RefreshUIButton.Content = "🔄 " + _localizationService.GetString("RefreshUI");
@@ -467,7 +475,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 _ => "Unbekannte Phase"
             };
 
-            CurrentPhaseText.Text = $"Aktuelle Phase: {phaseText}";
+            var currentPhaseLabel = _localizationService?.GetString("CurrentPhase") ?? "Aktuelle Phase";
+            CurrentPhaseText.Text = $"{currentPhaseLabel}: {phaseText}";
 
             var hasPostPhase = TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None;
             var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals;
@@ -1056,6 +1065,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         string? groupName = ShowInputDialog(prompt, title, defaultName);
         
+
+        
         if (!string.IsNullOrWhiteSpace(groupName))
         {
             while (TournamentClass.Groups.Any(g => g.Id == _nextGroupId))
@@ -1581,84 +1592,491 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
+    // NEW: Create context menu for knockout matches
+    private ContextMenu CreateKnockoutMatchContextMenu(KnockoutMatch match)
+    {
+        var contextMenu = new ContextMenu();
+
+        // Enter/Edit result
+        if (match.Status != MatchStatus.Bye && match.Player1 != null && match.Player2 != null)
+        {
+            var resultMenuItem = new MenuItem
+            {
+                Header = match.Status == MatchStatus.Finished 
+                    ? (_localizationService?.GetString("EditResult") ?? "Ergebnis bearbeiten")
+                    : (_localizationService?.GetString("EnterResult") ?? "Ergebnis eingeben"),
+                Icon = new TextBlock { Text = "📝", FontSize = 12 }
+            };
+            resultMenuItem.Click += (s, e) => OpenMatchResultWindow(match);
+            contextMenu.Items.Add(resultMenuItem);
+        }
+
+        // Bye options
+        if (match.Status == MatchStatus.NotStarted || match.Status == MatchStatus.Bye)
+        {
+            var validation = TournamentClass.ValidateByeOperation(match);
+            
+            if (validation.CanGiveBye)
+            {
+                // Give bye to specific player
+                if (match.Player1 != null)
+                {
+                    var byePlayer1 = new MenuItem
+                    {
+                        Header = _localizationService?.GetString("ByeToPlayer", match.Player1.Name) ?? $"Freilos an {match.Player1.Name}",
+                        Icon = new TextBlock { Text = "🎯", FontSize = 12 }
+                    };
+                    byePlayer1.Click += (s, e) => HandleKnockoutBye(match, match.Player1);
+                    contextMenu.Items.Add(byePlayer1);
+                }
+
+                if (match.Player2 != null)
+                {
+                    var byePlayer2 = new MenuItem
+                    {
+                        Header = _localizationService?.GetString("ByeToPlayer", match.Player2.Name) ?? $"Freilos an {match.Player2.Name}",
+                        Icon = new TextBlock { Text = "🎯", FontSize = 12 }
+                    };
+                    byePlayer2.Click += (s, e) => HandleKnockoutBye(match, match.Player2);
+                    contextMenu.Items.Add(byePlayer2);
+                }
+
+                // Auto bye
+                var autoBye = new MenuItem
+                {
+                    Header = _localizationService?.GetString("AutomaticBye") ?? "Automatisches Freilos",
+                    Icon = new TextBlock { Text = "🤖", FontSize = 12 }
+                };
+                autoBye.Click += (s, e) => HandleKnockoutBye(match, null);
+                contextMenu.Items.Add(autoBye);
+            }
+
+            if (validation.CanUndoBye)
+            {
+                var undoBye = new MenuItem
+                {
+                    Header = _localizationService?.GetString("UndoByeShort") ?? "Freilos rückgängig machen",
+                    Icon = new TextBlock { Text = "↩️", FontSize = 12 }
+                };
+                undoBye.Click += (s, e) => HandleUndoKnockoutBye(match);
+                contextMenu.Items.Add(undoBye);
+            }
+        }
+
+        // Show info if no actions possible
+        if (contextMenu.Items.Count == 0)
+        {
+            var noActionItem = new MenuItem
+            {
+                Header = _localizationService?.GetString("NoActionsAvailable") ?? "Keine Aktionen verfügbar",
+                IsEnabled = false,
+                Icon = new TextBlock { Text = "ℹ️", FontSize = 12 }
+            };
+            contextMenu.Items.Add(noActionItem);
+        }
+
+        return contextMenu;
+    }
+
+    // NEW: Handle knockout bye operations
+    private void HandleKnockoutBye(KnockoutMatch match, Player? byeWinner)
+    {
+        try
+        {
+            bool success = TournamentClass.GiveManualBye(match, byeWinner);
+            
+            if (success)
+            {
+                RefreshKnockoutView();
+                OnDataChanged();
+                
+                var winnerName = byeWinner?.Name ?? "automatic winner";
+                System.Diagnostics.Debug.WriteLine($"Successfully gave bye to {winnerName} in match {match.Id}");
+            }
+            else
+            {
+                var errorMessage = _localizationService?.GetString("Error") ?? "Fehler";
+                MessageBox.Show("Freilos konnte nicht vergeben werden.", errorMessage, 
+                              MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Vergeben des Freiloses: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // NEW: Handle undo knockout bye operations  
+    private void HandleUndoKnockoutBye(KnockoutMatch match)
+    {
+        try
+        {
+            bool success = TournamentClass.UndoBye(match);
+            
+            if (success)
+            {
+                RefreshKnockoutView();
+                OnDataChanged();
+                System.Diagnostics.Debug.WriteLine($"Successfully undid bye for match {match.Id}");
+            }
+            else
+            {
+                var errorMessage = _localizationService?.GetString("Error") ?? "Fehler";
+                MessageBox.Show("Freilos konnte nicht rückgängig gemacht werden.", errorMessage, 
+                              MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Rückgängigmachen des Freiloses: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // NEW: Handler for right-click on knockout DataGrids
+    private void KnockoutDataGrid_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is DataGrid dataGrid)
+        {
+            var hitTest = dataGrid.InputHitTest(e.GetPosition(dataGrid));
+            if (hitTest is FrameworkElement element)
+            {
+                var dataGridRow = element.FindAncestor<DataGridRow>();
+                if (dataGridRow != null && dataGridRow.Item != null)
+                {
+                    dataGrid.SelectedItem = dataGridRow.Item;
+                    
+                    KnockoutMatch? match = null;
+                    
+                    // Handle both ViewModel and direct KnockoutMatch
+                    if (dataGridRow.Item is KnockoutMatchViewModel viewModel)
+                    {
+                        match = viewModel.Match;
+                    }
+                    else if (dataGridRow.Item is KnockoutMatch directMatch)
+                    {
+                        match = directMatch;
+                    }
+                    
+                    if (match != null)
+                    {
+                        var contextMenu = CreateKnockoutMatchContextMenu(match);
+                        contextMenu.PlacementTarget = dataGrid;
+                        contextMenu.IsOpen = true;
+                    }
+                }
+            }
+        }
+    }
+
+    //private string? ShowInputDialog(string prompt, string title, string defaultValue = "")
+    //{
+    //    var dialog = new Window
+    //    {
+    //        Title = title,
+    //        Width = 300,
+    //        Height = 150,
+    //        WindowStartupLocation = WindowStartupLocation.CenterOwner,
+    //        ResizeMode = ResizeMode.NoResize
+    //    };
+
+    //    var grid = new Grid();
+    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+    //    var label = new Label { Content = prompt, Margin = new Thickness(10) };
+    //    Grid.SetRow(label, 0);
+
+    //    var textBox = new TextBox { Text = defaultValue, Margin = new Thickness(10), Height = 25 };
+    //    Grid.SetRow(textBox, 1);
+
+    //    var buttonPanel = new StackPanel 
+    //    { 
+    //        Orientation = Orientation.Horizontal, 
+    //        HorizontalAlignment = HorizontalAlignment.Right, 
+    //        Margin = new Thickness(10) 
+    //    };
+
+    //    var okButton = new Button 
+    //    { 
+    //        Content = _localizationService?.GetString("OK") ?? "OK", 
+    //        Width = 70, 
+    //        Margin = new Thickness(0, 0, 10, 0),
+    //        IsDefault = true 
+    //    };
+    //    var cancelButton = new Button 
+    //    { 
+    //        Content = _localizationService?.GetString("Cancel") ?? "Cancel", 
+    //        Width = 70,
+    //        IsCancel = true 
+    //    };
+
+    //    buttonPanel.Children.Add(okButton);
+    //    buttonPanel.Children.Add(cancelButton);
+    //    Grid.SetRow(buttonPanel, 2);
+
+    //    grid.Children.Add(label);
+    //    grid.Children.Add(textBox);
+    //    grid.Children.Add(buttonPanel);
+
+    //    dialog.Content = grid;
+
+    //    okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
+    //    cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
+
+    //    if (Window.GetWindow(this) is Window parentWindow)
+    //    {
+    //        dialog.Owner = parentWindow;
+    //    }
+
+    //    textBox.Focus();
+    //    textBox.SelectAll();
+
+    //    return dialog.ShowDialog() == true ? textBox.Text : null;
+    //}
+
     private string? ShowInputDialog(string prompt, string title, string defaultValue = "")
     {
         var dialog = new Window
         {
             Title = title,
-            Width = 300,
-            Height = 150,
+            Width = 400,
+            Height = 250,
+            MinWidth = 300,
+            MinHeight = 200,
+            MaxWidth = 600,
+            MaxHeight = 300,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.NoResize
+            ResizeMode = ResizeMode.CanResize,
+            SizeToContent = SizeToContent.Manual,
+            Background = new SolidColorBrush(Color.FromRgb(245, 245, 245))
         };
 
         var grid = new Grid();
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        var label = new Label { Content = prompt, Margin = new Thickness(10) };
+        var label = new Label
+        {
+            Content = prompt,
+            Margin = new Thickness(15),
+            FontWeight = FontWeights.Medium,
+            FontSize = 13,
+            Foreground = new SolidColorBrush(Color.FromRgb(51, 51, 51))
+        };
         Grid.SetRow(label, 0);
-        
-        var textBox = new TextBox { Text = defaultValue, Margin = new Thickness(10), Height = 25 };
+
+        var textBox = new TextBox
+        {
+            Text = defaultValue,
+            Margin = new Thickness(15, 5, 15, 15),
+            MinHeight = 30,
+            MaxHeight = 150,
+            TextWrapping = TextWrapping.Wrap,
+            AcceptsReturn = false,
+            VerticalAlignment = VerticalAlignment.Center,
+            Padding = new Thickness(2),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+            BorderThickness = new Thickness(2),
+            Background = Brushes.White,
+            FontSize = 14,
+            FontWeight = FontWeights.Bold,
+        };
+
+        // Styling für TextBox (abgerundete Ecken und Fokus-Effekt)
+        var textBoxTemplate = new ControlTemplate(typeof(TextBox));
+        var textBoxBorder = new FrameworkElementFactory(typeof(Border));
+        textBoxBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
+        textBoxBorder.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
+        textBoxBorder.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
+        textBoxBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+
+        var scrollViewer = new FrameworkElementFactory(typeof(ScrollViewer));
+        scrollViewer.SetValue(ScrollViewer.MarginProperty, new TemplateBindingExtension(TextBox.PaddingProperty));
+        scrollViewer.Name = "PART_ContentHost";
+        textBoxBorder.AppendChild(scrollViewer);
+        textBoxTemplate.VisualTree = textBoxBorder;
+
+        // Trigger für Fokus
+        var focusTrigger = new Trigger { Property = TextBox.IsFocusedProperty, Value = true };
+        focusTrigger.Setters.Add(new Setter(TextBox.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243))));
+        textBoxTemplate.Triggers.Add(focusTrigger);
+
+        textBox.Template = textBoxTemplate;
         Grid.SetRow(textBox, 1);
-        
-        var buttonPanel = new StackPanel 
-        { 
-            Orientation = Orientation.Horizontal, 
-            HorizontalAlignment = HorizontalAlignment.Right, 
-            Margin = new Thickness(10) 
+
+        var buttonPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(15, 0, 15, 15),
+            Height = 40
         };
-        
-        var okButton = new Button 
-        { 
-            Content = _localizationService?.GetString("OK") ?? "OK", 
-            Width = 70, 
+
+        // OK Button mit modernem Styling
+        var okButton = new Button
+        {
+            Content = _localizationService?.GetString("OK") ?? "OK",
+            Width = 90,
+            Height = 32,
             Margin = new Thickness(0, 0, 10, 0),
-            IsDefault = true 
+            IsDefault = true,
+            Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)), // Material Blue
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Medium,
+            FontSize = 12,
+            Cursor = Cursors.Hand
         };
-        var cancelButton = new Button 
-        { 
-            Content = _localizationService?.GetString("Cancel") ?? "Cancel", 
-            Width = 70,
-            IsCancel = true 
+
+        // Cancel Button mit modernem Styling
+        var cancelButton = new Button
+        {
+            Content = _localizationService?.GetString("Cancel") ?? "Abbrechen",
+            Width = 90,
+            Height = 32,
+            IsCancel = true,
+            Background = new SolidColorBrush(Color.FromRgb(117, 117, 117)), // Material Grey
+            Foreground = Brushes.White,
+            BorderThickness = new Thickness(0),
+            FontWeight = FontWeights.Medium,
+            FontSize = 12,
+            Cursor = Cursors.Hand
         };
-        
+
+        // Button Template für abgerundete Ecken und Hover-Effekte
+        var buttonTemplate = new ControlTemplate(typeof(Button));
+        var buttonBorder = new FrameworkElementFactory(typeof(Border));
+        buttonBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+        buttonBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
+        buttonBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+
+        var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        buttonBorder.AppendChild(contentPresenter);
+        buttonTemplate.VisualTree = buttonBorder;
+
+        // Hover Trigger für OK Button
+        var hoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+        hoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(25, 118, 210))));
+        buttonTemplate.Triggers.Add(hoverTrigger);
+
+        // Pressed Trigger für OK Button
+        var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
+        pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(21, 101, 192))));
+        buttonTemplate.Triggers.Add(pressedTrigger);
+
+        // Disabled Trigger
+        var disabledTrigger = new Trigger { Property = Button.IsEnabledProperty, Value = false };
+        disabledTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(204, 204, 204))));
+        buttonTemplate.Triggers.Add(disabledTrigger);
+
+        okButton.Template = buttonTemplate;
+
+        // Separate Template für Cancel Button mit anderen Hover-Farben
+        var cancelButtonTemplate = new ControlTemplate(typeof(Button));
+        var cancelButtonBorder = new FrameworkElementFactory(typeof(Border));
+        cancelButtonBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
+        cancelButtonBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
+        cancelButtonBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
+
+        var cancelContentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+        cancelContentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        cancelContentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
+        cancelButtonBorder.AppendChild(cancelContentPresenter);
+        cancelButtonTemplate.VisualTree = cancelButtonBorder;
+
+        // Hover Trigger für Cancel Button
+        var cancelHoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
+        cancelHoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(97, 97, 97))));
+        cancelButtonTemplate.Triggers.Add(cancelHoverTrigger);
+
+        // Pressed Trigger für Cancel Button
+        var cancelPressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
+        cancelPressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(77, 77, 77))));
+        cancelButtonTemplate.Triggers.Add(cancelPressedTrigger);
+
+        // Disabled Trigger für Cancel Button
+        var cancelDisabledTrigger = new Trigger { Property = Button.IsEnabledProperty, Value = false };
+        cancelDisabledTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(204, 204, 204))));
+        cancelButtonTemplate.Triggers.Add(cancelDisabledTrigger);
+
+        cancelButton.Template = cancelButtonTemplate;
+
         buttonPanel.Children.Add(okButton);
         buttonPanel.Children.Add(cancelButton);
         Grid.SetRow(buttonPanel, 2);
-        
+
         grid.Children.Add(label);
         grid.Children.Add(textBox);
         grid.Children.Add(buttonPanel);
-        
+
         dialog.Content = grid;
-        
+
         okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
         cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
-        
+
+        // Enter-Taste für OK, Escape für Cancel
+        dialog.KeyDown += (s, e) =>
+        {
+            if (e.Key == Key.Enter && !string.IsNullOrWhiteSpace(textBox.Text))
+            {
+                dialog.DialogResult = true;
+                dialog.Close();
+            }
+            else if (e.Key == Key.Escape)
+            {
+                dialog.DialogResult = false;
+                dialog.Close();
+            }
+        };
+
         if (Window.GetWindow(this) is Window parentWindow)
         {
             dialog.Owner = parentWindow;
         }
-        
-        textBox.Focus();
-        textBox.SelectAll();
-        
-        return dialog.ShowDialog() == true ? textBox.Text : null;
+
+        // Bessere Fokussierung
+        dialog.Loaded += (s, e) =>
+        {
+            textBox.Focus();
+            textBox.SelectAll();
+        };
+
+        return dialog.ShowDialog() == true ? textBox.Text?.Trim() : null;
     }
 
-    // Button click handlers for bye functionality (placeholders)
+
+    // UPDATE: Improved GiveByeButton_Click to use TournamentClass methods
     private void GiveByeButton_Click(object sender, RoutedEventArgs e)
     {
-        // Bye functionality would be implemented here
-        MessageBox.Show("Give Bye functionality not implemented yet", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
+        {
+            HandleKnockoutBye(viewModel.Match, null); // Auto bye
+        }
+        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
+        {
+            HandleKnockoutBye(match, null); // Auto bye
+        }
     }
 
+    // UPDATE: Improved UndoByeButton_Click to use TournamentClass methods
     private void UndoByeButton_Click(object sender, RoutedEventArgs e)
     {
-        // Undo bye functionality would be implemented here  
-        MessageBox.Show("Undo Bye functionality not implemented yet", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
+        {
+            HandleUndoKnockoutBye(viewModel.Match);
+        }
+        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
+        {
+            HandleUndoKnockoutBye(match);
+        }
     }
 
     private void ResetKnockoutButton_Click(object sender, RoutedEventArgs e)
@@ -1726,8 +2144,28 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         catch (Exception ex)
         {
             var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren:"} {ex.Message}";
+            var message = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren der Benutzeroberfläche:"} {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
+    }
+
+    // ...rest of existing methods...
+    
+}
+
+// NEW: Extension method to find ancestor elements
+public static class UIElementExtensions
+{
+    public static T? FindAncestor<T>(this DependencyObject current) where T : DependencyObject
+    {
+        while (current != null)
+        {
+            if (current is T ancestor)
+            {
+                return ancestor;
+            }
+            current = VisualTreeHelper.GetParent(current);
+        }
+        return null;
     }
 }

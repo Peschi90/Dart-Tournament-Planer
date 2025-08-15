@@ -68,7 +68,8 @@ public partial class GameRulesWindow : Window
         SaveButton.Content = _localizationService.GetString("Save");
         CancelButton.Content = _localizationService.GetString("Cancel");
         ConfigureRoundRulesButton.Content = _localizationService.GetString("ConfigureRoundRules");
-        
+        AfterGroupPhaseHeader.Text = _localizationService.GetString("AfterGroupPhaseHeader");
+
         UpdateComboBoxContents();
     }
 

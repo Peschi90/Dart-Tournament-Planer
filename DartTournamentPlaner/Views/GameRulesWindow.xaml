@@ -131,7 +131,7 @@
             
             <!-- Post-Group Phase Section -->
             <Border Grid.Row="10" Grid.ColumnSpan="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Background="#FAFAFA">
-                <TextBlock Text="Nach der Gruppenphase" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
+                <TextBlock Name="AfterGroupPhaseHeader" Text="Nach der Gruppenphase" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center"/>
             </Border>
             
             <!-- Post-Group Phase Mode -->

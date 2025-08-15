@@ -14,6 +14,13 @@ public class LocalizationService : INotifyPropertyChanged
         {
             ["de"] = new Dictionary<string, string>
             {
+                // Context Menu specific translations
+                ["EditResult"] = "Ergebnis bearbeiten",
+                ["AutomaticBye"] = "Automatisches Freilos",
+                ["UndoByeShort"] = "Freilos rückgängig machen",
+                ["NoActionsAvailable"] = "Keine Aktionen verfügbar",
+                ["ByeToPlayer"] = "Freilos an {0}",
+                
                 // Main Window
                 ["AppTitle"] = "Dart Turnier Planer",
                 ["Platinum"] = "Platin",
@@ -74,7 +81,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["LegsPerSet"] = "Legs pro Set",
                 ["ConfigureRules"] = "Regeln konfigurieren",
                 ["RulesPreview"] = "Regelvorschau",
-                
+                ["AfterGroupPhaseHeader"] = "Nach der Gruppenphase",
+
                 // Post-Group Phase Settings
                 ["PostGroupPhase"] = "Nach der Gruppenphase",
                 ["PostGroupPhaseMode"] = "Modus nach Gruppenphase",
@@ -254,7 +262,7 @@ public class LocalizationService : INotifyPropertyChanged
                     "• Export/Import von Turnierdaten über das Datei-Menü",
 
                 // Turnierübersicht
-                ["TournamentOverview"] = "📺 Turnierübersicht",
+                ["TournamentOverview"] = "📺 Turnier-Übersicht",
                 ["OverviewMode"] = "Übersichtsmodus",
                 ["Configure"] = "Konfigurieren",
                 ["ManualMode"] = "Manueller Modus",
@@ -379,7 +387,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["BugReport"] = "🐛 Bug melden",
                 ["BugReportTooltip"] = "Melden Sie Bugs oder schlagen Sie Verbesserungen vor",
                 ["BugReportTitle"] = "Bug Report",
-                ["BugReportDescription"] = "Beschreiben Sie das Problem oder Ihre Verbesserungsidee:",
+                ["BugReportDescription"] = "Beschreiben Sie das Problem oder Ihre Verbesserungsidea:",
                 ["BugReportEmailSubject"] = "Dart Tournament Planner - Bug Report",
                 ["BugReportSteps"] = "Schritte zur Reproduktion:",
                 ["BugReportExpected"] = "Erwartetes Verhalten:",
@@ -399,6 +407,13 @@ public class LocalizationService : INotifyPropertyChanged
             
             ["en"] = new Dictionary<string, string>
             {
+                // Context Menu specific translations
+                ["EditResult"] = "Edit Result",
+                ["AutomaticBye"] = "Automatic Bye",
+                ["UndoByeShort"] = "Undo Bye",
+                ["NoActionsAvailable"] = "No Actions Available",
+                ["ByeToPlayer"] = "Bye to {0}",
+                
                 // Main Window
                 ["AppTitle"] = "Dart Tournament Planner",
                 ["Platinum"] = "Platinum",
@@ -459,7 +474,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["LegsPerSet"] = "Legs per Set",
                 ["ConfigureRules"] = "Configure Rules",
                 ["RulesPreview"] = "Rules Preview",
-                
+                ["AfterGroupPhaseHeader"] = "After Group Phase",
+
                 // Post-Group Phase Settings
                 ["PostGroupPhase"] = "Post-Group Phase",
                 ["PostGroupPhaseMode"] = "Post-Group Phase Mode",
@@ -644,43 +660,43 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Configure"] = "Configure",
                 ["ManualMode"] = "Manual Mode",
                 ["AutoCyclingActive"] = "Auto-cycling active",
-                ["CyclingStopped"] = "Cycling stopped",
-                ["ManualControl"] = "Manual control",
+                ["CyclingStopped"] = "Auto-cycling stopped",
+                ["ManualControl"] = "Manual Control",
                 ["Showing"] = "Showing",
 
-                // Match Status Translations
+                // Game Status
                 ["Unknown"] = "Unknown",
-                
-                // Tournament Overview specific
+
+                // Tournament Overview Specific
                 ["StartCycling"] = "Start",
                 ["StopCycling"] = "Stop",
                 ["WinnerBracketMatches"] = "Winner Bracket Matches",
-                ["WinnerBracketTree"] = "Winner Bracket Tree",
+                ["WinnerBracketTree"] = "Winner Bracket",
                 ["LoserBracketMatches"] = "Loser Bracket Matches",
-                ["LoserBracketTree"] = "Loser Bracket Tree", 
+                ["LoserBracketTree"] = "Loser Bracket",
                 ["RoundColumn"] = "Round",
                 ["PositionShort"] = "Pos",
                 ["PointsShort"] = "Pts",
                 ["WinDrawLoss"] = "W-D-L",
-                ["NoLoserBracketMatches"] = "No Loser Bracket matches available",
-                ["NoWinnerBracketMatches"] = "No Winner Bracket matches available",
+                ["NoLoserBracketMatches"] = "No loser bracket matches available",
+                ["NoWinnerBracketMatches"] = "No winner bracket matches available",
                 ["TournamentTreeWillShow"] = "The tournament tree will be displayed once the knockout phase begins",
-                
-                // Additional Group Phase terms
-                ["SelectGroup"] = "Select Group", 
+
+                // Additional Group Phase Terms
+                ["SelectGroup"] = "Select Group",
                 ["NoGroupSelected"] = "No Group Selected",
-                
-                // OverviewConfigDialog translations
+
+                // Overview Configuration Dialog
                 ["OverviewConfiguration"] = "Overview Configuration",
-                ["TournamentOverviewConfiguration"] = "Tournament Overview Configuration", 
+                ["TournamentOverviewConfiguration"] = "Tournament Overview Configuration",
                 ["TimeBetweenClasses"] = "Time between tournament classes:",
                 ["TimeBetweenSubTabs"] = "Time between sub-tabs:",
                 ["Seconds"] = "seconds",
                 ["ShowOnlyActiveClassesText"] = "Show only classes with active groups",
-                ["OverviewInfoText"] = "The overview automatically cycles through the tournament classes and their groups/brackets endlessly. You can move this window to a second monitor.",
-                ["InvalidClassInterval"] = "Invalid class interval. Please enter a number >= 1.",
-                ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number >= 1.",
-                
+                ["OverviewInfoText"] = "The overview automatically cycles endlessly between tournament classes and their groups/brackets. You can move this window to a second monitor.",
+                ["InvalidClassInterval"] = "Invalid class interval. Please enter a number ≥ 1.",
+                ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number ≥ 1.",
+
                 // Tournament Overview Texts
                 ["TournamentName"] = "🏆 Tournament:",
                 ["CurrentPhase"] = "🎯 Current Phase:",
@@ -691,8 +707,8 @@ public class LocalizationService : INotifyPropertyChanged
                 ["QualifiedPlayers"] = "🏅 Qualified Players:",
                 ["KnockoutMatches"] = "⚔️ Knockout Matches:",
                 ["Completed"] = "completed",
-                
-                // More hardcoded texts
+
+                // Additional Hard-coded Texts
                 ["Finalists"] = "Finalists",
                 ["KnockoutParticipants"] = "Knockout Participants",
                 ["PlayersText"] = "Players",
@@ -700,42 +716,42 @@ public class LocalizationService : INotifyPropertyChanged
                 ["NewTournament"] = "New Tournament",
                 ["CreateNewTournament"] = "Create new tournament? Unsaved changes will be lost.",
                 ["UnsavedChanges"] = "Unsaved Changes",
-                ["SaveBeforeExit"] = "You have unsaved changes. Do you want to save before exiting?",
-                ["CustomFileNotImplemented"] = "Custom file loading not implemented yet.",
-                ["CustomFileSaveNotImplemented"] = "Custom file saving not implemented yet.",
+                ["SaveBeforeExit"] = "There are unsaved changes. Would you like to save before exiting?",
+                ["CustomFileNotImplemented"] = "Custom file loading not yet implemented.",
+                ["CustomFileSaveNotImplemented"] = "Custom file saving not yet implemented.",
                 ["ErrorOpeningHelp"] = "Error opening help:",
                 ["ErrorOpeningOverview"] = "Error opening tournament overview:",
-                ["AboutText"] = "Dart Tournament Planner v1.0\n\nA modern tournament management application.",
+                ["AboutText"] = "Dart Tournament Planner v1.0\n\nA modern tournament management software.",
                 ["ErrorSavingData"] = "Error saving data:",
-                
-                // MessageBox texts for TournamentTab
-                ["MinimumTwoPlayers"] = "At least 2 players are required.",
+
+                // Messages for Tournament Tab
+                ["MinimumTwoPlayers"] = "At least 2 players required.",
                 ["ErrorGeneratingMatches"] = "Error generating matches:",
-                ["MatchesGeneratedSuccess"] = "Matches have been generated successfully!",
+                ["MatchesGeneratedSuccess"] = "Matches have been successfully generated!",
                 ["MatchesResetSuccess"] = "Matches have been reset!",
                 ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will remain.",
                 ["TournamentResetComplete"] = "Tournament has been successfully reset.",
-                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All knockout matches and the tournament tree will be deleted!\nThe tournament will be reset to group phase.",
+                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All knockout matches and the tournament bracket will be deleted!\nThe tournament will be reset to the group phase.",
                 ["ResetKnockoutComplete"] = "Knockout phase has been successfully reset.",
                 ["ErrorResettingTournament"] = "Error resetting tournament:",
-                ["CannotAdvancePhase"] = "All matches in the current phase must be completed",
+                ["CannotAdvancePhase"] = "All matches of the current phase must be completed",
                 ["ErrorAdvancingPhase"] = "Error advancing to next phase:",
                 ["UIRefreshed"] = "User interface has been refreshed",
                 ["ErrorRefreshing"] = "Error refreshing:",
-                ["KOPhaseActiveMSB"] = "K.O.-Phase is not active",
+                ["KOPhaseActiveMSB"] = "Knockout phase is not active",
                 ["KOPhaseNotEnoughUserMSB"] = "Not enough participants for knockout phase (at least 2 required)",
 
-                // MessageBox Titles
-                ["KOPhaseUsrWarnTitel"] = "K.O.-Phase Warning",
+                // Message Titles
+                ["KOPhaseUsrWarnTitel"] = "Knockout Phase Warning",
 
-                // Tab headers for UpdatePlayersView
+                // Tab Headers for Player View
                 ["FinalistsCount"] = "Finalists ({0} players):",
                 ["KnockoutParticipantsCount"] = "Knockout Participants ({0} players):",
-                
-                // More phase texts
+
+                // Additional Phase Texts
                 ["NextPhaseStart"] = "Start {0}",
-                
-                // MatchResultWindow Translations
+
+                // Match Result Window
                 ["EnterMatchResult"] = "Enter Match Result",
                 ["SaveResult"] = "Save Result",
                 ["Notes"] = "Notes",
@@ -743,10 +759,10 @@ public class LocalizationService : INotifyPropertyChanged
                 ["NegativeValues"] = "Negative values are not allowed",
                 ["InvalidSetCount"] = "Invalid set count. Maximum: {0}, Total: {1}",
                 ["BothPlayersWon"] = "Both players cannot win simultaneously",
-                ["MatchIncomplete"] = "The match is not yet complete",
-                ["InsufficientLegsForSet"] = "{0} does not have enough legs for the won sets. Minimum: {1}",
+                ["MatchIncomplete"] = "The match is not yet completed",
+                ["InsufficientLegsForSet"] = "{0} does not have enough legs for the sets won. Minimum: {1}",
                 ["ExcessiveLegs"] = "Too many legs for the set combination {0}:{1}. Maximum: {2}",
-                ["LegsExceedSetRequirement"] = "{0} has more legs than required for sets",
+                ["LegsExceedSetRequirement"] = "{0} has more legs than required for the sets",
                 ["InvalidLegCount"] = "Invalid leg count. Maximum: {0}, Total: {1}",
                 ["SaveBlocked"] = "Save blocked",
                 ["ValidationError"] = "Validation error",
@@ -754,7 +770,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["GiveBye"] = "Give Bye",
                 ["SelectByeWinner"] = "Select the player who should receive the bye:",
 
-                // ShowInputDialog Translations
+                // Input Dialog
                 ["InputDialog"] = "Input",
                 ["EnterName"] = "Enter name:",
 
@@ -775,10 +791,10 @@ public class LocalizationService : INotifyPropertyChanged
                 ["BugReportSubmitEmail"] = "Send via Email",
                 ["BugReportSubmitGitHub"] = "Open on GitHub",
                 ["ThankYouSupport"] = "Thank you for your support!",
-                ["BugReportSent"] = "Bug report was sent successfully. Thank you!",
+                ["BugReportSent"] = "Bug report has been successfully sent. Thank you!",
                 ["ErrorSendingBugReport"] = "Error sending bug report:",
                 ["SupportDevelopment"] = "Support Development",
-                ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps improve and maintain the software.",
+                ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps with improving and maintaining the software.",
                 ["OpenDonationPage"] = "Open Donation Page"
             }
         };
