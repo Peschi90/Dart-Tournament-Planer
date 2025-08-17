@@ -272,6 +272,12 @@ public class Match : INotifyPropertyChanged
 
         Status = MatchStatus.Finished;
         EndTime = DateTime.Now;
+        
+        // WICHTIG: Trigger zusätzliche PropertyChanged Events für UI-Update
+        // Diese stellen sicher, dass alle UI-Elemente korrekt aktualisiert werden
+        OnPropertyChanged(nameof(ScoreDisplay));
+        OnPropertyChanged(nameof(StatusDisplay));
+        OnPropertyChanged(nameof(WinnerDisplay));
     }
 
     /// <summary>

@@ -193,6 +193,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         AdvanceToNextPhaseButton.Content = "🏆 " + _localizationService.GetString("AdvanceToNextPhase");
         ResetTournamentButton.Content = "🔄 " + _localizationService.GetString("ResetTournament");
         ResetKnockoutButton.Content = "⚠ " + _localizationService.GetString("ResetKnockoutPhase");
+        ResetFinalsButton.Content = "⚠ " + _localizationService.GetString("ResetFinalsPhase");
         GroupsHeaderText.Text = _localizationService.GetString("Groups");
         MatchesHeaderText.Text = _localizationService.GetString("Matches");
         StandingsHeaderText.Text = _localizationService.GetString("Standings");
@@ -686,7 +687,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         if (TournamentClass.GameRules.KnockoutMode != KnockoutMode.DoubleElimination)
         {
-            DrawEmptyBracketMessage(LoserBracketCanvas, "Kein Loser Bracket (Single Elimination)", true);
+            DrawEmptyBracketMessage(LoserBracketCanvas, 
+                _localizationService?.GetString("NoLoserBracketSingleElimination") ?? "Kein Loser Bracket (Single Elimination)", 
+                true);
             return;
         }
 
@@ -716,9 +719,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         if (matches.Count == 0)
         {
-            DrawEmptyBracketMessage(canvas, 
-                isLoserBracket ? "Keine Loser Bracket Spiele vorhanden" : "Keine Winner Bracket Spiele vorhanden", 
-                isLoserBracket);
+            var message = isLoserBracket 
+                ? _localizationService?.GetString("NoLoserBracketGames") ?? "Keine Loser Bracket Spiele vorhanden"
+                : _localizationService?.GetString("NoWinnerBracketGames") ?? "Keine Winner Bracket Spiele vorhanden";
+            
+            DrawEmptyBracketMessage(canvas, message, isLoserBracket);
             return;
         }
 
@@ -756,7 +761,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         var subText = new TextBlock
         {
-            Text = "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
+            Text = _localizationService?.GetString("TournamentTreeWillShow") ?? "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = System.Windows.Media.Brushes.Gray,
@@ -779,7 +784,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // Add title
         var titleText = new TextBlock
         {
-            Text = isLoserBracket ? "🥈 Loser Bracket" : "🏆 Winner Bracket",
+            Text = isLoserBracket ? "🥈 " + (_localizationService?.GetString("LoserBracketTree") ?? "Loser Bracket") 
+                                  : "🏆 " + (_localizationService?.GetString("WinnerBracketTree") ?? "Winner Bracket"),
             FontSize = 24,
             FontWeight = FontWeights.Bold,
             Foreground = isLoserBracket 
@@ -795,7 +801,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // Simple message for now
         var infoText = new TextBlock
         {
-            Text = "Interaktiver Turnierbaum wird über TournamentClass erstellt",
+            Text = _localizationService?.GetString("InteractiveTournamentTree") ?? "Interaktiver Turnierbaum wird über TournamentClass erstellt",
             FontSize = 14,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = System.Windows.Media.Brushes.DarkGray,
@@ -875,9 +881,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         };
 
         // Player names with winner highlighting
+        var tbdText = _localizationService?.GetString("TBD") ?? "TBD";
+        var vsText = _localizationService?.GetString("Versus") ?? "vs";
+        
         var player1Text = new TextBlock
         {
-            Text = match.Player1?.Name ?? "TBD",
+            Text = match.Player1?.Name ?? tbdText,
             FontSize = 11,
             FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Normal,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -887,9 +896,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 : System.Windows.Media.Brushes.Black
         };
 
-        var vsText = new TextBlock
+        var vsTextBlock = new TextBlock
         {
-            Text = "vs",
+            Text = vsText,
             FontSize = 9,
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 2, 0, 2),
@@ -899,7 +908,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         var player2Text = new TextBlock
         {
-            Text = match.Player2?.Name ?? "TBD",
+            Text = match.Player2?.Name ?? tbdText,
             FontSize = 11,
             FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Normal,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -922,21 +931,21 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         stackPanel.Children.Add(matchIdText);
         stackPanel.Children.Add(player1Text);
-        stackPanel.Children.Add(vsText);
+        stackPanel.Children.Add(vsTextBlock);
         stackPanel.Children.Add(player2Text);
         stackPanel.Children.Add(scoreText);
 
         border.Child = stackPanel;
 
         // Enhanced tooltip with more match details
-        var tooltipText = $"Match {match.Id} - {match.RoundDisplay}\n" +
-                         $"Status: {match.StatusDisplay}\n" +
-                         $"Spieler 1: {match.Player1?.Name ?? "TBD"}\n" +
-                         $"Spieler 2: {match.Player2?.Name ?? "TBD"}";
+        var tooltipText = $"{_localizationService?.GetString("Match") ?? "Match"} {match.Id} - {match.RoundDisplay}\n" +
+                         $"{_localizationService?.GetString("Status")}: {match.StatusDisplay}\n" +
+                         $"{_localizationService?.GetString("Player")} 1: {match.Player1?.Name ?? tbdText}\n" +
+                         $"{_localizationService?.GetString("Player")} 2: {match.Player2?.Name ?? tbdText}";
         
         if (match.Status == MatchStatus.Finished && match.Winner != null)
         {
-            tooltipText += $"\n🏆 Sieger: {match.Winner.Name}";
+            tooltipText += $"\n🏆 {_localizationService?.GetString("Winner")}: {match.Winner.Name}";
         }
 
         border.ToolTip = tooltipText;
@@ -1001,6 +1010,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         if (e.PropertyName is nameof(Match.Status) or nameof(Match.Winner))
         {
             UpdateMatchesView();
+            
+            // NEU: Nach jedem Match automatisch Gruppenstatus prüfen (mit LoadingSpinner)
+            if (sender is Match match && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
+            {
+                Task.Run(() => CheckAllGroupsCompletion());
+            }
         }
     }
 
@@ -1057,272 +1072,57 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
-    private void AddGroupButton_Click(object sender, RoutedEventArgs e)
-    {
-        var defaultName = _localizationService?.GetString("Group", _nextGroupId) ?? $"Gruppe {_nextGroupId}";
-        var title = _localizationService?.GetString("NewGroup") ?? "Neue Gruppe";
-        var prompt = _localizationService?.GetString("GroupName") ?? "Geben Sie den Namen der neuen Gruppe ein:";
-
-        string? groupName = ShowInputDialog(prompt, title, defaultName);
-        
-
-        
-        if (!string.IsNullOrWhiteSpace(groupName))
-        {
-            while (TournamentClass.Groups.Any(g => g.Id == _nextGroupId))
-            {
-                _nextGroupId++;
-            }
-            
-            var group = new Group { Id = _nextGroupId, Name = groupName.Trim() };
-            TournamentClass.Groups.Add(group);
-            _nextGroupId++;
-            
-            group.Players.CollectionChanged += (s, e) => OnDataChanged();
-            group.Matches.CollectionChanged += (s, e) => OnDataChanged();
-            
-            OnDataChanged();
-        }
-    }
-
-    private void RemoveGroupButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (GroupsListBox.SelectedItem is Group selectedGroup)
-        {
-            var title = _localizationService?.GetString("RemoveGroupTitle") ?? "Gruppe entfernen";
-            var confirmMessage = _localizationService?.GetString("RemoveGroupConfirm", selectedGroup.Name) ?? 
-                         $"Möchten Sie die Gruppe '{selectedGroup.Name}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.";
-
-            var result = MessageBox.Show(confirmMessage, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-            if (result == MessageBoxResult.Yes)
-            {
-                TournamentClass.Groups.Remove(selectedGroup);
-                if (SelectedGroup == selectedGroup)
-                {
-                    SelectedGroup = null;
-                }
-                
-                ResetToGroupPhase();
-                DataChanged?.Invoke(this, EventArgs.Empty);
-            }
-        }
-        else
-        {
-            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgewählt";
-            var noGroupMessage = _localizationService?.GetString("NoGroupSelected") ?? "Bitte wählen Sie eine Gruppe aus, die entfernt werden soll.";
-            MessageBox.Show(noGroupMessage, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedGroup == null)
-        {
-            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgewählt";
-            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte wählen Sie zuerst eine Gruppe aus.";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(NewPlayerName))
-        {
-            var title = _localizationService?.GetString("NoNameEntered") ?? "Kein Name eingegeben";
-            var message = _localizationService?.GetString("EnterPlayerName") ?? "Bitte geben Sie einen Spielernamen ein.";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        var player = new Player { Id = _nextPlayerId++, Name = NewPlayerName.Trim() };
-        SelectedGroup.Players.Add(player);
-        NewPlayerName = string.Empty;
-        
-        DataChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private void RemovePlayerButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedPlayer == null)
-        {
-            var title = _localizationService?.GetString("NoPlayerSelectedTitle") ?? "Kein Spieler ausgewählt";
-            var message = _localizationService?.GetString("NoPlayerSelected") ?? "Bitte wählen Sie einen Spieler aus, der entfernt werden soll.";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        if (SelectedGroup == null) return;
-
-        var title2 = _localizationService?.GetString("RemovePlayerTitle") ?? "Spieler entfernen";
-        var message2 = _localizationService?.GetString("RemovePlayerConfirm", SelectedPlayer.Name) ?? 
-                      $"Möchten Sie den Spieler '{SelectedPlayer.Name}' wirklich entfernen?";
-
-        var result = MessageBox.Show(message2, title2, MessageBoxButton.YesNo, MessageBoxImage.Question);
-
-        if (result == MessageBoxResult.Yes)
-        {
-            SelectedGroup.Players.Remove(SelectedPlayer);
-            SelectedPlayer = null;
-            DataChanged?.Invoke(this, EventArgs.Empty);
-        }
-    }
-
-    private void GenerateMatchesButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedGroup?.Players.Count < 2)
-        {
-            var title = _localizationService?.GetString("Information") ?? "Information";
-            var message = _localizationService?.GetString("MinimumTwoPlayers") ?? "Mindestens 2 Spieler sind erforderlich.";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        try
-        {
-            SelectedGroup.GenerateRoundRobinMatches(TournamentClass.GameRules);
-            
-            var message = _localizationService?.GetString("MatchesGeneratedSuccess") ?? "Spiele wurden erfolgreich generiert!";
-            var title = _localizationService?.GetString("Information") ?? "Information";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            UpdateMatchesView();
-            UpdatePlayersView();
-            DataChanged?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"{_localizationService?.GetString("ErrorGeneratingMatches") ?? "Fehler beim Generieren der Spiele:"} {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void ResetMatchesButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedGroup == null) return;
-
-        var title = _localizationService?.GetString("ResetMatchesTitle") ?? "Spiele zurücksetzen";
-        var message = _localizationService?.GetString("ResetMatchesConfirm", SelectedGroup.Name) ?? 
-                     $"Möchten Sie alle Spiele für Gruppe '{SelectedGroup.Name}' wirklich zurücksetzen?\nAlle Ergebnisse gehen verloren!";
-
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-        if (result == MessageBoxResult.Yes)
-        {
-            SelectedGroup.Matches.Clear();
-            SelectedGroup.MatchesGenerated = false;
-            
-            UpdateMatchesView();
-            UpdatePlayersView();
-            DataChanged?.Invoke(this, EventArgs.Empty);
-            
-            var successMessage = _localizationService?.GetString("MatchesResetSuccess") ?? "Spiele wurden zurückgesetzt!";
-            var successTitle = _localizationService?.GetString("Information") ?? "Information";
-            MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    private void AdvanceToNextPhaseButton_Click(object sender, RoutedEventArgs e)
+    private void RefreshUIButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            if (!TournamentClass.CanProceedToNextPhase())
-            {
-                var cannotAdvanceMessage = _localizationService?.GetString("CannotAdvancePhase") ?? "Alle Spiele der aktuellen Phase müssen beendet sein";
-                var title = _localizationService?.GetString("Information") ?? "Information";
-                MessageBox.Show(cannotAdvanceMessage, title, MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            TournamentClass.AdvanceToNextPhase();
+            System.Diagnostics.Debug.WriteLine("RefreshUIButton_Click: Refreshing UI manually");
             
+            // Update all views
             UpdateUI();
             UpdatePlayersView();
             UpdateMatchesView();
+            UpdatePhaseDisplay();
             
-            if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+            // Refresh knockout view if in knockout phase
+            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
-                MainTabControl.SelectedItem = FinalsTabItem;
-                RefreshFinalsView();
-            }
-            else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-            {
-                MainTabControl.SelectedItem = KnockoutTabItem;
                 RefreshKnockoutView();
             }
             
-            OnDataChanged();
+            // Show toast notification
+            var successMessage = _localizationService?.GetString("UIRefreshed") ?? "Benutzeroberfläche wurde aktualisiert";
+            var title = _localizationService?.GetString("Information") ?? "Information";
+            ShowToastNotification(title, successMessage);
+            
+            System.Diagnostics.Debug.WriteLine("RefreshUIButton_Click: UI refresh completed successfully");
         }
         catch (Exception ex)
         {
-            var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"{_localizationService?.GetString("ErrorAdvancingPhase") ?? "Fehler beim Wechsel zur nächsten Phase:"} {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"RefreshUIButton_Click: ERROR: {ex.Message}");
+            
+            var errorMessage = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren:"} {ex.Message}";
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private void ResetTournamentButton_Click(object sender, RoutedEventArgs e)
+    private void ResetFinalsButton_Click(object sender, RoutedEventArgs e)
     {
-        ResetTournamentButton.IsEnabled = false;
-        
         try
         {
-            var title = _localizationService?.GetString("ResetTournamentTitle") ?? "Turnier komplett zurücksetzen";
-            var message = _localizationService?.GetString("ResetTournamentConfirm") ?? 
-                         "Möchten Sie das gesamte Turnier wirklich zurücksetzen?\n\n⚠ ALLE Spiele und Phasen werden gelöscht!\nNur Gruppen und Spieler bleiben erhalten.";
+            var title = _localizationService?.GetString("ResetFinalsPhase") ?? "Finalrunde zurücksetzen";
+            var message = _localizationService?.GetString("ResetFinalsConfirm") ?? 
+                         "Möchten Sie wirklich die Finalrunde zurücksetzen?\n\n⚠ Alle Finalspiele werden gelöscht!\nDas Turnier wird auf die Gruppenphase zurückgesetzt.";
 
             var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (result == MessageBoxResult.Yes)
             {
-                foreach (var group in TournamentClass.Groups)
-                {
-                    group.Matches.Clear();
-                    group.MatchesGenerated = false;
-                }
+                // Reset to group phase
+                ResetToGroupPhase();
                 
-                var phasesToRemove = TournamentClass.Phases
-                    .Where(p => p.PhaseType != TournamentPhaseType.GroupPhase)
-                    .ToList();
-                
-                foreach ( var phase in phasesToRemove)
-                {
-                    TournamentClass.Phases.Remove(phase);
-                }
-                
-                var groupPhase = TournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
-                if (groupPhase != null)
-                {
-                    groupPhase.IsActive = true;
-                    groupPhase.IsCompleted = false;
-                    TournamentClass.CurrentPhase = groupPhase;
-                }
-                
-                SelectedGroup = null;
-                SelectedPlayer = null;
-                
-                if (BracketCanvas != null)
-                {
-                    BracketCanvas.Children.Clear();
-                }
-                
-                if (LoserBracketCanvas != null)
-                {
-                    LoserBracketCanvas.Children.Clear();
-                }
-                
-                KnockoutParticipantsListBox.ItemsSource = null;
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
-                
-                UpdateUI();
-                UpdatePlayersView();
-                UpdateMatchesView();
-                
-                MainTabControl.SelectedItem = SetupTabItem;
-                
-                OnDataChanged();
-                
-                var successMessage = _localizationService?.GetString("TournamentResetComplete") ?? "Turnier wurde erfolgreich zurückgesetzt.";
+                var successMessage = _localizationService?.GetString("ResetFinalsComplete") ?? "Die Finalrunde wurde erfolgreich zurückgesetzt.";
                 var successTitle = _localizationService?.GetString("Information") ?? "Information";
                 MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -1330,55 +1130,52 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         catch (Exception ex)
         {
             var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
-            var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen des Turniers:"} {ex.Message}";
+            var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen:"} {ex.Message}";
             MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
         }
-        finally
-        {
-            ResetTournamentButton.IsEnabled = true;
-        }
     }
 
-    // List box event handlers
-    private void GroupsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ResetKnockoutButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is ListBox listBox && listBox.SelectedItem is Group selectedGroup)
+        try
         {
-            SelectedGroup = selectedGroup;
-            RemoveGroupButton.IsEnabled = selectedGroup != null;
+            var title = _localizationService?.GetString("ResetKnockoutPhase") ?? "KO-Phase zurücksetzen";
+            var message = _localizationService?.GetString("ResetKnockoutConfirm") ?? 
+                         "Möchten Sie wirklich die K.-o.-Phase zurücksetzen?\n\n⚠ Alle K.-o.-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird auf die Gruppenphase zurückgesetzt.";
+
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                // Reset to group phase
+                ResetToGroupPhase();
+                
+                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurückgesetzt.";
+                var successTitle = _localizationService?.GetString("Information") ?? "Information";
+                MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            RemoveGroupButton.IsEnabled = false;
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen:"} {ex.Message}";
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private void GroupPhaseGroupsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void UndoByeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is ListBox listBox && listBox.SelectedItem is Group selectedGroup)
+        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
         {
-            SelectedGroup = selectedGroup;
+            HandleUndoKnockoutBye(viewModel.Match);
+        }
+        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
+        {
+            HandleUndoKnockoutBye(match);
         }
     }
 
-    private void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (sender is ListBox listBox && listBox.SelectedItem is Player selectedPlayer)
-        {
-            SelectedPlayer = selectedPlayer;
-        }
-    }
-
-    private void PlayerNameTextBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter)
-        {
-            AddPlayerButton_Click(sender, new RoutedEventArgs());
-        }
-    }
-
-    // DataGrid event handlers
-    private void MatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private async void MatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (MatchesDataGrid.SelectedItem is Match selectedMatch && !selectedMatch.IsBye && _localizationService != null)
         {
@@ -1392,9 +1189,303 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
                 
                 UpdateMatchesView();
+                
+                // NEU: Automatische Gruppenstatusüberprüfung nach Match-Ergebnis (mit LoadingSpinner)
+                Task.Run(() => CheckAllGroupsCompletion());
+                
+                // WICHTIG: Explizit als geändert markieren für Speicher-Status
                 OnDataChanged();
             }
         }
+    }
+
+    // Missing event handlers
+
+    private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        // Handle tab control selection changes if needed
+        UpdatePhaseDisplay();
+    }
+
+    private void AdvanceToNextPhaseButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!TournamentClass.CanProceedToNextPhase())
+            {
+                var message = _localizationService?.GetString("CannotAdvancePhase") ?? "Alle Spiele der aktuellen Phase müssen abgeschlossen sein";
+                var title = _localizationService?.GetString("Warning") ?? "Warnung";
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            TournamentClass.AdvanceToNextPhase();
+            UpdateUI();
+            UpdatePlayersView();
+            UpdateMatchesView();
+            
+            // Switch to appropriate tab
+            if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+            {
+                MainTabControl.SelectedItem = FinalsTabItem;
+            }
+            else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            {
+                MainTabControl.SelectedItem = KnockoutTabItem;
+            }
+            
+            OnDataChanged();
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            var errorMessage = $"{_localizationService?.GetString("ErrorAdvancingPhase") ?? "Fehler beim Wechsel in die nächste Phase:"} {ex.Message}";
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ResetMatchesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedGroup == null) return;
+
+        try
+        {
+            var title = _localizationService?.GetString("ResetMatchesTitle") ?? "Spiele zurücksetzen";
+            var message = _localizationService?.GetString("ResetMatchesConfirm", SelectedGroup.Name) ?? 
+                         $"Möchten Sie alle Spiele für Gruppe '{SelectedGroup.Name}' wirklich zurücksetzen?\nAlle Ergebnisse gehen verloren!";
+
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                SelectedGroup.ResetMatches();
+                UpdateMatchesView();
+                OnDataChanged();
+
+                var successMessage = _localizationService?.GetString("MatchesResetSuccess") ?? "Spiele wurden zurückgesetzt!";
+                var successTitle = _localizationService?.GetString("Information") ?? "Information";
+                MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Zurücksetzen der Spiele: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ResetTournamentButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var title = _localizationService?.GetString("ResetTournament") ?? "Turnier zurücksetzen";
+            var message = _localizationService?.GetString("ResetTournamentConfirm") ?? 
+                         "Möchten Sie wirklich das gesamte Turnier zurücksetzen?\n\n⚠ ALLE Spiele und Phasen werden gelöscht!\nNur Gruppen und Spieler bleiben erhalten.";
+
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                ResetToGroupPhase();
+                
+                var successMessage = _localizationService?.GetString("TournamentResetComplete") ?? "Das Turnier wurde erfolgreich zurückgesetzt.";
+                var successTitle = _localizationService?.GetString("Information") ?? "Information";
+                MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen des Turniers:"} {ex.Message}";
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void AddGroupButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var title = _localizationService?.GetString("NewGroup") ?? "Neue Gruppe";
+            var prompt = _localizationService?.GetString("GroupName") ?? "Geben Sie den Namen der neuen Gruppe ein:";
+            var defaultName = $"Group {_nextGroupId}";
+            
+            var name = ShowInputDialog(prompt, title, defaultName);
+            
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                var group = new Group(_nextGroupId, name.Trim());
+                TournamentClass.Groups.Add(group);
+                
+                UpdateNextIds();
+                OnDataChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Hinzufügen der Gruppe: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RemoveGroupButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (GroupsListBox.SelectedItem is not Group selectedGroup)
+        {
+            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgewählt";
+            var message = _localizationService?.GetString("NoGroupSelected") ?? "Bitte wählen Sie eine Gruppe aus, die entfernt werden soll.";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var title = _localizationService?.GetString("RemoveGroupTitle") ?? "Gruppe entfernen";
+            var message = _localizationService?.GetString("RemoveGroupConfirm", selectedGroup.Name) ?? 
+                         $"Möchten Sie die Gruppe '{selectedGroup.Name}' wirklich entfernen?\nAlle Spieler in dieser Gruppe werden ebenfalls entfernt.";
+
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                TournamentClass.Groups.Remove(selectedGroup);
+                SelectedGroup = null;
+                OnDataChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Entfernen der Gruppe: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void GroupsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        SelectedGroup = GroupsListBox.SelectedItem as Group;
+        RemoveGroupButton.IsEnabled = SelectedGroup != null;
+    }
+
+    private void PlayerNameTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && AddPlayerButton.IsEnabled)
+        {
+            AddPlayerButton_Click(sender, new RoutedEventArgs());
+        }
+    }
+
+    private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedGroup == null)
+        {
+            var message = _localizationService?.GetString("SelectGroupFirst") ?? "Bitte wählen Sie zuerst eine Gruppe aus.";
+            var title = _localizationService?.GetString("NoGroupSelectedTitle") ?? "Keine Gruppe ausgewählt";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(NewPlayerName))
+        {
+            var message = _localizationService?.GetString("EnterPlayerName") ?? "Bitte geben Sie einen Spielernamen ein.";
+            var title = _localizationService?.GetString("NoNameEntered") ?? "Kein Name eingegeben";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var player = new Player(_nextPlayerId, NewPlayerName.Trim());
+            SelectedGroup.Players.Add(player);
+            
+            NewPlayerName = string.Empty;
+            UpdateNextIds();
+            UpdatePlayersView();
+            OnDataChanged();
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Hinzufügen des Spielers: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void RemovePlayerButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedPlayer == null)
+        {
+            var title = _localizationService?.GetString("NoPlayerSelectedTitle") ?? "Kein Spieler ausgewählt";
+            var message = _localizationService?.GetString("NoPlayerSelected") ?? "Bitte wählen Sie einen Spieler aus, der entfernt werden soll.";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            var title = _localizationService?.GetString("RemovePlayerTitle") ?? "Spieler entfernen";
+            var message = _localizationService?.GetString("RemovePlayerConfirm", SelectedPlayer.Name) ?? 
+                         $"Möchten Sie den Spieler '{SelectedPlayer.Name}' wirklich entfernen?";
+
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                SelectedGroup?.Players.Remove(SelectedPlayer);
+                SelectedPlayer = null;
+                UpdatePlayersView();
+                OnDataChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Entfernen des Spielers: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void GenerateMatchesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedGroup == null) return;
+
+        try
+        {
+            if (SelectedGroup.Players.Count < 2)
+            {
+                var message = _localizationService?.GetString("MinimumTwoPlayers") ?? "Mindestens 2 Spieler erforderlich.";
+                var title = _localizationService?.GetString("Warning") ?? "Warnung";
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            SelectedGroup.GenerateRoundRobinMatches();
+            UpdateMatchesView();
+            UpdatePlayersView();
+            OnDataChanged();
+
+            var successMessage = _localizationService?.GetString("MatchesGeneratedSuccess") ?? "Spiele wurden erfolgreich erstellt!";
+            var successTitle = _localizationService?.GetString("Information") ?? "Information";
+            MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            var errorMessage = $"{_localizationService?.GetString("ErrorGeneratingMatches") ?? "Fehler beim Erstellen der Spiele:"} {ex.Message}";
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        SelectedPlayer = PlayersListBox.SelectedItem as Player;
+    }
+
+    private void GroupPhaseGroupsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        SelectedGroup = GroupPhaseGroupsList.SelectedItem as Group;
+        UpdateMatchesView();
     }
 
     private void FinalsMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -1406,7 +1497,15 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             
             if (resultWindow.ShowDialog() == true)
             {
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.ScoreDisplay));
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
+                
                 RefreshFinalsView();
+                
+                // Auto-check finals completion
+                Task.Run(() => CheckFinalsCompletion());
+                
                 OnDataChanged();
             }
         }
@@ -1414,91 +1513,134 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
     private void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        KnockoutMatch? selectedMatch = null;
-        
         if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
         {
-            selectedMatch = viewModel.Match;
+            OpenMatchResultWindow(viewModel.Match);
         }
-        else if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatch directMatch)
-        {
-            selectedMatch = directMatch;
-        }
-        
-        if (selectedMatch != null && _localizationService != null)
-        {
-            OpenMatchResultWindow(selectedMatch);
-        }
+    }
+
+    private void KnockoutDataGrid_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        // Handle right-click context menu for knockout matches if needed
+        // This can be implemented later for additional functionality
     }
 
     private void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        KnockoutMatch? selectedMatch = null;
-        
         if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
         {
-            selectedMatch = viewModel.Match;
-        }
-        else if (LoserBracketDataGrid.SelectedItem is KnockoutMatch directMatch)
-        {
-            selectedMatch = directMatch;
-        }
-        
-        if (selectedMatch != null && _localizationService != null)
-        {
-            OpenMatchResultWindow(selectedMatch);
+            OpenMatchResultWindow(viewModel.Match);
         }
     }
 
-    private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void GiveByeButton_Click(object sender, RoutedEventArgs e)
     {
-        if (e.AddedItems.Count > 0 && e.AddedItems[0] == KnockoutTabItem)
+        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
         {
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            var match = viewModel.Match;
+            
+            // Check if only one player is available for automatic bye
+            if (match.Player1 != null && match.Player2 == null)
             {
-                var qualifiedParticipants = TournamentClass.CurrentPhase.QualifiedPlayers?.Count ?? 0;
+                HandleKnockoutBye(match, match.Player1);
+            }
+            else if (match.Player1 == null && match.Player2 != null)
+            {
+                HandleKnockoutBye(match, match.Player2);
+            }
+            else if (match.Player1 != null && match.Player2 != null)
+            {
+                // Both players available - show selection dialog
+                var title = _localizationService?.GetString("GiveBye") ?? "Freilos vergeben";
+                var message = _localizationService?.GetString("SelectByeWinner") ?? "Wählen Sie den Spieler, der das Freilos erhalten soll:";
                 
-                if (qualifiedParticipants < 2)
+                var dialog = new Window
                 {
-                    var koUsrWarnMessage = _localizationService?.GetString("KOPhaseNotEnoughUserMSB") ?? "Nicht genügend Teilnehmer für K.O.-Phase (mindestens 2 erforderlich)";
-                    var koUsrWarnTitle = _localizationService?.GetString("KOPhaseUsrWarnTitel") ?? "K.O.-Phase Warnung";
-                    MessageBox.Show(koUsrWarnMessage, koUsrWarnTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                    //MessageBox.Show("Nicht genügend Teilnehmer für K.O.-Phase (mindestens 2 erforderlich)", 
-                                   //"K.O.-Phase Warnung", MessageBoxButton.OK, MessageBoxImage.Information);
-                    
-                    MainTabControl.SelectedItem = GroupPhaseTabItem;
-                    return;
-                }
+                    Title = title,
+                    Width = 350,
+                    Height = 200,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                    Owner = Window.GetWindow(this)
+                };
                 
-                Dispatcher.BeginInvoke(() => RefreshKnockoutView(), DispatcherPriority.Loaded);
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                
+                var label = new Label { Content = message, Margin = new Thickness(15) };
+                Grid.SetRow(label, 0);
+                
+                var playerPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(15)
+                };
+                
+                Player? selectedPlayer = null;
+                
+                var player1Button = new Button
+                {
+                    Content = match.Player1.Name,
+                    Width = 120,
+                    Height = 35,
+                    Margin = new Thickness(10)
+                };
+                player1Button.Click += (s, e) => { selectedPlayer = match.Player1; dialog.DialogResult = true; };
+                
+                var player2Button = new Button
+                {
+                    Content = match.Player2.Name,
+                    Width = 120,
+                    Height = 35,
+                    Margin = new Thickness(10)
+                };
+                player2Button.Click += (s, e) => { selectedPlayer = match.Player2; dialog.DialogResult = true; };
+                
+                playerPanel.Children.Add(player1Button);
+                playerPanel.Children.Add(player2Button);
+                Grid.SetRow(playerPanel, 1);
+                
+                var cancelButton = new Button
+                {
+                    Content = _localizationService?.GetString("Cancel") ?? "Abbrechen",
+                    Width = 80,
+                    Height = 30,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(15),
+                    IsCancel = true
+                };
+                Grid.SetRow(cancelButton, 2);
+                
+                grid.Children.Add(label);
+                grid.Children.Add(playerPanel);
+                grid.Children.Add(cancelButton);
+
+                dialog.Content = grid;
+                
+                if (dialog.ShowDialog() == true && selectedPlayer != null)
+                {
+                    HandleKnockoutBye(match, selectedPlayer);
+                }
             }
             else
             {
-                var koInfoMessage = _localizationService?.GetString("KOPhaseActiveMSB") ?? "K.O.-Phase ist noch nicht aktiv.";
-                var koInfoTitle = _localizationService?.GetString("Information") ?? "Information";
-                MessageBox.Show(koInfoMessage, koInfoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                //MessageBox.Show("K.O.-Phase ist noch nicht aktiv.", "Information", 
-                               //MessageBoxButton.OK, MessageBoxImage.Information);
-                MainTabControl.SelectedItem = GroupPhaseTabItem;
+                // No players available
+                HandleKnockoutBye(match, null);
             }
         }
-        else if (e.AddedItems.Count > 0 && e.AddedItems[0] == FinalsTabItem)
+        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
         {
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-            {
-                RefreshFinalsView();
-            }
-            else
-            {
-                MessageBox.Show("Finalrunde ist noch nicht aktiv.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
-                MainTabControl.SelectedItem = GroupPhaseTabItem;
-            }
+            HandleKnockoutBye(match, null);
         }
     }
 
-    // Helper methods
+    // ...existing methods remain unchanged...
+
     private void ResetToGroupPhase()
     {
+        // Remove all phases except group phase
         var phasesToRemove = TournamentClass.Phases
             .Where(p => p.PhaseType != TournamentPhaseType.GroupPhase)
             .ToList();
@@ -1508,6 +1650,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             TournamentClass.Phases.Remove(phase);
         }
         
+        // Reset group phase to active
         var groupPhase = TournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
         if (groupPhase != null)
         {
@@ -1516,166 +1659,260 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             TournamentClass.CurrentPhase = groupPhase;
         }
         
-        UpdatePhaseDisplay();
+        // Clear bracket canvases
+        if (BracketCanvas != null)
+        {
+            BracketCanvas.Children.Clear();
+        }
+        
+        if (LoserBracketCanvas != null)
+        {
+            LoserBracketCanvas.Children.Clear();
+        }
+        
+        // Clear knockout/finals data grids
+        KnockoutParticipantsListBox.ItemsSource = null;
+        KnockoutMatchesDataGrid.ItemsSource = null;
+        LoserBracketDataGrid.ItemsSource = null;
+        FinalistsListBox.ItemsSource = null;
+        FinalsMatchesDataGrid.ItemsSource = null;
+        FinalsStandingsDataGrid.ItemsSource = null;
+        
+        // Update UI
+        UpdateUI();
+        UpdatePlayersView();
         UpdateMatchesView();
         
+        // Switch to setup tab
         MainTabControl.SelectedItem = SetupTabItem;
+        
+        // Mark as changed
+        OnDataChanged();
     }
 
-    private void OpenMatchResultWindow(KnockoutMatch match)
+    // Helper method to open match result window
+    private void OpenMatchResultWindow(KnockoutMatch knockoutMatch)
     {
-        if (match.Player1 == null || match.Player2 == null || match.Status == MatchStatus.Bye)
-        {
-            return;
-        }
+        if (_localizationService == null) return;
 
         try
         {
-            // Convert KnockoutMatch to Match for the result window
-            var matchForWindow = new Match
+            // Erstelle dummy RoundRules basierend auf GameRules
+            var roundRules = new RoundRules
             {
-                Id = match.Id,
-                Player1 = match.Player1,
-                Player2 = match.Player2,
-                Player1Sets = match.Player1Sets,
-                Player2Sets = match.Player2Sets,
-                Player1Legs = match.Player1Legs,
-                Player2Legs = match.Player2Legs,
-                Winner = match.Winner,
-                Status = match.Status,
-                Notes = match.Notes,
-                StartTime = match.StartTime,
-                EndTime = match.EndTime
+                LegsToWin = TournamentClass.GameRules.LegsToWin,
+                SetsToWin = TournamentClass.GameRules.PlayWithSets ? TournamentClass.GameRules.SetsToWin : 0,
+                LegsPerSet = TournamentClass.GameRules.LegsPerSet
             };
             
-            var resultWindow = new MatchResultWindow(matchForWindow, TournamentClass.GameRules, _localizationService!);
+            var resultWindow = new MatchResultWindow(knockoutMatch, roundRules, TournamentClass.GameRules, _localizationService);
             resultWindow.Owner = Window.GetWindow(this);
             
             if (resultWindow.ShowDialog() == true)
             {
-                var internalMatch = resultWindow.InternalMatch;
-                match.Player1Sets = internalMatch.Player1Sets;
-                match.Player2Sets = internalMatch.Player2Sets;
-                match.Player1Legs = internalMatch.Player1Legs;
-                match.Player2Legs = internalMatch.Player2Legs;
-                match.Winner = internalMatch.Winner;
-                match.Status = internalMatch.Status;
-                match.Notes = internalMatch.Notes;
-                match.StartTime = internalMatch.StartTime;
-                match.EndTime = DateTime.Now;
-                
-                UpdateKnockoutProgression(match);
                 RefreshKnockoutView();
+                
+                // WICHTIG: Explizit als geändert markieren für Speicher-Status
                 OnDataChanged();
             }
         }
         catch (Exception ex)
         {
-            var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen des Ergebnis-Fensters: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Öffnen des Match-Ergebnisfensters: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private void UpdateKnockoutProgression(KnockoutMatch completedMatch)
+    /// <summary>
+    /// NEU: Zeigt eine Benachrichtigung wenn alle Gruppen abgeschlossen sind
+    /// </summary>
+    private void ShowGroupPhaseCompletionNotification()
     {
-        if (TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase || completedMatch.Winner == null)
+        try
         {
-            return;
-        }
-
-        bool success = TournamentClass.ProcessMatchResult(completedMatch);
-        
-        if (!success)
-        {
-            System.Diagnostics.Debug.WriteLine($"Failed to process match result - no progression occurred");
-        }
-    }
-
-    // NEW: Create context menu for knockout matches
-    private ContextMenu CreateKnockoutMatchContextMenu(KnockoutMatch match)
-    {
-        var contextMenu = new ContextMenu();
-
-        // Enter/Edit result
-        if (match.Status != MatchStatus.Bye && match.Player1 != null && match.Player2 != null)
-        {
-            var resultMenuItem = new MenuItem
-            {
-                Header = match.Status == MatchStatus.Finished 
-                    ? (_localizationService?.GetString("EditResult") ?? "Ergebnis bearbeiten")
-                    : (_localizationService?.GetString("EnterResult") ?? "Ergebnis eingeben"),
-                Icon = new TextBlock { Text = "📝", FontSize = 12 }
-            };
-            resultMenuItem.Click += (s, e) => OpenMatchResultWindow(match);
-            contextMenu.Items.Add(resultMenuItem);
-        }
-
-        // Bye options
-        if (match.Status == MatchStatus.NotStarted || match.Status == MatchStatus.Bye)
-        {
-            var validation = TournamentClass.ValidateByeOperation(match);
+            System.Diagnostics.Debug.WriteLine("ShowGroupPhaseCompletionNotification: All groups completed!");
             
-            if (validation.CanGiveBye)
+            // Verwende einen Timer um zu vermeiden, dass die Nachricht mehrmals angezeigt wird
+            if (_lastCompletionNotification.HasValue && 
+                DateTime.Now - _lastCompletionNotification.Value < TimeSpan.FromSeconds(5))
             {
-                // Give bye to specific player
-                if (match.Player1 != null)
-                {
-                    var byePlayer1 = new MenuItem
-                    {
-                        Header = _localizationService?.GetString("ByeToPlayer", match.Player1.Name) ?? $"Freilos an {match.Player1.Name}",
-                        Icon = new TextBlock { Text = "🎯", FontSize = 12 }
-                    };
-                    byePlayer1.Click += (s, e) => HandleKnockoutBye(match, match.Player1);
-                    contextMenu.Items.Add(byePlayer1);
-                }
-
-                if (match.Player2 != null)
-                {
-                    var byePlayer2 = new MenuItem
-                    {
-                        Header = _localizationService?.GetString("ByeToPlayer", match.Player2.Name) ?? $"Freilos an {match.Player2.Name}",
-                        Icon = new TextBlock { Text = "🎯", FontSize = 12 }
-                    };
-                    byePlayer2.Click += (s, e) => HandleKnockoutBye(match, match.Player2);
-                    contextMenu.Items.Add(byePlayer2);
-                }
-
-                // Auto bye
-                var autoBye = new MenuItem
-                {
-                    Header = _localizationService?.GetString("AutomaticBye") ?? "Automatisches Freilos",
-                    Icon = new TextBlock { Text = "🤖", FontSize = 12 }
-                };
-                autoBye.Click += (s, e) => HandleKnockoutBye(match, null);
-                contextMenu.Items.Add(autoBye);
+                System.Diagnostics.Debug.WriteLine("  Skipping notification - too recent");
+                return;
             }
-
-            if (validation.CanUndoBye)
-            {
-                var undoBye = new MenuItem
-                {
-                    Header = _localizationService?.GetString("UndoByeShort") ?? "Freilos rückgängig machen",
-                    Icon = new TextBlock { Text = "↩️", FontSize = 12 }
-                };
-                undoBye.Click += (s, e) => HandleUndoKnockoutBye(match);
-                contextMenu.Items.Add(undoBye);
-            }
+            
+            _lastCompletionNotification = DateTime.Now;
+            
+            var title = _localizationService?.GetString("Information") ?? "Information";
+            var message = _localizationService?.GetString("AllGroupsCompleted") ?? 
+                         "🎉 Alle Gruppen sind abgeschlossen!\n\nSie können jetzt zur nächsten Phase wechseln.";
+            
+            // Zeige Toast-Benachrichtigung statt störendem MessageBox
+            ShowToastNotification(title, message);
+            
+            System.Diagnostics.Debug.WriteLine("  Completion notification shown");
         }
-
-        // Show info if no actions possible
-        if (contextMenu.Items.Count == 0)
+        catch (Exception ex)
         {
-            var noActionItem = new MenuItem
-            {
-                Header = _localizationService?.GetString("NoActionsAvailable") ?? "Keine Aktionen verfügbar",
-                IsEnabled = false,
-                Icon = new TextBlock { Text = "ℹ️", FontSize = 12 }
-            };
-            contextMenu.Items.Add(noActionItem);
+            System.Diagnostics.Debug.WriteLine($"ShowGroupPhaseCompletionNotification: ERROR: {ex.Message}");
         }
+    }
 
-        return contextMenu;
+    /// <summary>
+    /// NEU: Zeigt eine Benachrichtigung wenn die Finals abgeschlossen sind
+    /// </summary>
+    private void ShowFinalsCompletionNotification()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("ShowFinalsCompletionNotification: Finals completed!");
+            
+            // Verwende einen Timer um zu vermeiden, dass die Nachricht mehrmals angezeigt wird
+            if (_lastCompletionNotification.HasValue && 
+                DateTime.Now - _lastCompletionNotification.Value < TimeSpan.FromSeconds(5))
+            {
+                System.Diagnostics.Debug.WriteLine("  Skipping notification - too recent");
+                return;
+            }
+            
+            _lastCompletionNotification = DateTime.Now;
+            
+            var title = _localizationService?.GetString("Information") ?? "Information";
+            var message = _localizationService?.GetString("FinalsCompleted") ?? 
+                         "🏆 Die Finalrunde ist abgeschlossen!\n\nAlle Spiele wurden beendet. Das Turnier ist komplett!";
+            
+            // Zeige Toast-Benachrichtigung
+            ShowToastNotification(title, message);
+            
+            System.Diagnostics.Debug.WriteLine("  Finals completion notification shown");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ShowFinalsCompletionNotification: ERROR: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// NEU: Zeigt eine dezente Toast-Benachrichtigung
+    /// </summary>
+    private void ShowToastNotification(string title, string message)
+    {
+        try
+        {
+            // Finde das parent window
+            var parentWindow = Window.GetWindow(this);
+            if (parentWindow == null) return;
+            
+            // Erstelle ein einfaches Toast-Panel
+            var toastPanel = new Border
+            {
+                Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(230, 76, 175, 80)),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(16),
+                MaxWidth = 400,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(20),
+                Effect = new DropShadowEffect
+                {
+                    Color = System.Windows.Media.Colors.Black,
+                    Direction = 270,
+                    ShadowDepth = 4,
+                    BlurRadius = 8,
+                    Opacity = 0.3
+                }
+            };
+            
+            var stackPanel = new StackPanel();
+            
+            var titleBlock = new TextBlock
+            {
+                Text = title,
+                FontWeight = FontWeights.Bold,
+                FontSize = 14,
+                Foreground = System.Windows.Media.Brushes.White,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            
+            var messageBlock = new TextBlock
+            {
+                Text = message,
+                FontSize = 12,
+                Foreground = System.Windows.Media.Brushes.White,
+                TextWrapping = TextWrapping.Wrap
+            };
+            
+            stackPanel.Children.Add(titleBlock);
+            stackPanel.Children.Add(messageBlock);
+            toastPanel.Child = stackPanel;
+            
+            // Finde oder erstelle ein Grid für Overlays
+            var mainGrid = parentWindow.Content as Grid;
+            if (mainGrid == null)
+            {
+                // Fallback zu MessageBox wenn kein Grid gefunden
+                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            
+            // Füge Toast zum Grid hinzu
+            Grid.SetRowSpan(toastPanel, mainGrid.RowDefinitions.Count > 0 ? mainGrid.RowDefinitions.Count : 1);
+            Grid.SetColumnSpan(toastPanel, mainGrid.ColumnDefinitions.Count > 0 ? mainGrid.ColumnDefinitions.Count : 1);
+            mainGrid.Children.Add(toastPanel);
+            
+            // Auto-remove nach 4 Sekunden
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(4)
+            };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                mainGrid.Children.Remove(toastPanel);
+            };
+            timer.Start();
+            
+            System.Diagnostics.Debug.WriteLine("Toast notification displayed");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ShowToastNotification: ERROR: {ex.Message}");
+            // Fallback zu normalem MessageBox
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private DateTime? _lastCompletionNotification;
+
+    // Helper method für knockout bye handling
+    private void HandleUndoKnockoutBye(KnockoutMatch match)
+    {
+        try
+        {
+            bool success = TournamentClass.UndoBye(match);
+            
+            if (success)
+            {
+                RefreshKnockoutView();
+                
+                // WICHTIG: Explizit als geändert markieren für Speicher-Status
+                OnDataChanged();
+                
+                System.Diagnostics.Debug.WriteLine($"Successfully undid bye for match {match.Id}");
+            }
+            else
+            {
+                var errorMessage = _localizationService?.GetString("Error") ?? "Fehler";
+                MessageBox.Show("Freilos konnte nicht rückgängig gemacht werden.", errorMessage, 
+                              MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
+            MessageBox.Show($"Fehler beim Rückgängigmachen des Freiloses: {ex.Message}", errorTitle, 
+                          MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // NEW: Handle knockout bye operations
@@ -1688,6 +1925,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             if (success)
             {
                 RefreshKnockoutView();
+                
+                // WICHTIG: Explizit als geändert markieren für Speicher-Status
                 OnDataChanged();
                 
                 var winnerName = byeWinner?.Name ?? "automatic winner";
@@ -1708,152 +1947,15 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
-    // NEW: Handle undo knockout bye operations  
-    private void HandleUndoKnockoutBye(KnockoutMatch match)
-    {
-        try
-        {
-            bool success = TournamentClass.UndoBye(match);
-            
-            if (success)
-            {
-                RefreshKnockoutView();
-                OnDataChanged();
-                System.Diagnostics.Debug.WriteLine($"Successfully undid bye for match {match.Id}");
-            }
-            else
-            {
-                var errorMessage = _localizationService?.GetString("Error") ?? "Fehler";
-                MessageBox.Show("Freilos konnte nicht rückgängig gemacht werden.", errorMessage, 
-                              MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorTitle = _localizationService?.GetString("Error") ?? "Fehler";
-            MessageBox.Show($"Fehler beim Rückgängigmachen des Freiloses: {ex.Message}", errorTitle, 
-                          MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    // NEW: Handler for right-click on knockout DataGrids
-    private void KnockoutDataGrid_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (sender is DataGrid dataGrid)
-        {
-            var hitTest = dataGrid.InputHitTest(e.GetPosition(dataGrid));
-            if (hitTest is FrameworkElement element)
-            {
-                var dataGridRow = element.FindAncestor<DataGridRow>();
-                if (dataGridRow != null && dataGridRow.Item != null)
-                {
-                    dataGrid.SelectedItem = dataGridRow.Item;
-                    
-                    KnockoutMatch? match = null;
-                    
-                    // Handle both ViewModel and direct KnockoutMatch
-                    if (dataGridRow.Item is KnockoutMatchViewModel viewModel)
-                    {
-                        match = viewModel.Match;
-                    }
-                    else if (dataGridRow.Item is KnockoutMatch directMatch)
-                    {
-                        match = directMatch;
-                    }
-                    
-                    if (match != null)
-                    {
-                        var contextMenu = CreateKnockoutMatchContextMenu(match);
-                        contextMenu.PlacementTarget = dataGrid;
-                        contextMenu.IsOpen = true;
-                    }
-                }
-            }
-        }
-    }
-
-    //private string? ShowInputDialog(string prompt, string title, string defaultValue = "")
-    //{
-    //    var dialog = new Window
-    //    {
-    //        Title = title,
-    //        Width = 300,
-    //        Height = 150,
-    //        WindowStartupLocation = WindowStartupLocation.CenterOwner,
-    //        ResizeMode = ResizeMode.NoResize
-    //    };
-
-    //    var grid = new Grid();
-    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-    //    grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-    //    var label = new Label { Content = prompt, Margin = new Thickness(10) };
-    //    Grid.SetRow(label, 0);
-
-    //    var textBox = new TextBox { Text = defaultValue, Margin = new Thickness(10), Height = 25 };
-    //    Grid.SetRow(textBox, 1);
-
-    //    var buttonPanel = new StackPanel 
-    //    { 
-    //        Orientation = Orientation.Horizontal, 
-    //        HorizontalAlignment = HorizontalAlignment.Right, 
-    //        Margin = new Thickness(10) 
-    //    };
-
-    //    var okButton = new Button 
-    //    { 
-    //        Content = _localizationService?.GetString("OK") ?? "OK", 
-    //        Width = 70, 
-    //        Margin = new Thickness(0, 0, 10, 0),
-    //        IsDefault = true 
-    //    };
-    //    var cancelButton = new Button 
-    //    { 
-    //        Content = _localizationService?.GetString("Cancel") ?? "Cancel", 
-    //        Width = 70,
-    //        IsCancel = true 
-    //    };
-
-    //    buttonPanel.Children.Add(okButton);
-    //    buttonPanel.Children.Add(cancelButton);
-    //    Grid.SetRow(buttonPanel, 2);
-
-    //    grid.Children.Add(label);
-    //    grid.Children.Add(textBox);
-    //    grid.Children.Add(buttonPanel);
-
-    //    dialog.Content = grid;
-
-    //    okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
-    //    cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
-
-    //    if (Window.GetWindow(this) is Window parentWindow)
-    //    {
-    //        dialog.Owner = parentWindow;
-    //    }
-
-    //    textBox.Focus();
-    //    textBox.SelectAll();
-
-    //    return dialog.ShowDialog() == true ? textBox.Text : null;
-    //}
-
     private string? ShowInputDialog(string prompt, string title, string defaultValue = "")
     {
         var dialog = new Window
         {
             Title = title,
             Width = 400,
-            Height = 250,
-            MinWidth = 300,
-            MinHeight = 200,
-            MaxWidth = 600,
-            MaxHeight = 300,
+            Height = 200,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            ResizeMode = ResizeMode.CanResize,
-            SizeToContent = SizeToContent.Manual,
-            Background = new SolidColorBrush(Color.FromRgb(245, 245, 245))
+            ResizeMode = ResizeMode.CanResize
         };
 
         var grid = new Grid();
@@ -1865,9 +1967,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             Content = prompt,
             Margin = new Thickness(15),
-            FontWeight = FontWeights.Medium,
-            FontSize = 13,
-            Foreground = new SolidColorBrush(Color.FromRgb(51, 51, 51))
+            FontWeight = FontWeights.Medium
         };
         Grid.SetRow(label, 0);
 
@@ -1876,138 +1976,34 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             Text = defaultValue,
             Margin = new Thickness(15, 5, 15, 15),
             MinHeight = 30,
-            MaxHeight = 150,
-            TextWrapping = TextWrapping.Wrap,
-            AcceptsReturn = false,
-            VerticalAlignment = VerticalAlignment.Center,
-            Padding = new Thickness(2),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
-            BorderThickness = new Thickness(2),
-            Background = Brushes.White,
-            FontSize = 14,
-            FontWeight = FontWeights.Bold,
+            VerticalAlignment = VerticalAlignment.Center
         };
-
-        // Styling für TextBox (abgerundete Ecken und Fokus-Effekt)
-        var textBoxTemplate = new ControlTemplate(typeof(TextBox));
-        var textBoxBorder = new FrameworkElementFactory(typeof(Border));
-        textBoxBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
-        textBoxBorder.SetValue(Border.BorderBrushProperty, new TemplateBindingExtension(TextBox.BorderBrushProperty));
-        textBoxBorder.SetValue(Border.BorderThicknessProperty, new TemplateBindingExtension(TextBox.BorderThicknessProperty));
-        textBoxBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-
-        var scrollViewer = new FrameworkElementFactory(typeof(ScrollViewer));
-        scrollViewer.SetValue(ScrollViewer.MarginProperty, new TemplateBindingExtension(TextBox.PaddingProperty));
-        scrollViewer.Name = "PART_ContentHost";
-        textBoxBorder.AppendChild(scrollViewer);
-        textBoxTemplate.VisualTree = textBoxBorder;
-
-        // Trigger für Fokus
-        var focusTrigger = new Trigger { Property = TextBox.IsFocusedProperty, Value = true };
-        focusTrigger.Setters.Add(new Setter(TextBox.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(33, 150, 243))));
-        textBoxTemplate.Triggers.Add(focusTrigger);
-
-        textBox.Template = textBoxTemplate;
         Grid.SetRow(textBox, 1);
 
         var buttonPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(15, 0, 15, 15),
+            Margin = new Thickness(15),
             Height = 40
         };
 
-        // OK Button mit modernem Styling
         var okButton = new Button
         {
             Content = _localizationService?.GetString("OK") ?? "OK",
             Width = 90,
             Height = 32,
             Margin = new Thickness(0, 0, 10, 0),
-            IsDefault = true,
-            Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)), // Material Blue
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            FontWeight = FontWeights.Medium,
-            FontSize = 12,
-            Cursor = Cursors.Hand
+            IsDefault = true
         };
 
-        // Cancel Button mit modernem Styling
         var cancelButton = new Button
         {
             Content = _localizationService?.GetString("Cancel") ?? "Abbrechen",
             Width = 90,
             Height = 32,
-            IsCancel = true,
-            Background = new SolidColorBrush(Color.FromRgb(117, 117, 117)), // Material Grey
-            Foreground = Brushes.White,
-            BorderThickness = new Thickness(0),
-            FontWeight = FontWeights.Medium,
-            FontSize = 12,
-            Cursor = Cursors.Hand
+            IsCancel = true
         };
-
-        // Button Template für abgerundete Ecken und Hover-Effekte
-        var buttonTemplate = new ControlTemplate(typeof(Button));
-        var buttonBorder = new FrameworkElementFactory(typeof(Border));
-        buttonBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
-        buttonBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-        buttonBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
-
-        var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        contentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-        buttonBorder.AppendChild(contentPresenter);
-        buttonTemplate.VisualTree = buttonBorder;
-
-        // Hover Trigger für OK Button
-        var hoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-        hoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(25, 118, 210))));
-        buttonTemplate.Triggers.Add(hoverTrigger);
-
-        // Pressed Trigger für OK Button
-        var pressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-        pressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(21, 101, 192))));
-        buttonTemplate.Triggers.Add(pressedTrigger);
-
-        // Disabled Trigger
-        var disabledTrigger = new Trigger { Property = Button.IsEnabledProperty, Value = false };
-        disabledTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(204, 204, 204))));
-        buttonTemplate.Triggers.Add(disabledTrigger);
-
-        okButton.Template = buttonTemplate;
-
-        // Separate Template für Cancel Button mit anderen Hover-Farben
-        var cancelButtonTemplate = new ControlTemplate(typeof(Button));
-        var cancelButtonBorder = new FrameworkElementFactory(typeof(Border));
-        cancelButtonBorder.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(Button.BackgroundProperty));
-        cancelButtonBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-        cancelButtonBorder.SetValue(Border.PaddingProperty, new TemplateBindingExtension(Button.PaddingProperty));
-
-        var cancelContentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-        cancelContentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        cancelContentPresenter.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-        cancelButtonBorder.AppendChild(cancelContentPresenter);
-        cancelButtonTemplate.VisualTree = cancelButtonBorder;
-
-        // Hover Trigger für Cancel Button
-        var cancelHoverTrigger = new Trigger { Property = Button.IsMouseOverProperty, Value = true };
-        cancelHoverTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(97, 97, 97))));
-        cancelButtonTemplate.Triggers.Add(cancelHoverTrigger);
-
-        // Pressed Trigger für Cancel Button
-        var cancelPressedTrigger = new Trigger { Property = Button.IsPressedProperty, Value = true };
-        cancelPressedTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(77, 77, 77))));
-        cancelButtonTemplate.Triggers.Add(cancelPressedTrigger);
-
-        // Disabled Trigger für Cancel Button
-        var cancelDisabledTrigger = new Trigger { Property = Button.IsEnabledProperty, Value = false };
-        cancelDisabledTrigger.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Color.FromRgb(204, 204, 204))));
-        cancelButtonTemplate.Triggers.Add(cancelDisabledTrigger);
-
-        cancelButton.Template = cancelButtonTemplate;
 
         buttonPanel.Children.Add(okButton);
         buttonPanel.Children.Add(cancelButton);
@@ -2022,138 +2018,223 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
         cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
 
-        // Enter-Taste für OK, Escape für Cancel
-        dialog.KeyDown += (s, e) =>
-        {
-            if (e.Key == Key.Enter && !string.IsNullOrWhiteSpace(textBox.Text))
-            {
-                dialog.DialogResult = true;
-                dialog.Close();
-            }
-            else if (e.Key == Key.Escape)
-            {
-                dialog.DialogResult = false;
-                dialog.Close();
-            }
-        };
-
         if (Window.GetWindow(this) is Window parentWindow)
         {
             dialog.Owner = parentWindow;
         }
 
-        // Bessere Fokussierung
-        dialog.Loaded += (s, e) =>
-        {
-            textBox.Focus();
-            textBox.SelectAll();
-        };
+        dialog.Loaded += (s, e) => { textBox.Focus(); textBox.SelectAll(); };
 
         return dialog.ShowDialog() == true ? textBox.Text?.Trim() : null;
     }
 
-
-    // UPDATE: Improved GiveByeButton_Click to use TournamentClass methods
-    private void GiveByeButton_Click(object sender, RoutedEventArgs e)
+    // Helper methods
+    private async Task CheckAllGroupsCompletion()
     {
-        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
-        {
-            HandleKnockoutBye(viewModel.Match, null); // Auto bye
-        }
-        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
-        {
-            HandleKnockoutBye(match, null); // Auto bye
-        }
-    }
-
-    // UPDATE: Improved UndoByeButton_Click to use TournamentClass methods
-    private void UndoByeButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is Button button && button.Tag is KnockoutMatchViewModel viewModel)
-        {
-            HandleUndoKnockoutBye(viewModel.Match);
-        }
-        else if (sender is Button button2 && button2.Tag is KnockoutMatch match)
-        {
-            HandleUndoKnockoutBye(match);
-        }
-    }
-
-    private void ResetKnockoutButton_Click(object sender, RoutedEventArgs e)
-    {
+        // LoadingSpinner anzeigen
+        var parentWindow = Window.GetWindow(this);
+        var mainGrid = parentWindow?.Content as Grid;
+        LoadingSpinner? spinner = null;
+        
         try
         {
-            var title = _localizationService?.GetString("ResetKnockoutTitle") ?? "KO-Phase zurücksetzen";
-            var message = _localizationService?.GetString("ResetKnockoutConfirm") ?? 
-                         "Möchten Sie die KO-Phase wirklich zurücksetzen?\n\n⚠ Alle KO-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird zur Gruppenphase zurückgesetzt.";
-
-            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-            if (result == MessageBoxResult.Yes)
+            System.Diagnostics.Debug.WriteLine("=== CheckAllGroupsCompletion START ===");
+            
+            // Zeige LoadingSpinner falls Main Grid verfügbar
+            if (mainGrid != null)
             {
-                var knockoutPhase = TournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
-                if (knockoutPhase != null)
-                {
-                    TournamentClass.Phases.Remove(knockoutPhase);
-                }
-
-                var groupPhase = TournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
-                if (groupPhase != null)
-                {
-                    groupPhase.IsActive = true;
-                    groupPhase.IsCompleted = false;
-                    TournamentClass.CurrentPhase = groupPhase;
-                }
-
-                UpdateUI();
-                UpdatePlayersView();
-                UpdateMatchesView();
-
-                MainTabControl.SelectedItem = GroupPhaseTabItem;
-                OnDataChanged();
-
-                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "KO-Phase wurde erfolgreich zurückgesetzt.";
-                var successTitle = _localizationService?.GetString("Information") ?? "Information";
-                MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                var loadingText = _localizationService?.GetString("CheckingGroupStatus") ?? "Überprüfe Gruppenstatus...";
+                spinner = mainGrid.ShowLoadingSpinner(loadingText);
             }
+            
+            // Kleine Verzögerung damit der Spinner sichtbar wird
+            await Task.Delay(100);
+            
+            var completedGroups = 0;
+            var totalGroups = TournamentClass.Groups.Count;
+            
+            // Update progress
+            if (spinner != null)
+            {
+                await spinner.Dispatcher.BeginInvoke(() =>
+                {
+                    var progressText = _localizationService?.GetString("ProcessingMatches") ?? "Verarbeite Spiele...";
+                    spinner.ProgressText = progressText;
+                });
+            }
+            
+            foreach (var group in TournamentClass.Groups)
+            {
+                var status = group.CheckCompletionStatus();
+                System.Diagnostics.Debug.WriteLine($"  Group {group.Name}: {status}");
+                
+                if (status.IsComplete)
+                {
+                    completedGroups++;
+                }
+                
+                // NEU: Automatische Match-Status-Reparatur falls nötig
+                if (!status.IsComplete && group.MatchesGenerated)
+                {
+                    group.RepairMatchStatuses();
+                    
+                    // Nach der Reparatur nochmal prüfen
+                    var repairedStatus = group.CheckCompletionStatus();
+                    System.Diagnostics.Debug.WriteLine($"  Group {group.Name} after repair: {repairedStatus}");
+                    
+                    if (repairedStatus.IsComplete)
+                    {
+                        completedGroups++;
+                    }
+                }
+                
+                // Kleine Pause für UI Responsiveness
+                await Task.Delay(50);
+            }
+            
+            // Update progress
+            if (spinner != null)
+            {
+                await spinner.Dispatcher.BeginInvoke(() =>
+                {
+                    var progressText = _localizationService?.GetString("CheckingCompletion") ?? "Überprüfe Abschluss...";
+                    spinner.ProgressText = progressText;
+                });
+            }
+            
+            await Task.Delay(100); // Kurze Verzögerung für visuelle Klarheit
+            
+            System.Diagnostics.Debug.WriteLine($"CheckAllGroupsCompletion: {completedGroups}/{totalGroups} groups completed");
+            
+            // Update UI to reflect completion status
+            UpdatePhaseDisplay();
+            UpdateTournamentOverview();
+            
+            // NEU: Zeige Benachrichtigung wenn alle Gruppen abgeschlossen sind
+            if (completedGroups == totalGroups && totalGroups > 0 && 
+                TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None)
+            {
+                ShowGroupPhaseCompletionNotification();
+            }
+            
+            System.Diagnostics.Debug.WriteLine("=== CheckAllGroupsCompletion END ===");
         }
         catch (Exception ex)
         {
-            var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen:"} {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"CheckAllGroupsCompletion: ERROR: {ex.Message}");
+        }
+        finally
+        {
+            // LoadingSpinner verstecken
+            if (mainGrid != null && spinner != null)
+            {
+                // Kleine Verzögerung damit User den Spinner sehen kann
+                await Task.Delay(200);
+                mainGrid.HideLoadingSpinner(spinner);
+            }
         }
     }
 
-    private void RefreshUIButton_Click(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// NEU: Überprüft automatisch die Finals-Phase auf Vollständigkeit
+    /// </summary>
+    private async Task CheckFinalsCompletion()
     {
+        // LoadingSpinner anzeigen
+        var parentWindow = Window.GetWindow(this);
+        var mainGrid = parentWindow?.Content as Grid;
+        LoadingSpinner? spinner = null;
+        
         try
         {
-            UpdateUI();
-            UpdatePlayersView();
-            UpdateMatchesView();
+            System.Diagnostics.Debug.WriteLine("=== CheckFinalsCompletion START ===");
             
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            if (TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.RoundRobinFinals)
             {
-                RefreshKnockoutView();
+                System.Diagnostics.Debug.WriteLine("  Not in finals phase");
+                return;
             }
             
-            var message = _localizationService?.GetString("UIRefreshed") ?? "Benutzeroberfläche wurde aktualisiert";
-            MessageBox.Show(message, "Refresh", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Zeige LoadingSpinner falls Main Grid verfügbar
+            if (mainGrid != null)
+            {
+                var loadingText = _localizationService?.GetString("CheckingFinalsStatus") ?? "Überprüfe Finalrunden-Status...";
+                spinner = mainGrid.ShowLoadingSpinner(loadingText);
+            }
+            
+            // Kleine Verzögerung damit der Spinner sichtbar wird
+            await Task.Delay(100);
+            
+            var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
+            if (finalsGroup == null)
+            {
+                System.Diagnostics.Debug.WriteLine("  No finals group found");
+                return;
+            }
+            
+            // Update progress
+            if (spinner != null)
+            {
+                await spinner.Dispatcher.BeginInvoke(() =>
+                {
+                    var progressText = _localizationService?.GetString("ProcessingFinalsMatches") ?? "Verarbeite Finals-Spiele...";
+                    spinner.ProgressText = progressText;
+                });
+            }
+            
+            var status = finalsGroup.CheckCompletionStatus();
+            System.Diagnostics.Debug.WriteLine($"  Finals group: {status}");
+            
+            // Auto-repair if needed
+            if (!status.IsComplete && finalsGroup.MatchesGenerated)
+            {
+                finalsGroup.RepairMatchStatuses();
+                await Task.Delay(100);
+                status = finalsGroup.CheckCompletionStatus();
+                System.Diagnostics.Debug.WriteLine($"  Finals group after repair: {status}");
+            }
+            
+            // Update progress
+            if (spinner != null)
+            {
+                await spinner.Dispatcher.BeginInvoke(() =>
+                {
+                    var progressText = _localizationService?.GetString("CheckingCompletion") ?? "Überprüfe Abschluss...";
+                    spinner.ProgressText = progressText;
+                });
+            }
+            
+            await Task.Delay(100);
+            
+            // Update UI
+            UpdatePhaseDisplay();
+            UpdateTournamentOverview();
+            
+            // Show notification if finals are complete
+            if (status.IsComplete)
+            {
+                ShowFinalsCompletionNotification();
+            }
+            
+            System.Diagnostics.Debug.WriteLine("=== CheckFinalsCompletion END ===");
         }
         catch (Exception ex)
         {
-            var title = _localizationService?.GetString("Error") ?? "Fehler";
-            var message = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren der Benutzeroberfläche:"} {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"CheckFinalsCompletion: ERROR: {ex.Message}");
+        }
+        finally
+        {
+            // LoadingSpinner verstecken
+            if (mainGrid != null && spinner != null)
+            {
+                // Kleine Verzögerung damit User den Spinner sehen kann
+                await Task.Delay(200);
+                mainGrid.HideLoadingSpinner(spinner);
+            }
         }
     }
-
-    // ...rest of existing methods...
-    
 }
 
-// NEW: Extension method to find ancestor elements
 public static class UIElementExtensions
 {
     public static T? FindAncestor<T>(this DependencyObject current) where T : DependencyObject

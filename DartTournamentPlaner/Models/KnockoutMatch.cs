@@ -526,6 +526,14 @@ public class KnockoutMatch : INotifyPropertyChanged
 
         Status = MatchStatus.Finished;
         EndTime = DateTime.Now;
+        
+        // WICHTIG: Trigger zusätzliche PropertyChanged Events für UI-Update
+        // Diese stellen sicher, dass alle UI-Elemente korrekt aktualisiert werden
+        OnPropertyChanged(nameof(ScoreDisplay));
+        OnPropertyChanged(nameof(StatusDisplay));
+        OnPropertyChanged(nameof(WinnerDisplay));
+        OnPropertyChanged(nameof(BracketDisplay));
+        OnPropertyChanged(nameof(RoundDisplay));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

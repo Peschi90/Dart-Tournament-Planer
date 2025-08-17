@@ -83,7 +83,7 @@ public class TournamentClass : INotifyPropertyChanged
                         CurrentPhase.Groups.Add(group);
                     }
                     
-                    // Nach der Migration direkte Groups leeren
+                    // Nach der Migration directe Groups leeren
                     _directGroups.Clear();
                     System.Diagnostics.Debug.WriteLine($"  Migration completed, cleared direct groups");
                 }
@@ -300,6 +300,8 @@ public class TournamentClass : INotifyPropertyChanged
 
     private TournamentPhase CreateRoundRobinFinalsPhase()
     {
+        System.Diagnostics.Debug.WriteLine($"=== CreateRoundRobinFinalsPhase START ===");
+        
         var finalsPhase = new TournamentPhase
         {
             Name = "Finalrunde",
@@ -309,6 +311,8 @@ public class TournamentClass : INotifyPropertyChanged
         // Get qualified players from group phase
         var groupPhase = Phases.First(p => p.PhaseType == TournamentPhaseType.GroupPhase);
         var qualifiedPlayers = groupPhase.GetQualifiedPlayers(GameRules.QualifyingPlayersPerGroup);
+
+        System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Found {qualifiedPlayers.Count} qualified players");
 
         // Create finals group
         var finalsGroup = new Group
@@ -321,11 +325,18 @@ public class TournamentClass : INotifyPropertyChanged
         foreach (var player in qualifiedPlayers)
         {
             finalsGroup.Players.Add(player);
+            System.Diagnostics.Debug.WriteLine($"  Added player: {player.Name}");
         }
+
+        // CRITICAL FIX: Generate the Round Robin matches for the finals group!
+        System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generating Round Robin matches for {finalsGroup.Players.Count} players");
+        finalsGroup.GenerateRoundRobinMatches(GameRules);
+        System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generated {finalsGroup.Matches.Count} matches");
 
         finalsPhase.FinalsGroup = finalsGroup;
         finalsPhase.QualifiedPlayers = new ObservableCollection<Player>(qualifiedPlayers);
 
+        System.Diagnostics.Debug.WriteLine($"=== CreateRoundRobinFinalsPhase END - Created phase with {finalsGroup.Matches.Count} matches ===");
         return finalsPhase;
     }
 
@@ -750,7 +761,13 @@ public class TournamentClass : INotifyPropertyChanged
         
         foreach (var winnerRound in winnerRounds.Take(winnerRounds.Count - 1)) // Skip final
         {
-            currentLoserRound = GetNextLoserRound(currentLoserRound);
+            // *** KORREKTUR: Nur advance wenn bereits Matches im currentRound sind ***
+
+            if (currentRound.Any())
+            {
+                currentLoserRound = GetNextLoserRound(currentLoserRound);
+            }
+            
             var nextRound = new List<KnockoutMatch>();
             int position = 0;
 
@@ -862,6 +879,14 @@ public class TournamentClass : INotifyPropertyChanged
             currentRound = nextRound;
         }
 
+        // *** KORREKTUR: Stelle sicher dass das letzte Match als LoserFinal markiert wird ***
+        if (currentRound.Count == 1)
+        {
+            var finalMatch = currentRound[0];
+            System.Diagnostics.Debug.WriteLine($"GenerateLoserBracket: Correcting final match {finalMatch.Id} from {finalMatch.Round} to LoserFinal");
+            finalMatch.Round = KnockoutRound.LoserFinal;
+        }
+
         return loserMatches;
     }
 
@@ -892,9 +917,16 @@ public class TournamentClass : INotifyPropertyChanged
     private void GenerateGrandFinal(TournamentPhase phase)
     {
         var winnerFinal = phase.WinnerBracket.LastOrDefault(m => m.Round != KnockoutRound.GrandFinal);
-        var loserFinal = phase.LoserBracket.LastOrDefault();
+        var loserFinal = phase.LoserBracket.LastOrDefault(m => m.Round == KnockoutRound.LoserFinal);
 
-        if (winnerFinal == null || loserFinal == null) return;
+        System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: winnerFinal = {winnerFinal?.Id} (Round: {winnerFinal?.Round})");
+        System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: loserFinal = {loserFinal?.Id} (Round: {loserFinal?.Round})");
+
+        if (winnerFinal == null || loserFinal == null) 
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Cannot create Grand Final - missing source matches");
+            return;
+        }
 
         int matchId = Math.Max(
             phase.WinnerBracket.Max(m => m.Id),
@@ -917,9 +949,13 @@ public class TournamentClass : INotifyPropertyChanged
             UsesSets = roundRules.SetsToWin > 0 // WICHTIG: Setze UsesSets auch für Grand Final
         };
 
+        System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Created Grand Final match {grandFinal.Id} with sources WB:{winnerFinal.Id} and LB:{loserFinal.Id}");
+
         var winnerMatches = phase.WinnerBracket.ToList();
         winnerMatches.Add(grandFinal);
         phase.WinnerBracket = new ObservableCollection<KnockoutMatch>(winnerMatches);
+        
+        System.Diagnostics.Debug.WriteLine($"GenerateGrandFinal: Grand Final added to Winner Bracket, total matches = {phase.WinnerBracket.Count}");
     }
 
     private KnockoutRound GetNextLoserRound(KnockoutRound currentRound)
@@ -1440,6 +1476,9 @@ public class TournamentClass : INotifyPropertyChanged
             // WICHTIG: UI-Refresh triggern um visuelles Update zu erzwingen
             TriggerUIRefresh();
             System.Diagnostics.Debug.WriteLine($"  UI refresh triggered for manual bye in match {match.Id}");
+            
+            // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
+            DataChangedEvent?.Invoke(this, EventArgs.Empty);
 
             System.Diagnostics.Debug.WriteLine($"=== GiveManualBye SUCCESS for match {match.Id} ===");
             return true;
@@ -1521,6 +1560,9 @@ public class TournamentClass : INotifyPropertyChanged
             // WICHTIG: Zusätzlicher UI-Refresh um visuelles Update zu erzwingen  
             TriggerUIRefresh();
             System.Diagnostics.Debug.WriteLine($"  Additional UI refresh triggered after undo bye for match {match.Id}");
+            
+            // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
+            DataChangedEvent?.Invoke(this, EventArgs.Empty);
 
             System.Diagnostics.Debug.WriteLine($"=== UndoBye SUCCESS for match {match.Id} ===");
             return true;
@@ -1884,11 +1926,6 @@ public class TournamentClass : INotifyPropertyChanged
             Margin = new Thickness(5, 8, 5, 8) // Mehr Margins da mehr Platz vorhanden
         };
 
-        // Grid-Definitionen: 3 Zeilen für Player1, vs, Player2
-      //  playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-     //   playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-     //   playersGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
         // Grid-Definitionen: 3 Spalten für Player1, vs, Player2 (statt Zeilen)
         playersGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }); // Player1 - nimmt verfügbaren Platz
         playersGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto }); // "vs" - nur so breit wie nötig
@@ -1956,7 +1993,7 @@ public class TournamentClass : INotifyPropertyChanged
         //    Foreground = match.Winner?.Id == match.Player1?.Id 
         //        ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0)) 
         //        : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), 
-        //    Margin = new Thickness(2, 2, 2, 1), // Mehr vertikale Margins für bessere Verteilung
+        //    Margin = new Thickness(2, 2, 2, 1), // Mehr Margins für bessere Verteilung
         //    Background = System.Windows.Media.Brushes.Transparent,
         //   // Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)), // Standardfarbe
         //    TextAlignment = TextAlignment.Left
@@ -1981,7 +2018,7 @@ public class TournamentClass : INotifyPropertyChanged
         //{
         //    Text = !string.IsNullOrEmpty(match.Player2?.Name) ? match.Player2.Name : "TBD",
         //    FontSize = 14, // Größere Schrift da Match ID weg ist
-        //    FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium, 
+        //    FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium,
         //    HorizontalAlignment = HorizontalAlignment.Right, 
         //    TextTrimming = TextTrimming.CharacterEllipsis,
         //    MaxWidth = width - 20, 
@@ -1999,9 +2036,9 @@ public class TournamentClass : INotifyPropertyChanged
         playersGrid.Children.Add(player2Text);
 
         // DEBUGGING: Vergewissere dich, dass die Children hinzugefügt wurden
-        System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} - OHNE Match ID Header");
-        System.Diagnostics.Debug.WriteLine($"  - PlayersGrid mit {playersGrid.Children.Count} children, größere Schrift (14px/11px)");
-        System.Diagnostics.Debug.WriteLine($"  - Player1: '{player1Text.Text}', Player2: '{player2Text.Text}', vs: '{vsText.Text}'");
+        //System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} - OHNE Match ID Header");
+        //System.Diagnostics.Debug.WriteLine($"  - PlayersGrid mit {playersGrid.Children.Count} children, größere Schrift (14px/11px)");
+        //System.Diagnostics.Debug.WriteLine($"  - Player1: '{player1Text.Text}', Player2: '{player2Text.Text}', vs: '{vsText.Text}'");
 
         Grid.SetRow(playersGrid, 0); // Spieler bekommen die erste (größere) Zeile
         contentGrid.Children.Add(playersGrid);
@@ -2050,10 +2087,10 @@ public class TournamentClass : INotifyPropertyChanged
         // WICHTIG: Das contentGrid muss dem border hinzugefügt werden!
         border.Child = contentGrid;
 
-        System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} layout complete - MEHR PLATZ für Namen!");
-        System.Diagnostics.Debug.WriteLine($"  - ContentGrid: {contentGrid.Children.Count} children (ohne Match ID header)");
-        System.Diagnostics.Debug.WriteLine($"  - PlayersGrid: {playersGrid.Children.Count} text children mit 14px/11px Schrift");
-        System.Diagnostics.Debug.WriteLine($"  - ScorePanel in Zeile 1 mit größeren Elementen");
+        //System.Diagnostics.Debug.WriteLine($"CreateInteractiveMatchControl: Match {match.Id} layout complete - MEHR PLATZ für Namen!");
+        //System.Diagnostics.Debug.WriteLine($"  - ContentGrid: {contentGrid.Children.Count} children (ohne Match ID header)");
+        //System.Diagnostics.Debug.WriteLine($"  - PlayersGrid: {playersGrid.Children.Count} text children mit 14px/11px Schrift");
+        //System.Diagnostics.Debug.WriteLine($"  - ScorePanel in Zeile 1 mit größeren Elementen");
 
         // Add interactivity
         AddMatchInteractivity(border, match, localizationService);
@@ -2225,7 +2262,7 @@ public class TournamentClass : INotifyPropertyChanged
             {
                 var undoBye = new MenuItem
                 {
-                    Header = "Freilos rückgängig machen",
+                    Header = "Freilos rückgängigmachen",
                     Icon = new TextBlock { Text = "↩️", FontSize = 12 }
                 };
                 undoBye.Click += (s, e) => UndoBye(match);
@@ -2347,7 +2384,10 @@ public class TournamentClass : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"TriggerUIRefresh: Firing UIRefreshRequested event");
         UIRefreshRequested?.Invoke(this, EventArgs.Empty);
         
-        // ZUSATZ: Benachrichtige auch über Property-Änderungen für UI-Binding
+        // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
+        DataChangedEvent?.Invoke(this, EventArgs.Empty);
+
+        // WICHTIG: Zusätzlich die PropertyChanged für Bindings feuern
         OnPropertyChanged(nameof(CurrentPhase));
     }
 
@@ -2367,6 +2407,11 @@ public class TournamentClass : INotifyPropertyChanged
         // Zusätzliches Event für spezifische Match-Updates
         MatchStatusChanged?.Invoke(this, new MatchStatusChangedEventArgs(matchId, newStatus));
     }
+
+    /// <summary>
+    /// NEU: Event für Datenänderungen - wird gefeuert wenn Match-Ergebnisse eingegeben oder Freilose vergeben werden
+    /// </summary>
+    public event EventHandler? DataChangedEvent;
 
     /// <summary>
     /// NEU: Event für UI-Refreshs nach automatischen Freilos-Änderungen
@@ -2438,8 +2483,11 @@ public class TournamentClass : INotifyPropertyChanged
                 PropagateMatchResultWithAutomaticByes(completedMatch, loserBracket, null);
             }
 
-            // Trigger UI refresh
+            // WICHTIG: Trigger UI refresh UND Data Changed Event
             TriggerUIRefresh();
+            
+            // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
+            DataChangedEvent?.Invoke(this, EventArgs.Empty);
 
             System.Diagnostics.Debug.WriteLine($"=== ProcessMatchResult SUCCESS for match {completedMatch.Id} ===");
             return true;

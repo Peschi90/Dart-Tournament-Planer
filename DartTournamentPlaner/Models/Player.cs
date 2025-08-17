@@ -8,6 +8,17 @@ public class Player : INotifyPropertyChanged
     private string _name = string.Empty;
     private int _id;
 
+    public Player()
+    {
+        // Default constructor for serialization
+    }
+
+    public Player(int id, string name)
+    {
+        _id = id;
+        _name = name;
+    }
+
     public int Id
     {
         get => _id;

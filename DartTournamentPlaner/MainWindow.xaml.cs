@@ -89,6 +89,14 @@ public partial class MainWindow : Window
                 MarkAsChanged();
             };
             
+            // NEU: Abonniere das neue DataChangedEvent für Match-Ergebnisse und Freilose
+            System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to DataChangedEvent for {tournamentClass.Name}");
+            tournamentClass.DataChangedEvent += (s, e) => 
+            {
+                System.Diagnostics.Debug.WriteLine($"DataChangedEvent triggered for {tournamentClass.Name} - marking as changed");
+                MarkAsChanged();
+            };
+            
             // WICHTIG: Direkte Zugriffe auf Groups vermeiden während der Subscription
             // Verwende stattdessen direkten Zugriff auf die GroupPhase
             var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);

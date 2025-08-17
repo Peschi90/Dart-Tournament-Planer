@@ -10,6 +10,19 @@ public class Group : INotifyPropertyChanged
     private int _id;
     private bool _matchesGenerated = false;
 
+    public Group()
+    {
+        // Default constructor for serialization
+        Players = new ObservableCollection<Player>();
+        Matches = new ObservableCollection<Match>();
+    }
+
+    public Group(int id, string name) : this()
+    {
+        _id = id;
+        _name = name;
+    }
+
     public int Id
     {
         get => _id;
@@ -43,6 +56,14 @@ public class Group : INotifyPropertyChanged
     public ObservableCollection<Player> Players { get; set; } = new ObservableCollection<Player>();
     public ObservableCollection<Match> Matches { get; set; } = new ObservableCollection<Match>();
 
+    public void ResetMatches()
+    {
+        Matches.Clear();
+        MatchesGenerated = false;
+        OnPropertyChanged(nameof(Matches));
+        OnPropertyChanged(nameof(MatchesGenerated));
+    }
+
     public void GenerateRoundRobinMatches(GameRules? gameRules = null)
     {
         Matches.Clear();
@@ -54,6 +75,7 @@ public class Group : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: usesSets = {usesSets} (from GameRules.PlayWithSets)");
 
         // Generate all possible combinations (round robin)
+        // Bei Round Robin spielt jeder gegen jeden - KEINE Freilose nötig!
         for (int i = 0; i < playerList.Count; i++)
         {
             for (int j = i + 1; j < playerList.Count; j++)
@@ -72,24 +94,8 @@ public class Group : INotifyPropertyChanged
             }
         }
 
-        // Handle odd number of players (bye)
-        if (playerList.Count % 2 == 1)
-        {
-            foreach (var player in playerList)
-            {
-                var byeMatch = new Match
-                {
-                    Id = matchId++,
-                    Player1 = player,
-                    Player2 = null,
-                    IsBye = true,
-                    Status = MatchStatus.Bye,
-                    Winner = player,
-                    UsesSets = usesSets // WICHTIG: Auch für Bye-Matches
-                };
-                Matches.Add(byeMatch);
-            }
-        }
+        // ENTFERNT: Freilos-Logik ist bei Round Robin nicht nötig!
+        // Bei Round Robin spielt jeder gegen jeden, daher sind keine Freilose erforderlich.
 
         MatchesGenerated = true;
         System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: Generated {Matches.Count} matches with UsesSets = {usesSets}");
