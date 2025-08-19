@@ -398,7 +398,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["EnterName"] = "Name eingeben:",
 
                 // Spenden- und Bug-Report-Funktionen
-                ["Donate"] = "💝 Donate",
+                ["Donate"] = "💝",
                 ["DonateTooltip"] = "Support the development of this project",
                 ["BugReport"] = "🐛 Report Bug",
                 ["BugReportTooltip"] = "Report bugs or suggest improvements",
@@ -426,39 +426,52 @@ public class LocalizationService : INotifyPropertyChanged
                 ["ProcessingMatches"] = "Verarbeite Spiele...",
                 ["CheckingCompletion"] = "Überprüfe Abschluss...",
 
-                // Turnierbaum-Nachrichten
-                ["NoLoserBracketSingleElimination"] = "Kein Loser Bracket (Single Elimination)",
-                ["NoLoserBracketGames"] = "Keine Loser Bracket Spiele vorhanden",
-                ["NoWinnerBracketGames"] = "Keine Winner Bracket Spiele vorhanden",
-                ["InteractiveTournamentTree"] = "Interaktiver Turnierbaum wird über TournamentClass erstellt",
-                ["TBD"] = "TBD",
-                ["Versus"] = "vs",
-                ["AllGroupsCompleted"] = "🎉 Alle Gruppen sind abgeschlossen!\n\nSie können jetzt zur nächsten Phase wechseln.",
-                ["FinalsCompleted"] = "🏆 Die Finalrunde ist abgeschlossen!\n\nAlle Spiele wurden beendet. Das Turnier ist komplett!",
+                // Startup und Update-Funktionen
+                ["StartingApplication"] = "Starte Anwendung...",
+                ["AppSubtitle"] = "Moderne Turnierverwaltung",
+                ["CheckingForUpdates"] = "Suche nach Updates...",
+                ["ConnectingToGitHub"] = "Verbinde mit GitHub...",
+                ["AnalyzingReleases"] = "Analysiere Releases...",
+                ["UpdateAvailable"] = "Update verfügbar",
+                ["WhatsNew"] = "Was ist neu:",
+                ["RemindLater"] = "Später erinnern",
+                ["SkipVersion"] = "Version überspringen",
+                ["DownloadUpdate"] = "Jetzt herunterladen",
+                ["DownloadAndInstall"] = "Herunterladen & Installieren",
+                ["DownloadingUpdate"] = "Update wird heruntergeladen",
+                ["PreparingDownload"] = "Bereite Download vor...",
+                ["DownloadingSetup"] = "Lade Setup herunter...",
+                ["DownloadCompleted"] = "Download abgeschlossen, prüfe Datei...",
+                ["PreparingInstallation"] = "Bereite Installation vor...",
+                ["StartingInstallation"] = "Starte Installation...",
+                ["InstallationStarted"] = "Installation gestartet",
+                ["InstallationCancelled"] = "Installation abgebrochen",
+                ["ErrorStartingSetup"] = "Fehler beim Starten",
+                ["AdminRightsRequired"] = "Administratorrechte erforderlich",
+                ["NoUpdateAvailable"] = "Keine Updates verfügbar",
             },
-            
-            // Englische Übersetzungen (vollständige Kopie mit englischen Texten)
+            // Englische Übersetzungen
             ["en"] = new Dictionary<string, string>
             {
-                // Context Menu specific translations
+                // Kontext-Menü spezifische Übersetzungen
                 ["EditResult"] = "Edit Result",
                 ["AutomaticBye"] = "Automatic Bye",
                 ["UndoByeShort"] = "Undo Bye",
                 ["NoActionsAvailable"] = "No actions available",
                 ["ByeToPlayer"] = "Bye to {0}",
                 
-                // Main Window
+                // Hauptfenster
                 ["AppTitle"] = "Dart Tournament Planner",
                 ["Platinum"] = "Platinum",
                 ["Gold"] = "Gold",
                 ["Silver"] = "Silver",
                 ["Bronze"] = "Bronze",
                 
-                // Tournament Tab
+                // Turnier-Tab Übersetzungen
                 ["SetupTab"] = "Tournament Setup",
                 ["GroupPhaseTab"] = "Group Phase",
-                ["FinalsTab"] = "Finals",
-                ["KnockoutTab"] = "Knockout Round",
+                ["FinalsTab"] = "Final Round",
+                ["KnockoutTab"] = "KO Round",
                 ["Groups"] = "Groups:",
                 ["Players"] = "Players:",
                 ["AddGroup"] = "Add Group",
@@ -483,17 +496,17 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Group"] = "Group {0}",
                 ["AdvanceToNextPhase"] = "Advance to Next Phase",
                 ["ResetTournament"] = "Reset Tournament",
-                ["ResetKnockoutPhase"] = "Reset Knockout Phase",
+                ["ResetKnockoutPhase"] = "Reset KO Phase",
                 ["ResetFinalsPhase"] = "Reset Finals",
                 ["RefreshUI"] = "Refresh UI",
                 ["RefreshUITooltip"] = "Refreshes the user interface",
                 
-                // Phases
+                // Turnierprozessphasen
                 ["GroupPhase"] = "Group Phase",
                 ["FinalsPhase"] = "Finals",
-                ["KnockoutPhase"] = "Knockout Phase",
+                ["KnockoutPhase"] = "KO Phase",
                 
-                // Game Rules
+                // Spielregeln
                 ["GameRules"] = "Game Rules",
                 ["GameMode"] = "Game Mode",
                 ["Points501"] = "501 Points",
@@ -510,19 +523,19 @@ public class LocalizationService : INotifyPropertyChanged
                 ["RulesPreview"] = "Rules Preview",
                 ["AfterGroupPhaseHeader"] = "After Group Phase",
 
-                // Post-Group Phase Settings
+                // Einstellungen nach der Gruppenphase
                 ["PostGroupPhase"] = "After Group Phase",
                 ["PostGroupPhaseMode"] = "Mode after group phase",
                 ["PostGroupPhaseNone"] = "Group phase only",
                 ["PostGroupPhaseRoundRobin"] = "Finals (Round Robin)",
-                ["PostGroupPhaseKnockout"] = "Knockout System",
+                ["PostGroupPhaseKnockout"] = "KO System",
                 ["QualifyingPlayersPerGroup"] = "Qualifiers per group",
-                ["KnockoutMode"] = "Knockout Mode", 
+                ["KnockoutMode"] = "KO Mode", 
                 ["SingleElimination"] = "Single Elimination",
                 ["DoubleElimination"] = "Double Elimination (Winner + Loser Bracket)",
                 ["IncludeGroupPhaseLosersBracket"] = "Include group phase losers in loser bracket",
                 
-                // Round-specific Rules
+                // Rundenspezifische Regeln
                 ["RoundSpecificRules"] = "Round Specific Rules",
                 ["ConfigureRoundRules"] = "Configure Round Rules",
                 ["WinnerBracketRules"] = "Winner Bracket Rules",
@@ -549,11 +562,11 @@ public class LocalizationService : INotifyPropertyChanged
                 ["GrandFinal"] = "Grand Final",
                 ["LoserBracket"] = "Loser Bracket",
 
-                // Matches
+                // Spiele und Match-Management
                 ["Matches"] = "Matches:",
                 ["Standings"] = "Standings:",
                 ["GenerateMatches"] = "Generate Matches",
-                ["MatchesGenerated"] = "Matches were successfully generated!",
+                ["MatchesGenerated"] = "Matches have been successfully generated!",
                 ["ResetMatches"] = "Reset Matches",
                 ["ResetMatchesConfirm"] = "Do you really want to reset all matches for group '{0}'?\nAll results will be lost!",
                 ["ResetMatchesTitle"] = "Reset Matches",
@@ -568,7 +581,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Legs"] = "Legs",
                 ["Score"] = "Score",
                 
-                // Settings
+                // Anwendungseinstellungen
                 ["Settings"] = "Settings",
                 ["Language"] = "Language",
                 ["Theme"] = "Theme",
@@ -577,7 +590,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Save"] = "Save",
                 ["Cancel"] = "Cancel",
                 
-                // Menu
+                // Menü-Einträge
                 ["File"] = "File",
                 ["New"] = "New",
                 ["Open"] = "Open",
@@ -588,13 +601,13 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Help"] = "Help",
                 ["About"] = "About",
                 
-                // Status
+                // Status-Anzeigen
                 ["HasUnsavedChanges"] = "Modified",
                 ["NotSaved"] = "Not Saved",
                 ["Saved"] = "Saved",
                 ["Ready"] = "Ready",
                 
-                // Common
+                // Allgemeine UI-Elemente
                 ["Close"] = "Close",
                 ["OK"] = "OK",
                 ["Start"] = "Start",
@@ -609,21 +622,21 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Warning"] = "Warning",
                 ["Error"] = "Error",
                 
-                // Help System
+                // Hilfesystem
                 ["HelpTitle"] = "Help - Dart Tournament Planner",
-                ["HelpGeneral"] = "General Operation",
+                ["HelpGeneral"] = "General Usage",
                 ["HelpTournamentSetup"] = "Tournament Setup",
                 ["HelpGroupManagement"] = "Group Management", 
                 ["HelpGameRules"] = "Game Rules",
                 ["HelpMatches"] = "Matches & Results",
                 ["HelpTournamentPhases"] = "Tournament Phases",
-                ["HelpMenus"] = "Menus & Functions",
+                ["HelpMenus"] = "Menus & Features",
                 ["HelpTips"] = "Tips & Tricks",
                 
-                // Help Content
-                ["HelpGeneralContent"] = "The Dart Tournament Planner assists you in managing dart tournaments with up to 4 different classes (Platinum, Gold, Silver, Bronze).\n\n" +
+                // Ausführliche Hilfe-Inhalte
+                ["HelpGeneralContent"] = "The Dart Tournament Planner helps you manage dart tournaments with up to 4 different classes (Platinum, Gold, Silver, Bronze).\n\n" +
                     "• Use the tabs above to switch between classes\n" +
-                    "• All changes are saved automatically (if enabled)\n" +
+                    "• All changes are automatically saved (if enabled)\n" +
                     "• The status bar shows the current save status\n" +
                     "• Language can be changed in the settings",
                 
@@ -632,7 +645,7 @@ public class LocalizationService : INotifyPropertyChanged
                     "2. Click 'Add Group' to create groups\n" +
                     "3. Add players to the groups\n" +
                     "4. Configure the game rules using the 'Configure Rules' button\n" +
-                    "5. Set the mode after the group phase (Group only, Finals, Knockout system)\n\n" +
+                    "5. Set the mode after the group phase (Group phase only, Finals, KO system)\n\n" +
                     "Tip: At least 2 players per group are required for match generation.",
                 
                 ["HelpGroupManagementContent"] = "Group Management:\n\n" +
@@ -641,15 +654,15 @@ public class LocalizationService : INotifyPropertyChanged
                     "• 'Add Player': Adds a player to the selected group\n" +
                     "• 'Remove Player': Removes the selected player\n\n" +
                     "The player list shows all players in the currently selected group.\n" +
-                    "Groups can be named arbitrarily and should have descriptive names.",
+                    "Groups can be named arbitrarily and should have meaningful names.",
                 
                 ["HelpGameRulesContent"] = "Configure game rules:\n\n" +
-                    "• Game Mode: 301, 401, or 501 points\n" +
-                    "• Finish Mode: Single Out or Double Out\n" +
-                    "• Legs to Win: Number of legs for a win\n" +
-                    "• Play with Sets: Enables the set system\n" +
-                    "• Sets to Win: Number of sets for a tournament victory\n" +
-                    "• Legs per Set: Number of legs per set\n\n" +
+                    "• Game mode: 301, 401, or 501 points\n" +
+                    "• Finish mode: Single Out or Double Out\n" +
+                    "• Legs to win: Number of legs for a win\n" +
+                    "• Play with sets: Activates the set system\n" +
+                    "• Sets to win: Number of sets for a tournament win\n" +
+                    "• Legs per set: Number of legs per set\n\n" +
                     "Different rules can be set for different tournament rounds.",
                 
                 ["HelpMatchesContent"] = "Manage matches:\n\n" +
@@ -662,12 +675,12 @@ public class LocalizationService : INotifyPropertyChanged
                 
                 ["HelpTournamentPhasesContent"] = "Tournament phases:\n\n" +
                     "1. Group Phase: Round-Robin within each group\n" +
-                    "2. After the Group Phase (optional):\n" +
+                    "2. After the group phase (optional):\n" +
                     "   • Group phase only: Tournament ends after the groups\n" +
                     "   • Finals: Top players play Round-Robin\n" +
-                    "   • Knockout system: Single or double elimination\n\n" +
-                    "The 'Advance to Next Phase' button becomes available when all matches are completed.\n" +
-                    "Knockout system can have winner bracket and loser bracket.",
+                    "   • KO System: Single or double elimination\n\n" +
+                    "The 'Advance to Next Phase' button becomes available when all matches are finished.\n" +
+                    "KO system can have winner bracket and loser bracket.",
                 
                 ["HelpMenusContent"] = "Menu functions:\n\n" +
                     "File:\n• New: Creates a new empty tournament\n• Open/Save: Loads/Saves tournament data\n• Exit: Closes the application\n\n" +
@@ -676,34 +689,34 @@ public class LocalizationService : INotifyPropertyChanged
                     "Help:\n• This help page\n• About dialog with version information",
                 
                 ["HelpTipsContent"] = "Tips & Tricks:\n\n" +
-                    "• Use descriptive group names (e.g. 'Group A', 'Beginners')\n" +
-                    "• Enable auto-save in the settings\n" +
+                    "• Use meaningful group names (e.g. 'Group A', 'Beginners')\n" +
+                    "• Enable auto-save in settings\n" +
                     "• The tournament overview is perfect for projector presentations\n" +
                     "• Right-clicking on matches shows additional options\n" +
-                    "• If the number of players is odd, a bye is automatically assigned\n" +
+                    "• With an odd number of players, a bye is automatically assigned\n" +
                     "• Sets and legs are automatically validated\n" +
                     "• Different rules for different tournament rounds are possible\n" +
                     "• Export/Import tournament data via the file menu",
                 
-                // Tournament Overview
+                // Turnierübersicht-spezifische Übersetzungen
                 ["TournamentOverview"] = "📺 Tournament Overview",
                 ["OverviewMode"] = "Overview Mode",
                 ["Configure"] = "Configure",
                 ["ManualMode"] = "Manual Mode",
-                ["AutoCyclingActive"] = "Auto cycling active",
-                ["CyclingStopped"] = "Auto cycling stopped",
+                ["AutoCyclingActive"] = "Auto Cycling Active",
+                ["CyclingStopped"] = "Auto Cycling Stopped",
                 ["ManualControl"] = "Manual Control",
                 ["Showing"] = "Showing",
 
-                // Game Status
+                // Spielstatus
                 ["Unknown"] = "Unknown",
 
-                // Tournament Overview specific
+                // Weitere Turnierübersicht Begriffe
                 ["StartCycling"] = "Start",
                 ["StopCycling"] = "Stop",
-                ["WinnerBracketMatches"] = "Winner Bracket Matches",
+                ["WinnerBracketMatches"] = "Matches in Winner Bracket",
                 ["WinnerBracketTree"] = "Winner Bracket",
-                ["LoserBracketMatches"] = "Loser Bracket Matches",
+                ["LoserBracketMatches"] = "Matches in Loser Bracket",
                 ["LoserBracketTree"] = "Loser Bracket",
                 ["RoundColumn"] = "Round",
                 ["PositionShort"] = "Pos",
@@ -711,24 +724,24 @@ public class LocalizationService : INotifyPropertyChanged
                 ["WinDrawLoss"] = "W-D-L",
                 ["NoLoserBracketMatches"] = "No matches available in loser bracket",
                 ["NoWinnerBracketMatches"] = "No matches available in winner bracket",
-                ["TournamentTreeWillShow"] = "The tournament tree will be displayed as soon as the knockout phase begins",
+                ["TournamentTreeWillShow"] = "The tournament tree will be displayed once the knockout phase begins",
 
-                // Additional Group Phase terms
+                // Zusätzliche Gruppenphasenbegriffe
                 ["SelectGroup"] = "Select Group",
-                ["NoGroupSelected"] = "No Group Selected",
+                ["NoGroupSelected"] = "No group selected",
 
-                // Overview Configuration Dialog
+                // Übersichtskonfigurationsdialog
                 ["OverviewConfiguration"] = "Overview Configuration",
                 ["TournamentOverviewConfiguration"] = "Tournament Overview Configuration",
                 ["TimeBetweenClasses"] = "Time between tournament classes:",
                 ["TimeBetweenSubTabs"] = "Time between sub-tabs:",
                 ["Seconds"] = "Seconds",
                 ["ShowOnlyActiveClassesText"] = "Show only classes with active groups",
-                ["OverviewInfoText"] = "Live tournament display for all classes with automatic cycling",
+                ["OverviewInfoText"] = "Live tournament display for all classes with automatic switching",
                 ["InvalidClassInterval"] = "Invalid class interval. Please enter a number ≥ 1.",
                 ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number ≥ 1.",
 
-                // Tournament Overview Texts
+                // Turnierübersicht Texte
                 ["TournamentName"] = "🏆 Tournament:",
                 ["CurrentPhase"] = "🎯 Current Phase:",
                 ["GroupsCount"] = "👥 Groups:",
@@ -736,62 +749,62 @@ public class LocalizationService : INotifyPropertyChanged
                 ["GameRulesColon"] = "📋 Game Rules:",
                 ["CompletedGroups"] = "✅ Completed Groups:",
                 ["QualifiedPlayers"] = "🏅 Qualified Players:",
-                ["KnockoutMatches"] = "⚔️ Knockout Matches:",
+                ["KnockoutMatches"] = "⚔️ KO Matches:",
                 ["Completed"] = "completed",
 
-                // Additional hardcoded texts
+                // Weitere fest codierte Texte
                 ["Finalists"] = "Finalists",
-                ["KnockoutParticipants"] = "Knockout Participants",
+                ["KnockoutParticipants"] = "KO Participants",
                 ["PlayersText"] = "Players",
                 ["OverviewModeTitle"] = "Tournament Overview Mode",
                 ["NewTournament"] = "New Tournament",
                 ["CreateNewTournament"] = "Create new tournament? Unsaved changes will be lost.",
-                ["UnsavedChanges"] = "Unsaved Changes",
-                ["SaveBeforeExit"] = "There are unsaved changes. Do you want to save before exiting?",
-                ["CustomFileNotImplemented"] = "Custom file loading not yet implemented.",
-                ["CustomFileSaveNotImplemented"] = "Custom file saving not yet implemented.",
+                ["UnsavedChanges"] = "Unsaved changes",
+                ["SaveBeforeExit"] = "There are unsaved changes. Would you like to save before exiting?",
+                ["CustomFileNotImplemented"] = "Custom file loading not implemented yet.",
+                ["CustomFileSaveNotImplemented"] = "Custom file saving not implemented yet.",
                 ["ErrorOpeningHelp"] = "Error opening help:",
                 ["ErrorOpeningOverview"] = "Error opening tournament overview:",
-                ["AboutText"] = "Dart Tournament Planner v1.0\n\nA modern tournament management software.",
+                ["AboutText"] = "Dart Tournament Planner\n\nA modern tournament management software.",
                 ["ErrorSavingData"] = "Error saving data:",
 
-                // Messages for Tournament Tab
+                // Nachrichten für Turnier-Tab
                 ["MinimumTwoPlayers"] = "At least 2 players required.",
-                ["ErrorGeneratingMatches"] = "Error generating matches:",
-                ["MatchesGeneratedSuccess"] = "Matches were successfully generated!",
+                ["ErrorGeneratingMatches"] = "Error creating matches:",
+                ["MatchesGeneratedSuccess"] = "Matches have been successfully created!",
                 ["MatchesResetSuccess"] = "Matches have been reset!",
-                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will remain.",
+                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will be kept.",
                 ["TournamentResetComplete"] = "The tournament has been successfully reset.",
-                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All knockout matches and the tournament tree will be deleted!\nThe tournament will be reset to the group phase.",
+                ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All KO matches and the tournament tree will be deleted!\nThe tournament will be reset to the group phase.",
                 ["ResetKnockoutComplete"] = "The knockout phase has been successfully reset.",
                 ["ResetFinalsConfirm"] = "Do you really want to reset the finals?\n\n⚠ All final matches will be deleted!\nThe tournament will be reset to the group phase.",
                 ["ResetFinalsComplete"] = "The finals have been successfully reset.",
                 ["ErrorResettingTournament"] = "Error resetting tournament:",
                 ["CannotAdvancePhase"] = "All matches in the current phase must be completed",
-                ["ErrorAdvancingPhase"] = "Error advancing to next phase:",
-                ["UIRefreshed"] = "User interface has been updated",
+                ["ErrorAdvancingPhase"] = "Error advancing to the next phase:",
+                ["UIRefreshed"] = "User interface has been refreshed",
                 ["ErrorRefreshing"] = "Error refreshing:",
                 ["KOPhaseActiveMSB"] = "Knockout phase is not active",
-                ["KOPhaseNotEnoughUserMSB"] = "Not enough participants for knockout phase (at least 2 required)",
+                ["KOPhaseNotEnoughUserMSB"] = "Not enough participants for the knockout phase (at least 2 required)",
 
-                // Message Titles
+                // Meldungstitel
                 ["KOPhaseUsrWarnTitel"] = "Knockout Phase Warning",
 
-                // Tab Headers for Player View
-                ["FinalistsCount"] = "Finalists ({0} players):",
-                ["KnockoutParticipantsCount"] = "Knockout Participants ({0} players):",
+                // Tab-Kopfzeilen für Spieleransicht
+                ["FinalistsCount"] = "Finalists ({0} Players):",
+                ["KnockoutParticipantsCount"] = "KO Participants ({0} Players):",
 
-                // Additional Phase Texts
+                // Weitere Phasen-Texte
                 ["NextPhaseStart"] = "Start {0}",
 
-                // Match Result Window
+                // Match-Ergebnisfenster
                 ["EnterMatchResult"] = "Enter Match Result",
                 ["SaveResult"] = "Save Result",
                 ["Notes"] = "Notes",
-                ["InvalidNumbers"] = "Invalid numbers",
+                ["InvalidNumbers"] = "Invalid Numbers",
                 ["NegativeValues"] = "Negative values are not allowed",
                 ["InvalidSetCount"] = "Invalid set count. Maximum: {0}, Total: {1}",
-                ["BothPlayersWon"] = "Both players cannot win simultaneously",
+                ["BothPlayersWon"] = "Both players cannot win at the same time",
                 ["MatchIncomplete"] = "The match is not yet completed",
                 ["InsufficientLegsForSet"] = "{0} does not have enough legs for the won sets. Minimum: {1}",
                 ["ExcessiveLegs"] = "Too many legs for the set combination {0}:{1}. Maximum: {2}",
@@ -800,14 +813,14 @@ public class LocalizationService : INotifyPropertyChanged
                 ["SaveBlocked"] = "Save blocked",
                 ["ValidationError"] = "Validation error",
                 ["NoWinnerFound"] = "No winner found",
-                ["GiveBye"] = "Give Bye",
-                ["SelectByeWinner"] = "Select the player who should receive the bye:",
+                ["GiveBye"] = "Assign Bye",
+                ["SelectByeWinner"] = "Select the player to receive the bye:",
 
-                // Input Dialog
+                // Eingabedialog
                 ["InputDialog"] = "Input",
                 ["EnterName"] = "Enter name:",
 
-                // Donation & Bug Report
+                // Spenden- und Bug-Report-Funktionen
                 ["Donate"] = "💝",
                 ["DonateTooltip"] = "Support the development of this project",
                 ["BugReport"] = "🐛 Report Bug",
@@ -830,124 +843,124 @@ public class LocalizationService : INotifyPropertyChanged
                 ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps with improving and maintaining the software.",
                 ["OpenDonationPage"] = "Open Donation Page",
 
-                // Loading Spinner
+                // Loading Spinner / Lade-Anzeige
                 ["Loading"] = "Loading...",
                 ["CheckingGroupStatus"] = "Checking group status...",
                 ["ProcessingMatches"] = "Processing matches...",
                 ["CheckingCompletion"] = "Checking completion...",
 
-                // Tournament Tree Messages
-                ["NoLoserBracketSingleElimination"] = "No Loser Bracket (Single Elimination)",
-                ["NoLoserBracketGames"] = "No loser bracket matches available",
-                ["NoWinnerBracketGames"] = "No winner bracket matches available",
-                ["InteractiveTournamentTree"] = "Interactive tournament tree is created via TournamentClass",
-                ["TBD"] = "TBD",
-                ["Versus"] = "vs",
-                ["AllGroupsCompleted"] = "🎉 All groups are completed!\n\nYou can now proceed to the next phase.",
-                ["FinalsCompleted"] = "🏆 The finals are completed!\n\nAll matches have been finished. The tournament is complete!",
-            },
+                // Startup und Update-Funktionen
+                ["StartingApplication"] = "Starting application...",
+                ["AppSubtitle"] = "Modern tournament management",
+                ["CheckingForUpdates"] = "Checking for updates...",
+                ["ConnectingToGitHub"] = "Connecting to GitHub...",
+                ["AnalyzingReleases"] = "Analyzing releases...",
+                ["UpdateAvailable"] = "Update available",
+                ["WhatsNew"] = "What's new:",
+                ["RemindLater"] = "Remind me later",
+                ["SkipVersion"] = "Skip version",
+                ["DownloadUpdate"] = "Download now",
+                ["DownloadAndInstall"] = "Download & Install",
+                ["DownloadingUpdate"] = "Downloading update",
+                ["PreparingDownload"] = "Preparing download...",
+                ["DownloadingSetup"] = "Downloading setup...",
+                ["DownloadCompleted"] = "Download completed, checking file...",
+                ["PreparingInstallation"] = "Preparing installation...",
+                ["StartingInstallation"] = "Starting installation...",
+                ["InstallationStarted"] = "Installation started",
+                ["InstallationCancelled"] = "Installation cancelled",
+                ["ErrorStartingSetup"] = "Error starting setup",
+                ["AdminRightsRequired"] = "Administrator rights required",
+                ["NoUpdateAvailable"] = "No updates available",
+            }
         };
     }
 
-    // Öffentliche Methode für externen Zugriff (GetString)
     /// <summary>
-    /// Holt eine übersetzte Zeichenkette basierend auf dem Schlüssel
-    /// Unterstützt String-Formatierung mit Parametern
+    /// Gibt den übersetzten Text für den angegebenen Schlüssel und die aktuelle Sprache zurück
+    /// Fallback auf den Schlüssel selbst, wenn keine Übersetzung gefunden wird
     /// </summary>
     /// <param name="key">Übersetzungsschlüssel</param>
-    /// <param name="args">Optionale Formatierungsparameter</param>
-    /// <returns>Übersetzte Zeichenkette oder Schlüssel als Fallback</returns>
-    public string GetString(string key, params object[] args)
+    /// <returns>Übersetzter Text</returns>
+    public string GetTranslation(string key)
     {
-        var translation = Translate(key, _currentLanguage);
-        if (args.Length > 0)
-        {
-            return string.Format(translation, args);
-        }
-        return translation;
-    }
-
-    // Öffentliche Eigenschaft für aktuelle Sprache
-    /// <summary>
-    /// Aktuelle Sprache der Anwendung (z.B. "de" für Deutsch, "en" für Englisch)
-    /// Löst PropertyChanged Events aus wenn sich die Sprache ändert
-    /// </summary>
-    public string CurrentLanguage
-    {
-        get => _currentLanguage;
-        set
-        {
-            if (_currentLanguage != value)
-            {
-                _currentLanguage = value;
-                OnPropertyChanged(); // Benachrichtigt UI über Sprachwechsel
-            }
-        }
-    }
-
-    // Öffentliche Eigenschaft für aktuelle Übersetzungen
-    /// <summary>
-    /// Dictionary mit allen Übersetzungen für die aktuelle Sprache
-    /// Wird von UI-Komponenten verwendet um direkt auf Übersetzungen zuzugreifen
-    /// </summary>
-    public Dictionary<string, string> CurrentTranslations
-    {
-        get
-        {
-            if (_translations.TryGetValue(_currentLanguage, out var translations))
-            {
-                return translations;
-            }
-            return new Dictionary<string, string>(); // Leeres Dictionary als Fallback
-        }
-    }
-
-    // Interne Übersetzungsmethode - behält die ursprüngliche Funktionalität
-    /// <summary>
-    /// Übersetzt einen Schlüssel in die angegebene oder aktuelle Sprache
-    /// Diese Methode wird intern verwendet, GetString sollte für externen Zugriff genutzt werden
-    /// </summary>
-    /// <param name="key">Übersetzungsschlüssel</param>
-    /// <param name="language">Zielsprache (optional, Standard ist aktuelle Sprache)</param>
-    /// <returns>Übersetzte Zeichenkette oder Schlüssel als Fallback</returns>
-    public string Translate(string key, string? language = null)
-    {
-        language ??= _currentLanguage; // Verwende aktuelle Sprache wenn keine angegeben
-
-        // Versuche Übersetzung zu finden: Sprache -> Schlüssel -> Übersetzung
-        if (_translations.TryGetValue(language, out var translations) && translations.TryGetValue(key, out var translation))
+        // Überprüfen, ob der Schlüssel in der aktuellen Sprache vorhanden ist
+        if (_translations.TryGetValue(_currentLanguage, out var translations)
+            && translations.TryGetValue(key, out var translation))
         {
             return translation;
         }
 
-        return key; // Fallback zum Schlüssel wenn keine Übersetzung gefunden
+        // Fallback: Schlüssel selbst zurückgeben
+        return key;
     }
 
     /// <summary>
-    /// Setzt die aktuelle Sprache und benachrichtigt die UI über die Änderung
+    /// Alias für GetTranslation - für Kompatibilität mit bestehendem Code
     /// </summary>
-    /// <param name="language">Neue Sprache (z.B. "de", "en")</param>
-    public void SetLanguage(string language)
+    /// <param name="key">Übersetzungsschlüssel</param>
+    /// <returns>Übersetzter Text</returns>
+    public string GetString(string key)
     {
-        _currentLanguage = language;
-        OnPropertyChanged(nameof(CurrentLanguage)); // Explizite Benachrichtigung
+        return GetTranslation(key);
     }
 
     /// <summary>
-    /// Gibt die aktuelle Sprache zurück
-    /// Einfache Getter-Methode für externe Klassen
+    /// Gibt formatierten übersetzten Text zurück mit Platzhaltern
     /// </summary>
-    /// <returns>Aktuelle Sprache als String</returns>
-    public string GetCurrentLanguage() => _currentLanguage;
-
-    // INotifyPropertyChanged Implementation für UI-Updates
-    public event PropertyChangedEventHandler? PropertyChanged;
+    /// <param name="key">Übersetzungsschlüssel</param>
+    /// <param name="args">Parameter für string.Format</param>
+    /// <returns>Formatierter übersetzter Text</returns>
+    public string GetString(string key, params object[] args)
+    {
+        var template = GetTranslation(key);
+        try
+        {
+            return string.Format(template, args);
+        }
+        catch
+        {
+            // Fallback bei Format-Fehlern
+            return template;
+        }
+    }
 
     /// <summary>
-    /// Löst PropertyChanged Event aus um UI über Änderungen zu benachrichtigen
-    /// Wird hauptsächlich bei Sprachwechseln verwendet
+    /// Ändert die aktuelle Sprache und löst die Aktualisierung der UI-Elemente aus
     /// </summary>
-    /// <param name="propertyName">Name der geänderten Eigenschaft (automatisch erkannt)</param>
-    protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    /// <param name="newLanguage">Neuer Sprachcode (z.B. 'de' für Deutsch)</param>
+    public void ChangeLanguage(string newLanguage)
+    {
+        if (_currentLanguage != newLanguage && _translations.ContainsKey(newLanguage))
+        {
+            _currentLanguage = newLanguage;
+            OnPropertyChanged(nameof(CurrentLanguage));
+            
+            // Weitere UI-Aktualisierungen können hier ausgelöst werden
+        }
+    }
+
+    /// <summary>
+    /// Alias für ChangeLanguage - für Kompatibilität mit bestehendem Code
+    /// </summary>
+    /// <param name="newLanguage">Neuer Sprachcode (z.B. 'de' für Deutsch)</param>
+    public void SetLanguage(string newLanguage)
+    {
+        ChangeLanguage(newLanguage);
+    }
+
+    public string CurrentLanguage => _currentLanguage;
+
+    /// <summary>
+    /// Gibt die aktuellen Übersetzungen zurück - für Kompatibilität mit bestehendem Code
+    /// </summary>
+    public Dictionary<string, string> CurrentTranslations => _translations[_currentLanguage];
+
+    // INotifyPropertyChanged-Implementierung
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
