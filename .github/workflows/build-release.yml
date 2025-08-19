@@ -52,8 +52,19 @@ jobs:
           $tag = "${{ github.ref_name }}"
           $zipName = "DartTournamentPlaner-Release-$tag.zip"
           echo "Creating $zipName..."
-          $items = Get-ChildItem -Path "release" -Recurse
+
+          # Ordner auf den spezifischen net9.0-windows Build setzen
+          $buildDir = "release/DartTournamentPlaner/bin/Release/net9.0-windows"
+
+          if (-Not (Test-Path $buildDir)) {
+            echo "Build directory not found: $buildDir"
+            exit 1
+          }
+
+          # Alle Dateien in diesem Ordner ins ZIP
+          $items = Get-ChildItem -Path $buildDir -File
           Compress-Archive -Path $items.FullName -DestinationPath $zipName -Force
+
           echo "ZIP_PATH=$zipName" >> $env:GITHUB_ENV
 
       - name: Install Inno Setup
