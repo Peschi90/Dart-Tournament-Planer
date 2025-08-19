@@ -342,7 +342,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["CustomFileSaveNotImplemented"] = "Benutzerdefiniertes Speichern von Dateien noch nicht implementiert.",
                 ["ErrorOpeningHelp"] = "Fehler beim Öffnen der Hilfe:",
                 ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnierübersicht:",
-                ["AboutText"] = "Dart Tournament Planner v1.0\n\nEine moderne Turnierverwaltungssoftware.",
+                ["AboutText"] = GetDynamicAboutText("en"),
                 ["ErrorSavingData"] = "Fehler beim Speichern der Daten:",
 
                 // Nachrichten für Turnier-Tab
@@ -765,7 +765,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["CustomFileSaveNotImplemented"] = "Custom file saving not implemented yet.",
                 ["ErrorOpeningHelp"] = "Error opening help:",
                 ["ErrorOpeningOverview"] = "Error opening tournament overview:",
-                ["AboutText"] = "Dart Tournament Planner\n\nA modern tournament management software.",
+                ["AboutText"] = GetDynamicAboutText("en"),
                 ["ErrorSavingData"] = "Error saving data:",
 
                 // Nachrichten für Turnier-Tab
@@ -773,7 +773,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["ErrorGeneratingMatches"] = "Error creating matches:",
                 ["MatchesGeneratedSuccess"] = "Matches have been successfully created!",
                 ["MatchesResetSuccess"] = "Matches have been reset!",
-                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALL matches and phases will be deleted!\nOnly groups and players will be kept.",
+                ["ResetTournamentConfirm"] = "Do you really want to reset the entire tournament?\n\n⚠ ALLE matches and phases will be deleted!\nOnly groups and players will be kept.",
                 ["TournamentResetComplete"] = "The tournament has been successfully reset.",
                 ["ResetKnockoutConfirm"] = "Do you really want to reset the knockout phase?\n\n⚠ All KO matches and the tournament tree will be deleted!\nThe tournament will be reset to the group phase.",
                 ["ResetKnockoutComplete"] = "The knockout phase has been successfully reset.",
@@ -851,27 +851,27 @@ public class LocalizationService : INotifyPropertyChanged
 
                 // Startup und Update-Funktionen
                 ["StartingApplication"] = "Starting application...",
-                ["AppSubtitle"] = "Modern tournament management",
-                ["CheckingForUpdates"] = "Checking for updates...",
-                ["ConnectingToGitHub"] = "Connecting to GitHub...",
-                ["AnalyzingReleases"] = "Analyzing releases...",
-                ["UpdateAvailable"] = "Update available",
-                ["WhatsNew"] = "What's new:",
-                ["RemindLater"] = "Remind me later",
-                ["SkipVersion"] = "Skip version",
-                ["DownloadUpdate"] = "Download now",
-                ["DownloadAndInstall"] = "Download & Install",
-                ["DownloadingUpdate"] = "Downloading update",
-                ["PreparingDownload"] = "Preparing download...",
-                ["DownloadingSetup"] = "Downloading setup...",
-                ["DownloadCompleted"] = "Download completed, checking file...",
-                ["PreparingInstallation"] = "Preparing installation...",
-                ["StartingInstallation"] = "Starting installation...",
-                ["InstallationStarted"] = "Installation started",
-                ["InstallationCancelled"] = "Installation cancelled",
-                ["ErrorStartingSetup"] = "Error starting setup",
-                ["AdminRightsRequired"] = "Administrator rights required",
-                ["NoUpdateAvailable"] = "No updates available",
+                ["AppSubtitle"] = "Moderne Turnierverwaltung",
+                ["CheckingForUpdates"] = "Suche nach Updates...",
+                ["ConnectingToGitHub"] = "Verbinde mit GitHub...",
+                ["AnalyzingReleases"] = "Analysiere Releases...",
+                ["UpdateAvailable"] = "Update verfügbar",
+                ["WhatsNew"] = "Was ist neu:",
+                ["RemindLater"] = "Später erinnern",
+                ["SkipVersion"] = "Version überspringen",
+                ["DownloadUpdate"] = "Jetzt herunterladen",
+                ["DownloadAndInstall"] = "Herunterladen & Installieren",
+                ["DownloadingUpdate"] = "Update wird heruntergeladen",
+                ["PreparingDownload"] = "Bereite Download vor...",
+                ["DownloadingSetup"] = "Lade Setup herunter...",
+                ["DownloadCompleted"] = "Download abgeschlossen, prüfe Datei...",
+                ["PreparingInstallation"] = "Bereite Installation vor...",
+                ["StartingInstallation"] = "Starte Installation...",
+                ["InstallationStarted"] = "Installation gestartet",
+                ["InstallationCancelled"] = "Installation abgebrochen",
+                ["ErrorStartingSetup"] = "Fehler beim Starten",
+                ["AdminRightsRequired"] = "Administratorrechte erforderlich",
+                ["NoUpdateAvailable"] = "Keine Updates verfügbar",
             }
         };
     }
@@ -884,6 +884,12 @@ public class LocalizationService : INotifyPropertyChanged
     /// <returns>Übersetzter Text</returns>
     public string GetTranslation(string key)
     {
+        // Spezialbehandlung für AboutText - generiere dynamisch mit aktueller Version
+        if (key == "AboutText")
+        {
+            return GetDynamicAboutText();
+        }
+
         // Überprüfen, ob der Schlüssel in der aktuellen Sprache vorhanden ist
         if (_translations.TryGetValue(_currentLanguage, out var translations)
             && translations.TryGetValue(key, out var translation))
@@ -925,6 +931,60 @@ public class LocalizationService : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Generiert dynamischen About-Text mit aktueller Assembly-Version
+    /// </summary>
+    /// <param name="language">Sprache für die Übersetzung (optional, verwendet aktuelle Sprache wenn nicht angegeben)</param>
+    /// <returns>About-Text mit aktueller Versionsnummer</returns>
+    private string GetDynamicAboutText(string? language = null)
+    {
+        var currentVersion = GetCurrentAssemblyVersion();
+        var lang = language ?? _currentLanguage;
+
+        if (lang == "en")
+        {
+            return $"Dart Tournament Planner v{currentVersion}\n\nA modern tournament management software.\n\n© 2025 by I3uLL3t";
+        }
+        else // Deutsch als Standard
+        {
+            return $"Dart Turnier Planer v{currentVersion}\n\nEine moderne Turnierverwaltungssoftware.\n\n© 2025 by I3uLL3t";
+        }
+    }
+
+    /// <summary>
+    /// Ermittelt die aktuelle Assembly-Version der Anwendung
+    /// </summary>
+    /// <returns>Versionsnummer als String (z.B. "1.2.3")</returns>
+    private string GetCurrentAssemblyVersion()
+    {
+        try
+        {
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            
+            if (version != null)
+            {
+                // Format: Major.Minor.Build (ohne Revision für bessere Lesbarkeit)
+                return $"{version.Major}.{version.Minor}.{version.Build}";
+            }
+            
+            return "1.0.0"; // Fallback
+        }
+        catch
+        {
+            return "1.0.0"; // Fallback bei Fehlern
+        }
+    }
+
+    /// <summary>
+    /// Öffentliche Methode um die aktuelle Assembly-Version abzurufen
+    /// </summary>
+    /// <returns>Aktuelle Versionsnummer als String</returns>
+    public string GetApplicationVersion()
+    {
+        return GetCurrentAssemblyVersion();
+    }
+    
     /// <summary>
     /// Ändert die aktuelle Sprache und löst die Aktualisierung der UI-Elemente aus
     /// </summary>
