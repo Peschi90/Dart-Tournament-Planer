@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 
@@ -73,26 +74,29 @@ public partial class RoundRulesWindow : Window
             var nameBlock = new TextBlock 
             { 
                 Text = roundName,
-                FontWeight = FontWeights.Medium
+                FontWeight = FontWeights.Medium,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 8, 5, 8),
+                Foreground = System.Windows.Media.Brushes.DarkSlateGray
             };
             Grid.SetRow(nameBlock, row);
             Grid.SetColumn(nameBlock, 0);
             WinnerBracketGrid.Children.Add(nameBlock);
             
             // Sets TextBox
-            var setsBox = new TextBox();
+            var setsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(setsBox, row);
             Grid.SetColumn(setsBox, 1);
             WinnerBracketGrid.Children.Add(setsBox);
             
             // Legs TextBox
-            var legsBox = new TextBox();
+            var legsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(legsBox, row);
             Grid.SetColumn(legsBox, 2);
             WinnerBracketGrid.Children.Add(legsBox);
             
             // Legs per Set TextBox
-            var legsPerSetBox = new TextBox();
+            var legsPerSetBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(legsPerSetBox, row);
             Grid.SetColumn(legsPerSetBox, 3);
             WinnerBracketGrid.Children.Add(legsPerSetBox);
@@ -131,26 +135,29 @@ public partial class RoundRulesWindow : Window
             var nameBlock = new TextBlock 
             { 
                 Text = roundName,
-                FontWeight = FontWeights.Medium
+                FontWeight = FontWeights.Medium,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 8, 5, 8),
+                Foreground = System.Windows.Media.Brushes.DarkSlateGray
             };
             Grid.SetRow(nameBlock, row);
             Grid.SetColumn(nameBlock, 0);
             LoserBracketGrid.Children.Add(nameBlock);
             
             // Sets TextBox
-            var setsBox = new TextBox();
+            var setsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(setsBox, row);
             Grid.SetColumn(setsBox, 1);
             LoserBracketGrid.Children.Add(setsBox);
             
             // Legs TextBox
-            var legsBox = new TextBox();
+            var legsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(legsBox, row);
             Grid.SetColumn(legsBox, 2);
             LoserBracketGrid.Children.Add(legsBox);
             
             // Legs per Set TextBox
-            var legsPerSetBox = new TextBox();
+            var legsPerSetBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
             Grid.SetRow(legsPerSetBox, row);
             Grid.SetColumn(legsPerSetBox, 3);
             LoserBracketGrid.Children.Add(legsPerSetBox);
@@ -269,6 +276,17 @@ public partial class RoundRulesWindow : Window
         {
             _gameRules.ResetKnockoutRulesToDefault();
             LoadCurrentValues();
+        }
+    }
+
+    /// <summary>
+    /// Event-Handler für das Verschieben des Fensters über den Header
+    /// </summary>
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
         }
     }
 }

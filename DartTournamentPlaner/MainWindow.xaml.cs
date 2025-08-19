@@ -13,62 +13,83 @@ using System.Reflection;
 namespace DartTournamentPlaner;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// Code-Behind-Klasse für das Hauptfenster der Dart Tournament Planer Anwendung
+/// Verwaltet die vier Turnierklassen (Platin, Gold, Silber, Bronze) und koordiniert
+/// alle Services wie Konfiguration, Lokalisierung und Datenverwaltung
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly ConfigService _configService;
-    private readonly LocalizationService _localizationService;
-    private readonly DataService _dataService;
-    private readonly DispatcherTimer _autoSaveTimer = new DispatcherTimer();
-    private bool _hasUnsavedChanges = false;
+    // Service-Instanzen für die gesamte Anwendung
+    private readonly ConfigService _configService;           // Verwaltet App-Einstellungen
+    private readonly LocalizationService _localizationService; // Verwaltet Übersetzungen
+    private readonly DataService _dataService;              // Verwaltet Datenspeicherung/laden
+    
+    // Auto-Save System
+    private readonly DispatcherTimer _autoSaveTimer = new DispatcherTimer(); // Timer für automatisches Speichern
+    private bool _hasUnsavedChanges = false;                 // Flag für ungespeicherte Änderungen
 
+    /// <summary>
+    /// Konstruktor des Hauptfensters
+    /// Initialisiert alle Services und lädt gespeicherte Daten
+    /// </summary>
     public MainWindow()
     {
-        InitializeComponent();
+        InitializeComponent(); // WPF-Standard-Initialisierung
         
+        // Services aus App.xaml.cs holen und Null-Checks durchführen
         _configService = App.ConfigService ?? throw new InvalidOperationException("ConfigService not initialized");
         _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not initialized");
         _dataService = App.DataService ?? throw new InvalidOperationException("DataService not initialized");
 
-        InitializeTournamentClasses();
-        InitializeServices();
-        InitializeAutoSave();
-        UpdateTranslations();
-        LoadData();
+        // Initialisierung in logischer Reihenfolge
+        InitializeTournamentClasses(); // Erstelle die 4 Turnierklassen
+        InitializeServices();          // Konfiguriere Service-Events
+        InitializeAutoSave();         // Konfiguriere Auto-Save System
+        UpdateTranslations();         // Setze initiale Übersetzungen
+        LoadData();                   // Lade gespeicherte Turnierdaten
     }
 
+    /// <summary>
+    /// Initialisiert die vier Turnierklassen (Platin, Gold, Silber, Bronze)
+    /// Jede Klasse bekommt ihre eigene ID und ihren Namen zugewiesen
+    /// </summary>
     private void InitializeTournamentClasses()
     {
-        // Initialize each tournament class with its name
+        // Erstelle neue TournamentClass-Instanzen für jede Turnierstufe
         PlatinTab.TournamentClass = new TournamentClass { Id = 1, Name = "Platin" };
         GoldTab.TournamentClass = new TournamentClass { Id = 2, Name = "Gold" };
         SilberTab.TournamentClass = new TournamentClass { Id = 3, Name = "Silber" };
         BronzeTab.TournamentClass = new TournamentClass { Id = 4, Name = "Bronze" };
 
-        // WICHTIG: Nach der Initialisierung GroupPhase sicherstellen
+        // WICHTIG: Nach der Initialisierung GroupPhase für alle Klassen sicherstellen
+        // Das verhindert Null-Reference-Exceptions beim ersten Zugriff auf Groups
         System.Diagnostics.Debug.WriteLine("InitializeTournamentClasses: Ensuring GroupPhase exists for all tournament classes...");
         PlatinTab.TournamentClass.EnsureGroupPhaseExists();
         GoldTab.TournamentClass.EnsureGroupPhaseExists();
         SilberTab.TournamentClass.EnsureGroupPhaseExists();
         BronzeTab.TournamentClass.EnsureGroupPhaseExists();
 
-        // Subscribe to changes
+        // Event-Handler für Datenänderungen abonnieren
         SubscribeToChanges(PlatinTab.TournamentClass);
         SubscribeToChanges(GoldTab.TournamentClass);
         SubscribeToChanges(SilberTab.TournamentClass);
         SubscribeToChanges(BronzeTab.TournamentClass);
 
-        // Subscribe to data changed events from tabs
+        // Zusätzlich: Events von den Tab-Controls selbst abonnieren
         PlatinTab.DataChanged += (s, e) => MarkAsChanged();
         GoldTab.DataChanged += (s, e) => MarkAsChanged();
         SilberTab.DataChanged += (s, e) => MarkAsChanged();
         BronzeTab.DataChanged += (s, e) => MarkAsChanged();
     } 
 
-    // Track subscribed tournament classes to prevent double subscription
+    // Tracking-Set um doppelte Event-Handler-Registrierungen zu vermeiden
     private readonly HashSet<TournamentClass> _subscribedTournaments = new HashSet<TournamentClass>();
 
+    /// <summary>
+    /// Abonniert alle relevanten Events einer TournamentClass für automatisches Speichern
+    /// Verhindert doppelte Registrierungen durch Tracking-System
+    /// </summary>
+    /// <param name="tournamentClass">Die zu abonnierende TournamentClass</param>
     private void SubscribeToChanges(TournamentClass tournamentClass)
     {
         System.Diagnostics.Debug.WriteLine($"=== SubscribeToChanges START for {tournamentClass.Name} ===");
@@ -82,6 +103,7 @@ public partial class MainWindow : Window
         
         try
         {
+            // Abonniere Groups-Collection-Änderungen (Gruppen hinzufügen/entfernen)
             System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to Groups.CollectionChanged for {tournamentClass.Name}");
             tournamentClass.Groups.CollectionChanged += (s, e) => 
             {
@@ -89,7 +111,7 @@ public partial class MainWindow : Window
                 MarkAsChanged();
             };
             
-            // NEU: Abonniere das neue DataChangedEvent für Match-Ergebnisse und Freilose
+            // NEU: Abonniere das DataChangedEvent für Match-Ergebnisse und Freilose
             System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to DataChangedEvent for {tournamentClass.Name}");
             tournamentClass.DataChangedEvent += (s, e) => 
             {
@@ -98,10 +120,11 @@ public partial class MainWindow : Window
             };
             
             // WICHTIG: Direkte Zugriffe auf Groups vermeiden während der Subscription
-            // Verwende stattdessen direkten Zugriff auf die GroupPhase
+            // Verwende stattdessen direkten Zugriff auf die GroupPhase um Rekursion zu vermeiden
             var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
             if (groupPhase != null)
             {
+                // Abonniere Player-Collection-Änderungen für jede Gruppe
                 foreach (var group in groupPhase.Groups)
                 {
                     System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to Players.CollectionChanged for group {group.Name}");
@@ -113,11 +136,11 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: No GroupPhase found for {tournamentClass.Name}, skipping group subscriptions");
             }
             
-            // Subscribe to GameRules changes for automatic saving
+            // Abonniere GameRules-Änderungen für automatisches Speichern
             System.Diagnostics.Debug.WriteLine($"SubscribeToChanges: Subscribing to GameRules.PropertyChanged for {tournamentClass.Name}");
             tournamentClass.GameRules.PropertyChanged += (s, e) => MarkAsChanged();
             
-            // Markiere als abonniert
+            // Markiere als abonniert im Tracking-System
             _subscribedTournaments.Add(tournamentClass);
         }
         catch (Exception ex)
@@ -129,29 +152,35 @@ public partial class MainWindow : Window
         System.Diagnostics.Debug.WriteLine($"=== SubscribeToChanges END for {tournamentClass.Name} ===");
     }
 
+    /// <summary>
+    /// Initialisiert Service-Events und Callbacks
+    /// Konfiguriert Reaktionen auf Sprach- und Konfigurationsänderungen
+    /// </summary>
     private void InitializeServices()
     {
+        // Reagiere auf Lokalisierungs-Änderungen (Sprachwechsel)
         _localizationService.PropertyChanged += (s, e) => 
         {
             System.Diagnostics.Debug.WriteLine($"MainWindow: LocalizationService PropertyChanged - {e.PropertyName}");
-            UpdateTranslations();
+            UpdateTranslations(); // Aktualisiere alle UI-Texte
         };
         
+        // Reagiere auf Sprachwechsel über ConfigService
         _configService.LanguageChanged += (s, language) => 
         {
             System.Diagnostics.Debug.WriteLine($"MainWindow: LanguageChanged event received - changing from '{_localizationService.CurrentLanguage}' to '{language}'");
             
-            // Setze die Sprache im LocalizationService
+            // Setze die neue Sprache im LocalizationService
             _localizationService.SetLanguage(language);
             
-            // Force immediate UI update for all components
+            // Erzwinge sofortiges UI-Update für alle Komponenten
             Dispatcher.BeginInvoke(() =>
             {
                 System.Diagnostics.Debug.WriteLine($"MainWindow: Performing immediate UI updates after language change");
                 
-                UpdateLanguageStatus();
-                UpdateTranslations();
-                ForceUIUpdate();
+                UpdateLanguageStatus();    // Statusbar-Sprache
+                UpdateTranslations();      // Alle UI-Texte
+                ForceUIUpdate();          // Alle Child-Controls
                 
                 System.Diagnostics.Debug.WriteLine($"MainWindow: Language change UI updates completed");
             }, System.Windows.Threading.DispatcherPriority.Render);
@@ -159,7 +188,8 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Forces an immediate UI update for all components
+    /// Erzwingt ein sofortiges UI-Update für alle Komponenten
+    /// Wird nach Sprachwechseln aufgerufen um sicherzustellen dass alles aktualisiert wird
     /// </summary>
     private void ForceUIUpdate()
     {
@@ -167,12 +197,12 @@ public partial class MainWindow : Window
         
         try
         {
-            // Update main window components
+            // Aktualisiere Hauptfenster-Komponenten
             UpdateTranslations();
             UpdateLanguageStatus();
             UpdateStatusBar();
             
-            // Force child controls to update their translations immediately (synchronously)
+            // Erzwinge sofortige Übersetzungsaktualisierung für alle Tab-Controls
             PlatinTab?.UpdateTranslations();
             GoldTab?.UpdateTranslations();
             SilberTab?.UpdateTranslations();
@@ -186,30 +216,45 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Initialisiert das automatische Speichersystem
+    /// Konfiguriert Timer und reagiert auf Konfigurationsänderungen
+    /// </summary>
     private void InitializeAutoSave()
     {
+        // Konfiguriere Auto-Save Timer
         _autoSaveTimer.Tick += AutoSave_Tick;
         UpdateAutoSaveTimer();
         
+        // Reagiere auf Änderungen der Auto-Save-Einstellungen
         _configService.Config.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(AppConfig.AutoSave) || e.PropertyName == nameof(AppConfig.AutoSaveInterval))
             {
-                UpdateAutoSaveTimer();
+                UpdateAutoSaveTimer(); // Timer neu konfigurieren
             }
         };
     }
 
+    /// <summary>
+    /// Aktualisiert die Auto-Save Timer-Konfiguration basierend auf den Einstellungen
+    /// Startet oder stoppt den Timer je nach Konfiguration
+    /// </summary>
     private void UpdateAutoSaveTimer()
     {
         _autoSaveTimer.Stop();
         if (_configService.Config.AutoSave)
         {
+            // Setze Intervall aus Konfiguration und starte Timer
             _autoSaveTimer.Interval = TimeSpan.FromMinutes(_configService.Config.AutoSaveInterval);
             _autoSaveTimer.Start();
         }
     }
 
+    /// <summary>
+    /// Event-Handler für Auto-Save Timer
+    /// Speichert automatisch wenn ungespeicherte Änderungen vorhanden sind
+    /// </summary>
     private async void AutoSave_Tick(object? sender, EventArgs e)
     {
         if (_hasUnsavedChanges)
@@ -217,20 +262,24 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine("AutoSave_Tick: Auto-saving due to changes...");
             await SaveDataInternal();
             
-            // Reset timer to normal interval
+            // Timer auf normales Intervall zurücksetzen
             UpdateAutoSaveTimer();
         }
     }
 
+    /// <summary>
+    /// Markiert die Anwendung als "geändert" und löst Auto-Save-Logik aus
+    /// Zentrale Methode für alle Datenänderungen in der Anwendung
+    /// </summary>
     private void MarkAsChanged()
     {
         System.Diagnostics.Debug.WriteLine("=== MarkAsChanged triggered ===");
         System.Diagnostics.Debug.WriteLine($"MarkAsChanged: Data has been marked as changed at {DateTime.Now:HH:mm:ss.fff}");
         
         _hasUnsavedChanges = true;
-        UpdateStatusBar();
+        UpdateStatusBar(); // Statusleiste aktualisieren
         
-        // Triggere sofortiges Auto-Save wenn aktiviert (mit kleiner Verzögerung)
+        // Triggere sofortiges Auto-Save wenn aktiviert (mit kleiner Verzögerung für Batch-Updates)
         if (_configService.Config.AutoSave)
         {
             System.Diagnostics.Debug.WriteLine("MarkAsChanged: Auto-save enabled, scheduling immediate save...");
@@ -244,11 +293,16 @@ public partial class MainWindow : Window
         System.Diagnostics.Debug.WriteLine("=== MarkAsChanged end ===");
     }
 
+    /// <summary>
+    /// Aktualisiert alle übersetzten Texte in der Benutzeroberfläche
+    /// Wird bei Sprachwechseln und bei der Initialisierung aufgerufen
+    /// </summary>
     private void UpdateTranslations()
     {
+        // Hauptfenster-Titel
         Title = _localizationService.GetString("AppTitle");
         
-        // Update menu items
+        // Menü-Einträge aktualisieren
         FileMenuItem.Header = _localizationService.GetString("File");
         NewMenuItem.Header = _localizationService.GetString("New");
         OpenMenuItem.Header = _localizationService.GetString("Open");
@@ -263,7 +317,7 @@ public partial class MainWindow : Window
         BugReportMenuItem.Header = _localizationService.GetString("BugReport");
         AboutMenuItem.Header = _localizationService.GetString("About");
 
-        // Update tab headers
+        // Tab-Header aktualisieren (suche TextBlocks in StackPanel-Headern)
         var platinTextBlock = FindTextBlockInHeader(PlatinTabItem);
         if (platinTextBlock != null) platinTextBlock.Text = _localizationService.GetString("Platinum");
         
@@ -276,20 +330,27 @@ public partial class MainWindow : Window
         var bronzeTextBlock = FindTextBlockInHeader(BronzeTabItem);
         if (bronzeTextBlock != null) bronzeTextBlock.Text = _localizationService.GetString("Bronze");
 
-        // Update donation button
+        // Spenden-Button aktualisieren
         DonationButton.Content = _localizationService.GetString("Donate");
         DonationButton.ToolTip = _localizationService.GetString("DonateTooltip");
 
+        // Statusleiste und Sprachindikator aktualisieren
         UpdateLanguageStatus();
         UpdateStatusBar();
         
-        // Force child controls to update their translations
+        // Child-Controls zur Übersetzungsaktualisierung auffordern (asynchron)
         PlatinTab?.Dispatcher.BeginInvoke(() => PlatinTab?.UpdateTranslations());
         GoldTab?.Dispatcher.BeginInvoke(() => GoldTab?.UpdateTranslations());
         SilberTab?.Dispatcher.BeginInvoke(() => SilberTab?.UpdateTranslations());
         BronzeTab?.Dispatcher.BeginInvoke(() => BronzeTab?.UpdateTranslations());
     }
 
+    /// <summary>
+    /// Hilfsmethode: Findet das TextBlock-Element im Header eines TabItems
+    /// Tab-Header bestehen aus StackPanels mit Icons und TextBlocks
+    /// </summary>
+    /// <param name="tabItem">Das TabItem dessen Header durchsucht werden soll</param>
+    /// <returns>Das TextBlock-Element oder null wenn nicht gefunden</returns>
     private TextBlock? FindTextBlockInHeader(TabItem tabItem)
     {
         if (tabItem.Header is StackPanel stackPanel)
@@ -299,28 +360,43 @@ public partial class MainWindow : Window
         return null;
     }
 
+    /// <summary>
+    /// Aktualisiert den Sprachindikator in der Statusleiste
+    /// Zeigt die aktuelle Sprache als Kürzel (DE/EN) an
+    /// </summary>
     private void UpdateLanguageStatus()
     {
         LanguageStatusBlock.Text = _localizationService.CurrentLanguage.ToUpper();
     }
 
+    /// <summary>
+    /// Aktualisiert die Statusleiste mit Save-Status und allgemeinen Informationen
+    /// Zeigt an ob ungespeicherte Änderungen vorhanden sind
+    /// </summary>
     private void UpdateStatusBar()
     {
+        // Hauptstatus (Ready/Geändert)
         StatusTextBlock.Text = _hasUnsavedChanges ? 
             _localizationService.GetString("HasUnsavedChanges") : 
             _localizationService.GetString("Ready");
         
+        // Speicherstatus (Gespeichert/Nicht gespeichert)
         LastSavedBlock.Text = _hasUnsavedChanges ? 
             _localizationService.GetString("NotSaved") : 
             _localizationService.GetString("Saved");
     }
 
+    /// <summary>
+    /// Lädt gespeicherte Turnierdaten und weist sie den TournamentClass-Instanzen zu
+    /// Behandelt sowohl erfolgreiche Ladevorgänge als auch Fehler graceful
+    /// </summary>
     private async void LoadData()
     {
         try
         {
             System.Diagnostics.Debug.WriteLine("=== LoadData START ===");
             
+            // Lade Turnierdaten über DataService
             var data = await _dataService.LoadTournamentDataAsync();
             if (data.TournamentClasses.Count >= 4)
             {
@@ -332,11 +408,11 @@ public partial class MainWindow : Window
                 UnsubscribeFromChanges(SilberTab.TournamentClass);
                 UnsubscribeFromChanges(BronzeTab.TournamentClass);
                 
-                // Debug: Log groups before loading
+                // Debug: Logge Groups vor dem Laden
                 System.Diagnostics.Debug.WriteLine($"Before loading - Platin groups: {PlatinTab.TournamentClass?.Groups?.Count ?? 0}");
                 System.Diagnostics.Debug.WriteLine($"Before loading - Gold groups: {GoldTab.TournamentClass?.Groups?.Count ?? 0}");
                 
-                // Debug: Log loaded data
+                // Debug: Logge geladene Daten
                 for (int i = 0; i < data.TournamentClasses.Count; i++)
                 {
                     var tc = data.TournamentClasses[i];
@@ -355,11 +431,11 @@ public partial class MainWindow : Window
                 SilberTab.TournamentClass = data.TournamentClasses[2];
                 BronzeTab.TournamentClass = data.TournamentClasses[3];
 
-                // Debug: Log groups after loading
+                // Debug: Logge Groups nach dem Laden
                 System.Diagnostics.Debug.WriteLine($"After loading - Platin groups: {PlatinTab.TournamentClass?.Groups?.Count ?? 0}");
                 System.Diagnostics.Debug.WriteLine($"After loading - Gold groups: {GoldTab.TournamentClass?.Groups?.Count ?? 0}");
                 
-                // Namen und IDs sicherstellen
+                // Namen und IDs sicherstellen (überschreibt JSON-Daten mit korrekten Werten)
                 PlatinTab.TournamentClass.Name = "Platin";
                 GoldTab.TournamentClass.Name = "Gold";
                 SilberTab.TournamentClass.Name = "Silber";
@@ -386,7 +462,7 @@ public partial class MainWindow : Window
                 
                 System.Diagnostics.Debug.WriteLine("LoadData: Successfully loaded and assigned tournament classes");
                 
-                // Daten wurden erfolgreich geladen - KEINE weitere Initialisierung nötig
+                // Daten wurden erfolgreich geladen - keine ungespeicherten Änderungen
                 _hasUnsavedChanges = false;
                 UpdateStatusBar();
                 System.Diagnostics.Debug.WriteLine("=== LoadData END ===");
@@ -397,6 +473,7 @@ public partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine("LoadData: Not enough tournament classes loaded, keeping initialized ones");
             }
             
+            // Standard-Situation: Keine ungespeicherten Änderungen bei frischer Initialisierung
             _hasUnsavedChanges = false;
             UpdateStatusBar();
             System.Diagnostics.Debug.WriteLine("=== LoadData END ===");
@@ -409,6 +486,11 @@ public partial class MainWindow : Window
         }
     }
     
+    /// <summary>
+    /// Entfernt Event-Handler-Registrierungen für eine TournamentClass
+    /// Wichtig beim Laden neuer Daten um Memory Leaks zu vermeiden
+    /// </summary>
+    /// <param name="tournamentClass">Die TournamentClass deren Events entfernt werden sollen</param>
     private void UnsubscribeFromChanges(TournamentClass? tournamentClass)
     {
         if (tournamentClass == null) 
@@ -421,7 +503,7 @@ public partial class MainWindow : Window
         {
             System.Diagnostics.Debug.WriteLine($"=== UnsubscribeFromChanges START for {tournamentClass.Name} ===");
             
-            // Entferne aus dem Tracking
+            // Entferne aus dem Tracking-System
             if (_subscribedTournaments.Contains(tournamentClass))
             {
                 _subscribedTournaments.Remove(tournamentClass);
@@ -446,7 +528,9 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// NEUE METHODE: Bereinigt Duplikat-Phases und stellt eine korrekte GroupPhase sicher
+    /// Wird nach JSON-Deserialisierung aufgerufen um inkonsistente Datenstrukturen zu bereinigen
     /// </summary>
+    /// <param name="tournamentClass">Die zu bereinigende TournamentClass</param>
     private void CleanupDuplicatePhasesAndEnsureGroupPhase(TournamentClass tournamentClass)
     {
         System.Diagnostics.Debug.WriteLine($"=== CleanupDuplicatePhasesAndEnsureGroupPhase START for {tournamentClass.Name} ===");
@@ -494,7 +578,7 @@ public partial class MainWindow : Window
             
             cleanPhases.Add(groupPhase);
             
-            // 2. Behalte nur die neueste/aktive Phase von jedem anderen Typ
+            // 2. Behalte nur die beste/neueste Phase von jedem anderen Typ
             var knockoutPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.KnockoutPhase).ToList();
             var finalsPhases = tournamentClass.Phases.Where(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals).ToList();
             
@@ -504,9 +588,9 @@ public partial class MainWindow : Window
             if (knockoutPhases.Any())
             {
                 var latestKnockout = knockoutPhases
-                    .OrderByDescending(p => p.WinnerBracket?.Count ?? 0)
-                    .ThenByDescending(p => p.LoserBracket?.Count ?? 0)
-                    .ThenByDescending(p => p.IsActive)
+                    .OrderByDescending(p => p.WinnerBracket?.Count ?? 0)  // Meiste Winner Bracket Matches
+                    .ThenByDescending(p => p.LoserBracket?.Count ?? 0)    // Meiste Loser Bracket Matches
+                    .ThenByDescending(p => p.IsActive)                    // Aktive Phases bevorzugen
                     .First();
                     
                 System.Diagnostics.Debug.WriteLine($"  Keeping KnockoutPhase with {latestKnockout.WinnerBracket?.Count ?? 0} WB matches, {latestKnockout.LoserBracket?.Count ?? 0} LB matches");
@@ -514,7 +598,7 @@ public partial class MainWindow : Window
                 cleanPhases.Add(latestKnockout);
             }
             
-            // Behalte nur die letzte/aktivste FinalsPhase (falls vorhanden)
+            // Behalte nur die beste/aktivste FinalsPhase (falls vorhanden)
             if (finalsPhases.Any())
             {
                 var latestFinals = finalsPhases.OrderByDescending(p => p.IsActive).ThenBy(p => p.IsCompleted).First();
@@ -529,7 +613,7 @@ public partial class MainWindow : Window
                 tournamentClass.Phases.Add(phase);
             }
             
-            // 4. Bestimme die CurrentPhase korrekt
+            // 4. Bestimme die CurrentPhase korrekt basierend on verfügbaren Phasen
             var activeKnockout = cleanPhases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
             if (activeKnockout != null)
             {
@@ -568,7 +652,7 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: CRITICAL ERROR: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"CleanupDuplicatePhasesAndEnsureGroupPhase: Stack trace: {ex.StackTrace}");
             
-            // Fallback: Erstelle eine saubere GroupPhase
+            // Fallback: Erstelle eine saubere GroupPhase wenn alles fehlschlägt
             tournamentClass.Phases.Clear();
             var emergencyGroupPhase = new TournamentPhase
             {
@@ -581,12 +665,17 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Interne Methode zum Speichern der Turnierdaten
+    /// Sammelt alle vier TournamentClass-Instanzen und speichert sie über den DataService
+    /// </summary>
     private async Task SaveDataInternal()
     {
         try
         {
             System.Diagnostics.Debug.WriteLine("=== SaveDataInternal START ===");
             
+            // Erstelle TournamentData-Objekt mit allen vier Klassen
             var data = new TournamentData
             {
                 TournamentClasses = new List<TournamentClass>
@@ -600,6 +689,7 @@ public partial class MainWindow : Window
 
             System.Diagnostics.Debug.WriteLine($"SaveDataInternal: Saving {data.TournamentClasses.Count} tournament classes");
             
+            // Speichere über DataService
             await _dataService.SaveTournamentDataAsync(data);
             _hasUnsavedChanges = false;
             UpdateStatusBar();
@@ -612,11 +702,16 @@ public partial class MainWindow : Window
             var title = _localizationService.GetString("Error");
             var message = $"{_localizationService.GetString("ErrorSavingData")} {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-            throw;
+            throw; // Re-throw um Auto-Save-Logik zu benachrichtigen
         }
     }
 
-    // Menu Event Handlers
+    // MENÜ-EVENT-HANDLER - Behandeln alle Menü-Aktionen des Hauptfensters
+
+    /// <summary>
+    /// Event-Handler: Neues Turnier erstellen
+    /// Fragt Benutzer um Bestätigung und initialisiert alle TournamentClass-Instanzen neu
+    /// </summary>
     private void New_Click(object sender, RoutedEventArgs e)
     {
         var title = _localizationService.GetString("NewTournament");
@@ -625,12 +720,16 @@ public partial class MainWindow : Window
         
         if (result == MessageBoxResult.Yes)
         {
-            InitializeTournamentClasses();
+            InitializeTournamentClasses(); // Erstelle neue, leere TournamentClass-Instanzen
             _hasUnsavedChanges = false;
             UpdateStatusBar();
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Turnier aus Datei laden
+    /// Zeigt Dateiauswahl-Dialog (Feature noch nicht implementiert)
+    /// </summary>
     private void Open_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -641,18 +740,26 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
-            // Implementation for loading from custom file
+            // TODO: Implementierung für Laden aus benutzerdefinierter Datei
             var title = _localizationService.GetString("Information");
             var message = _localizationService.GetString("CustomFileNotImplemented");
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Turnier speichern
+    /// Speichert in die Standard-App-Daten
+    /// </summary>
     private async void Save_Click(object sender, RoutedEventArgs e)
     {
         await SaveDataInternal();
     }
 
+    /// <summary>
+    /// Event-Handler: Turnier unter neuem Namen speichern
+    /// Zeigt Dateiauswahl-Dialog (Feature noch nicht implementiert)
+    /// </summary>
     private void SaveAs_Click(object sender, RoutedEventArgs e)
     {
         var dialog = new SaveFileDialog
@@ -663,13 +770,17 @@ public partial class MainWindow : Window
 
         if (dialog.ShowDialog() == true)
         {
-            // Implementation for saving to custom file
+            // TODO: Implementierung für Speichern in benutzerdefinierte Datei
             var title = _localizationService.GetString("Information");
             var message = _localizationService.GetString("CustomFileSaveNotImplemented");
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Einstellungen öffnen
+    /// Zeigt SettingsWindow als modalen Dialog
+    /// </summary>
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new SettingsWindow(_configService, _localizationService);
@@ -677,11 +788,15 @@ public partial class MainWindow : Window
         
         if (settingsWindow.ShowDialog() == true)
         {
-            // Settings were saved, update any UI that depends on settings
+            // Einstellungen wurden gespeichert, aktualisiere abhängige UI-Elemente
             UpdateAutoSaveTimer();
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Über-Dialog anzeigen
+    /// Zeigt grundlegende Informationen über die Anwendung
+    /// </summary>
     private void About_Click(object sender, RoutedEventArgs e)
     {
         var title = _localizationService.GetString("About");
@@ -689,6 +804,10 @@ public partial class MainWindow : Window
         MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
+    /// <summary>
+    /// Event-Handler: Hilfe anzeigen
+    /// Öffnet das HelpWindow mit der Anwendungsdokumentation
+    /// </summary>
     private void Help_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -705,17 +824,29 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Anwendung beenden
+    /// Delegiert an HandleAppExit für einheitliche Exit-Behandlung
+    /// </summary>
     private async void Exit_Click(object sender, RoutedEventArgs e)
     {
         await HandleAppExit();
     }
 
+    /// <summary>
+    /// Override: Behandelt Fenster-Schließen-Event
+    /// Abbrechen des Schließvorgangs und Delegation an HandleAppExit
+    /// </summary>
     protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
-        e.Cancel = true;
-        await HandleAppExit();
+        e.Cancel = true; // Verhindere Standard-Schließverhalten
+        await HandleAppExit(); // Behandle Schließen mit Save-Prompt
     }
 
+    /// <summary>
+    /// Behandelt das Beenden der Anwendung mit Save-Prompt
+    /// Fragt bei ungespeicherten Änderungen ob gespeichert werden soll
+    /// </summary>
     private async Task HandleAppExit()
     {
         if (_hasUnsavedChanges)
@@ -729,33 +860,37 @@ public partial class MainWindow : Window
                 case MessageBoxResult.Yes:
                     try
                     {
-                        await SaveDataInternal();
+                        await SaveDataInternal(); // Speichere vor dem Beenden
                         Application.Current.Shutdown();
                     }
                     catch
                     {
-                        // If save fails, don't exit
+                        // Wenn Speichern fehlschlägt, nicht beenden
                         return;
                     }
                     break;
                 case MessageBoxResult.No:
-                    Application.Current.Shutdown();
+                    Application.Current.Shutdown(); // Beenden ohne Speichern
                     break;
                 case MessageBoxResult.Cancel:
-                    return;
+                    return; // Beenden abbrechen
             }
         }
         else
         {
-            Application.Current.Shutdown();
+            Application.Current.Shutdown(); // Kein Save nötig, direkt beenden
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Turnier-Übersichtsmodus öffnen
+    /// Erstellt und zeigt das TournamentOverviewWindow für Vollbild-Präsentationen
+    /// </summary>
     private void OverviewMode_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            // Get all tournament classes
+            // Sammle alle TournamentClass-Instanzen
             var tournamentClasses = new List<TournamentClass>
             {
                 PlatinTab.TournamentClass,
@@ -764,7 +899,7 @@ public partial class MainWindow : Window
                 BronzeTab.TournamentClass
             };
 
-            // Create and show the overview window
+            // Erstelle und zeige das Übersichtsfenster (nicht modal)
             var overviewWindow = new TournamentOverviewWindow(tournamentClasses, _localizationService);
             overviewWindow.Show();
         }
@@ -776,6 +911,10 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Bug-Report-Dialog öffnen
+    /// Ermöglicht Benutzern das Melden von Fehlern oder Verbesserungsvorschlägen
+    /// </summary>
     private void BugReport_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -792,6 +931,10 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Event-Handler: Spenden-Dialog öffnen
+    /// Zeigt Informationen zur Unterstützung der Entwicklung
+    /// </summary>
     private void Donation_Click(object sender, RoutedEventArgs e)
     {
         try

@@ -12,54 +12,79 @@ using DartTournamentPlaner.Views;
 
 namespace DartTournamentPlaner.Models;
 
+/// <summary>
+/// Repräsentiert eine komplette Turnierklasse (z.B. Platin, Gold, Silber, Bronze)
+/// Diese Klasse ist das Herzstück des Turniersystems und verwaltet alle Phasen eines Turniers
+/// Implementiert INotifyPropertyChanged für UI-Updates und unterstützt alle Turniermodi
+/// </summary>
 public class TournamentClass : INotifyPropertyChanged
 {
-    private int _id;
-    private string _name = "Platin";
-    private GameRules _gameRules = new GameRules();
-    private TournamentPhase? _currentPhase;
+    // Private Backing-Fields für die Eigenschaften
+    private int _id;                        // Eindeutige ID der Turnierklasse
+    private string _name = "Platin";        // Name der Klasse (z.B. Platin, Gold, etc.)
+    private GameRules _gameRules = new GameRules(); // Spielregeln für diese Klasse
+    private TournamentPhase? _currentPhase; // Aktuelle Phase des Turniers
 
+    /// <summary>
+    /// Eindeutige Identifikations-ID der Turnierklasse
+    /// </summary>
     public int Id
     {
         get => _id;
         set
         {
             _id = value;
-            OnPropertyChanged();
+            OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
 
+    /// <summary>
+    /// Name der Turnierklasse (z.B. "Platin", "Gold", "Silber", "Bronze")
+    /// Wird in der UI zur Anzeige der Tabs verwendet
+    /// </summary>
     public string Name
     {
         get => _name;
         set
         {
             _name = value;
-            OnPropertyChanged();
+            OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
 
+    /// <summary>
+    /// Spielregeln für diese Turnierklasse
+    /// Definiert Punkte (301/401/501), Sets/Legs, K.O.-Modi, etc.
+    /// </summary>
     public GameRules GameRules
     {
         get => _gameRules;
         set
         {
             _gameRules = value;
-            OnPropertyChanged();
+            OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
 
+    /// <summary>
+    /// Aktuelle Phase des Turniers (Gruppenphase, Finalrunde, K.O.-Phase)
+    /// Bestimmt welche Ansicht in der UI angezeigt wird
+    /// </summary>
     public TournamentPhase? CurrentPhase
     {
         get => _currentPhase;
         set
         {
             _currentPhase = value;
-            OnPropertyChanged();
+            OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
 
-    // Legacy support - Groups from the current or group phase
+    /// <summary>
+    /// Legacy-Unterstützung: Gruppen aus der aktuellen oder Gruppenphase
+    /// Diese Eigenschaft stellt eine einheitliche Schnittstelle für den Zugriff auf Gruppen bereit
+    /// und behandelt sowohl direkte Groups (für JSON-Deserialisierung) als auch Phase-basierte Groups
+    /// </summary>
     public ObservableCollection<Group> Groups 
     { 
         get 
@@ -91,13 +116,14 @@ public class TournamentClass : INotifyPropertyChanged
                 return CurrentPhase?.Groups ?? new ObservableCollection<Group>();
             }
             
+            // Wenn aktuelle Phase die Gruppenphase ist, gib deren Groups zurück
             if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
                 System.Diagnostics.Debug.WriteLine($"  Current phase is GroupPhase, returning {CurrentPhase.Groups.Count} groups");
                 return CurrentPhase.Groups;
             }
             
-            // If we're in later phases, return the groups from the group phase
+            // Wenn wir in späteren Phasen sind, gib die Groups aus der Gruppenphase zurück
             var groupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
             
             if (groupPhase?.Groups != null)
@@ -107,7 +133,7 @@ public class TournamentClass : INotifyPropertyChanged
             }
             
             System.Diagnostics.Debug.WriteLine($"  ERROR: No GroupPhase found after EnsureGroupPhaseExists - this should not happen!");
-            // Fallback: Notfall-GroupPhase erstellen
+            // Fallback: Notfall-GroupPhase erstellen wenn alle anderen Strategien fehlschlagen
             var emergencyGroupPhase = new TournamentPhase
             {
                 Name = "Gruppenphase",
@@ -123,7 +149,7 @@ public class TournamentClass : INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups setter called for {Name} with {value?.Count ?? 0} groups");
             
-            // Für JSON-Deserialisierung: Speichere Groups temporär
+            // Für JSON-Deserialisierung: Speichere Groups temporär in direkter Collection
             _directGroups = value ?? new ObservableCollection<Group>();
             
             // Wenn bereits eine CurrentPhase existiert, kopiere sofort
@@ -138,16 +164,24 @@ public class TournamentClass : INotifyPropertyChanged
                 _directGroups.Clear();
             }
             
-            OnPropertyChanged();
+            OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
     
     // Temporärer Storage für Groups beim JSON-Loading
+    // Wird während der Deserialisierung verwendet um Groups zu speichern bis die Phasen geladen sind
     private ObservableCollection<Group>? _directGroups;
 
-    // All tournament phases
+    /// <summary>
+    /// Alle Turnierphasen dieser Klasse
+    /// Enthält normalerweise: Gruppenphase, optional Finalrunde, optional K.O.-Phase
+    /// </summary>
     public ObservableCollection<TournamentPhase> Phases { get; set; } = new ObservableCollection<TournamentPhase>();
 
+    /// <summary>
+    /// Standard-Konstruktor für TournamentClass
+    /// Wichtig: Erstellt KEINE automatische GroupPhase um JSON-Deserialisierung nicht zu beeinträchtigen
+    /// </summary>
     public TournamentClass()
     {
         System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor START ===");
@@ -158,7 +192,7 @@ public class TournamentClass : INotifyPropertyChanged
         // 2. JSON-Deserialisierung fügt weitere Phases hinzu
         // 3. Resultat: Duplikat-GroupPhases!
         
-        // Stattdessen: Verwende eine Lazy Initialization-Strategie
+        // Stattdessen: Verwende eine Lazy Initialization-Strategie über EnsureGroupPhaseExists()
         System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Phases collection initialized, count = {Phases.Count}");
         
         System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor END ===");
@@ -167,6 +201,7 @@ public class TournamentClass : INotifyPropertyChanged
     /// <summary>
     /// NEUE METHODE: Stellt sicher, dass mindestens eine GroupPhase existiert
     /// Wird nach JSON-Deserialisierung oder bei erstem Zugriff aufgerufen
+    /// Implementiert Lazy Initialization um Duplikate zu vermeiden
     /// </summary>
     public void EnsureGroupPhaseExists()
     {
@@ -185,7 +220,7 @@ public class TournamentClass : INotifyPropertyChanged
             {
                 Name = "Gruppenphase",
                 PhaseType = TournamentPhaseType.GroupPhase,
-                IsActive = true
+                IsActive = true // Gruppenphase ist standardmäßig aktiv
             };
             
             System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new TournamentPhase with {groupPhase.Groups.Count} groups");
@@ -211,6 +246,11 @@ public class TournamentClass : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END ===");
     }
 
+    /// <summary>
+    /// Prüft ob zur nächsten Phase gewechselt werden kann
+    /// Delegiert die Prüfung an die aktuelle Phase
+    /// </summary>
+    /// <returns>True wenn alle Voraussetzungen für den Phasenwechsel erfüllt sind</returns>
     public bool CanProceedToNextPhase()
     {
         try
@@ -232,6 +272,11 @@ public class TournamentClass : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Ermittelt die nächste Phase basierend auf der aktuellen Phase und den Spielregeln
+    /// Implementiert die Turnierlogik für verschiedene Modi (nur Gruppen, Finals, K.O.)
+    /// </summary>
+    /// <returns>Die nächste Phase oder null wenn das Turnier beendet ist</returns>
     public TournamentPhase? GetNextPhase()
     {
         try
@@ -247,22 +292,23 @@ public class TournamentClass : INotifyPropertyChanged
             System.Diagnostics.Debug.WriteLine($"GetNextPhase: Current phase = {CurrentPhase.PhaseType}");
             System.Diagnostics.Debug.WriteLine($"GetNextPhase: PostGroupPhaseMode = {GameRules.PostGroupPhaseMode}");
 
+            // Bestimme nächste Phase basierend auf aktueller Phase und Spielregeln
             TournamentPhase? nextPhase = CurrentPhase.PhaseType switch
             {
                 TournamentPhaseType.GroupPhase => GameRules.PostGroupPhaseMode switch
                 {
                     PostGroupPhaseMode.RoundRobinFinals => CreateRoundRobinFinalsPhase(),
                     PostGroupPhaseMode.KnockoutBracket => CreateKnockoutPhase(),
-                    _ => null
+                    _ => null // Nur Gruppenphase - Turnier endet hier
                 },
 
                 TournamentPhaseType.RoundRobinFinals => GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket 
                     ? CreateKnockoutPhase() 
-                    : null,
+                    : null, // Finals waren letzte Phase
 
-                TournamentPhaseType.KnockoutPhase => null, // Tournament ends
+                TournamentPhaseType.KnockoutPhase => null, // K.O.-Phase ist immer die letzte Phase
 
-                _ => null
+                _ => null // Unbekannte Phase
             };
             
             System.Diagnostics.Debug.WriteLine($"GetNextPhase: Next phase = {nextPhase?.PhaseType}");
@@ -278,26 +324,37 @@ public class TournamentClass : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Führt den Wechsel zur nächsten Phase durch
+    /// Markiert die aktuelle Phase als abgeschlossen und aktiviert die nächste Phase
+    /// </summary>
     public void AdvanceToNextPhase()
     {
+        // Prüfung ob Phasenwechsel möglich ist
         if (!CanProceedToNextPhase()) return;
 
+        // Ermittlung der nächsten Phase
         var nextPhase = GetNextPhase();
         if (nextPhase == null) return;
 
-        // Mark current phase as completed
+        // Markiere aktuelle Phase als abgeschlossen
         if (CurrentPhase != null)
         {
             CurrentPhase.IsActive = false;
             CurrentPhase.IsCompleted = true;
         }
 
-        // Add and activate next phase
+        // Füge neue Phase hinzu und aktiviere sie
         Phases.Add(nextPhase);
         CurrentPhase = nextPhase;
         nextPhase.IsActive = true;
     }
 
+    /// <summary>
+    /// Erstellt eine Round-Robin-Finalrunde mit den qualifizierten Spielern aus der Gruppenphase
+    /// Alle qualifizierten Spieler spielen nochmals jeder gegen jeden
+    /// </summary>
+    /// <returns>Eine neue TournamentPhase für die Finalrunde</returns>
     private TournamentPhase CreateRoundRobinFinalsPhase()
     {
         System.Diagnostics.Debug.WriteLine($"=== CreateRoundRobinFinalsPhase START ===");
@@ -308,31 +365,33 @@ public class TournamentClass : INotifyPropertyChanged
             PhaseType = TournamentPhaseType.RoundRobinFinals
         };
 
-        // Get qualified players from group phase
+        // Hole qualifizierte Spieler aus der Gruppenphase
         var groupPhase = Phases.First(p => p.PhaseType == TournamentPhaseType.GroupPhase);
         var qualifiedPlayers = groupPhase.GetQualifiedPlayers(GameRules.QualifyingPlayersPerGroup);
 
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Found {qualifiedPlayers.Count} qualified players");
 
-        // Create finals group
+        // Erstelle Finals-Gruppe
         var finalsGroup = new Group
         {
-            Id = 999, // Special ID for finals
+            Id = 999, // Spezielle ID für Finals
             Name = "Finalrunde",
             MatchesGenerated = false
         };
 
+        // Füge alle qualifizierten Spieler zur Finals-Gruppe hinzu
         foreach (var player in qualifiedPlayers)
         {
             finalsGroup.Players.Add(player);
             System.Diagnostics.Debug.WriteLine($"  Added player: {player.Name}");
         }
 
-        // CRITICAL FIX: Generate the Round Robin matches for the finals group!
+        // KRITISCHER FIX: Generiere die Round Robin Matches für die Finals-Gruppe!
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generating Round Robin matches for {finalsGroup.Players.Count} players");
         finalsGroup.GenerateRoundRobinMatches(GameRules);
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generated {finalsGroup.Matches.Count} matches");
 
+        // Setze die Finals-Gruppe in der Phase
         finalsPhase.FinalsGroup = finalsGroup;
         finalsPhase.QualifiedPlayers = new ObservableCollection<Player>(qualifiedPlayers);
 

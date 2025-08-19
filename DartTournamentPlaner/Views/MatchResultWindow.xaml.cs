@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using System.Windows.Input;
 
 namespace DartTournamentPlaner.Views;
 
@@ -125,7 +126,13 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         SaveButton.Content = _localizationService.GetString("SaveResult");
         CancelButton.Content = _localizationService.GetString("Cancel");
         NotesLabel.Text = _localizationService.GetString("Notes") + ":";
-        LegsHeaderText.Text = _localizationService.GetString("Legs");
+        LegsHeaderText.Text = _localizationService.GetString("Legs").ToUpper();
+        
+        // Update header title dynamically
+        if (FindName("HeaderTitle") is TextBlock headerTitle)
+        {
+            headerTitle.Text = _localizationService.GetString("EnterMatchResult");
+        }
     }
 
     #region NumericUpDown Event Handlers
@@ -526,6 +533,17 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     {
         DialogResult = false;
         Close();
+    }
+
+    /// <summary>
+    /// Event-Handler für das Verschieben des Fensters über den Header
+    /// </summary>
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
     }
 
     /// <summary>

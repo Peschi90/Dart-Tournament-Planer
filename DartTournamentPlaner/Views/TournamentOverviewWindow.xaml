@@ -8,10 +8,44 @@
         Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
-        Background="#F5F5F5"
+        Title="Dart Tournament Planner - Overview"
+        Background="Transparent"
+        WindowStyle="None"
+        AllowsTransparency="False"
         Closing="Window_Closing">
     
     <Window.Resources>
+        <!-- Moderne Gradient-Hintergruende -->
+        <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F8FAFC" Offset="0"/>
+            <GradientStop Color="#F1F5F9" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#1E40AF" Offset="0"/>
+            <GradientStop Color="#1E3A8A" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="CardBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#FDFDFD" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <!-- Moderne Schatten-Effekte -->
+        <DropShadowEffect x:Key="ModernCardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="8" 
+                          BlurRadius="20" 
+                          Opacity="0.12"/>
+        
+        <DropShadowEffect x:Key="SubtleShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="8" 
+                          Opacity="0.06"/>
+
         <!-- Modern TabControl Style -->
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
@@ -26,19 +60,22 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <!-- Tab Headers -->
-                            <Border Grid.Row="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                            <!-- Tab Headers mit modernem Design -->
+                            <Border Grid.Row="0" 
+                                    Background="{StaticResource CardBackgroundBrush}" 
+                                    BorderBrush="#E2E8F0" 
+                                    BorderThickness="0,0,0,1"
+                                    Effect="{StaticResource SubtleShadow}">
                                 <TabPanel x:Name="HeaderPanel" 
                                          IsItemsHost="True" 
                                          Panel.ZIndex="1" 
                                          Background="Transparent"
-                                         Margin="10,0"/>
+                                         Margin="20,10,20,0"/>
                             </Border>
                             
                             <!-- Content Area -->
                             <Border Grid.Row="1" 
-                                    Background="White" 
-                                    BorderBrush="#E0E0E0" 
+                                    Background="{StaticResource CardBackgroundBrush}" 
                                     BorderThickness="0">
                                 <ContentPresenter x:Name="PART_SelectedContentHost"
                                                 ContentSource="SelectedContent"/>
@@ -49,7 +86,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern TabItem Style for Tournament Classes -->
+        <!-- Modern TabItem Style fuer Tournament Classes -->
         <Style TargetType="TabItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -57,11 +94,11 @@
                         <Grid>
                             <Border x:Name="Border"
                                     Background="Transparent"
-                                    BorderBrush="#CCCCCC"
-                                    BorderThickness="1,1,1,0"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
                                     CornerRadius="8,8,0,0"
-                                    Margin="2,0,2,0"
-                                    Padding="16,12,16,12">
+                                    Margin="4,0,4,0"
+                                    Padding="20,14,20,14">
                                 <ContentPresenter x:Name="ContentSite"
                                                 VerticalAlignment="Center"
                                                 HorizontalAlignment="Center"
@@ -73,138 +110,266 @@
                             <!-- Selected Tab -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="White"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
-                                <Setter TargetName="Border" Property="BorderThickness" Value="2,2,2,0"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,3"/>
                                 <Setter Property="Panel.ZIndex" Value="100"/>
-                                <Setter Property="Foreground" Value="#1976D2"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="14"/>
+                                <Setter TargetName="Border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="10" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             
                             <!-- Hover Effect -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#F0F8FF"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#64B5F6"/>
+                                <Setter TargetName="Border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F0F9FF" Offset="0"/>
+                                            <GradientStop Color="#E0F2FE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Foreground" Value="#0369A1"/>
                             </Trigger>
                             
                             <!-- Disabled -->
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Border" Property="Background" Value="#F5F5F5"/>
-                                <Setter Property="Foreground" Value="#AAAAAA"/>
+                                <Setter TargetName="Border" Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
                             </Trigger>
-                            
-                            <!-- Combination: Selected and Hover -->
-                            <MultiTrigger>
-                                <MultiTrigger.Conditions>
-                                    <Condition Property="IsSelected" Value="True"/>
-                                    <Condition Property="IsMouseOver" Value="True"/>
-                                </MultiTrigger.Conditions>
-                                <Setter TargetName="Border" Property="Background" Value="White"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#1565C0"/>
-                            </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
         
-        <!-- Modern Button Style -->
-        <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background" Value="#2196F3"/>
+        <!-- Modern Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3B82F6" Offset="0"/>
+                        <GradientStop Color="#2563EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="8"/>
             <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI, Segoe UI Emoji, Segoe UI Symbol"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource SubtleShadow}">
                             <ContentPresenter HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1976D2"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="Black" Direction="270" ShadowDepth="6" 
+                                                          BlurRadius="15" Opacity="0.15"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#1D4ED8" Offset="0"/>
+                                            <GradientStop Color="#1E3A8A" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        <!-- Success Button Style -->
-        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#4CAF50"/>
+
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#10B981" Offset="0"/>
+                        <GradientStop Color="#059669" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
         </Style>
-        
-        <!-- Danger Button Style -->
-        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#F44336"/>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#EF4444" Offset="0"/>
+                        <GradientStop Color="#DC2626" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#64748B" Offset="0"/>
+                        <GradientStop Color="#475569" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="MinWidth" Value="48"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="FontSize" Value="16"/>
         </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <!-- Hauptcontainer mit modernem Glaseffekt -->
+    <Border Background="{StaticResource WindowBackgroundBrush}">
+        <Grid Margin="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- Control Panel -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="15">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <!-- Header mit Gradient und Controls -->
+            <Border Grid.Row="0" Background="{StaticResource HeaderGradient}" 
+                    Effect="{StaticResource ModernCardShadow}">
+                <Grid Margin="24,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Left Side Controls -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Name="OverviewModeText" Text="Tournament Overview Mode" FontSize="18" FontWeight="Bold" Margin="0,0,30,0" VerticalAlignment="Center"/>
-                    
-                    <!-- Simple Start/Stop Button -->
-                    <Button Name="StartStopButton" Content="Start" 
-                            Style="{StaticResource SuccessButton}"
-                            Click="StartStop_Click" Margin="0,0,10,0"
-                            ToolTip="Starts or stops automatic tournament class cycling"/>
-                </StackPanel>
+                    <!-- Left Side - Title and Status -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="TV" FontSize="24" Margin="0,0,16,0" 
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold" Foreground="White"/>
+                        <StackPanel>
+                            <TextBlock Name="OverviewModeText" Text="Tournament Overview Mode" 
+                                       FontSize="20" FontWeight="SemiBold" 
+                                       Foreground="White" VerticalAlignment="Center"
+                                       FontFamily="Segoe UI"/>
+                        </StackPanel>
+                    </StackPanel>
 
-                <!-- Right Side Controls -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Name="ConfigureButton" Content="Configure" 
-                            Style="{StaticResource ModernButton}"
-                            Click="Configure_Click" Margin="0,0,10,0"
-                            ToolTip="Opens configuration options for the overview display"/>
-                    <Button Name="CloseButton" Content="Close" 
-                            Style="{StaticResource DangerButton}"
-                            Click="Close_Click"
-                            ToolTip="Closes the overview window"/>
-                </StackPanel>
-            </Grid>
-        </Border>
+                    <!-- Right Side Controls -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <!-- Control Buttons -->
+                        <Button Name="StartStopButton" Content="Start" 
+                                Style="{StaticResource SuccessButton}"
+                                Click="StartStop_Click" 
+                                ToolTip="Starts or stops automatic tournament class cycling"/>
+                        
+                        <Button Name="ConfigureButton" Content="Konfigurieren" 
+                                Style="{StaticResource SecondaryButton}"
+                                Click="Configure_Click" 
+                                ToolTip="Opens configuration options for the overview display"/>
+                        
+                        <Button Name="CloseButton" Content="X" 
+                                Style="{StaticResource IconButton}"
+                                Background="#EF4444"
+                                Click="Close_Click"
+                                ToolTip="Closes the overview window"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-        <!-- Main Tournament Classes TabControl -->
-        <TabControl Grid.Row="1" Name="MainTabControl" Margin="15" Background="White" BorderBrush="#DDDDDD" BorderThickness="1"/>
+            <!-- Main Content Area -->
+            <Border Grid.Row="1" Background="{StaticResource CardBackgroundBrush}" 
+                    Margin="16,0,16,16" CornerRadius="12"
+                    Effect="{StaticResource ModernCardShadow}">
+                <TabControl Name="MainTabControl" Margin="0"/>
+            </Border>
 
-        <!-- Status Bar -->
-        <StatusBar Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0">
-            <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Name="StatusTextBlock" Text="Ready" Margin="10,0,20,0"/>
-                    <TextBlock Name="CurrentDisplayTextBlock" Text="Manual Mode" Margin="0,0,20,0" FontWeight="Medium"/>
-                </StackPanel>
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Name="TimerTextBlock" Text="--:--" Margin="0,0,10,0" FontFamily="Consolas"/>
-                    <TextBlock Name="CycleInfoTextBlock" Text="Stopped" Margin="0,0,10,0" Foreground="Gray"/>
-                </StackPanel>
-            </StatusBarItem>
-        </StatusBar>
-    </Grid>
+            <!-- Modern Status Bar -->
+            <Border Grid.Row="2" Background="{StaticResource CardBackgroundBrush}" 
+                    BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"
+                    Effect="{StaticResource SubtleShadow}">
+                <Grid Margin="24,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left Side Status -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#EFF6FF" BorderBrush="#3B82F6" 
+                                BorderThickness="1" CornerRadius="6" 
+                                Padding="8,4" Margin="0,0,16,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="i" FontSize="12" 
+                                           Foreground="#3B82F6" 
+                                           Margin="0,0,6,0" VerticalAlignment="Center"
+                                           FontWeight="Bold"/>
+                                <TextBlock Name="StatusTextBlock" Text="Ready" 
+                                           FontSize="13" FontWeight="Medium"
+                                           Foreground="#1E40AF"
+                                           FontFamily="Segoe UI"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <TextBlock Name="CurrentDisplayTextBlock" Text="Manual Mode" 
+                                   FontSize="13" Foreground="#6B7280" 
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe UI"/>
+                    </StackPanel>
+
+                    <!-- Right Side Timer and Info -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#F3F4F6" CornerRadius="6" 
+                                Padding="10,4" Margin="0,0,12,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="t" FontSize="12" 
+                                           Margin="0,0,6,0" VerticalAlignment="Center"
+                                           FontWeight="Bold"/>
+                                <TextBlock Name="TimerTextBlock" Text="--:--" 
+                                           FontFamily="Consolas" FontSize="13" 
+                                           FontWeight="Medium" Foreground="#374151"/>
+                            </StackPanel>
+                        </Border>
+                        
+                        <TextBlock Name="CycleInfoTextBlock" Text="Stopped" 
+                                   FontSize="13" Foreground="#6B7280" 
+                                   VerticalAlignment="Center"
+                                   FontFamily="Segoe UI"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

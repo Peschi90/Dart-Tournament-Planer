@@ -3,32 +3,48 @@ using System.Runtime.CompilerServices;
 
 namespace DartTournamentPlaner.Services;
 
+/// <summary>
+/// Service zur Verwaltung der Lokalisierung/Übersetzung der Anwendung
+/// Unterstützt mehrere Sprachen (derzeit Deutsch und Englisch)
+/// Implementiert INotifyPropertyChanged für UI-Updates bei Sprachwechsel
+/// </summary>
 public class LocalizationService : INotifyPropertyChanged
 {
+    // Dictionary mit allen verfügbaren Übersetzungen
+    // Erste Ebene: Sprachcodes (de, en)
+    // Zweite Ebene: Übersetzungsschlüssel -> Übersetzter Text
     private readonly Dictionary<string, Dictionary<string, string>> _translations;
+    
+    // Aktuelle Sprache (Standard: Deutsch)
     private string _currentLanguage = "de";
 
+    /// <summary>
+    /// Initialisiert den LocalizationService mit allen verfügbaren Übersetzungen
+    /// Lädt deutsche und englische Sprachressourcen
+    /// </summary>
     public LocalizationService()
     {
+        // Initialisierung aller Übersetzungen für unterstützte Sprachen
         _translations = new Dictionary<string, Dictionary<string, string>>
         {
+            // Deutsche Übersetzungen
             ["de"] = new Dictionary<string, string>
             {
-                // Context Menu specific translations
+                // Kontext-Menü spezifische Übersetzungen
                 ["EditResult"] = "Ergebnis bearbeiten",
                 ["AutomaticBye"] = "Automatisches Freilos",
                 ["UndoByeShort"] = "Freilos rückgängig machen",
                 ["NoActionsAvailable"] = "Keine Aktionen verfügbar",
                 ["ByeToPlayer"] = "Freilos an {0}",
                 
-                // Main Window
+                // Hauptfenster
                 ["AppTitle"] = "Dart Turnier Planer",
                 ["Platinum"] = "Platin",
                 ["Gold"] = "Gold",
                 ["Silver"] = "Silber",
                 ["Bronze"] = "Bronze",
                 
-                // Tournament Tab
+                // Turnier-Tab Übersetzungen
                 ["SetupTab"] = "Turnier-Setup",
                 ["GroupPhaseTab"] = "Gruppenphase",
                 ["FinalsTab"] = "Finalrunde",
@@ -62,12 +78,12 @@ public class LocalizationService : INotifyPropertyChanged
                 ["RefreshUI"] = "UI aktualisieren",
                 ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche",
                 
-                // Phases
+                // Turnierprozessphasen
                 ["GroupPhase"] = "Gruppenphase",
                 ["FinalsPhase"] = "Finalrunde",
                 ["KnockoutPhase"] = "KO-Phase",
                 
-                // Game Rules
+                // Spielregeln
                 ["GameRules"] = "Spielregeln",
                 ["GameMode"] = "Spielmodus",
                 ["Points501"] = "501 Punkte",
@@ -84,7 +100,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["RulesPreview"] = "Regelvorschau",
                 ["AfterGroupPhaseHeader"] = "Nach der Gruppenphase",
 
-                // Post-Group Phase Settings
+                // Einstellungen nach der Gruppenphase
                 ["PostGroupPhase"] = "Nach der Gruppenphase",
                 ["PostGroupPhaseMode"] = "Modus nach Gruppenphase",
                 ["PostGroupPhaseNone"] = "Nur Gruppenphase",
@@ -96,7 +112,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["DoubleElimination"] = "Doppeltes KO (Winner + Loser Bracket)",
                 ["IncludeGroupPhaseLosersBracket"] = "Gruppenphase-Verlierer ins Loser Bracket",
                 
-                // Round-specific Rules
+                // Rundenspezifische Regeln
                 ["RoundSpecificRules"] = "Rundenspezifische Regeln",
                 ["ConfigureRoundRules"] = "Rundenregeln konfigurieren",
                 ["WinnerBracketRules"] = "Winner Bracket Regeln",
@@ -112,21 +128,18 @@ public class LocalizationService : INotifyPropertyChanged
                 ["SemifinalRules"] = "Halbfinale Regeln",
                 ["FinalRules"] = "Finale Regeln",
                 ["GrandFinalRules"] = "Grand Final Regeln",
-                ["LoserRound1Rules"] = "LR1 Regeln",
-                ["LoserRound2Rules"] = "LR2 Regeln",
-                ["LoserRound3Rules"] = "LR3 Regeln",
-                ["LoserRound4Rules"] = "LR4 Regeln",
-                ["LoserRound5Rules"] = "LR5 Regeln",
-                ["LoserRound6Rules"] = "LR6 Regeln",
-                ["LoserRound7Rules"] = "LR7 Regeln",
-                ["LoserRound8Rules"] = "LR8 Regeln",
-                ["LoserRound9Rules"] = "LR9 Regeln",
-                ["LoserRound10Rules"] = "LR10 Regeln",
-                ["LoserRound11Rules"] = "LR11 Regeln",
-                ["LoserRound12Rules"] = "LR12 Regeln",
-                ["LoserFinalRules"] = "Loser Final Regeln",
+                
+                // Individual round names for GetRoundDisplayName
+                ["Best64"] = "Beste 64",
+                ["Best32"] = "Beste 32", 
+                ["Best16"] = "Beste 16",
+                ["Quarterfinal"] = "Viertelfinale",
+                ["Semifinal"] = "Halbfinale",
+                ["Final"] = "Finale",
+                ["GrandFinal"] = "Grand Final",
+                ["LoserBracket"] = "Loser Bracket",
 
-                // Matches
+                // Spiele und Match-Management
                 ["Matches"] = "Spiele:",
                 ["Standings"] = "Tabelle:",
                 ["GenerateMatches"] = "Spiele generieren",
@@ -145,7 +158,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Legs"] = "Legs",
                 ["Score"] = "Punkte",
                 
-                // Settings
+                // Anwendungseinstellungen
                 ["Settings"] = "Einstellungen",
                 ["Language"] = "Sprache",
                 ["Theme"] = "Design",
@@ -154,7 +167,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Save"] = "Speichern",
                 ["Cancel"] = "Abbrechen",
                 
-                // Menu
+                // Menü-Einträge
                 ["File"] = "Datei",
                 ["New"] = "Neu",
                 ["Open"] = "Öffnen",
@@ -165,13 +178,13 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Help"] = "Hilfe",
                 ["About"] = "Über",
                 
-                // Status
+                // Status-Anzeigen
                 ["HasUnsavedChanges"] = "Geändert",
                 ["NotSaved"] = "Nicht gespeichert",
                 ["Saved"] = "Gespeichert",
                 ["Ready"] = "Bereit",
                 
-                // Common
+                // Allgemeine UI-Elemente
                 ["Close"] = "Schließen",
                 ["OK"] = "OK",
                 ["Start"] = "Start",
@@ -186,7 +199,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Warning"] = "Warnung",
                 ["Error"] = "Fehler",
                 
-                // Help System
+                // Hilfesystem
                 ["HelpTitle"] = "Hilfe - Dart Turnier Planer",
                 ["HelpGeneral"] = "Allgemeine Bedienung",
                 ["HelpTournamentSetup"] = "Turnier-Setup",
@@ -197,7 +210,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["HelpMenus"] = "Menüs & Funktionen",
                 ["HelpTips"] = "Tipps & Tricks",
                 
-                // Help Content
+                // Ausführliche Hilfe-Inhalte
                 ["HelpGeneralContent"] = "Der Dart Turnier Planer hilft Ihnen bei der Verwaltung von Dart-Turnieren mit bis zu 4 verschiedenen Klassen (Platin, Gold, Silber, Bronze).\n\n" +
                     "• Verwenden Sie die Tabs oben, um zwischen den Klassen zu wechseln\n" +
                     "• Alle Änderungen werden automatisch gespeichert (wenn aktiviert)\n" +
@@ -262,7 +275,7 @@ public class LocalizationService : INotifyPropertyChanged
                     "• Verschiedene Regeln für verschiedene Turnierrunden möglich\n" +
                     "• Export/Import von Turnierdaten über das Datei-Menü",
                 
-                // Turnierübersicht
+                // Turnierübersicht-spezifische Übersetzungen
                 ["TournamentOverview"] = "📺 Turnier-Übersicht",
                 ["OverviewMode"] = "Übersichtsmodus",
                 ["Configure"] = "Konfigurieren",
@@ -275,7 +288,7 @@ public class LocalizationService : INotifyPropertyChanged
                 // Spielstatus
                 ["Unknown"] = "Unbekannt",
 
-                // Turnierübersicht spezifisch
+                // Weitere Turnierübersicht Begriffe
                 ["StartCycling"] = "Start",
                 ["StopCycling"] = "Stopp",
                 ["WinnerBracketMatches"] = "Spiele im Gewinnerbaum",
@@ -301,7 +314,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["TimeBetweenSubTabs"] = "Zeit zwischen Unterreitern:",
                 ["Seconds"] = "Sekunden",
                 ["ShowOnlyActiveClassesText"] = "Nur Klassen mit aktiven Gruppen anzeigen",
-                ["OverviewInfoText"] = "Die Übersicht wechselt automatisch endlos zwischen den Turnierklassen und deren Gruppen/Bäumen. Sie können dieses Fenster auf einen zweiten Monitor verschieben.",
+                ["OverviewInfoText"] = "Live-Turnierdarstellung für alle Klassen mit automatischem Wechsel",
                 ["InvalidClassInterval"] = "Ungültiges Klassenintervall. Bitte eine Zahl ≥ 1 eingeben.",
                 ["InvalidSubTabInterval"] = "Ungültiges Unterreiterintervall. Bitte eine Zahl ≥ 1 eingeben.",
 
@@ -384,7 +397,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["InputDialog"] = "Eingabe",
                 ["EnterName"] = "Name eingeben:",
 
-                // Donation & Bug Report
+                // Spenden- und Bug-Report-Funktionen
                 ["Donate"] = "💝 Donate",
                 ["DonateTooltip"] = "Support the development of this project",
                 ["BugReport"] = "🐛 Report Bug",
@@ -407,13 +420,13 @@ public class LocalizationService : INotifyPropertyChanged
                 ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps with improving and maintaining the software.",
                 ["OpenDonationPage"] = "Open Donation Page",
 
-                // Loading Spinner
+                // Loading Spinner / Lade-Anzeige
                 ["Loading"] = "Wird geladen...",
                 ["CheckingGroupStatus"] = "Überprüfe Gruppenstatus...",
                 ["ProcessingMatches"] = "Verarbeite Spiele...",
                 ["CheckingCompletion"] = "Überprüfe Abschluss...",
 
-                // Tournament Tree Messages
+                // Turnierbaum-Nachrichten
                 ["NoLoserBracketSingleElimination"] = "Kein Loser Bracket (Single Elimination)",
                 ["NoLoserBracketGames"] = "Keine Loser Bracket Spiele vorhanden",
                 ["NoWinnerBracketGames"] = "Keine Winner Bracket Spiele vorhanden",
@@ -422,11 +435,9 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Versus"] = "vs",
                 ["AllGroupsCompleted"] = "🎉 Alle Gruppen sind abgeschlossen!\n\nSie können jetzt zur nächsten Phase wechseln.",
                 ["FinalsCompleted"] = "🏆 Die Finalrunde ist abgeschlossen!\n\nAlle Spiele wurden beendet. Das Turnier ist komplett!",
-                
-                // Loading Progress Messages
-                ["CheckingFinalsStatus"] = "Überprüfe Finalrunden-Status...",
-                ["ProcessingFinalsMatches"] = "Verarbeite Finals-Spiele...",
             },
+            
+            // Englische Übersetzungen (vollständige Kopie mit englischen Texten)
             ["en"] = new Dictionary<string, string>
             {
                 // Context Menu specific translations
@@ -527,19 +538,16 @@ public class LocalizationService : INotifyPropertyChanged
                 ["SemifinalRules"] = "Semifinal Rules",
                 ["FinalRules"] = "Final Rules",
                 ["GrandFinalRules"] = "Grand Final Rules",
-                ["LoserRound1Rules"] = "LR1 Rules",
-                ["LoserRound2Rules"] = "LR2 Rules",
-                ["LoserRound3Rules"] = "LR3 Rules",
-                ["LoserRound4Rules"] = "LR4 Rules",
-                ["LoserRound5Rules"] = "LR5 Rules",
-                ["LoserRound6Rules"] = "LR6 Rules",
-                ["LoserRound7Rules"] = "LR7 Rules",
-                ["LoserRound8Rules"] = "LR8 Rules",
-                ["LoserRound9Rules"] = "LR9 Rules",
-                ["LoserRound10Rules"] = "LR10 Rules",
-                ["LoserRound11Rules"] = "LR11 Rules",
-                ["LoserRound12Rules"] = "LR12 Rules",
-                ["LoserFinalRules"] = "Loser Final Rules",
+                
+                // Individual round names for GetRoundDisplayName
+                ["Best64"] = "Best 64",
+                ["Best32"] = "Best 32", 
+                ["Best16"] = "Best 16",
+                ["Quarterfinal"] = "Quarterfinal",
+                ["Semifinal"] = "Semifinal",
+                ["Final"] = "Final",
+                ["GrandFinal"] = "Grand Final",
+                ["LoserBracket"] = "Loser Bracket",
 
                 // Matches
                 ["Matches"] = "Matches:",
@@ -716,7 +724,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["TimeBetweenSubTabs"] = "Time between sub-tabs:",
                 ["Seconds"] = "Seconds",
                 ["ShowOnlyActiveClassesText"] = "Show only classes with active groups",
-                ["OverviewInfoText"] = "The overview automatically cycles endlessly between tournament classes and their groups/trees. You can move this window to a second monitor.",
+                ["OverviewInfoText"] = "Live tournament display for all classes with automatic cycling",
                 ["InvalidClassInterval"] = "Invalid class interval. Please enter a number ≥ 1.",
                 ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number ≥ 1.",
 
@@ -800,7 +808,7 @@ public class LocalizationService : INotifyPropertyChanged
                 ["EnterName"] = "Enter name:",
 
                 // Donation & Bug Report
-                ["Donate"] = "💝 Donate",
+                ["Donate"] = "💝",
                 ["DonateTooltip"] = "Support the development of this project",
                 ["BugReport"] = "🐛 Report Bug",
                 ["BugReportTooltip"] = "Report bugs or suggest improvements",
@@ -837,15 +845,18 @@ public class LocalizationService : INotifyPropertyChanged
                 ["Versus"] = "vs",
                 ["AllGroupsCompleted"] = "🎉 All groups are completed!\n\nYou can now proceed to the next phase.",
                 ["FinalsCompleted"] = "🏆 The finals are completed!\n\nAll matches have been finished. The tournament is complete!",
-                
-                // Loading Progress Messages
-                ["CheckingFinalsStatus"] = "Checking finals status...",
-                ["ProcessingFinalsMatches"] = "Processing finals matches...",
             },
         };
     }
 
-    // Public method for external access (GetString)
+    // Öffentliche Methode für externen Zugriff (GetString)
+    /// <summary>
+    /// Holt eine übersetzte Zeichenkette basierend auf dem Schlüssel
+    /// Unterstützt String-Formatierung mit Parametern
+    /// </summary>
+    /// <param name="key">Übersetzungsschlüssel</param>
+    /// <param name="args">Optionale Formatierungsparameter</param>
+    /// <returns>Übersetzte Zeichenkette oder Schlüssel als Fallback</returns>
     public string GetString(string key, params object[] args)
     {
         var translation = Translate(key, _currentLanguage);
@@ -856,7 +867,11 @@ public class LocalizationService : INotifyPropertyChanged
         return translation;
     }
 
-    // Public property for CurrentLanguage
+    // Öffentliche Eigenschaft für aktuelle Sprache
+    /// <summary>
+    /// Aktuelle Sprache der Anwendung (z.B. "de" für Deutsch, "en" für Englisch)
+    /// Löst PropertyChanged Events aus wenn sich die Sprache ändert
+    /// </summary>
     public string CurrentLanguage
     {
         get => _currentLanguage;
@@ -865,12 +880,16 @@ public class LocalizationService : INotifyPropertyChanged
             if (_currentLanguage != value)
             {
                 _currentLanguage = value;
-                OnPropertyChanged();
+                OnPropertyChanged(); // Benachrichtigt UI über Sprachwechsel
             }
         }
     }
 
-    // Public property for CurrentTranslations
+    // Öffentliche Eigenschaft für aktuelle Übersetzungen
+    /// <summary>
+    /// Dictionary mit allen Übersetzungen für die aktuelle Sprache
+    /// Wird von UI-Komponenten verwendet um direkt auf Übersetzungen zuzugreifen
+    /// </summary>
     public Dictionary<string, string> CurrentTranslations
     {
         get
@@ -879,33 +898,56 @@ public class LocalizationService : INotifyPropertyChanged
             {
                 return translations;
             }
-            return new Dictionary<string, string>();
+            return new Dictionary<string, string>(); // Leeres Dictionary als Fallback
         }
     }
 
-    // Keep the original Translate method for internal use
+    // Interne Übersetzungsmethode - behält die ursprüngliche Funktionalität
+    /// <summary>
+    /// Übersetzt einen Schlüssel in die angegebene oder aktuelle Sprache
+    /// Diese Methode wird intern verwendet, GetString sollte für externen Zugriff genutzt werden
+    /// </summary>
+    /// <param name="key">Übersetzungsschlüssel</param>
+    /// <param name="language">Zielsprache (optional, Standard ist aktuelle Sprache)</param>
+    /// <returns>Übersetzte Zeichenkette oder Schlüssel als Fallback</returns>
     public string Translate(string key, string? language = null)
     {
-        language ??= _currentLanguage;
+        language ??= _currentLanguage; // Verwende aktuelle Sprache wenn keine angegeben
 
+        // Versuche Übersetzung zu finden: Sprache -> Schlüssel -> Übersetzung
         if (_translations.TryGetValue(language, out var translations) && translations.TryGetValue(key, out var translation))
         {
             return translation;
         }
 
-        return key; // Fallback to key if no translation is found
+        return key; // Fallback zum Schlüssel wenn keine Übersetzung gefunden
     }
 
+    /// <summary>
+    /// Setzt die aktuelle Sprache und benachrichtigt die UI über die Änderung
+    /// </summary>
+    /// <param name="language">Neue Sprache (z.B. "de", "en")</param>
     public void SetLanguage(string language)
     {
         _currentLanguage = language;
-        OnPropertyChanged(nameof(CurrentLanguage));
+        OnPropertyChanged(nameof(CurrentLanguage)); // Explizite Benachrichtigung
     }
 
+    /// <summary>
+    /// Gibt die aktuelle Sprache zurück
+    /// Einfache Getter-Methode für externe Klassen
+    /// </summary>
+    /// <returns>Aktuelle Sprache als String</returns>
     public string GetCurrentLanguage() => _currentLanguage;
 
+    // INotifyPropertyChanged Implementation für UI-Updates
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>
+    /// Löst PropertyChanged Event aus um UI über Änderungen zu benachrichtigen
+    /// Wird hauptsächlich bei Sprachwechseln verwendet
+    /// </summary>
+    /// <param name="propertyName">Name der geänderten Eigenschaft (automatisch erkannt)</param>
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

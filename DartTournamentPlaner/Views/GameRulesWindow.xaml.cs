@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 
@@ -64,11 +65,9 @@ public partial class GameRulesWindow : Window
         KnockoutModeLabel.Text = _localizationService.GetString("KnockoutMode") + ":";
         IncludeGroupPhaseLosersBracketCheckBox.Content = _localizationService.GetString("IncludeGroupPhaseLosersBracket");
         
-        PreviewLabel.Text = _localizationService.GetString("RulesPreview") + ":";
+        // Button translations
         SaveButton.Content = _localizationService.GetString("Save");
         CancelButton.Content = _localizationService.GetString("Cancel");
-        ConfigureRoundRulesButton.Content = _localizationService.GetString("ConfigureRoundRules");
-        AfterGroupPhaseHeader.Text = _localizationService.GetString("AfterGroupPhaseHeader");
 
         UpdateComboBoxContents();
     }
@@ -128,17 +127,6 @@ public partial class GameRulesWindow : Window
 
     private void UpdateVisibility()
     {
-        // Show/hide sets configuration
-        SetsConfigGrid.Visibility = PlayWithSetsCheckBox.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        
-        // Show/hide knockout configuration
-        var showKnockout = PostGroupPhaseModeComboBox.SelectedValue?.ToString() == "KnockoutBracket";
-        KnockoutConfigGrid.Visibility = showKnockout ? Visibility.Visible : Visibility.Collapsed;
-        
-        // Show/hide loser bracket configuration
-        var showLoserBracket = showKnockout && KnockoutModeComboBox.SelectedValue?.ToString() == "DoubleElimination";
-        LoserBracketConfigPanel.Visibility = showLoserBracket ? Visibility.Visible : Visibility.Collapsed;
-        
         // Show/hide qualifying players (only for post-group phases)
         var showQualifying = PostGroupPhaseModeComboBox.SelectedValue?.ToString() != "None";
         QualifyingPlayersLabel.Visibility = showQualifying ? Visibility.Visible : Visibility.Collapsed;
@@ -147,7 +135,8 @@ public partial class GameRulesWindow : Window
 
     private void UpdatePreview()
     {
-        PreviewText.Text = _gameRules.ToString();
+        // Update preview text - use the new TextBlock name
+        RulesPreviewTextBlock.Text = _gameRules.ToString();
     }
 
     private void GameRules_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -155,24 +144,87 @@ public partial class GameRulesWindow : Window
         UpdatePreview();
     }
 
+    // Event Handlers
+    private void GameModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdatePreview();
+    }
+
+    private void FinishModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdatePreview();
+    }
+
+    private void LegsToWinTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (int.TryParse(LegsToWinTextBox.Text, out var legsToWin) && legsToWin > 0)
+        {
+            _gameRules.LegsToWin = legsToWin;
+        }
+    }
+
     private void PlayWithSetsCheckBox_Checked(object sender, RoutedEventArgs e)
     {
+        _gameRules.PlayWithSets = true;
         UpdateVisibility();
     }
 
     private void PlayWithSetsCheckBox_Unchecked(object sender, RoutedEventArgs e)
     {
+        _gameRules.PlayWithSets = false;
         UpdateVisibility();
+    }
+
+    private void SetsToWinTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (int.TryParse(SetsToWinTextBox.Text, out var setsToWin) && setsToWin > 0)
+        {
+            _gameRules.SetsToWin = setsToWin;
+        }
+    }
+
+    private void LegsPerSetTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (int.TryParse(LegsPerSetTextBox.Text, out var legsPerSet) && legsPerSet > 0)
+        {
+            _gameRules.LegsPerSet = legsPerSet;
+        }
     }
 
     private void PostGroupPhaseModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (Enum.TryParse<PostGroupPhaseMode>(PostGroupPhaseModeComboBox.SelectedValue?.ToString(), out var mode))
+        {
+            _gameRules.PostGroupPhaseMode = mode;
+        }
         UpdateVisibility();
+    }
+
+    private void QualifyingPlayersTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (int.TryParse(QualifyingPlayersTextBox.Text, out var players) && players > 0)
+        {
+            _gameRules.QualifyingPlayersPerGroup = players;
+        }
     }
 
     private void KnockoutModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (Enum.TryParse<KnockoutMode>(KnockoutModeComboBox.SelectedValue?.ToString(), out var mode))
+        {
+            _gameRules.KnockoutMode = mode;
+        }
         UpdateVisibility();
+    }
+
+    private void IncludeGroupPhaseLosersBracketCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        _gameRules.IncludeGroupPhaseLosersBracket = true;
+    }
+
+    private void IncludeGroupPhaseLosersBracketCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        _gameRules.IncludeGroupPhaseLosersBracket = false;
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -247,5 +299,16 @@ public partial class GameRulesWindow : Window
         };
         
         roundRulesWindow.ShowDialog();
+    }
+
+    /// <summary>
+    /// Event-Handler für das Verschieben des Fensters über den Header
+    /// </summary>
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
     }
 }

@@ -1,137 +1,322 @@
 <Window x:Class="DartTournamentPlaner.Views.RoundRulesWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Round Rules Configuration" Height="700" Width="900"
+        Title="Rundenregeln-Konfiguration" Height="750" Width="950"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="CanResize">
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
     <Window.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Background" Value="#2196F3"/>
+        <!-- Moderne Button-Styles -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3B82F6" Offset="0"/>
+                        <GradientStop Color="#2563EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="MinWidth" Value="120"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="4"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" 
-                                              VerticalAlignment="Center"/>
+                        <Border Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1976D2"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        <Style TargetType="TextBox">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+
+        <Style x:Key="ModernCancelButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Width" Value="50"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        
-        <Style TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="5"/>
+
+        <Style x:Key="ResetButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#F59E0B" Offset="0"/>
+                        <GradientStop Color="#D97706" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Moderne TabControl und TabItem Styles -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="TabStripPlacement" Value="Top"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border x:Name="Border"
+                                    Background="Transparent"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
+                                    CornerRadius="8,8,0,0"
+                                    Margin="3,0,3,0"
+                                    Padding="16,12,16,12">
+                                <ContentPresenter x:Name="ContentSite"
+                                                VerticalAlignment="Center"
+                                                HorizontalAlignment="Center"
+                                                ContentSource="Header"
+                                                RecognizesAccessKey="True"/>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="White"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,3"/>
+                                <Setter Property="Panel.ZIndex" Value="100"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#F0F9FF"/>
+                                <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Moderne TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Name="border" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" Padding="2">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        
-        <!-- Title -->
-        <TextBlock Grid.Row="0" Name="TitleBlock" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
-        
-        <!-- Main Content -->
-        <TabControl Grid.Row="2" Name="RoundRulesTabControl">
-            <!-- Winner Bracket Tab -->
-            <TabItem Name="WinnerBracketTab" Header="Winner Bracket">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10">
-                        
-                        <!-- Winner Bracket Header -->
-                        <Border Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,15">
-                            <TextBlock Name="WinnerBracketHeaderText" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        </Border>
-                        
-                        <!-- Winner Bracket Rules Grid -->
-                        <Grid Name="WinnerBracketGrid">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- Headers -->
-                            <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" Margin="5,10"/>
-                            <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            
-                            <!-- Dynamic content will be added here -->
-                        </Grid>
-                        
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
+    <!-- Hauptcontainer mit modernem Design -->
+    <Border Background="Transparent" Margin="10">
+        <Border Background="{x:Static SystemColors.WindowBrush}" 
+                CornerRadius="12" 
+                BorderBrush="#E2E8F0" 
+                BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" 
+                                  BlurRadius="20" Opacity="0.15"/>
+            </Border.Effect>
             
-            <!-- Loser Bracket Tab -->
-            <TabItem Name="LoserBracketTab" Header="Loser Bracket">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10">
-                        
-                        <!-- Loser Bracket Header -->
-                        <Border Background="#FFEBEE" BorderBrush="#F44336" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,15">
-                            <TextBlock Name="LoserBracketHeaderText" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
-                        </Border>
-                        
-                        <!-- Loser Bracket Rules Grid -->
-                        <Grid Name="LoserBracketGrid">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="80"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            
-                            <!-- Headers -->
-                            <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" Margin="5,10"/>
-                            <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" HorizontalAlignment="Center" Margin="5,10"/>
-                            
-                            <!-- Dynamic content will be added here -->
-                        </Grid>
-                        
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Header mit Gradient -->
+                <Border Grid.Row="0" CornerRadius="12,12,0,0" 
+                        Padding="24,18,24,18" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                    <Border.Background>
+                        <LinearGradientBrush>
+                            <GradientStop Color="#7C3AED" Offset="0"/>
+                            <GradientStop Color="#6D28D9" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#x2699;" FontSize="20" Margin="0,0,12,0" 
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Name="TitleBlock" Text="Rundenregeln-Konfiguration" 
+                                   FontSize="18" FontWeight="SemiBold" 
+                                   Foreground="White" VerticalAlignment="Center"/>
                     </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
-        
-        <!-- Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="ResetToDefaultButton" Content="Reset to Default" Width="120" Click="ResetToDefaultButton_Click" Background="#FF9800"/>
-            <Button Name="SaveButton" Content="Save" Width="80" Click="SaveButton_Click"/>
-            <Button Name="CancelButton" Content="Cancel" Width="80" Click="CancelButton_Click" Background="#757575"/>
-        </StackPanel>
-    </Grid>
+                </Border>
+                
+                <!-- Content Area -->
+                <TabControl Grid.Row="1" Name="RoundRulesTabControl" Margin="20,20,20,0">
+                    <!-- Winner Bracket Tab -->
+                    <TabItem Name="WinnerBracketTab" Header="&#x1F3C6; Winner Bracket">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                            <StackPanel>
+                                <!-- Winner Bracket Info -->
+                                <Border Background="#DBEAFE" BorderBrush="#3B82F6" 
+                                        BorderThickness="1" CornerRadius="8" 
+                                        Padding="16" Margin="0,0,0,20">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x2139;" FontSize="16" Margin="0,0,12,0" 
+                                                   Foreground="#1E40AF" VerticalAlignment="Center"/>
+                                        <TextBlock Name="WinnerBracketHeaderText" 
+                                                   Text="Winner Bracket Regeln" 
+                                                   FontSize="14" FontWeight="SemiBold" 
+                                                   Foreground="#1E40AF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Winner Bracket Grid -->
+                                <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                        BorderThickness="1" CornerRadius="12" Padding="20">
+                                    <Grid Name="WinnerBracketGrid">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Headers -->
+                                        <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" 
+                                                   Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        
+                                        <!-- Dynamic content will be added here -->
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    
+                    <!-- Loser Bracket Tab -->
+                    <TabItem Name="LoserBracketTab" Header="&#x1F948; Loser Bracket">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                            <StackPanel>
+                                <!-- Loser Bracket Info -->
+                                <Border Background="#FEF2F2" BorderBrush="#EF4444" 
+                                        BorderThickness="1" CornerRadius="8" 
+                                        Padding="16" Margin="0,0,0,20">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x2139;" FontSize="16" Margin="0,0,12,0" 
+                                                   Foreground="#DC2626" VerticalAlignment="Center"/>
+                                        <TextBlock Name="LoserBracketHeaderText" 
+                                                   Text="Loser Bracket Regeln" 
+                                                   FontSize="14" FontWeight="SemiBold" 
+                                                   Foreground="#DC2626" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Loser Bracket Grid -->
+                                <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                        BorderThickness="1" CornerRadius="12" Padding="20">
+                                    <Grid Name="LoserBracketGrid">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Headers -->
+                                        <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" 
+                                                   Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        
+                                        <!-- Dynamic content will be added here -->
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+                
+                <!-- Button Panel -->
+                <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" 
+                        Background="#FAFAFA" CornerRadius="0,0,12,12">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" 
+                                Margin="24,16,24,16">
+                        <Button Name="ResetToDefaultButton" Content="&#x1F504; Auf Standard zuruecksetzen" 
+                                Style="{StaticResource ResetButton}"
+                                Click="ResetToDefaultButton_Click" 
+                                Margin="0,0,12,0"/>
+                        <Button Name="CancelButton" Content="Abbrechen" 
+                                Style="{StaticResource ModernCancelButton}"
+                                Click="CancelButton_Click" 
+                                Margin="0,0,12,0" IsCancel="True"/>
+                        <Button Name="SaveButton" Content="Speichern" 
+                                Style="{StaticResource ModernButton}"
+                                Click="SaveButton_Click" IsDefault="True"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
 </Window>

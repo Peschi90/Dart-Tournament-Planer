@@ -10,10 +10,35 @@
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
         MinHeight="800" MinWidth="1400"
-        Background="#F5F5F5"
         Icon="Assets/Images/favicon.ico">
     
     <Window.Resources>
+        <!-- Moderne Gradient-Hintergründe -->
+        <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F8FAFC" Offset="0"/>
+            <GradientStop Color="#F1F5F9" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#F8FAFC" Offset="1"/>
+        </LinearGradientBrush>
+        
+        <!-- Moderne Schatten-Effekte -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          BlurRadius="12" 
+                          Opacity="0.1"/>
+        
+        <DropShadowEffect x:Key="HeaderShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="8" 
+                          Opacity="0.08"/>
+
         <!-- Modern TabControl Style -->
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
@@ -28,22 +53,29 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <!-- Tab Headers -->
-                            <Border Grid.Row="0" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                            <!-- Tab Headers mit modernem Design -->
+                            <Border Grid.Row="0" 
+                                    Background="{StaticResource HeaderGradient}" 
+                                    BorderBrush="#E5E7EB" 
+                                    BorderThickness="0,0,0,1"
+                                    Effect="{StaticResource HeaderShadow}">
                                 <TabPanel x:Name="HeaderPanel" 
                                          IsItemsHost="True" 
                                          Panel.ZIndex="1" 
                                          Background="Transparent"
-                                         Margin="10,0"/>
+                                         Margin="20,8,20,0"/>
                             </Border>
                             
-                            <!-- Content Area -->
+                            <!-- Content Area mit Schatten -->
                             <Border Grid.Row="1" 
                                     Background="White" 
-                                    BorderBrush="#E0E0E0" 
-                                    BorderThickness="0">
+                                    BorderBrush="#E5E7EB" 
+                                    BorderThickness="0"
+                                    Effect="{StaticResource CardShadow}"
+                                    CornerRadius="0,0,8,8">
                                 <ContentPresenter x:Name="PART_SelectedContentHost"
-                                                ContentSource="SelectedContent"/>
+                                                ContentSource="SelectedContent"
+                                                Margin="1"/>
                             </Border>
                         </Grid>
                     </ControlTemplate>
@@ -51,7 +83,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern TabItem Style for Tournament Classes -->
+        <!-- Modern TabItem Style für Tournament Classes -->
         <Style TargetType="TabItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -59,11 +91,11 @@
                         <Grid>
                             <Border x:Name="Border"
                                     Background="Transparent"
-                                    BorderBrush="#CCCCCC"
-                                    BorderThickness="1,1,1,0"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
                                     CornerRadius="8,8,0,0"
-                                    Margin="2,0,2,0"
-                                    Padding="16,12,16,12">
+                                    Margin="4,0,4,0"
+                                    Padding="20,14,20,14">
                                 <ContentPresenter x:Name="ContentSite"
                                                 VerticalAlignment="Center"
                                                 HorizontalAlignment="Center"
@@ -74,24 +106,44 @@
                         <ControlTemplate.Triggers>
                             <!-- Selected Tab -->
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="White"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
-                                <Setter TargetName="Border" Property="BorderThickness" Value="2,2,2,0"/>
+                                <Setter TargetName="Border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="White" Offset="0"/>
+                                            <GradientStop Color="#FDFDFD" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,3"/>
                                 <Setter Property="Panel.ZIndex" Value="100"/>
-                                <Setter Property="Foreground" Value="#1976D2"/>
-                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter TargetName="Border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="8" Opacity="0.15"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             
                             <!-- Hover Effect -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="#F0F8FF"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#64B5F6"/>
+                                <Setter TargetName="Border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F0F9FF" Offset="0"/>
+                                            <GradientStop Color="#E0F2FE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Foreground" Value="#0369A1"/>
                             </Trigger>
                             
                             <!-- Disabled -->
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Border" Property="Background" Value="#F5F5F5"/>
-                                <Setter Property="Foreground" Value="#AAAAAA"/>
+                                <Setter TargetName="Border" Property="Background" Value="#F8FAFC"/>
+                                <Setter Property="Foreground" Value="#94A3B8"/>
                             </Trigger>
                             
                             <!-- Combination: Selected and Hover -->
@@ -100,8 +152,16 @@
                                     <Condition Property="IsSelected" Value="True"/>
                                     <Condition Property="IsMouseOver" Value="True"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Border" Property="Background" Value="White"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#1565C0"/>
+                                <Setter TargetName="Border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="White" Offset="0"/>
+                                            <GradientStop Color="#F8FAFC" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -111,148 +171,369 @@
         
         <!-- Modern Button Style -->
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3B82F6" Offset="0"/>
+                        <GradientStop Color="#2563EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Margin" Value="6"/>
             <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
                             <ContentPresenter HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1976D2"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="Black" Direction="270" ShadowDepth="6" 
+                                                          BlurRadius="16" Opacity="0.15"/>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#1D4ED8" Offset="0"/>
+                                            <GradientStop Color="#1E3A8A" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CBD5E1"/>
+                                <Setter Property="Foreground" Value="#64748B"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Moderne MenuBar Style -->
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Effect" Value="{StaticResource HeaderShadow}"/>
+            <Setter Property="Padding" Value="8,4"/>
+        </Style>
+        
+        <Style TargetType="MenuItem">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="templateRoot" 
+                                Background="Transparent"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <ContentPresenter x:Name="Icon" 
+                                                Grid.Column="0"
+                                                ContentSource="Icon" 
+                                                Margin="0,0,8,0"/>
+                                <ContentPresenter x:Name="HeaderHost" 
+                                                Grid.Column="1"
+                                                ContentSource="Header"/>
+                                <TextBlock x:Name="InputGestureText" 
+                                         Grid.Column="2"
+                                         Text="{TemplateBinding InputGestureText}" 
+                                         Margin="8,0,0,0"
+                                         Foreground="#6B7280"/>
+                                
+                                <Popup x:Name="PART_Popup" 
+                                       IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                       PopupAnimation="Fade"
+                                       Placement="Bottom">
+                                    <Border Background="White" 
+                                            BorderBrush="#E5E7EB" 
+                                            BorderThickness="1" 
+                                            CornerRadius="8"
+                                            Effect="{StaticResource CardShadow}"
+                                            Padding="4">
+                                        <StackPanel IsItemsHost="True"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="templateRoot" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F0F9FF" Offset="0"/>
+                                            <GradientStop Color="#E0F2FE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Moderne StatusBar Style -->
+        <Style TargetType="StatusBar">
+            <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="0,1,0,0"/>
+            <Setter Property="Effect" Value="{StaticResource HeaderShadow}"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
     </Window.Resources>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <!-- Hauptinhalt mit modernem Gradient-Hintergrund -->
+    <Border Background="{StaticResource MainBackgroundBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <!-- Menu Bar -->
-        <Menu Grid.Row="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1">
-            <MenuItem Name="FileMenuItem" Header="File">
-                <MenuItem Name="NewMenuItem" Header="New" Click="New_Click"/>
-                <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click"/>
-                <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click"/>
-                <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click"/>
-                <Separator/>
-                <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click"/>
-            </MenuItem>
-            <MenuItem Name="ViewMenuItem" Header="View">
-                <MenuItem Name="OverviewModeMenuItem" Header="📺 Tournament Overview" Click="OverviewMode_Click"/>
-            </MenuItem>
-            <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
-            <MenuItem Name="HelpMenuItem" Header="Help">
-                <MenuItem Name="HelpContentMenuItem" Header="📖 Help" Click="Help_Click"/>
-                <MenuItem Name="BugReportMenuItem" Header="🐛 Bug melden" Click="BugReport_Click"/>
-                <Separator/>
-                <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
-            </MenuItem>
-        </Menu>
+            <!-- Menu Bar mit modernem Design -->
+            <Menu Grid.Row="0">
+                <MenuItem Name="FileMenuItem" Header="📁 Datei">
+                    <MenuItem Name="NewMenuItem" Header="🆕 Neu" Click="New_Click"/>
+                    <MenuItem Name="OpenMenuItem" Header="📂 Öffnen" Click="Open_Click"/>
+                    <MenuItem Name="SaveMenuItem" Header="💾 Speichern" Click="Save_Click"/>
+                    <MenuItem Name="SaveAsMenuItem" Header="📄 Speichern unter" Click="SaveAs_Click"/>
+                    <Separator/>
+                    <MenuItem Name="ExitMenuItem" Header="🚪 Beenden" Click="Exit_Click"/>
+                </MenuItem>
+                <MenuItem Name="ViewMenuItem" Header="👁️ Ansicht">
+                    <MenuItem Name="OverviewModeMenuItem" Header="📺 Turnier-Übersicht" Click="OverviewMode_Click"/>
+                </MenuItem>
+                <MenuItem Name="SettingsMenuItem" Header="⚙️ Einstellungen" Click="Settings_Click"/>
+                <MenuItem Name="HelpMenuItem" Header="❓ Hilfe">
+                    <MenuItem Name="HelpContentMenuItem" Header="📖 Hilfe" Click="Help_Click"/>
+                    <MenuItem Name="BugReportMenuItem" Header="🐛 Bug melden" Click="BugReport_Click"/>
+                    <Separator/>
+                    <MenuItem Name="AboutMenuItem" Header="ℹ️ Über" Click="About_Click"/>
+                </MenuItem>
+            </Menu>
 
-        <!-- Main Content -->
-        <TabControl Grid.Row="1" Margin="15" Background="White" BorderBrush="#DDDDDD" BorderThickness="1">
-            <TabItem Name="PlatinTabItem" Background="#E8EAF6">
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="SeaShell" Margin="0,0,8,0"/>
-                        <TextBlock Text="Platinum" FontWeight="Medium"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <controls:TournamentTab x:Name="PlatinTab"/>
-            </TabItem>
-            
-            <TabItem Name="GoldTabItem" Background="#FFF8E1">
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="#FF9800" Margin="0,0,8,0"/>
-                        <TextBlock Text="Gold" FontWeight="Medium"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <controls:TournamentTab x:Name="GoldTab"/>
-            </TabItem>
-            
-            <TabItem Name="SilverTabItem" Background="#F3E5F5">
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="Silver" Margin="0,0,8,0"/>
-                        <TextBlock Text="Silver" FontWeight="Medium"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <controls:TournamentTab x:Name="SilberTab"/>
-            </TabItem>
-            
-            <TabItem Name="BronzeTabItem" Background="#EFEBE9">
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="12" Height="12" Fill="#8D6E63" Margin="0,0,8,0"/>
-                        <TextBlock Text="Bronze" FontWeight="Medium"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <controls:TournamentTab x:Name="BronzeTab"/>
-            </TabItem>
-        </TabControl>
+            <!-- Main Content Area mit Card-Design -->
+            <Border Grid.Row="1" 
+                    Background="White" 
+                    CornerRadius="12" 
+                    Margin="20,16,20,16"
+                    Effect="{StaticResource CardShadow}">
+                <TabControl Margin="0">
+                    <TabItem Name="PlatinTabItem">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="16" Height="16" 
+                                        CornerRadius="8" 
+                                        Margin="0,0,10,0"
+                                        Background="White"
+                                        BorderBrush="#E5E7EB"
+                                        BorderThickness="2">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="SeaShell" Direction="0" ShadowDepth="0" 
+                                                          BlurRadius="6" Opacity="0.8"/>
+                                    </Border.Effect>
+                                    <Ellipse Fill="SeaShell" Margin="2"/>
+                                </Border>
+                                <TextBlock Text="Platin" FontWeight="SemiBold" FontSize="14"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <controls:TournamentTab x:Name="PlatinTab" Margin="12"/>
+                    </TabItem>
+                    
+                    <TabItem Name="GoldTabItem">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="16" Height="16" 
+                                        CornerRadius="8" 
+                                        Margin="0,0,10,0"
+                                        Background="White"
+                                        BorderBrush="#E5E7EB"
+                                        BorderThickness="2">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#FF9800" Direction="0" ShadowDepth="0" 
+                                                          BlurRadius="6" Opacity="0.6"/>
+                                    </Border.Effect>
+                                    <Ellipse Fill="#FFC107" Margin="2"/>
+                                </Border>
+                                <TextBlock Text="Gold" FontWeight="SemiBold" FontSize="14"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <controls:TournamentTab x:Name="GoldTab" Margin="12"/>
+                    </TabItem>
+                    
+                    <TabItem Name="SilverTabItem">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="16" Height="16" 
+                                        CornerRadius="8" 
+                                        Margin="0,0,10,0"
+                                        Background="White"
+                                        BorderBrush="#E5E7EB"
+                                        BorderThickness="2">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Silver" Direction="0" ShadowDepth="0" 
+                                                          BlurRadius="6" Opacity="0.6"/>
+                                    </Border.Effect>
+                                    <Ellipse Fill="Silver" Margin="2"/>
+                                </Border>
+                                <TextBlock Text="Silber" FontWeight="SemiBold" FontSize="14"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <controls:TournamentTab x:Name="SilberTab" Margin="12"/>
+                    </TabItem>
+                    
+                    <TabItem Name="BronzeTabItem">
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="16" Height="16" 
+                                        CornerRadius="8" 
+                                        Margin="0,0,10,0"
+                                        Background="White"
+                                        BorderBrush="#E5E7EB"
+                                        BorderThickness="2">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#8D6E63" Direction="0" ShadowDepth="0" 
+                                                          BlurRadius="6" Opacity="0.6"/>
+                                    </Border.Effect>
+                                    <Ellipse Fill="#A1887F" Margin="2"/>
+                                </Border>
+                                <TextBlock Text="Bronze" FontWeight="SemiBold" FontSize="14"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <controls:TournamentTab x:Name="BronzeTab" Margin="12"/>
+                    </TabItem>
+                </TabControl>
+            </Border>
 
-        <!-- Donation Button - dezent in der unteren rechten Ecke -->
-        <Button Name="DonationButton" 
-                Grid.Row="1" 
-                Content="💝 Spenden"
-                ToolTip="Unterstützen Sie die Entwicklung dieses Projekts"
-                Click="Donation_Click"
-                HorizontalAlignment="Right" 
-                VerticalAlignment="Bottom"
-                Margin="0,0,25,25"
-                Width="100"
-                Height="35"
-                FontSize="11">
-            <Button.Style>
-                <Style TargetType="Button" BasedOn="{StaticResource ModernButton}">
-                    <Setter Property="Background" Value="#FF9800"/>
-                    <Setter Property="Opacity" Value="0.8"/>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#F57C00"/>
-                            <Setter Property="Opacity" Value="1.0"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="#EF6C00"/>
-                            <Setter Property="Opacity" Value="1.0"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
+            <!-- Donation Button - Modern Floating Action Button Style -->
+            <Border Grid.Row="1" 
+                    HorizontalAlignment="Right" 
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,32,32"
+                    CornerRadius="28"
+                    Background="White"
+                    Effect="{StaticResource CardShadow}"
+                    Panel.ZIndex="100">
+                <Button Name="DonationButton" 
+                        Content="💝"
+                        ToolTip="Unterstützen Sie die Entwicklung dieses Projekts"
+                        Click="Donation_Click"
+                        Width="56" Height="56"
+                        FontSize="37"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        Foreground="#FF9800"
+                        Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="border" 
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="28">
+                                <ContentPresenter HorizontalAlignment="Center" 
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="border" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FFF3E0" Offset="0"/>
+                                                <GradientStop Color="#FFE0B2" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Foreground" Value="#F57C00"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="border" Property="Background">
+                                        <Setter.Value>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#FFE0B2" Offset="0"/>
+                                                <GradientStop Color="#FFCC02" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="Foreground" Value="#EF6C00"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Border>
 
-        <!-- Status Bar -->
-        <StatusBar Grid.Row="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0">
-            <StatusBarItem>
-                <TextBlock Name="StatusTextBlock" Text="Ready" Margin="10,0"/>
-            </StatusBarItem>
-            <StatusBarItem HorizontalAlignment="Right">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Name="LanguageStatusBlock" Text="DE" Margin="0,0,10,0" FontWeight="Medium"/>
-                    <TextBlock Name="LastSavedBlock" Text="Not saved" Margin="0,0,10,0" Foreground="Gray"/>
-                </StackPanel>
-            </StatusBarItem>
-        </StatusBar>
-    </Grid>
+            <!-- Status Bar mit modernem Design -->
+            <StatusBar Grid.Row="2">
+                <StatusBarItem>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#10B981" 
+                                CornerRadius="4" 
+                                Padding="6,2" 
+                                Margin="0,0,8,0">
+                            <TextBlock Name="StatusTextBlock" 
+                                       Text="Bereit" 
+                                       Foreground="White" 
+                                       FontSize="11" 
+                                       FontWeight="Medium"/>
+                        </Border>
+                    </StackPanel>
+                </StatusBarItem>
+                <StatusBarItem HorizontalAlignment="Right">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="#3B82F6" 
+                                CornerRadius="4" 
+                                Padding="6,2" 
+                                Margin="0,0,8,0">
+                            <TextBlock Name="LanguageStatusBlock" 
+                                       Text="DE" 
+                                       Foreground="White" 
+                                       FontSize="11" 
+                                       FontWeight="Medium"/>
+                        </Border>
+                        <TextBlock Name="LastSavedBlock" 
+                                   Text="Gespeichert" 
+                                   Foreground="#6B7280" 
+                                   FontSize="11"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StatusBarItem>
+            </StatusBar>
+        </Grid>
+    </Border>
 </Window>

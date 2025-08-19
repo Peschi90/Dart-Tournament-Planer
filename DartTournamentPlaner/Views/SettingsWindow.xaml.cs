@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Input;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 
@@ -140,6 +141,17 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
         DialogResult = false;
         Close();
+    }
+
+    /// <summary>
+    /// Event-Handler für das Verschieben des Fensters über den Header
+    /// </summary>
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

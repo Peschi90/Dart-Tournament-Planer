@@ -1,6 +1,9 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
@@ -76,40 +79,85 @@ public partial class TournamentOverviewWindow : Window
     {
         var tabItem = new TabItem();
         
-        // Create header with color indicator
+        // Create header with color indicator and modern design like MainWindow
         var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
         
-        var colorEllipse = new System.Windows.Shapes.Ellipse
+        // Modern border design like MainWindow
+        var colorBorder = new Border
         {
-            Width = 12,
-            Height = 12,
-            Margin = new Thickness(0, 0, 8, 0)
+            Width = 16,
+            Height = 16,
+            CornerRadius = new CornerRadius(8),
+            Margin = new Thickness(0, 0, 10, 0),
+            Background = Brushes.White,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235)),
+            BorderThickness = new Thickness(2)
         };
 
-        // Set colors based on class
+        var colorEllipse = new System.Windows.Shapes.Ellipse
+        {
+            Margin = new Thickness(2)
+        };
+
+        // Set colors and effects exactly like MainWindow
         switch (classIndex)
         {
-            case 0: // Platinum
-                colorEllipse.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(156, 39, 176));
+            case 0: // Platinum - SeaShell
+                colorEllipse.Fill = new SolidColorBrush(Colors.SeaShell);
+                colorBorder.Effect = new DropShadowEffect
+                {
+                    Color = Colors.SeaShell,
+                    Direction = 0,
+                    ShadowDepth = 0,
+                    BlurRadius = 6,
+                    Opacity = 0.8
+                };
                 break;
-            case 1: // Gold
-                colorEllipse.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+            case 1: // Gold - #FFC107
+                colorEllipse.Fill = new SolidColorBrush(Color.FromRgb(255, 193, 7));
+                colorBorder.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(255, 152, 0),
+                    Direction = 0,
+                    ShadowDepth = 0,
+                    BlurRadius = 6,
+                    Opacity = 0.6
+                };
                 break;
-            case 2: // Silver
-                colorEllipse.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(121, 85, 72));
+            case 2: // Silver - Silver
+                colorEllipse.Fill = new SolidColorBrush(Colors.Silver);
+                colorBorder.Effect = new DropShadowEffect
+                {
+                    Color = Colors.Silver,
+                    Direction = 0,
+                    ShadowDepth = 0,
+                    BlurRadius = 6,
+                    Opacity = 0.6
+                };
                 break;
-            case 3: // Bronze
-                colorEllipse.Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(141, 110, 99));
+            case 3: // Bronze - #A1887F
+                colorEllipse.Fill = new SolidColorBrush(Color.FromRgb(161, 136, 127));
+                colorBorder.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(141, 110, 99),
+                    Direction = 0,
+                    ShadowDepth = 0,
+                    BlurRadius = 6,
+                    Opacity = 0.6
+                };
                 break;
         }
+
+        colorBorder.Child = colorEllipse;
 
         var headerText = new TextBlock
         {
             Text = tournamentClass.Name,
-            FontWeight = FontWeights.Medium
+            FontWeight = FontWeights.SemiBold,
+            FontSize = 14
         };
 
-        headerPanel.Children.Add(colorEllipse);
+        headerPanel.Children.Add(colorBorder);
         headerPanel.Children.Add(headerText);
         tabItem.Header = headerPanel;
 
@@ -593,102 +641,62 @@ public partial class TournamentOverviewWindow : Window
 
     private void UpdateStatus()
     {
-        if (_isRunning)
+        try
         {
-            StatusTextBlock.Text = _localizationService.GetString("AutoCyclingActive");
-            
-            var currentTab = MainTabControl.SelectedItem as TabItem;
-            if (currentTab != null)
+            var statusText = _localizationService.GetString("Ready");
+            var currentDisplay = "";
+            var cycleInfo = "";
+            var buttonText = "";
+
+            if (_isRunning)
             {
-                var className = "";
-                if (currentTab.Header is StackPanel sp && sp.Children[1] is TextBlock tb)
-                {
-                    className = tb.Text;
-                }
-
-                var subTabInfo = "";
-                if (currentTab.Content is TabControl subTabControl && subTabControl.Items.Count > 0)
-                {
-                    var subTab = subTabControl.SelectedItem as TabItem;
-                    if (subTab != null)
-                    {
-                        subTabInfo = $" → {subTab.Header}";
-                        // Show current sub-tab index info
-                        if (subTabControl.Items.Count > 1)
-                        {
-                            subTabInfo += $" ({subTabControl.SelectedIndex + 1}/{subTabControl.Items.Count})";
-                        }
-                    }
-                }
-
-                CurrentDisplayTextBlock.Text = $"{_localizationService.GetString("Showing")}: {className}{subTabInfo}";
+                statusText = _localizationService.GetString("AutoCyclingActive");
+                buttonText = "⏸ " + _localizationService.GetString("StopCycling");
                 
-                // Zeige aktuellen Fortschritt und totale Anzahl für endlose Schleife
-                if (_activeTournamentTabs.Count > 1)
+                if (_currentClassIndex < _activeTournamentTabs.Count)
                 {
-                    CycleInfoTextBlock.Text = $"Class: {_currentClassIndex + 1}/{_activeTournamentTabs.Count} (∞ loop)";
+                    var currentTab = _activeTournamentTabs[_currentClassIndex];
+                    currentDisplay = _localizationService.GetString("Showing") + ": " + currentTab.Header?.ToString();
                 }
-                else
-                {
-                    CycleInfoTextBlock.Text = $"Single class (∞ sub-tabs)";
-                }
-            }
-        }
-        else
-        {
-            StatusTextBlock.Text = _localizationService.GetString("ManualMode");
-            CurrentDisplayTextBlock.Text = _localizationService.GetString("CyclingStopped");
-            CycleInfoTextBlock.Text = _localizationService.GetString("ManualControl");
-        }
-
-        // Update timer display with countdown
-        if (_cycleTimer.IsEnabled && _isRunning)
-        {
-            // Calculate time remaining in current interval
-            var elapsed = DateTime.Now - _lastCycleTime;
-            var remaining = _cycleTimer.Interval - elapsed;
-            
-            if (remaining.TotalSeconds > 0)
-            {
-                TimerTextBlock.Text = remaining.ToString(@"mm\:ss");
+                
+                var remainingTime = GetRemainingTime();
+                TimerTextBlock.Text = $"{remainingTime / 60:D2}:{remainingTime % 60:D2}";
+                cycleInfo = _localizationService.GetString("AutoCyclingActive");
             }
             else
             {
-                TimerTextBlock.Text = "00:00";
+                statusText = _localizationService.GetString("ManualControl");
+                buttonText = "▶ " + _localizationService.GetString("StartCycling");
+                currentDisplay = _localizationService.GetString("ManualMode");
+                TimerTextBlock.Text = "--:--";
+                cycleInfo = _localizationService.GetString("CyclingStopped");
             }
+
+            StatusTextBlock.Text = statusText;
+            CurrentDisplayTextBlock.Text = currentDisplay;
+            StartStopButton.Content = buttonText;
+            CycleInfoTextBlock.Text = cycleInfo;
         }
-        else
+        catch (Exception ex)
         {
-            TimerTextBlock.Text = "--:--";
+            System.Diagnostics.Debug.WriteLine($"UpdateStatus error: {ex.Message}");
         }
     }
 
     private void UpdateTranslations()
     {
-        Title = _localizationService.GetString("TournamentOverview");
-        
-        // Update main header text
-        OverviewModeText.Text = _localizationService.GetString("TournamentOverview");
-        
-        // Update control text
-        if (_isRunning)
+        try
         {
-            StartStopButton.Content = "⏸ " + _localizationService.GetString("StopCycling");
-        }
-        else
-        {
-            StartStopButton.Content = "▶ " + _localizationService.GetString("StartCycling");
-        }
+            Title = _localizationService.GetString("TournamentOverview");
+            OverviewModeText.Text = _localizationService.GetString("OverviewModeTitle");
+            ConfigureButton.Content = "Konfigurieren";
+            CloseButton.ToolTip = _localizationService.GetString("Close");
             
-        ConfigureButton.Content = _localizationService.GetString("Configure");
-        CloseButton.Content = _localizationService.GetString("Close");
-        
-        // Update status if not running
-        if (!_isRunning)
+            UpdateStatus();
+        }
+        catch (Exception ex)
         {
-            StatusTextBlock.Text = _localizationService.GetString("ManualMode");
-            CurrentDisplayTextBlock.Text = _localizationService.GetString("CyclingStopped");
-            CycleInfoTextBlock.Text = _localizationService.GetString("ManualControl");
+            System.Diagnostics.Debug.WriteLine($"UpdateTranslations error: {ex.Message}");
         }
     }
 
@@ -724,10 +732,12 @@ public partial class TournamentOverviewWindow : Window
 
             var icon = new TextBlock
             {
-                Text = "🏆",
+                Text = "Turnier",
                 FontSize = 48,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 20)
+                Margin = new Thickness(0, 0, 0, 20),
+                FontWeight = FontWeights.Bold,
+                Foreground = System.Windows.Media.Brushes.DarkBlue
             };
 
             var noMatchesText = new TextBlock
@@ -765,7 +775,7 @@ public partial class TournamentOverviewWindow : Window
         // Add title
         var titleText = new TextBlock
         {
-            Text = isLoserBracket ? "🥈 Loser Bracket" : "🏆 Winner Bracket",
+            Text = isLoserBracket ? "Loser Bracket" : "Winner Bracket",
             FontSize = 24,
             FontWeight = FontWeights.Bold,
             Foreground = isLoserBracket 
@@ -1017,7 +1027,7 @@ public partial class TournamentOverviewWindow : Window
         
         if (match.Status == MatchStatus.Finished && match.Winner != null)
         {
-            tooltipText += $"\n🏆 Sieger: {match.Winner.Name}";
+            tooltipText += $"\nSieger: {match.Winner.Name}";
         }
 
         border.ToolTip = tooltipText;
@@ -1053,191 +1063,23 @@ public partial class TournamentOverviewWindow : Window
 
         canvas.Children.Add(line);
     }
-}
 
-// Simple configuration dialog
-public partial class OverviewConfigDialog : Window
-{
-    private readonly LocalizationService _localizationService;
-    
-    public int ClassInterval { get; set; }
-    public int SubTabInterval { get; set; }
-    public bool ShowOnlyActiveClasses { get; set; }
-
-    public OverviewConfigDialog()
+    private int GetRemainingTime()
     {
-        _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not available");
-        InitializeComponent();
-    }
-
-    private void InitializeComponent()
-    {
-        Title = _localizationService.GetString("OverviewConfiguration");
-        Width = 450;
-        Height = 300;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        ResizeMode = ResizeMode.NoResize;
-
-        var grid = new Grid();
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        var margin = new Thickness(15);
-
-        // Title
-        var titleBlock = new TextBlock { 
-            Text = _localizationService.GetString("TournamentOverviewConfiguration"), 
-            FontSize = 16, 
-            FontWeight = FontWeights.Bold,
-            Margin = new Thickness(15, 15, 15, 20) 
-        };
-        Grid.SetRow(titleBlock, 0);
-        Grid.SetColumnSpan(titleBlock, 2);
-        grid.Children.Add(titleBlock);
-
-        // Class Interval
-        var classLabel = new TextBlock { 
-            Text = _localizationService.GetString("TimeBetweenClasses"), 
-            Margin = margin, 
-            VerticalAlignment = VerticalAlignment.Center 
-        };
-        Grid.SetRow(classLabel, 1);
-        Grid.SetColumn(classLabel, 0);
-        grid.Children.Add(classLabel);
-
-        var classPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = margin };
-        var classTextBox = new TextBox { Name = "ClassIntervalTextBox", Width = 60, TextAlignment = TextAlignment.Center };
-        var classSecondsLabel = new TextBlock { Text = " " + _localizationService.GetString("Seconds"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
-        classPanel.Children.Add(classTextBox);
-        classPanel.Children.Add(classSecondsLabel);
-        Grid.SetRow(classPanel, 1);
-        Grid.SetColumn(classPanel, 1);
-        grid.Children.Add(classPanel);
-
-        // Sub-Tab Interval
-        var subLabel = new TextBlock { 
-            Text = _localizationService.GetString("TimeBetweenSubTabs"), 
-            Margin = margin, 
-            VerticalAlignment = VerticalAlignment.Center 
-        };
-        Grid.SetRow(subLabel, 2);
-        Grid.SetColumn(subLabel, 0);
-        grid.Children.Add(subLabel);
-
-        var subPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = margin };
-        var subTextBox = new TextBox { Name = "SubTabIntervalTextBox", Width = 60, TextAlignment = TextAlignment.Center };
-        var subSecondsLabel = new TextBlock { Text = " " + _localizationService.GetString("Seconds"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(5, 0, 0, 0) };
-        subPanel.Children.Add(subTextBox);
-        subPanel.Children.Add(subSecondsLabel);
-        Grid.SetRow(subPanel, 2);
-        Grid.SetColumn(subPanel, 1);
-        grid.Children.Add(subPanel);
-
-        // Show Only Active Classes
-        var activeCheckBox = new CheckBox { 
-            Name = "ShowOnlyActiveCheckBox", 
-            Content = _localizationService.GetString("ShowOnlyActiveClassesText"), 
-            Margin = margin 
-        };
-        Grid.SetRow(activeCheckBox, 3);
-        Grid.SetColumnSpan(activeCheckBox, 2);
-        grid.Children.Add(activeCheckBox);
-
-        // Info text
-        var infoText = new TextBlock { 
-            Text = _localizationService.GetString("OverviewInfoText"),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(15, 10, 15, 15),
-            Foreground = System.Windows.Media.Brushes.Gray,
-            FontStyle = FontStyles.Italic
-        };
-        Grid.SetRow(infoText, 4);
-        Grid.SetColumnSpan(infoText, 2);
-        grid.Children.Add(infoText);
-
-        // Buttons
-        var buttonPanel = new StackPanel { 
-            Orientation = Orientation.Horizontal, 
-            HorizontalAlignment = HorizontalAlignment.Right, 
-            Margin = margin 
-        };
+        var elapsed = (DateTime.Now - _lastCycleTime).TotalSeconds;
+        var interval = _subTabInterval; // Default to sub-tab interval
         
-        var okButton = new Button { 
-            Content = _localizationService.GetString("OK"), 
-            Padding = new Thickness(20, 5, 20, 5), 
-            Margin = new Thickness(0, 0, 10, 0),
-            IsDefault = true
-        };
-        okButton.Click += (s, e) => { SaveAndClose(); };
-        
-        var cancelButton = new Button { 
-            Content = _localizationService.GetString("Cancel"), 
-            Padding = new Thickness(20, 5, 20, 5),
-            IsCancel = true
-        };
-        cancelButton.Click += (s, e) => { DialogResult = false; Close(); };
-        
-        buttonPanel.Children.Add(okButton);
-        buttonPanel.Children.Add(cancelButton);
-        
-        Grid.SetRow(buttonPanel, 5);
-        Grid.SetColumnSpan(buttonPanel, 2);
-        grid.Children.Add(buttonPanel);
-
-        Content = grid;
-        
-        Loaded += (s, e) =>
+        // Use class interval if we're about to switch classes
+        var currentClassTab = MainTabControl.SelectedItem as TabItem;
+        if (currentClassTab?.Content is TabControl subTabControl)
         {
-            var classTextBoxControl = (TextBox)grid.Children.OfType<StackPanel>().First(sp => sp.Children.OfType<TextBox>().Any(tb => tb.Name == "ClassIntervalTextBox")).Children.OfType<TextBox>().First();
-            var subTextBoxControl = (TextBox)grid.Children.OfType<StackPanel>().First(sp => sp.Children.OfType<TextBox>().Any(tb => tb.Name == "SubTabIntervalTextBox")).Children.OfType<TextBox>().First();
-            var checkBoxControl = (CheckBox)grid.Children.OfType<CheckBox>().First(cb => cb.Name == "ShowOnlyActiveCheckBox");
-            
-            classTextBoxControl.Text = ClassInterval.ToString();
-            subTextBoxControl.Text = SubTabInterval.ToString();
-            checkBoxControl.IsChecked = ShowOnlyActiveClasses;
-            
-            classTextBoxControl.Focus();
-            classTextBoxControl.SelectAll();
-        };
-    }
-
-    private void SaveAndClose()
-    {
-        var grid = (Grid)Content;
-        var classTextBox = (TextBox)grid.Children.OfType<StackPanel>().First(sp => sp.Children.OfType<TextBox>().Any(tb => tb.Name == "ClassIntervalTextBox")).Children.OfType<TextBox>().First();
-        var subTextBox = (TextBox)grid.Children.OfType<StackPanel>().First(sp => sp.Children.OfType<TextBox>().Any(tb => tb.Name == "SubTabIntervalTextBox")).Children.OfType<TextBox>().First();
-        var checkBox = (CheckBox)grid.Children.OfType<CheckBox>().First(cb => cb.Name == "ShowOnlyActiveCheckBox");
-
-        if (!int.TryParse(classTextBox.Text, out int classInterval) || classInterval < 1)
-        {
-            MessageBox.Show(_localizationService.GetString("InvalidClassInterval"), _localizationService.GetString("Error"), 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            classTextBox.Focus();
-            classTextBox.SelectAll();
-            return;
+            if (_currentSubTabIndex >= subTabControl.Items.Count - 1 && _activeTournamentTabs.Count > 1)
+            {
+                interval = _classInterval;
+            }
         }
-
-        if (!int.TryParse(subTextBox.Text, out int subTabInterval) || subTabInterval < 1)
-        {
-            MessageBox.Show(_localizationService.GetString("InvalidSubTabInterval"), _localizationService.GetString("Error"), 
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            subTextBox.Focus();
-            subTextBox.SelectAll();
-            return;
-        }
-
-        ClassInterval = classInterval;
-        SubTabInterval = subTabInterval;
-        ShowOnlyActiveClasses = checkBox.IsChecked == true;
-
-        DialogResult = true;
-        Close();
+        
+        var remaining = Math.Max(0, interval - (int)elapsed);
+        return remaining;
     }
 }
