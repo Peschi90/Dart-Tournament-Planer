@@ -1,4 +1,4 @@
-## v0.1.2
+## v0.1.5
 - added possibly to Print Tournament statistics
 
 ## v0.1.1
