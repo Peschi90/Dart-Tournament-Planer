@@ -76,7 +76,10 @@ jobs:
           echo "content<<EOF" >> $env:GITHUB_OUTPUT
           echo "$sectionText" >> $env:GITHUB_OUTPUT
           echo "EOF" >> $env:GITHUB_OUTPUT
-
+      - name: Debug downloaded files
+        run: |
+          echo "Listing ./release content"
+          dir release -Recurse
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -84,6 +87,6 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.content }}
           files: |
-            ./release/**/*.exe   # <-- ALLE .exe-Dateien werden angehängt
+            release/**/*.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
