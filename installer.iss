@@ -10,9 +10,9 @@ Compression=lzma
 SolidCompression=yes
 
 [Files]
-Source: "release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+; Nur Dateien aus dem Build-Ordner einbinden
+Source: "release\DartTournamentPlaner\bin\Release\net9.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\Dart Tournament Planer"; Filename: "{app}\DartTournamentPlaner.exe"
 Name: "{commondesktop}\Dart Tournament Planer"; Filename: "{app}\DartTournamentPlaner.exe"
-
