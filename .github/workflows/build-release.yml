@@ -52,8 +52,21 @@ jobs:
           $tag = "${{ github.ref_name }}"
           $zipName = "DartTournamentPlaner-Release-$tag.zip"
           echo "Creating $zipName..."
-          Compress-Archive -Path "release/*" -DestinationPath $zipName -Force
+          $items = Get-ChildItem -Path "release" -Recurse
+          Compress-Archive -Path $items.FullName -DestinationPath $zipName -Force
           echo "ZIP_PATH=$zipName" >> $env:GITHUB_ENV
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build Installer
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          # Version an Inno Setup übergeben
+          iscc.exe /dMyAppVersion=$tag installer.iss
+          $installer = Get-ChildItem -Path Output -Filter "*.exe" | Select-Object -First 1
+          echo "INSTALLER_PATH=$($installer.FullName)" >> $env:GITHUB_ENV
 
       - name: Extract changelog section
         id: changelog
@@ -94,5 +107,6 @@ jobs:
           body: ${{ steps.changelog.outputs.content }}
           files: |
             ${{ env.ZIP_PATH }}
+            ${{ env.INSTALLER_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
