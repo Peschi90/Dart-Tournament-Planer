@@ -303,7 +303,7 @@ For businesses using this software:
 
 ## 📈 Version History
 
-### Current: v0.1.0 (Latest)
+### Current: v0.1.1 (Latest)
 - ✨ Initial public release
 - 🏆 Complete tournament management system
 - 🎮 Group phase with Round-Robin support
