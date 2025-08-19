@@ -46,6 +46,15 @@ jobs:
           name: MyApp
           path: ./release
 
+      - name: Create ZIP package
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $zipName = "DartTournamentPlaner-Release-$tag.zip"
+          echo "Creating $zipName..."
+          Compress-Archive -Path "release/*" -DestinationPath $zipName -Force
+          echo "ZIP_PATH=$zipName" >> $env:GITHUB_ENV
+
       - name: Extract changelog section
         id: changelog
         shell: pwsh
@@ -76,10 +85,7 @@ jobs:
           echo "content<<EOF" >> $env:GITHUB_OUTPUT
           echo "$sectionText" >> $env:GITHUB_OUTPUT
           echo "EOF" >> $env:GITHUB_OUTPUT
-      - name: Debug downloaded files
-        run: |
-          echo "Listing ./release content"
-          dir release -Recurse
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -87,6 +93,6 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: ${{ steps.changelog.outputs.content }}
           files: |
-            release/**/*.exe
+            ${{ env.ZIP_PATH }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
