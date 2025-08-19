@@ -1,0 +1,89 @@
+name: Build & Release Windows App
+
+on:
+  push:
+    tags:
+      - "v*"   # nur bei Tags wie v1.0.0 ausführen
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore DartTournamentPlaner.sln
+
+      - name: Build Release
+        run: msbuild DartTournamentPlaner.sln /p:Configuration=Release
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MyApp
+          path: |
+            **\bin\Release\**
+  
+  release:
+    needs: build
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MyApp
+          path: ./release
+
+      - name: Extract changelog section
+        id: changelog
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $content = Get-Content CHANGELOG.md
+          
+          # Zeile mit "## vX.Y.Z" finden
+          $start = ($content | Select-String "^## $tag").LineNumber
+          if (-not $start) { 
+            echo "No changelog entry found for $tag" 
+            exit 1 
+          }
+          
+          # Alles ab dem gefundenen Tag nehmen
+          $rest = $content[($start-1)..($content.Length - 1)]
+          
+          # Nächsten "## v..." Header suchen (überspringt die erste Zeile)
+          $nextHeader = ($rest | Select-String "^## v[0-9]" | Select-Object -Skip 1 | Select-Object -First 1).LineNumber
+          
+          if ($nextHeader) {
+            $section = $rest[0..($nextHeader-2)]
+          } else {
+            $section = $rest
+          }
+          
+          $sectionText = $section -join "`n"
+          echo "content<<EOF" >> $env:GITHUB_OUTPUT
+          echo "$sectionText" >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.content }}
+          files: |
+            ./release/**/*.exe   # <-- ALLE .exe-Dateien werden angehängt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
