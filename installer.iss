@@ -1,23 +1,20 @@
-; Inno Setup Skript für Dart Tournament Planer
-; Deutsch + Englisch, mit Lizenz, Startmenü & Desktop-Verknüpfung
-; Prüft auf .NET 9 Desktop Runtime
+; installer.iss
 
 [Setup]
 AppId={{D0E5E8F9-9B3E-4E23-AFAB-1234567890AB}}
 AppName=Dart Tournament Planer
-AppVersion=1.0.0
+AppVersion={#MyAppVersion}
 AppPublisher=Peschi90
 AppPublisherURL=https://github.com/Peschi90/Dart-Tournament-Planer
-DefaultDirName={pf}\DartTournamentPlaner
+DefaultDirName={autopf}\Dart Tournament Planer
 DefaultGroupName=Dart Tournament Planer
-DisableProgramGroupPage=no
-LicenseFile=LICENSE.md
+UninstallDisplayIcon={app}\DartTournamentPlaner.exe
+OutputBaseFilename=Setup-DartTournamentPlaner-{#MyAppVersion}
 OutputDir=.\OutputInstaller
-OutputBaseFilename=DartTournamentPlanerSetup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-UninstallDisplayIcon={app}\DartTournamentPlaner.exe
+LicenseFile=LICENSE.md
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -27,7 +24,8 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "DartTournamentPlaner\bin\Release\net9.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
+; Nur Dateien aus dem Build-Ordner einbinden
+Source: "release\DartTournamentPlaner\bin\Release\net9.0-windows\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{group}\Dart Tournament Planer"; Filename: "{app}\DartTournamentPlaner.exe"
@@ -38,20 +36,8 @@ Filename: "{app}\DartTournamentPlaner.exe"; Description: "{cm:LaunchProgram,Dart
 
 [Code]
 function IsDotNet9Installed(): Boolean;
-var
-  Success: Boolean;
-  ReleaseKey: Cardinal;
 begin
-  { Prüfen auf .NET 9 Desktop Runtime in der Registry }
-  Success := RegQueryDWordValue(
-    HKLM64,
-    'SOFTWARE\dotnet\Setup\InstalledVersions\x64\sharedhost',
-    'Version',
-    ReleaseKey
-  );
-
-  { Achtung: "ReleaseKey" ist hier nur ein Platzhalter, .NET Core/5+/6+/7+/8+/9 haben andere Registry-Keys.
-    Deshalb prüfen wir über die Existenz des Ordners im dotnet-Installationspfad. }
+  { Prüfen, ob .NET 9 Desktop Runtime installiert ist (einfacher Ordnercheck) }
   if DirExists(ExpandConstant('{pf}\dotnet\shared\Microsoft.WindowsDesktop.App\9.0.0')) then
     Result := True
   else
@@ -65,7 +51,7 @@ begin
   if not IsDotNet9Installed() then
   begin
     MsgBox('Für den Dart Tournament Planer wird die ".NET Desktop Runtime 9.0" benötigt.'#13#13 +
-           'Sie wird nun von der offiziellen Microsoft-Webseite heruntergeladen.',
+           'Die Installationsseite von Microsoft wird nun geöffnet.',
            mbInformation, MB_OK);
 
     ShellExec('open',
