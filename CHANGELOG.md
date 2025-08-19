@@ -1,3 +1,9 @@
+## v0.0.6
+- eine weitere Test Release
+## v0.0.5
+- eine weitere Test Release
+## v0.0.4
+- eine weitere Test Release
 ## v0.0.3
 - eine weitere Test Release
 
