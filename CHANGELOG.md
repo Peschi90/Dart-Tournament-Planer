@@ -1,3 +1,6 @@
+## v0.0.2
+- test Release 
+
 ## v0.0.1
 - first public release
 - KO Tournament
