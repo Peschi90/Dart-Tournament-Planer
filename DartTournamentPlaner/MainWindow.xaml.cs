@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Views;
+using DartTournamentPlaner.Helpers;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -308,6 +309,7 @@ public partial class MainWindow : Window
         OpenMenuItem.Header = _localizationService.GetString("Open");
         SaveMenuItem.Header = _localizationService.GetString("Save");
         SaveAsMenuItem.Header = _localizationService.GetString("SaveAs");
+        PrintMenuItem.Header = "🖨️ " + (_localizationService.GetString("Print") ?? "Drucken");
         ExitMenuItem.Header = _localizationService.GetString("Exit");
         ViewMenuItem.Header = _localizationService.GetString("View");
         OverviewModeMenuItem.Header = _localizationService.GetString("TournamentOverview");
@@ -948,6 +950,63 @@ public partial class MainWindow : Window
             var title = _localizationService.GetString("Error");
             var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    /// <summary>
+    /// Event-Handler: Druckdialog öffnen
+    /// Ermöglicht das Drucken von Turnierstatistiken mit Klassenauswahl
+    /// </summary>
+    private void Print_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Sammle alle verfügbaren Turnierklassen
+            var allTournamentClasses = new List<TournamentClass>
+            {
+                PlatinTab.TournamentClass,
+                GoldTab.TournamentClass,
+                SilberTab.TournamentClass,
+                BronzeTab.TournamentClass
+            };
+
+            // Bestimme die aktuell ausgewählte Turnierklasse basierend auf dem aktiven Tab
+            TournamentClass? selectedTournamentClass = null;
+
+            // Ermittle das TabControl direkt
+            var mainTabControl = this.Content as Border;
+            if (mainTabControl?.Child is Grid mainGrid)
+            {
+                // Suche das TabControl in der Grid-Struktur
+                var contentBorder = mainGrid.Children.OfType<Border>().Skip(1).FirstOrDefault(); // Der zweite Border (Grid.Row="1")
+                if (contentBorder?.Child is TabControl tabControl)
+                {
+                    var selectedTab = tabControl.SelectedItem as TabItem;
+                    
+                    // Bestimme die TournamentClass basierend auf dem ausgewählten Tab
+                    selectedTournamentClass = selectedTab?.Name switch
+                    {
+                        nameof(PlatinTabItem) => PlatinTab.TournamentClass,
+                        nameof(GoldTabItem) => GoldTab.TournamentClass,
+                        nameof(SilverTabItem) => SilberTab.TournamentClass,
+                        nameof(BronzeTabItem) => BronzeTab.TournamentClass,
+                        _ => PlatinTab.TournamentClass // Fallback
+                    };
+                }
+            }
+
+            // Fallback: Verwende Platin wenn nichts gefunden wurde
+            selectedTournamentClass ??= PlatinTab.TournamentClass;
+
+            // Verwende den PrintHelper für die Druckfunktionalität mit allen Klassen
+            PrintHelper.ShowPrintDialog(allTournamentClasses, selectedTournamentClass, this, _localizationService);
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler"; 
+            var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"Print_Click: ERROR: {ex.Message}");
         }
     }
 }

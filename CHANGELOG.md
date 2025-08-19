@@ -1,3 +1,6 @@
+## v0.1.2
+- added possibly to Print Tournament statistics
+
 ## v0.1.1
 - Initial release of the project.
 - generate Tournaments for

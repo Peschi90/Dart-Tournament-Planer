@@ -335,6 +335,8 @@
                     <MenuItem Name="SaveMenuItem" Header="💾 Speichern" Click="Save_Click"/>
                     <MenuItem Name="SaveAsMenuItem" Header="📄 Speichern unter" Click="SaveAs_Click"/>
                     <Separator/>
+                    <MenuItem Name="PrintMenuItem" Header="🖨️ Drucken" Click="Print_Click"/>
+                    <Separator/>
                     <MenuItem Name="ExitMenuItem" Header="🚪 Beenden" Click="Exit_Click"/>
                 </MenuItem>
                 <MenuItem Name="ViewMenuItem" Header="👁️ Ansicht">
