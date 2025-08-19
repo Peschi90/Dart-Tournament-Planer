@@ -1,5 +1,7 @@
-## v0.1.5
+## v0.1.6
 - added possibly to Print Tournament statistics
+- bugfix final round stats where not open at the start
+- bugfix tournament overview window was not movable
 
 ## v0.1.1
 - Initial release of the project.

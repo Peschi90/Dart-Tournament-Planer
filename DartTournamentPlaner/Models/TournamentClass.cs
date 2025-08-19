@@ -247,6 +247,105 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// NEUE METHODE: Validiert und repariert Finals-Phase nach JSON-Loading
+    /// Stellt sicher dass FinalsGroup korrekt initialisiert ist
+    /// </summary>
+    public void EnsureFinalsPhaseIntegrity()
+    {
+        System.Diagnostics.Debug.WriteLine($"=== EnsureFinalsPhaseIntegrity START for {Name} ===");
+        
+        // Suche nach existierender Finals-Phase
+        var finalsPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals);
+        
+        if (finalsPhase != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Finals phase found");
+            
+            // Prüfe ob FinalsGroup existiert
+            if (finalsPhase.FinalsGroup == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: FinalsGroup is null, attempting to recreate");
+                
+                // Versuche FinalsGroup aus QualifiedPlayers zu rekonstruieren
+                if (finalsPhase.QualifiedPlayers?.Count > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Recreating FinalsGroup from {finalsPhase.QualifiedPlayers.Count} qualified players");
+                    
+                    var finalsGroup = new Group
+                    {
+                        Id = 999,
+                        Name = "Finalrunde",
+                        MatchesGenerated = false
+                    };
+                    
+                    foreach (var player in finalsPhase.QualifiedPlayers)
+                    {
+                        finalsGroup.Players.Add(player);
+                    }
+                    
+                    // Generiere Matches falls noch nicht vorhanden
+                    if (finalsGroup.Players.Count >= 2)
+                    {
+                        finalsGroup.GenerateRoundRobinMatches(GameRules);
+                        System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Generated {finalsGroup.Matches.Count} matches");
+                    }
+                    
+                    finalsPhase.FinalsGroup = finalsGroup;
+                    
+                    System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: FinalsGroup recreated successfully");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: No qualified players found, cannot recreate FinalsGroup");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: FinalsGroup exists with {finalsPhase.FinalsGroup.Players.Count} players and {finalsPhase.FinalsGroup.Matches.Count} matches");
+                
+                // Sicherstelle, dass Matches generiert sind
+                if (!finalsPhase.FinalsGroup.MatchesGenerated && finalsPhase.FinalsGroup.Players.Count >= 2)
+                {
+                    System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Generating missing matches");
+                    finalsPhase.FinalsGroup.GenerateRoundRobinMatches(GameRules);
+                }
+            }
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"=== EnsureFinalsPhaseIntegrity END ===");
+    }
+
+    /// <summary>
+    /// NEUE ÖFFENTLICHE METHODE: Führt vollständige Phase-Validierung nach JSON-Loading durch
+    /// Sollte aufgerufen werden nachdem Tournament-Daten geladen wurden
+    /// </summary>
+    public void ValidateAndRepairPhases()
+    {
+        System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases START for {Name} ===");
+        
+        try
+        {
+            // 1. Stelle sicher dass GroupPhase existiert
+            EnsureGroupPhaseExists();
+            
+            // 2. Repariere Finals-Phase falls vorhanden
+            EnsureFinalsPhaseIntegrity();
+            
+            // 3. Trigger UI-Refresh um sicherzustellen dass alles geladen wird
+            TriggerUIRefresh();
+            
+            System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: All phases validated and repaired");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: Stack trace: {ex.StackTrace}");
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases END ===");
+    }
+
+    /// <summary>
     /// Prüft ob zur nächsten Phase gewechselt werden kann
     /// Delegiert die Prüfung an die aktuelle Phase
     /// </summary>
@@ -391,9 +490,13 @@ public class TournamentClass : INotifyPropertyChanged
         finalsGroup.GenerateRoundRobinMatches(GameRules);
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generated {finalsGroup.Matches.Count} matches");
 
-        // Setze die Finals-Gruppe in der Phase
+        // WICHTIG: Setze die Finals-Gruppe sowohl in der Phase als auch als QualifiedPlayers
         finalsPhase.FinalsGroup = finalsGroup;
         finalsPhase.QualifiedPlayers = new ObservableCollection<Player>(qualifiedPlayers);
+
+        // ZUSÄTZLICH: Trigger UI-Refresh Event für sofortige Aktualisierung
+        System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Triggering UI refresh");
+        TriggerUIRefresh();
 
         System.Diagnostics.Debug.WriteLine($"=== CreateRoundRobinFinalsPhase END - Created phase with {finalsGroup.Matches.Count} matches ===");
         return finalsPhase;

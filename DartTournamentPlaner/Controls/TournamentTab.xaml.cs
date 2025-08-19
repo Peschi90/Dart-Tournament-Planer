@@ -44,16 +44,29 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             if (_tournamentClass != null)
             {
                 _tournamentClass.UIRefreshRequested += OnTournamentUIRefreshRequested;
+                
+                // KRITISCHER FIX: Validiere und repariere Phasen nach dem Laden
+                System.Diagnostics.Debug.WriteLine($"TournamentClass.set: Validating and repairing phases for {_tournamentClass.Name}");
+                _tournamentClass.ValidateAndRepairPhases();
             }
 
             OnPropertyChanged();
             UpdateUI();
             
+            // WICHTIG: Spezifische View-Updates je nach aktueller Phase
             if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
                 Dispatcher.BeginInvoke(() =>
                 {
                     RefreshKnockoutView();
+                }, DispatcherPriority.Loaded);
+            }
+            else if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+            {
+                System.Diagnostics.Debug.WriteLine($"TournamentClass.set: Tournament is in Finals phase, scheduling Finals view refresh");
+                Dispatcher.BeginInvoke(() =>
+                {
+                    RefreshFinalsView();
                 }, DispatcherPriority.Loaded);
             }
         }
@@ -371,6 +384,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             {
                 System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Finals phase");
                 
+                // WICHTIG: Validiere Finals-Phase Integrität vor UI-Update
+                TournamentClass.EnsureFinalsPhaseIntegrity();
+                
                 // Finals phase - show qualified players
                 var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
                 if (finalsGroup != null)
@@ -393,6 +409,26 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                             System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for finals: {ex.Message}");
                         }
                     }, DispatcherPriority.DataBind);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Finals phase but no FinalsGroup found after validation!");
+                    
+                    // Fallback: Zeige QualifiedPlayers wenn verfügbar
+                    var qualifiedPlayers = TournamentClass.CurrentPhase.QualifiedPlayers;
+                    if (qualifiedPlayers?.Count > 0)
+                    {
+                        Dispatcher.BeginInvoke(() =>
+                        {
+                            PlayersListBox.ItemsSource = qualifiedPlayers;
+                            PlayersHeaderText.Text = _localizationService?.GetString("FinalistsCount", qualifiedPlayers.Count) ?? $"Finalisten ({qualifiedPlayers.Count} Spieler):";
+                            
+                            PlayerNameTextBox.IsEnabled = false;
+                            AddPlayerButton.IsEnabled = false;
+                            GenerateMatchesButton.IsEnabled = false;
+                            ResetMatchesButton.IsEnabled = false;
+                        }, DispatcherPriority.DataBind);
+                    }
                 }
             }
             else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
@@ -600,8 +636,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: START - Current phase: {TournamentClass?.CurrentPhase?.PhaseType}");
+            
             if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
+                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: GroupPhase");
+                
                 // Knockout/Finals DataGrids explizit leeren
                 KnockoutMatchesDataGrid.ItemsSource = null;
                 LoserBracketDataGrid.ItemsSource = null;
@@ -624,6 +664,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             }
             else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
             {
+                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: RoundRobinFinals");
+                
                 // Group DataGrids explizit leeren
                 MatchesDataGrid.ItemsSource = null;
                 StandingsDataGrid.ItemsSource = null;
@@ -632,10 +674,16 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 LoserBracketDataGrid.ItemsSource = null;
                 KnockoutParticipantsListBox.ItemsSource = null;
                 
-                RefreshFinalsView();
+                // WICHTIG: RefreshFinalsView in einem separaten Thread ausführen um Deadlocks zu vermeiden
+                Dispatcher.BeginInvoke(() =>
+                {
+                    RefreshFinalsView();
+                }, DispatcherPriority.Loaded);
             }
             else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
+                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: KnockoutPhase");
+                
                 // Group DataGrids explizit leeren
                 MatchesDataGrid.ItemsSource = null;
                 StandingsDataGrid.ItemsSource = null;
@@ -644,7 +692,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 FinalsStandingsDataGrid.ItemsSource = null;
                 FinalistsListBox.ItemsSource = null;
                 
-                RefreshKnockoutView();
+                // WICHTIG: RefreshKnockoutView in einem separaten Thread ausführen um Deadlocks zu vermeiden  
+                Dispatcher.BeginInvoke(() =>
+                {
+                    RefreshKnockoutView();
+                }, DispatcherPriority.Loaded);
             }
             else
             {
@@ -669,17 +721,105 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
     private void RefreshFinalsView()
     {
-        if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+        System.Diagnostics.Debug.WriteLine("RefreshFinalsView: START");
+        
+        try
         {
-            var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
-            if (finalsGroup != null)
+            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
             {
-                FinalistsListBox.ItemsSource = finalsGroup.Players;
-                FinalsMatchesDataGrid.ItemsSource = finalsGroup.Matches;
-                var standings = finalsGroup.GetStandings();
-                FinalsStandingsDataGrid.ItemsSource = standings;
+                System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: In RoundRobinFinals phase");
+                
+                var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
+                if (finalsGroup != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: FinalsGroup found with {finalsGroup.Players.Count} players and {finalsGroup.Matches.Count} matches");
+                    
+                    // WICHTIG: Stelle sicher dass Matches generiert sind
+                    if (!finalsGroup.MatchesGenerated && finalsGroup.Players.Count >= 2)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Generating Finals matches for {finalsGroup.Players.Count} players");
+                        finalsGroup.GenerateRoundRobinMatches(TournamentClass.GameRules);
+                    }
+                    
+                    // UI Components aktualisieren
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        try
+                        {
+                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Updating UI components");
+                            
+                            FinalistsListBox.ItemsSource = finalsGroup.Players;
+                            FinalsMatchesDataGrid.ItemsSource = finalsGroup.Matches;
+                            
+                            var standings = finalsGroup.GetStandings();
+                            FinalsStandingsDataGrid.ItemsSource = standings;
+                            
+
+                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: UI updated - Players: {finalsGroup.Players.Count}, Matches: {finalsGroup.Matches.Count}, Standings: {standings.Count}");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: ERROR updating UI: {ex.Message}");
+                        }
+                    }, DispatcherPriority.DataBind);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: ERROR - FinalsGroup is null!");
+                    
+                    // Versuche die FinalsGroup zu erstellen falls sie fehlt
+                    if (TournamentClass.CurrentPhase.QualifiedPlayers?.Count > 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Attempting to create missing FinalsGroup with {TournamentClass.CurrentPhase.QualifiedPlayers.Count} qualified players");
+                        
+                        var recreatedGroup = new Group
+                        {
+                            Id = 999,
+                            Name = "Finalrunde",
+                            MatchesGenerated = false
+                        };
+                        
+                        foreach (var player in TournamentClass.CurrentPhase.QualifiedPlayers)
+                        {
+                            recreatedGroup.Players.Add(player);
+                        }
+                        
+                        TournamentClass.CurrentPhase.FinalsGroup = recreatedGroup;
+                        
+                        // Rekursiver Aufruf nach der Reparatur
+                        RefreshFinalsView();
+                        return;
+                    }
+                    
+                    // Fallback: UI leeren
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        FinalistsListBox.ItemsSource = null;
+                        FinalsMatchesDataGrid.ItemsSource = null;
+                        FinalsStandingsDataGrid.ItemsSource = null;
+                    }, DispatcherPriority.DataBind);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Not in RoundRobinFinals phase (current: {TournamentClass?.CurrentPhase?.PhaseType})");
+                
+                // Nicht in Finals Phase - UI leeren
+                Dispatcher.BeginInvoke(() =>
+                {
+                    FinalistsListBox.ItemsSource = null;
+                    FinalsMatchesDataGrid.ItemsSource = null;
+                    FinalsStandingsDataGrid.ItemsSource = null;
+                }, DispatcherPriority.DataBind);
             }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Stack trace: {ex.StackTrace}");
+        }
+        
+        System.Diagnostics.Debug.WriteLine("RefreshFinalsView: END");
     }
 
     private void RefreshKnockoutView()
@@ -1031,7 +1171,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     MainTabControl.SelectedItem = SetupTabItem;
                 }
                 
-                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurückgesetzt.";
+                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurücksetz.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
                 
                 // Trigger data changed event
@@ -1182,8 +1322,53 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     // Missing Event Handlers
     private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Handle tab control selection changes if needed
-        UpdatePhaseDisplay();
+        System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: START");
+        
+        if (e.Source == MainTabControl && MainTabControl.SelectedItem is TabItem selectedTab)
+        {
+            System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Selected tab: {selectedTab.Name}");
+            
+            try
+            {
+                // Handle specific tab selections to ensure proper data loading
+                if (selectedTab.Name == "FinalsTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Finals view on tab selection");
+                    
+                    // WICHTIG: Finals View explizit refreshen wenn Tab besucht wird
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        RefreshFinalsView();
+                    }, DispatcherPriority.DataBind);
+                }
+                else if (selectedTab.Name == "KnockoutTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Knockout view on tab selection");
+                    
+                    // WICHTIG: Knockout View explizit refreshen wenn Tab besucht wird
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        RefreshKnockoutView();
+                    }, DispatcherPriority.DataBind);
+                }
+                else if (selectedTab.Name == "GroupPhaseTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Group phase view on tab selection");
+                    
+                    // Gruppenphasen-spezifische Aktualisierung
+                    UpdateMatchesView();
+                }
+                
+                // Allgemeine Phase Display Aktualisierung
+                UpdatePhaseDisplay();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: ERROR: {ex.Message}");
+            }
+        }
+        
+        System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: END");
     }
 
     private void AdvanceToNextPhaseButton_Click(object sender, RoutedEventArgs e)

@@ -8,9 +8,10 @@
         Height="800" Width="1200"
         WindowStartupLocation="CenterScreen"
         WindowState="Maximized"
-        Title="Dart Tournament Planner - Overview"
+        Title="Dart Tournament Planner - Tournament Overview"
         Background="Transparent"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
+        ResizeMode="CanResize"
         AllowsTransparency="False"
         Closing="Window_Closing">
     
@@ -276,7 +277,7 @@
 
                     <!-- Left Side - Title and Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="TV" FontSize="24" Margin="0,0,16,0" 
+                        <TextBlock Text="??" FontSize="24" Margin="0,0,16,0" 
                                    VerticalAlignment="Center"
                                    FontWeight="Bold" Foreground="White"/>
                         <StackPanel>
@@ -290,19 +291,19 @@
                     <!-- Right Side Controls -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Control Buttons -->
-                        <Button Name="StartStopButton" Content="Start" 
+                        <Button Name="StartStopButton" Content="? Start" 
                                 Style="{StaticResource SuccessButton}"
                                 Click="StartStop_Click" 
                                 ToolTip="Starts or stops automatic tournament class cycling"/>
                         
-                        <Button Name="ConfigureButton" Content="Konfigurieren" 
+                        <Button Name="ConfigureButton" Content="? Konfigurieren" 
                                 Style="{StaticResource SecondaryButton}"
                                 Click="Configure_Click" 
                                 ToolTip="Opens configuration options for the overview display"/>
                         
-                        <Button Name="CloseButton" Content="X" 
-                                Style="{StaticResource IconButton}"
-                                Background="#EF4444"
+                        <Button Name="CloseButton" Content="?" 
+                                Style="{StaticResource DangerButton}"
+                                MinWidth="48" Height="40"
                                 Click="Close_Click"
                                 ToolTip="Closes the overview window"/>
                     </StackPanel>
@@ -332,7 +333,7 @@
                                 BorderThickness="1" CornerRadius="6" 
                                 Padding="8,4" Margin="0,0,16,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="i" FontSize="12" 
+                                <TextBlock Text="?" FontSize="12" 
                                            Foreground="#3B82F6" 
                                            Margin="0,0,6,0" VerticalAlignment="Center"
                                            FontWeight="Bold"/>
@@ -354,7 +355,7 @@
                         <Border Background="#F3F4F6" CornerRadius="6" 
                                 Padding="10,4" Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="t" FontSize="12" 
+                                <TextBlock Text="?" FontSize="12" 
                                            Margin="0,0,6,0" VerticalAlignment="Center"
                                            FontWeight="Bold"/>
                                 <TextBlock Name="TimerTextBlock" Text="--:--" 
