@@ -341,7 +341,7 @@
                     <MenuItem Name="OverviewModeMenuItem" Header="📺 Turnier-Übersicht" Click="OverviewMode_Click"/>
                 </MenuItem>
                 <MenuItem Name="SettingsMenuItem" Header="⚙️ Einstellungen" Click="Settings_Click"/>
-                <MenuItem Name="HelpMenuItem" Header="❓ Hilfe">
+                <MenuItem Name="HelpMenuItem" Header="❓ Hilfe" Click="HelpMenuItem_Click">
                     <MenuItem Name="HelpContentMenuItem" Header="📖 Hilfe" Click="Help_Click"/>
                     <MenuItem Name="BugReportMenuItem" Header="🐛 Bug melden" Click="BugReport_Click"/>
                     <Separator/>

@@ -1,19 +1,13 @@
-## v0.0.6
-- eine weitere Test Release
-## v0.0.5
-- eine weitere Test Release
-## v0.0.4
-- eine weitere Test Release
-## v0.0.3
-- eine weitere Test Release
+## v0.1.0
+- Initial release of the project.
+- generate Tournaments for
+  - `Groupphase only`
+  - `Round Robin`
+  - `KO System`
+- Tournament overview Window to display all classes and their matches.
+  - `automatic tab switch to let it run continiously`
 
-## v0.0.2
-- test Release 
 
-## v0.0.1
-- first public release
-- KO Tournament
-- Round RObin Tournament
 
 
 ## v0.0.0
