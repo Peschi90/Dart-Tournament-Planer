@@ -1,4 +1,4 @@
-<Window x:Class="DartTournamentPlaner.Views.TournamentOverviewWindow"
+﻿<Window x:Class="DartTournamentPlaner.Views.TournamentOverviewWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -61,7 +61,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <!-- Tab Headers mit modernem Design -->
+                            <!-- Tab Headers mit modernem Design --> 
                             <Border Grid.Row="0" 
                                     Background="{StaticResource CardBackgroundBrush}" 
                                     BorderBrush="#E2E8F0" 
@@ -277,7 +277,7 @@
 
                     <!-- Left Side - Title and Status -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="??" FontSize="24" Margin="0,0,16,0" 
+                        <TextBlock Text="📺" FontSize="24" Margin="0,0,16,0" 
                                    VerticalAlignment="Center"
                                    FontWeight="Bold" Foreground="White"/>
                         <StackPanel>
@@ -291,17 +291,17 @@
                     <!-- Right Side Controls -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Control Buttons -->
-                        <Button Name="StartStopButton" Content="? Start" 
+                        <Button Name="StartStopButton" Content="▶ Start" 
                                 Style="{StaticResource SuccessButton}"
                                 Click="StartStop_Click" 
                                 ToolTip="Starts or stops automatic tournament class cycling"/>
                         
-                        <Button Name="ConfigureButton" Content="? Konfigurieren" 
+                        <Button Name="ConfigureButton" Content="⚙ Konfigurieren" 
                                 Style="{StaticResource SecondaryButton}"
                                 Click="Configure_Click" 
                                 ToolTip="Opens configuration options for the overview display"/>
                         
-                        <Button Name="CloseButton" Content="?" 
+                        <Button Name="CloseButton" Content="✕" 
                                 Style="{StaticResource DangerButton}"
                                 MinWidth="48" Height="40"
                                 Click="Close_Click"
@@ -333,7 +333,7 @@
                                 BorderThickness="1" CornerRadius="6" 
                                 Padding="8,4" Margin="0,0,16,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="?" FontSize="12" 
+                                <TextBlock Text="ℹ" FontSize="12" 
                                            Foreground="#3B82F6" 
                                            Margin="0,0,6,0" VerticalAlignment="Center"
                                            FontWeight="Bold"/>
@@ -355,7 +355,7 @@
                         <Border Background="#F3F4F6" CornerRadius="6" 
                                 Padding="10,4" Margin="0,0,12,0">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="?" FontSize="12" 
+                                <TextBlock Text="⏱" FontSize="12" 
                                            Margin="0,0,6,0" VerticalAlignment="Center"
                                            FontWeight="Bold"/>
                                 <TextBlock Name="TimerTextBlock" Text="--:--" 

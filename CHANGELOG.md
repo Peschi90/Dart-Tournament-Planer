@@ -1,3 +1,7 @@
+## v0.1.7
+- Bugfix tournamet overview window icons
+- added translation for Printscreen in englisch
+
 ## v0.1.6
 - added possibly to Print Tournament statistics
 - bugfix final round stats where not open at the start

@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Turnierstatistiken drucken" Height="700" Width="900"
+        Title="Print Tournament Statistics" Height="700" Width="900"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         MinHeight="600" MinWidth="800"
@@ -199,7 +199,8 @@
                     Margin="0,0,0,15"
                     Effect="{StaticResource CardShadow}">
                 <StackPanel>
-                    <TextBlock Text="&#x1F4C4; Turnierstatistiken drucken" 
+                    <TextBlock x:Name="HeaderTitle"
+                               Text="📄 Print Tournament Statistics" 
                                FontSize="24" 
                                FontWeight="Bold"
                                Foreground="#1E40AF"
@@ -210,7 +211,8 @@
                     <StackPanel Orientation="Horizontal" 
                                 HorizontalAlignment="Center"
                                 Margin="0,0,0,10">
-                        <TextBlock Text="🏆 Turnierklasse:" 
+                        <TextBlock x:Name="TournamentClassText"
+                                   Text="🏆 Tournament Class:" 
                                    VerticalAlignment="Center" 
                                    FontSize="14"
                                    FontWeight="SemiBold"
@@ -226,7 +228,7 @@
                     </StackPanel>
 
                     <TextBlock x:Name="TournamentClassLabel" 
-                               Text="Turnierklasse: -" 
+                               Text="Tournament Class: -" 
                                FontSize="14" 
                                Foreground="#374151"
                                HorizontalAlignment="Center"/>
@@ -244,14 +246,15 @@
                 <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <!-- Allgemeine Optionen -->
-                        <GroupBox Header="&#x1F527; Allgemeine Optionen">
+                        <GroupBox x:Name="GeneralOptionsGroup" Header="🔧 General Options">
                             <StackPanel>
                                 <CheckBox x:Name="IncludeOverviewCheckBox" 
-                                          Content="Turnier&#xFC;bersicht" 
+                                          Content="Tournament Overview" 
                                           IsChecked="True"/>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                    <TextBlock Text="&#x1F4CB; Titel (optional):" 
+                                    <TextBlock x:Name="TitleLabel"
+                                               Text="📋 Title (optional):" 
                                                VerticalAlignment="Center" 
                                                Margin="0,0,10,0"/>
                                     <TextBox x:Name="TitleTextBox" 
@@ -263,7 +266,8 @@
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <TextBlock Text="&#x1F4DD; Untertitel (optional):" 
+                                    <TextBlock x:Name="SubtitleLabel"
+                                               Text="📝 Subtitle (optional):" 
                                                VerticalAlignment="Center" 
                                                Margin="0,0,10,0"/>
                                     <TextBox x:Name="SubtitleTextBox" 
@@ -277,21 +281,22 @@
                         </GroupBox>
 
                         <!-- Gruppenphase -->
-                        <GroupBox Header="&#x1F465; Gruppenphase">
+                        <GroupBox x:Name="GroupPhaseGroup" Header="👥 Group Phase">
                             <StackPanel>
                                 <CheckBox x:Name="IncludeGroupPhaseCheckBox" 
-                                          Content="Gruppenphase einschlie&#xDF;en" 
+                                          Content="Include Group Phase" 
                                           IsChecked="True"
                                           Checked="IncludeGroupPhaseCheckBox_Checked"
                                           Unchecked="IncludeGroupPhaseCheckBox_Unchecked"/>
 
                                 <StackPanel x:Name="GroupSelectionPanel" Margin="20,10,0,0">
-                                    <TextBlock Text="Gruppen ausw&#xE4;hlen:" 
+                                    <TextBlock x:Name="SelectGroupsLabel"
+                                               Text="Select Groups:" 
                                                FontWeight="SemiBold" 
                                                Margin="0,0,0,5"/>
 
                                     <CheckBox x:Name="SelectAllGroupsCheckBox" 
-                                              Content="Alle Gruppen" 
+                                              Content="All Groups" 
                                               IsChecked="True"
                                               FontWeight="Medium"
                                               Foreground="#059669"
@@ -305,17 +310,17 @@
                         </GroupBox>
 
                         <!-- Finalrunde -->
-                        <GroupBox Header="&#x1F3C6; Finalrunde">
+                        <GroupBox x:Name="FinalsGroup" Header="🏆 Finals">
                             <CheckBox x:Name="IncludeFinalsCheckBox" 
-                                      Content="Finalrunde einschlie&#xDF;en" 
+                                      Content="Include Finals" 
                                       IsChecked="True"/>
                         </GroupBox>
 
                         <!-- KO-Phase -->
-                        <GroupBox Header="&#x2694;&#xFE0F; KO-Phase">
+                        <GroupBox x:Name="KnockoutGroup" Header="⚔️ KO Phase">
                             <StackPanel>
                                 <CheckBox x:Name="IncludeKnockoutCheckBox" 
-                                          Content="KO-Phase einschlie&#xDF;en" 
+                                          Content="Include KO Phase" 
                                           IsChecked="True"
                                           Checked="IncludeKnockoutCheckBox_Checked"
                                           Unchecked="IncludeKnockoutCheckBox_Unchecked"/>
@@ -328,7 +333,7 @@
                                               Content="Loser Bracket" 
                                               IsChecked="True"/>
                                     <CheckBox x:Name="IncludeKnockoutParticipantsCheckBox" 
-                                              Content="Teilnehmer-Liste" 
+                                              Content="Participants List" 
                                               IsChecked="True"/>
                                 </StackPanel>
                             </StackPanel>
@@ -348,8 +353,8 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0"
-                                   Text="&#x1F441;&#xFE0F; Vorschau" 
+                        <TextBlock x:Name="PreviewHeader"
+                                   Text="👁️ Preview" 
                                    FontSize="18" 
                                    FontWeight="Bold"
                                    Foreground="#1E40AF"
@@ -364,7 +369,8 @@
                                           Background="White"
                                           Padding="10">
                                 <StackPanel x:Name="PreviewPanel">
-                                    <TextBlock Text="&#x1F4C4; Vorschau wird hier angezeigt..." 
+                                    <TextBlock x:Name="PreviewPlaceholderText"
+                                               Text="📄 Preview will be displayed here..." 
                                                FontStyle="Italic" 
                                                Foreground="#6B7280"
                                                HorizontalAlignment="Center"
@@ -387,17 +393,17 @@
                 <StackPanel Orientation="Horizontal" 
                             HorizontalAlignment="Center">
                     <Button x:Name="PreviewButton"
-                            Content="&#x1F441;&#xFE0F; Vorschau aktualisieren"
+                            Content="👁️ Update Preview"
                             Style="{StaticResource SecondaryButton}"
                             Click="PreviewButton_Click"
                             Width="180"/>
                     <Button x:Name="PrintButton"
-                            Content="&#x1F5A8;&#xFE0F; Drucken"
+                            Content="🖨️ Print"
                             Style="{StaticResource ModernButton}"
                             Click="PrintButton_Click"
                             Width="120"/>
                     <Button x:Name="CancelButton"
-                            Content="&#x274C; Abbrechen"
+                            Content="❌ Cancel"
                             Style="{StaticResource SecondaryButton}"
                             Click="CancelButton_Click"
                             Width="120"/>

@@ -44,20 +44,22 @@ namespace DartTournamentPlaner.Services
                 
                 if (document == null)
                 {
-                    MessageBox.Show("Fehler beim Erstellen des Druckdokuments.", "Druckfehler", 
+                    var errorMessage = _localizationService?.GetString("ErrorCreatingDocument") ?? "Fehler beim Erstellen des Druckdokuments.";
+                    MessageBox.Show(errorMessage, _localizationService?.GetString("PrintError") ?? "Druckfehler", 
                                   MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
                 ConfigurePrintSettings(printDialog);
-                printDialog.PrintDocument(document.DocumentPaginator, 
-                    $"Turnierstatistiken - {tournamentClass.Name}");
+                var documentTitle = _localizationService?.GetString("TournamentStatistics", tournamentClass.Name) ?? $"Turnierstatistiken - {tournamentClass.Name}";
+                printDialog.PrintDocument(document.DocumentPaginator, documentTitle);
 
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler beim Drucken: {ex.Message}", "Druckfehler", 
+                var errorMessage = _localizationService?.GetString("ErrorPrinting", ex.Message) ?? $"Fehler beim Drucken: {ex.Message}";
+                MessageBox.Show(errorMessage, _localizationService?.GetString("PrintError") ?? "Druckfehler", 
                               MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
@@ -152,7 +154,8 @@ namespace DartTournamentPlaner.Services
                     Background = Brushes.White
                 };
 
-                AddPageHeader(fixedPage, $"Turnierübersicht - {tournamentClass.Name}", printOptions);
+                var pageTitle = _localizationService?.GetString("TournamentOverviewPrint", tournamentClass.Name) ?? $"Turnierübersicht - {tournamentClass.Name}";
+                AddPageHeader(fixedPage, pageTitle, printOptions);
                 double yPosition = 90;
                 yPosition = AddTournamentInfo(fixedPage, tournamentClass, yPosition);
                 
@@ -221,7 +224,8 @@ namespace DartTournamentPlaner.Services
                     Background = Brushes.White
                 };
 
-                AddPageHeader(fixedPage, $"{tournamentClass.Name} - Finalrunde", printOptions);
+                var pageTitle = $"{tournamentClass.Name} - {_localizationService?.GetString("FinalsRound") ?? "Finalrunde"}";
+                AddPageHeader(fixedPage, pageTitle, printOptions);
                 double yPosition = 90;
 
                 if (tournamentClass.CurrentPhase?.FinalsGroup != null)
@@ -287,8 +291,14 @@ namespace DartTournamentPlaner.Services
                     Background = Brushes.White
                 };
 
-                var bracketName = isLoserBracket ? "Loser Bracket" : "Winner Bracket";
-                AddPageHeader(fixedPage, $"{tournamentClass.Name} - {bracketName}", printOptions);
+                var bracketName = isLoserBracket 
+                    ? (_localizationService?.GetString("LoserBracket") ?? "Loser Bracket")
+                    : (_localizationService?.GetString("WinnerBracket") ?? "Winner Bracket");
+                var pageTitle = isLoserBracket
+                    ? _localizationService?.GetString("LoserBracketHeader", tournamentClass.Name) ?? $"{tournamentClass.Name} - Loser Bracket"
+                    : _localizationService?.GetString("WinnerBracketHeader", tournamentClass.Name) ?? $"{tournamentClass.Name} - Winner Bracket";
+                    
+                AddPageHeader(fixedPage, pageTitle, printOptions);
                 double yPosition = 90;
 
                 var matches = isLoserBracket ? 
@@ -354,9 +364,10 @@ namespace DartTournamentPlaner.Services
             };
             page.Children.Add(line);
 
+            var footerText = _localizationService?.GetString("CreatedWith") ?? "Erstellt mit Dart Tournament Planner";
             var footerBlock = new TextBlock
             {
-                Text = "Erstellt mit Dart Tournament Planner",
+                Text = footerText,
                 FontSize = 8,
                 Foreground = Brushes.Gray
             };
@@ -370,24 +381,28 @@ namespace DartTournamentPlaner.Services
         {
             var infoPanel = new StackPanel { Orientation = Orientation.Vertical };
 
+            var gameRulesText = _localizationService?.GetString("GameRulesLabel", tournamentClass.GameRules) ?? $"Spielregeln: {tournamentClass.GameRules}";
             infoPanel.Children.Add(new TextBlock
             {
-                Text = $"Spielregeln: {tournamentClass.GameRules}",
+                Text = gameRulesText,
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
 
+            var currentPhaseName = tournamentClass.CurrentPhase?.Name ?? (_localizationService?.GetString("NotStarted") ?? "Nicht begonnen");
+            var currentPhaseText = _localizationService?.GetString("CurrentPhaseLabel", currentPhaseName) ?? $"Aktuelle Phase: {currentPhaseName}";
             infoPanel.Children.Add(new TextBlock
             {
-                Text = $"Aktuelle Phase: {tournamentClass.CurrentPhase?.Name ?? "Nicht begonnen"}",
+                Text = currentPhaseText,
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
 
             var totalPlayers = tournamentClass.Groups.SelectMany(g => g.Players).Count();
+            var groupsPlayersText = _localizationService?.GetString("GroupsPlayersLabel", tournamentClass.Groups.Count, totalPlayers) ?? $"Gruppen: {tournamentClass.Groups.Count}, Spieler gesamt: {totalPlayers}";
             infoPanel.Children.Add(new TextBlock
             {
-                Text = $"Gruppen: {tournamentClass.Groups.Count}, Spieler gesamt: {totalPlayers}",
+                Text = groupsPlayersText,
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
@@ -401,9 +416,10 @@ namespace DartTournamentPlaner.Services
 
         private double AddGroupsOverview(FixedPage page, TournamentClass tournamentClass, double yPosition)
         {
+            var titleText = _localizationService?.GetString("GroupsOverview") ?? "Gruppen-Übersicht";
             var titleBlock = new TextBlock
             {
-                Text = "Gruppen-Übersicht",
+                Text = titleText,
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 15, 0, 10)
@@ -416,9 +432,14 @@ namespace DartTournamentPlaner.Services
 
             foreach (var group in tournamentClass.Groups)
             {
+                var playersText = _localizationService?.GetString("PlayersCount", group.Players.Count) ?? $"Spieler: {group.Players.Count}";
+                var finishedMatches = group.Matches.Count(m => m.Status == MatchStatus.Finished);
+                var totalMatches = group.Matches.Count;
+                var matchesText = _localizationService?.GetString("MatchesStatus", finishedMatches, totalMatches) ?? $"{finishedMatches} von {totalMatches} Spielen beendet";
+                
                 var groupInfo = new TextBlock
                 {
-                    Text = $"• {group.Name}: {group.Players.Count} Spieler, {group.Matches.Count(m => m.Status == MatchStatus.Finished)} von {group.Matches.Count} Spielen beendet",
+                    Text = $"• {group.Name}: {playersText}, {matchesText}",
                     FontSize = 13,
                     Margin = new Thickness(20, 4, 0, 0)
                 };
@@ -436,16 +457,20 @@ namespace DartTournamentPlaner.Services
         {
             var detailsPanel = new StackPanel { Orientation = Orientation.Vertical };
 
+            var playersText = _localizationService?.GetString("PlayersCount", group.Players.Count) ?? $"Spieler: {group.Players.Count}";
             detailsPanel.Children.Add(new TextBlock
             {
-                Text = $"Spieler: {group.Players.Count}",
+                Text = playersText,
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
 
+            var finishedMatches = group.Matches.Count(m => m.Status == MatchStatus.Finished);
+            var totalMatches = group.Matches.Count;
+            var matchesText = _localizationService?.GetString("MatchesStatus", finishedMatches, totalMatches) ?? $"Spiele: {finishedMatches} von {totalMatches} beendet";
             detailsPanel.Children.Add(new TextBlock
             {
-                Text = $"Spiele: {group.Matches.Count(m => m.Status == MatchStatus.Finished)} von {group.Matches.Count} beendet",
+                Text = matchesText,
                 FontSize = 14,
                 Margin = new Thickness(0, 8, 0, 0)
             });
@@ -459,9 +484,10 @@ namespace DartTournamentPlaner.Services
 
         private double AddStandingsTable(FixedPage page, Group group, double yPosition)
         {
+            var titleText = _localizationService?.GetString("Table") ?? "Tabelle";
             var titleBlock = new TextBlock
             {
-                Text = "Tabelle",
+                Text = titleText,
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Foreground = Brushes.Black
@@ -485,9 +511,10 @@ namespace DartTournamentPlaner.Services
                 }
                 else
                 {
+                    var noStandingsText = _localizationService?.GetString("NoStandingsAvailable") ?? "Noch keine Tabelle verfügbar.";
                     var noStandingsBlock = new TextBlock
                     {
-                        Text = "Noch keine Tabelle verfügbar.",
+                        Text = noStandingsText,
                         FontStyle = FontStyles.Italic,
                         Foreground = Brushes.Gray,
                         FontSize = 14
@@ -520,9 +547,10 @@ namespace DartTournamentPlaner.Services
 
         private double AddMatchResults(FixedPage page, Group group, double yPosition)
         {
+            var titleText = _localizationService?.GetString("MatchResults") ?? "Spielergebnisse";
             var titleBlock = new TextBlock
             {
-                Text = "Spielergebnisse",
+                Text = titleText,
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 25, 0, 15)
@@ -552,9 +580,10 @@ namespace DartTournamentPlaner.Services
                 }
                 else
                 {
+                    var noMatchesText = _localizationService?.GetString("NoMatchesAvailable") ?? "Keine Spiele vorhanden.";
                     var noMatchesBlock = new TextBlock
                     {
-                        Text = "Keine Spiele vorhanden.",
+                        Text = noMatchesText,
                         FontStyle = FontStyles.Italic,
                         Foreground = Brushes.Gray,
                         FontSize = 12
@@ -569,9 +598,10 @@ namespace DartTournamentPlaner.Services
             }
             catch (Exception ex)
             {
+                var errorText = $"FEHLER bei Spielergebnissen: {ex.Message}";
                 var errorBlock = new TextBlock
                 {
-                    Text = $"FEHLER bei Spielergebnissen: {ex.Message}",
+                    Text = errorText,
                     FontStyle = FontStyles.Italic,
                     Foreground = Brushes.Red,
                     FontSize = 11
@@ -587,9 +617,12 @@ namespace DartTournamentPlaner.Services
 
         private double AddKnockoutMatches(FixedPage page, List<KnockoutMatch> matches, double yPosition, bool isLoserBracket)
         {
+            var titleText = isLoserBracket 
+                ? (_localizationService?.GetString("LoserBracketMatches") ?? "Loser Bracket - Spiele")
+                : (_localizationService?.GetString("WinnerBracketMatches") ?? "Winner Bracket - Spiele");
             var titleBlock = new TextBlock
             {
-                Text = $"{(isLoserBracket ? "Loser Bracket" : "Winner Bracket")} - Spiele",
+                Text = titleText,
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(0, 25, 0, 15)
@@ -613,9 +646,12 @@ namespace DartTournamentPlaner.Services
                 }
                 else
                 {
+                    var noMatchesText = isLoserBracket 
+                        ? (_localizationService?.GetString("NoLoserBracketGames") ?? "Keine Loser Bracket Spiele vorhanden.")
+                        : (_localizationService?.GetString("NoWinnerBracketGames") ?? "Keine Winner Bracket Spiele vorhanden.");
                     var noMatchesBlock = new TextBlock
                     {
-                        Text = $"Keine {(isLoserBracket ? "Loser Bracket" : "Winner Bracket")} Spiele vorhanden.",
+                        Text = noMatchesText,
                         FontStyle = FontStyles.Italic,
                         Foreground = Brushes.Gray,
                         FontSize = 12
@@ -630,9 +666,11 @@ namespace DartTournamentPlaner.Services
             }
             catch (Exception ex)
             {
+                var bracketType = isLoserBracket ? "Loser" : "Winner";
+                var errorText = $"FEHLER bei {bracketType} Bracket: {ex.Message}";
                 var errorBlock = new TextBlock
                 {
-                    Text = $"FEHLER bei {(isLoserBracket ? "Loser" : "Winner")} Bracket: {ex.Message}",
+                    Text = errorText,
                     FontStyle = FontStyles.Italic,
                     Foreground = Brushes.Red,
                     FontSize = 11
@@ -664,9 +702,18 @@ namespace DartTournamentPlaner.Services
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
 
-            // Header-Zeile
+            // Header-Zeile mit lokalisierten Texten
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
-            var headers = new[] { "Pos", "Spieler", "Sp", "S", "U", "N", "Pkt", "Sets" };
+            var headers = new[] { 
+                _localizationService?.GetString("Position") ?? "Pos",
+                _localizationService?.GetString("PlayerHeader") ?? "Spieler",
+                _localizationService?.GetString("MatchesPlayedShort") ?? "Sp",
+                _localizationService?.GetString("WinsShort") ?? "S",
+                _localizationService?.GetString("DrawsShort") ?? "U",
+                _localizationService?.GetString("LossesShort") ?? "N",
+                _localizationService?.GetString("PointsHeader") ?? "Pkt",
+                _localizationService?.GetString("SetsHeader") ?? "Sets"
+            };
             
             for (int col = 0; col < headers.Length; col++)
             {
@@ -703,7 +750,7 @@ namespace DartTournamentPlaner.Services
                 var values = new string[]
                 {
                     standing.Position.ToString(),
-                    standing.Player?.Name ?? "Unknown",
+                    standing.Player?.Name ?? (_localizationService?.GetString("Unknown") ?? "Unknown"),
                     standing.MatchesPlayed.ToString(),
                     standing.Wins.ToString(),
                     standing.Draws.ToString(),
@@ -781,9 +828,15 @@ namespace DartTournamentPlaner.Services
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
 
-            // Header-Zeile
+            // Header-Zeile mit lokalisierten Texten
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
-            var headers = new[] { "Nr", "Spiel", "Status", "Ergebnis", "Gewinner" };
+            var headers = new[] { 
+                _localizationService?.GetString("MatchNumber") ?? "Nr",
+                _localizationService?.GetString("MatchHeader") ?? "Spiel",
+                _localizationService?.GetString("StatusHeader") ?? "Status",
+                _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
+                _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
+            };
             
             for (int col = 0; col < headers.Length; col++)
             {
@@ -824,37 +877,41 @@ namespace DartTournamentPlaner.Services
                 
                 if (match.IsBye || match.Status == MatchStatus.Bye)
                 {
-                    statusText = "FREILOS";
-                    resultText = "-";
-                    winnerText = match.Player1?.Name ?? "-";
+                    statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
+                    resultText = _localizationService?.GetString("Unknown") ?? "-";
+                    winnerText = match.Player1?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
                     textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
                 }
                 else if (match.Status == MatchStatus.Finished)
                 {
-                    statusText = "BEENDET";
-                    resultText = match.ScoreDisplay ?? "-";
-                    winnerText = match.Winner?.Name ?? "Unentschieden";
+                    statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
+                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+                    winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
                     textColor = new SolidColorBrush(Color.FromRgb(25, 135, 84));
                 }
                 else if (match.Status == MatchStatus.InProgress)
                 {
-                    statusText = "LÄUFT";
-                    resultText = match.ScoreDisplay ?? "-";
-                    winnerText = "-";
+                    statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
+                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
                     textColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
                 }
                 else
                 {
-                    statusText = "AUSSTEHEND";
-                    resultText = "-";
-                    winnerText = "-";
+                    statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
+                    resultText = _localizationService?.GetString("Unknown") ?? "-";
+                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
                     textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
                 }
+
+                var gameText = match.IsBye 
+                    ? _localizationService?.GetString("ByeGame", match.Player1?.Name) ?? $"{match.Player1?.Name} (Freilos)"
+                    : _localizationService?.GetString("VersusGame", match.Player1?.Name, match.Player2?.Name) ?? $"{match.Player1?.Name} vs {match.Player2?.Name}";
 
                 var values = new string[]
                 {
                     (row + 1).ToString(),
-                    match.IsBye ? $"{match.Player1?.Name} (Freilos)" : $"{match.Player1?.Name} vs {match.Player2?.Name}",
+                    gameText,
                     statusText,
                     resultText,
                     winnerText
@@ -876,8 +933,7 @@ namespace DartTournamentPlaner.Services
                         FontSize = 10,
                         TextAlignment = col == 1 ? TextAlignment.Left : TextAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        Foreground = col == 2 ? textColor : Brushes.Black
+                        TextTrimming = TextTrimming.CharacterEllipsis
                     };
                     
                     cellBorder.Child = cellText;
@@ -920,9 +976,16 @@ namespace DartTournamentPlaner.Services
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
 
-            // Header-Zeile
+            // Header-Zeile mit lokalisierten Texten
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
-            var headers = new[] { "Nr", "Runde", "Spiel", "Status", "Ergebnis", "Gewinner" };
+            var headers = new[] { 
+                _localizationService?.GetString("MatchNumber") ?? "Nr",
+                _localizationService?.GetString("RoundHeader") ?? "Runde",
+                _localizationService?.GetString("MatchHeader") ?? "Spiel",
+                _localizationService?.GetString("StatusHeader") ?? "Status",
+                _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
+                _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
+            };
             
             for (int col = 0; col < headers.Length; col++)
             {
@@ -967,36 +1030,38 @@ namespace DartTournamentPlaner.Services
                 
                 if (isBye)
                 {
-                    statusText = "FREILOS";
-                    resultText = "-";
-                    winnerText = match.Player1?.Name ?? match.Player2?.Name ?? "-";
+                    statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
+                    resultText = _localizationService?.GetString("Unknown") ?? "-";
+                    winnerText = match.Player1?.Name ?? match.Player2?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
                     textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
                 }
                 else if (match.Status == MatchStatus.Finished)
                 {
-                    statusText = "BEENDET";
-                    resultText = match.ScoreDisplay ?? "-";
-                    winnerText = match.Winner?.Name ?? "Unentschieden";
+                    statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
+                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+                    winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
                     textColor = new SolidColorBrush(Color.FromRgb(25, 135, 84));
                 }
                 else if (match.Status == MatchStatus.InProgress)
                 {
-                    statusText = "LÄUFT";
-                    resultText = match.ScoreDisplay ?? "-";
-                    winnerText = "-";
+                    statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
+                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
                     textColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
                 }
                 else
                 {
-                    statusText = "AUSSTEHEND";
-                    resultText = "-";
-                    winnerText = "-";
+                    statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
+                    resultText = _localizationService?.GetString("Unknown") ?? "-";
+                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
                     textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
                 }
 
                 var player1Name = match.Player1?.Name ?? "TBD";
                 var player2Name = match.Player2?.Name ?? "TBD";
-                var matchText = isBye ? $"{player1Name} (Freilos)" : $"{player1Name} vs {player2Name}";
+                var matchText = isBye 
+                    ? _localizationService?.GetString("ByeGame", player1Name) ?? $"{player1Name} (Freilos)"
+                    : _localizationService?.GetString("VersusGame", player1Name, player2Name) ?? $"{player1Name} vs {player2Name}";
 
                 var values = new string[]
                 {
@@ -1062,13 +1127,13 @@ namespace DartTournamentPlaner.Services
         {
             return round switch
             {
-                KnockoutRound.Best64 => "Beste 64",
-                KnockoutRound.Best32 => "Beste 32", 
-                KnockoutRound.Best16 => "Beste 16",
-                KnockoutRound.Quarterfinal => "Viertelfinale",
-                KnockoutRound.Semifinal => "Halbfinale", 
-                KnockoutRound.Final => "Finale",
-                KnockoutRound.GrandFinal => "Grand Final",
+                KnockoutRound.Best64 => _localizationService?.GetString("Best64") ?? "Beste 64",
+                KnockoutRound.Best32 => _localizationService?.GetString("Best32") ?? "Beste 32", 
+                KnockoutRound.Best16 => _localizationService?.GetString("Best16") ?? "Beste 16",
+                KnockoutRound.Quarterfinal => _localizationService?.GetString("Quarterfinal") ?? "Viertelfinale",
+                KnockoutRound.Semifinal => _localizationService?.GetString("Semifinal") ?? "Halbfinale", 
+                KnockoutRound.Final => _localizationService?.GetString("Final") ?? "Finale",
+                KnockoutRound.GrandFinal => _localizationService?.GetString("GrandFinal") ?? "Grand Final",
                 KnockoutRound.LoserRound1 => "LR1",
                 KnockoutRound.LoserRound2 => "LR2",
                 KnockoutRound.LoserRound3 => "LR3",

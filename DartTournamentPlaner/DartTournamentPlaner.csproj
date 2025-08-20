@@ -16,8 +16,8 @@
 	<AssemblyCompany>by I3uLL3t aka Peschi90</AssemblyCompany>
 	<AssemblyProduct>Dart Tournament Planner</AssemblyProduct>
 	<AssemblyCopyright>Copyright © 2025</AssemblyCopyright>
-	<AssemblyVersion>0.1.6</AssemblyVersion>
-	<AssemblyFileVersion>0.1.6</AssemblyFileVersion>
+	<AssemblyVersion>0.1.7</AssemblyVersion>
+	<AssemblyFileVersion>0.1.7</AssemblyFileVersion>
   </PropertyGroup>
 
   <ItemGroup>

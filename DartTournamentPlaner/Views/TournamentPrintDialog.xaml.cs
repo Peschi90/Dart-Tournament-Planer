@@ -70,6 +70,9 @@ namespace DartTournamentPlaner.Views
         /// </summary>
         private void InitializeDialog()
         {
+            // Lokalisierung anwenden
+            ApplyLocalization();
+            
             // Turnierklassen-ComboBox erstellen
             CreateTournamentClassSelector();
             
@@ -84,6 +87,57 @@ namespace DartTournamentPlaner.Views
             
             // Event-Handler für Optionsänderungen hinzufügen
             AddOptionChangeHandlers();
+        }
+
+        /// <summary>
+        /// Wendet die Lokalisierung auf alle UI-Elemente an
+        /// </summary>
+        private void ApplyLocalization()
+        {
+            try
+            {
+                // Fenstertitel
+                Title = _localizationService?.GetString("PrintTournamentStatistics") ?? "Print Tournament Statistics";
+
+                // Einfache Lokalisierung über Content-Property der vorhandenen Elemente
+                if (IncludeOverviewCheckBox != null)
+                    IncludeOverviewCheckBox.Content = _localizationService?.GetString("TournamentOverviewOption") ?? "Tournament Overview";
+
+                if (IncludeGroupPhaseCheckBox != null)
+                    IncludeGroupPhaseCheckBox.Content = _localizationService?.GetString("IncludeGroupPhase") ?? "Include Group Phase";
+
+                if (SelectAllGroupsCheckBox != null)
+                    SelectAllGroupsCheckBox.Content = _localizationService?.GetString("AllGroups") ?? "All Groups";
+
+                if (IncludeFinalsCheckBox != null)
+                    IncludeFinalsCheckBox.Content = _localizationService?.GetString("IncludeFinals") ?? "Include Finals";
+
+                if (IncludeKnockoutCheckBox != null)
+                    IncludeKnockoutCheckBox.Content = _localizationService?.GetString("IncludeKnockout") ?? "Include KO Phase";
+
+                if (IncludeWinnerBracketCheckBox != null)
+                    IncludeWinnerBracketCheckBox.Content = _localizationService?.GetString("WinnerBracket") ?? "Winner Bracket";
+
+                if (IncludeLoserBracketCheckBox != null)
+                    IncludeLoserBracketCheckBox.Content = _localizationService?.GetString("LoserBracket") ?? "Loser Bracket";
+
+                if (IncludeKnockoutParticipantsCheckBox != null)
+                    IncludeKnockoutParticipantsCheckBox.Content = _localizationService?.GetString("ParticipantsList") ?? "Participants List";
+
+                // Buttons
+                if (PreviewButton != null)
+                    PreviewButton.Content = _localizationService?.GetString("UpdatePreview") ?? "👁️ Update Preview";
+
+                if (PrintButton != null)
+                    PrintButton.Content = _localizationService?.GetString("PrintButton") ?? "🖨️ Print";
+
+                if (CancelButton != null)
+                    CancelButton.Content = _localizationService?.GetString("CancelButton") ?? "❌ Cancel";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyLocalization: ERROR: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -103,8 +157,8 @@ namespace DartTournamentPlaner.Views
                     {
                         var hasData = PrintHelper.HasPrintableContent(tournamentClass);
                         var displayName = hasData ? 
-                            $"🏆 {tournamentClass.Name}" : 
-                            $"⚪ {tournamentClass.Name} (leer)";
+                            _localizationService?.GetString("ActiveTournamentClass", tournamentClass.Name) ?? $"🏆 {tournamentClass.Name}" : 
+                            _localizationService?.GetString("EmptyTournamentClass", tournamentClass.Name) ?? $"⚪ {tournamentClass.Name} (empty)";
                             
                         var comboBoxItem = new ComboBoxItem
                         {
@@ -181,7 +235,7 @@ namespace DartTournamentPlaner.Views
             {
                 var groupCount = _selectedTournamentClass.Groups?.Count ?? 0;
                 var playerCount = _selectedTournamentClass.Groups?.SelectMany(g => g.Players).Count() ?? 0;
-                TournamentClassLabel.Text = $"Turnierklasse: {_selectedTournamentClass.Name} ({groupCount} Gruppen, {playerCount} Spieler)";
+                TournamentClassLabel.Text = _localizationService?.GetString("SelectTournamentClass", _selectedTournamentClass.Name, groupCount, playerCount) ?? $"Tournament Class: {_selectedTournamentClass.Name} ({groupCount} Groups, {playerCount} Players)";
             }
         }
 
@@ -215,9 +269,10 @@ namespace DartTournamentPlaner.Views
                     if (group == null) continue;
                     
                     var playersCount = group.Players?.Count ?? 0;
+                    var groupText = _localizationService?.GetString("GroupWithPlayers", group.Name, playersCount) ?? $"{group.Name} ({playersCount} Players)";
                     var checkBox = new CheckBox
                     {
-                        Content = $"{group.Name} ({playersCount} Spieler)",
+                        Content = groupText,
                         IsChecked = true,
                         Margin = new Thickness(0, 2, 0, 2),
                         Tag = group.Id
@@ -552,7 +607,7 @@ namespace DartTournamentPlaner.Views
                 {
                     var previewWindow = new Window
                     {
-                        Title = $"Druckvorschau - {_selectedTournamentClass.Name}",
+                        Title = _localizationService?.GetString("PrintPreviewTitle", _selectedTournamentClass.Name) ?? $"Print Preview - {_selectedTournamentClass.Name}",
                         Content = preview,
                         WindowState = WindowState.Maximized,
                         Owner = this
@@ -563,7 +618,9 @@ namespace DartTournamentPlaner.Views
                 else
                 {
                     System.Diagnostics.Debug.WriteLine("PreviewButton_Click: PrintService returned null preview");
-                    MessageBox.Show("Keine Inhalte zum Anzeigen ausgewählt.", "Vorschau", 
+                    var noContentMessage = _localizationService?.GetString("NoContentSelected") ?? "No content selected for display.";
+                    var previewTitle = _localizationService?.GetString("PreviewTitle") ?? "Preview";
+                    MessageBox.Show(noContentMessage, previewTitle, 
                                   MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -571,7 +628,9 @@ namespace DartTournamentPlaner.Views
             {
                 System.Diagnostics.Debug.WriteLine($"PreviewButton_Click: ERROR: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"PreviewButton_Click: Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Fehler bei der Vorschau: {ex.Message}", "Fehler", 
+                var errorMessage = _localizationService?.GetString("PreviewError", ex.Message) ?? $"Error during preview: {ex.Message}";
+                var errorTitle = _localizationService?.GetString("Error") ?? "Error";
+                MessageBox.Show(errorMessage, errorTitle, 
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -599,7 +658,9 @@ namespace DartTournamentPlaner.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Fehler bei der Druckvorbereitung: {ex.Message}", "Fehler", 
+                var errorMessage = _localizationService?.GetString("PrintPreparationError", ex.Message) ?? $"Error during print preparation: {ex.Message}";
+                var errorTitle = _localizationService?.GetString("Error") ?? "Error";
+                MessageBox.Show(errorMessage, errorTitle, 
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -657,9 +718,10 @@ namespace DartTournamentPlaner.Views
                 
                 if (previewInfo.Count == 0)
                 {
+                    var noContentText = _localizationService?.GetString("NoContentToPrint") ?? "📋 No content selected for printing";
                     var noContentBlock = new TextBlock
                     {
-                        Text = "📋 Keine Inhalte zum Drucken ausgewählt",
+                        Text = noContentText,
                         Foreground = System.Windows.Media.Brushes.Orange,
                         FontStyle = FontStyles.Italic,
                         HorizontalAlignment = HorizontalAlignment.Center,
@@ -678,9 +740,10 @@ namespace DartTournamentPlaner.Views
                 if (PreviewPanel != null)
                 {
                     PreviewPanel.Children.Clear();
+                    var errorText = _localizationService?.GetString("PreviewError2", ex.Message) ?? $"❌ Error during preview: {ex.Message}";
                     var errorBlock = new TextBlock
                     {
-                        Text = $"❌ Fehler bei der Vorschau: {ex.Message}",
+                        Text = errorText,
                         Foreground = System.Windows.Media.Brushes.Red,
                         TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(10)
@@ -753,10 +816,10 @@ namespace DartTournamentPlaner.Views
 
                 if (options.IncludeOverview)
                 {
-                    info.Add("📄 Seite 1: Turnierübersicht");
-                    info.Add("   • Allgemeine Turnierinformationen");
-                    info.Add("   • Spielregeln und Phasen-Status");
-                    info.Add("   • Gruppen-Übersicht");
+                    info.Add(_localizationService?.GetString("PageOverview", pageCount + 1) ?? $"📄 Page {pageCount + 1}: Tournament Overview");
+                    info.Add(_localizationService?.GetString("OverviewContent1") ?? "   • General tournament information");
+                    info.Add(_localizationService?.GetString("OverviewContent2") ?? "   • Game rules and phase status");
+                    info.Add(_localizationService?.GetString("OverviewContent3") ?? "   • Groups overview");
                     pageCount++;
                 }
 
@@ -771,20 +834,20 @@ namespace DartTournamentPlaner.Views
                         if (group == null) continue;
                         
                         pageCount++;
-                        info.Add($"📄 Seite {pageCount}: Gruppenphase - {group.Name}");
-                        info.Add($"   • {group.Players?.Count ?? 0} Spieler");
-                        info.Add($"   • {group.Matches?.Count ?? 0} Spiele");
-                        info.Add("   • Tabelle und Ergebnisse");
+                        info.Add(_localizationService?.GetString("PageGroupPhase", pageCount, group.Name) ?? $"📄 Page {pageCount}: Group Phase - {group.Name}");
+                        info.Add(_localizationService?.GetString("GroupPlayers", group.Players?.Count ?? 0) ?? $"   • {group.Players?.Count ?? 0} Players");
+                        info.Add(_localizationService?.GetString("GroupMatches", group.Matches?.Count ?? 0) ?? $"   • {group.Matches?.Count ?? 0} Matches");
+                        info.Add(_localizationService?.GetString("GroupContent") ?? "   • Standings and results");
                     }
                 }
 
                 if (options.IncludeFinalsPhase && _selectedTournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
                 {
                     pageCount++;
-                    info.Add($"📄 Seite {pageCount}: Finalrunde");
-                    info.Add("   • Qualifizierte Finalisten");
-                    info.Add("   • Finals-Tabelle");
-                    info.Add("   • Finals-Spiele");
+                    info.Add(_localizationService?.GetString("PageFinals", pageCount) ?? $"📄 Page {pageCount}: Finals");
+                    info.Add(_localizationService?.GetString("FinalsContent1") ?? "   • Qualified finalists");
+                    info.Add(_localizationService?.GetString("FinalsContent2") ?? "   • Finals standings");
+                    info.Add(_localizationService?.GetString("FinalsContent3") ?? "   • Finals matches");
                 }
 
                 if (options.IncludeKnockoutPhase && _selectedTournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
@@ -793,24 +856,24 @@ namespace DartTournamentPlaner.Views
                     {
                         pageCount++;
                         var winnerMatches = _selectedTournamentClass.GetWinnerBracketMatches();
-                        info.Add($"📄 Seite {pageCount}: Winner Bracket");
-                        info.Add($"   • {winnerMatches.Count} KO-Spiele");
+                        info.Add(_localizationService?.GetString("PageWinnerBracket", pageCount) ?? $"📄 Page {pageCount}: Winner Bracket");
+                        info.Add(_localizationService?.GetString("WinnerBracketMatches", winnerMatches.Count) ?? $"   • {winnerMatches.Count} KO matches");
                     }
 
                     if (options.IncludeLoserBracket && (_selectedTournamentClass.GetLoserBracketMatches()?.Any() ?? false))
                     {
                         pageCount++;
                         var loserMatches = _selectedTournamentClass.GetLoserBracketMatches();
-                        info.Add($"📄 Seite {pageCount}: Loser Bracket");
-                        info.Add($"   • {loserMatches.Count} LB-Spiele");
+                        info.Add(_localizationService?.GetString("PageLoserBracket", pageCount) ?? $"📄 Page {pageCount}: Loser Bracket");
+                        info.Add(_localizationService?.GetString("LoserBracketMatches", loserMatches.Count) ?? $"   • {loserMatches.Count} LB matches");
                     }
 
                     if (options.IncludeKnockoutParticipants)
                     {
                         pageCount++;
                         var participants = _selectedTournamentClass.CurrentPhase?.QualifiedPlayers?.Count ?? 0;
-                        info.Add($"📄 Seite {pageCount}: KO-Teilnehmer");
-                        info.Add($"   • {participants} qualifizierte Spieler");
+                        info.Add(_localizationService?.GetString("PageKnockoutParticipants", pageCount) ?? $"📄 Page {pageCount}: KO Participants");
+                        info.Add(_localizationService?.GetString("KnockoutParticipantsContent", participants) ?? $"   • {participants} qualified players");
                     }
                 }
 
@@ -819,7 +882,8 @@ namespace DartTournamentPlaner.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"GeneratePreviewInfo: ERROR: {ex.Message}");
-                return new List<string> {$"❌ Fehler bei der Generierung der Vorschau-Informationen: {ex.Message}"};
+                var errorText = _localizationService?.GetString("PreviewGenerationError", ex.Message) ?? $"❌ Error generating preview information: {ex.Message}";
+                return new List<string> { errorText };
             }
         }
 
@@ -836,7 +900,9 @@ namespace DartTournamentPlaner.Views
                 if (!options.IncludeOverview && !options.IncludeGroupPhase && 
                     !options.IncludeFinalsPhase && !options.IncludeKnockoutPhase)
                 {
-                    MessageBox.Show("Bitte wählen Sie mindestens eine Druckoption aus.", "Keine Auswahl", 
+                    var message = _localizationService?.GetString("SelectAtLeastOne") ?? "Please select at least one print option.";
+                    var title = _localizationService?.GetString("NoSelection") ?? "No Selection";
+                    MessageBox.Show(message, title, 
                                   MessageBoxButton.OK, MessageBoxImage.Warning);
                     return false;
                 }
@@ -848,15 +914,18 @@ namespace DartTournamentPlaner.Views
                     if (!hasGroups)
                     {
                         System.Diagnostics.Debug.WriteLine("ValidatePrintOptions: Group phase selected but no groups available");
-                        MessageBox.Show("Die ausgewählte Turnierklasse enthält keine Gruppen zum Drucken.", 
-                                      "Keine Gruppen verfügbar", 
+                        var message = _localizationService?.GetString("NoGroupsAvailable") ?? "The selected tournament class contains no groups to print.";
+                        var title = _localizationService?.GetString("NoGroupsAvailableTitle") ?? "No Groups Available";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
                     
                     if (!options.SelectedGroups.Any())
                     {
-                        MessageBox.Show("Bitte wählen Sie mindestens eine Gruppe aus.", "Keine Gruppe ausgewählt", 
+                        var message = _localizationService?.GetString("SelectAtLeastOneGroup") ?? "Please select at least one group.";
+                        var title = _localizationService?.GetString("NoGroupSelected") ?? "No Group Selected";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
@@ -867,8 +936,9 @@ namespace DartTournamentPlaner.Views
                     
                     if (!validSelectedGroups.Any())
                     {
-                        MessageBox.Show("Die ausgewählten Gruppen sind nicht mehr verfügbar.", 
-                                      "Ungültige Gruppenauswahl", 
+                        var message = _localizationService?.GetString("InvalidGroupSelection") ?? "The selected groups are no longer available.";
+                        var title = _localizationService?.GetString("InvalidGroupSelectionTitle") ?? "Invalid Group Selection";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
@@ -886,8 +956,9 @@ namespace DartTournamentPlaner.Views
                     if (!hasFinalsPhase)
                     {
                         System.Diagnostics.Debug.WriteLine("ValidatePrintOptions: Finals phase selected but not available");
-                        MessageBox.Show("Die ausgewählte Turnierklasse hat keine Finalrunde zum Drucken.", 
-                                      "Keine Finalrunde verfügbar", 
+                        var message = _localizationService?.GetString("NoFinalsAvailable") ?? "The selected tournament class has no finals to print.";
+                        var title = _localizationService?.GetString("NoFinalsAvailableTitle") ?? "No Finals Available";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
@@ -902,15 +973,18 @@ namespace DartTournamentPlaner.Views
                     if (!hasKnockoutPhase)
                     {
                         System.Diagnostics.Debug.WriteLine("ValidatePrintOptions: Knockout phase selected but not available");
-                        MessageBox.Show("Die ausgewählte Turnierklasse hat keine KO-Phase zum Drucken.", 
-                                      "Keine KO-Phase verfügbar", 
+                        var message = _localizationService?.GetString("NoKnockoutAvailable") ?? "The selected tournament class has no knockout phase to print.";
+                        var title = _localizationService?.GetString("NoKnockoutAvailableTitle") ?? "No Knockout Phase Available";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
                     
                     if (!options.IncludeWinnerBracket && !options.IncludeLoserBracket && !options.IncludeKnockoutParticipants)
                     {
-                        MessageBox.Show("Bitte wählen Sie mindestens eine KO-Option aus.", "Keine KO-Option ausgewählt", 
+                        var message = _localizationService?.GetString("SelectAtLeastOneKO") ?? "Please select at least one KO option.";
+                        var title = _localizationService?.GetString("NoKOOptionSelected") ?? "No KO Option Selected";
+                        MessageBox.Show(message, title, 
                                       MessageBoxButton.OK, MessageBoxImage.Warning);
                         return false;
                     }
@@ -922,7 +996,9 @@ namespace DartTournamentPlaner.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"ValidatePrintOptions: ERROR: {ex.Message}");
-                MessageBox.Show($"Fehler bei der Validierung: {ex.Message}", "Validierungsfehler", 
+                var errorMessage = _localizationService?.GetString("ValidationError", ex.Message) ?? $"Validation error: {ex.Message}";
+                var errorTitle = _localizationService?.GetString("ValidationErrorTitle") ?? "Validation Error";
+                MessageBox.Show(errorMessage, errorTitle, 
                               MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
