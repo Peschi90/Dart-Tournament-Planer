@@ -6,7 +6,7 @@ A modern WPF application for managing dart tournaments with professional feature
 ![C#](https://img.shields.io/badge/C%23-13.0-blue)
 ![WPF](https://img.shields.io/badge/WPF-Windows-lightgrey)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Version](https://img.shields.io/badge/Version-0.1.0-brightgreen)
+![Version](https://img.shields.io/badge/Version-0.1.7-brightgreen)
 
 ## 🏆 Features
 
@@ -16,6 +16,15 @@ A modern WPF application for managing dart tournaments with professional feature
 - **Knockout System**: Single or Double Elimination with Winner/Loser Bracket
 - **Finals Rounds**: Round-Robin finals for qualified players
 - **Auto-Save System**: Configurable automatic saving with customizable intervals
+- **Professional Workflows**: Streamlined tournament creation and management
+
+### 🖨️ **NEW: Professional Print System**
+- **Tournament Statistics Printing**: Comprehensive tournament reports with detailed statistics
+- **Print Dialog**: User-friendly interface for selecting print content
+- **Print Preview**: Real-time preview of documents before printing
+- **Flexible Options**: Print individual groups, complete tournaments, or specific phases
+- **Professional Layout**: Formatted reports with tables, standings, and match results
+- **Multi-Phase Support**: Print Group Phase, Finals, and Knockout brackets separately
 
 ### Match Management
 - **Automatic Match Generation**: Round-Robin matches are created automatically
@@ -23,21 +32,33 @@ A modern WPF application for managing dart tournaments with professional feature
 - **Set System**: Configurable sets and legs with detailed validation
 - **Round-Specific Rules**: Different rules for quarterfinals, semifinals, finals, etc.
 - **Bye System**: Automatic bye assignment for odd number of players
+- **Result Validation**: Advanced match result validation with conflict detection
+
+### 🌍 **IMPROVED: Multi-Language System**
+- **Modular Localization**: Refactored language system with separate provider files
+- **Dynamic Language Support**: Easy addition of new languages via ILanguageProvider interface
+- **400+ Translation Keys**: Comprehensive translation coverage
+- **German & English**: Complete translations with context-specific terms
+- **Real-Time Switching**: Dynamic language switching without restart
+- **Version-Aware Content**: Dynamic content that adapts to current application version
 
 ### User Experience
-- **Multilingual Support**: German and English with dynamic language switching
+- **Professional Startup**: Animated splash screen with progress indicators
 - **Modern UI**: Intuitive WPF interface with professional design
 - **Tournament Overview**: Full-screen presentation mode with auto-cycling
-- **Startup Splash Screen**: Professional loading screen with progress indicators
 - **Auto-Update System**: Automatic update checking with GitHub integration
 - **Bug Report System**: Integrated error reporting with system information
 
+### 💝 **NEW: Support & Donation System**
+- **Donation Integration**: Built-in support for project development
+- **GitHub Sponsors**: Direct links to sponsorship platforms
+- **Multiple Support Options**: Various ways to contribute to the project
+
 ### Professional Features
-- **Loading Animations**: Smooth loading spinners for better user experience
-- **Donation Support**: Built-in support system for project development
-- **Advanced Localization**: Complete translation system with over 400 localized strings
 - **Error Handling**: Comprehensive error handling with user-friendly messages
-- **Data Validation**: Advanced match result validation with conflict detection
+- **Data Validation**: Advanced tournament data validation and integrity checks
+- **Performance Optimized**: Efficient resource usage and fast loading times
+- **Backup System**: Automatic data backup and recovery mechanisms
 
 ## 🔧 System Requirements
 
@@ -46,11 +67,12 @@ A modern WPF application for managing dart tournaments with professional feature
 - **Architecture**: x64 or x86
 - **Memory**: Minimum 512 MB RAM
 - **Storage**: 50 MB free space
+- **Printer**: Optional - for print functionality
 
 ## 📦 Installation
 
 ### Automatic Installation (Recommended)
-1. Download the latest `Setup-DartTournamentPlaner-v0.1.0.exe` from [Releases](https://github.com/Peschi90/Dart-Turnament-Planer/releases)
+1. Download the latest `Setup-DartTournamentPlaner-v0.1.7.exe` from [Releases](https://github.com/Peschi90/Dart-Turnament-Planer/releases)
 2. Run the installer (Administrator rights may be required)
 3. Follow the installation wizard
 4. Launch the application from the desktop shortcut or Start menu
@@ -60,7 +82,7 @@ A modern WPF application for managing dart tournaments with professional feature
 2. Extract to your desired folder
 3. Run `DartTournamentPlaner.exe`
 
-> **Note**: The application will automatically check for updates on startup and notify you when new versions are available.
+> **Note**: The application automatically checks for updates on startup and provides seamless update installation.
 
 ## 🚀 Quick Start
 
@@ -73,6 +95,13 @@ A modern WPF application for managing dart tournaments with professional feature
 6. **Enter Results**: Click on matches to enter results
 7. **Advance Phases**: Use **"Start Next Phase"** when group phase is complete
 
+### 🖨️ **NEW: Printing Tournament Reports**
+1. **Access Print Menu**: Go to **File** → **Print** or use Ctrl+P
+2. **Select Content**: Choose what to print (Groups, Finals, Knockout)
+3. **Configure Options**: Select specific groups or tournament phases
+4. **Preview**: Review the print preview before printing
+5. **Print**: Generate professional tournament reports
+
 ### Tournament Phases
 1. **Group Phase**: Round-Robin within each group
 2. **Finals/Knockout**: Based on your configuration:
@@ -81,6 +110,14 @@ A modern WPF application for managing dart tournaments with professional feature
    - **Knockout System**: Single or Double Elimination brackets
 
 ## 📋 Advanced Features
+
+### 🖨️ Professional Printing System
+- **Tournament Statistics**: Complete tournament reports with all phases
+- **Group Reports**: Individual group standings and match results  
+- **Finals Documentation**: Finals round participants and results
+- **Knockout Brackets**: Winner and Loser bracket visualization
+- **Participant Lists**: Comprehensive player listings
+- **Custom Titles**: Add custom titles and subtitles to reports
 
 ### Knockout System
 - **Single Elimination**: Traditional knockout tournament
@@ -103,22 +140,40 @@ A modern WPF application for managing dart tournaments with professional feature
 - **Multi-Monitor Support**: Ideal for dual-screen setups
 - **Real-Time Updates**: Live standings and match results
 
-### Professional Tools
-- **Auto-Save**: Configurable automatic saving (1-60 minute intervals)
-- **Data Export/Import**: JSON-based tournament data management
-- **Comprehensive Logging**: Detailed debug information for troubleshooting
-- **Update System**: Automatic GitHub-based update checking
-- **Bug Reporting**: Integrated system information and error reporting
+### 🌍 Enhanced Localization
+- **Modular Architecture**: Language providers for easy extension
+- **Comprehensive Coverage**: 400+ translated interface elements
+- **Context-Aware**: Sport-specific and tournament-specific translations
+- **Dynamic Content**: Version-aware and context-sensitive translations
+- **Easy Extension**: Add new languages through ILanguageProvider interface
 
 ## 🌍 Internationalization
 
-The application supports complete localization:
-- 🇩🇪 **German** (Deutsch) - Default language
-- 🇬🇧 **English** - Full translation available
+The application features a completely refactored localization system:
+
+### Supported Languages
+- 🇩🇪 **German** (Deutsch) - Default language with 400+ translations
+- 🇬🇧 **English** - Complete translation with tournament terminology
+
+### Language System Features
+- **Modular Design**: Separate language provider files for maintainability
+- **Real-Time Switching**: Change languages without application restart
+- **Context-Specific**: Tournament and sport-specific terminology
+- **Print Support**: Full translation support for print documents
+- **Dynamic Content**: Version-aware AboutText and dynamic content
 
 **Change Language**: Settings → Language → Select preferred language
 
-All UI elements, messages, and help content are fully translated with over 400 localized strings.
+### For Developers: Adding New Languages
+```csharp
+// Create new language provider
+public class FrenchLanguageProvider : ILanguageProvider
+{
+    public string LanguageCode => "fr";
+    public string DisplayName => "Français";
+    public Dictionary<string, string> GetTranslations() { /* translations */ }
+}
+```
 
 ## 💾 Data Management
 
@@ -127,6 +182,7 @@ All UI elements, messages, and help content are fully translated with over 400 l
 - **Configurable Intervals**: 1-60 minutes between saves
 - **Change Detection**: Smart saving only when changes are detected
 - **Status Indicators**: Visual feedback for save status
+- **Backup Creation**: Automatic backup on save operations
 
 ### Data Format
 - **JSON Storage**: Human-readable tournament data format
@@ -138,9 +194,10 @@ All UI elements, messages, and help content are fully translated with over 400 l
 
 ### Automatic Updates
 - **GitHub Integration**: Automatic checking of GitHub releases
-- **Background Checking**: Non-intrusive update detection
+- **Background Checking**: Non-intrusive update detection during startup
+- **Professional UI**: Integrated update dialog with changelog
 - **One-Click Updates**: Automated download and installation
-- **Release Notes**: Detailed changelog display
+- **Release Notes**: Detailed changelog display with Markdown support
 - **Version Management**: Smart version comparison and rollback protection
 
 ### Manual Updates
@@ -159,6 +216,7 @@ If automatic updates fail, you can always:
 
 ### Manual Reporting
 - **GitHub Issues**: [Create an issue](https://github.com/Peschi90/Dart-Turnament-Planer/issues)
+- **Email**: m@peschi.info
 
 ## 🛠️ Development
 
@@ -169,8 +227,9 @@ If automatic updates fail, you can always:
 - **Dependencies**: 
   - `Newtonsoft.Json` (13.0.3) for data serialization
   - `Microsoft.VisualBasic` (10.3.0) for input dialogs
-- **Localization**: Dictionary-based translation system
+- **Localization**: Modular ILanguageProvider system
 - **Auto-Update**: GitHub Releases API integration
+- **Printing**: WPF Document/FlowDocument system
 
 ### Build Requirements
 - **Visual Studio 2022** (17.8 or later) or **Visual Studio Code**
@@ -208,16 +267,27 @@ DartTournamentPlaner/
 │   ├── LocalizationService.cs # Multi-language support
 │   ├── ConfigService.cs # Application configuration
 │   ├── DataService.cs   # Data persistence
-│   └── UpdateService.cs # Automatic updates
+│   ├── UpdateService.cs # Automatic updates
+│   ├── PrintService.cs  # Print system
+│   └── Languages/       # Language provider files
+│       ├── ILanguageProvider.cs
+│       ├── GermanLanguageProvider.cs
+│       └── EnglishLanguageProvider.cs
 ├── Views/              # UI dialogs and windows
 │   ├── MainWindow.xaml  # Main application window
 │   ├── TournamentOverviewWindow.xaml # Presentation mode
+│   ├── TournamentPrintDialog.xaml # Print dialog
 │   ├── UpdateDialog.cs  # Update management
+│   ├── DonationDialog.xaml.cs # Donation support
+│   ├── StartupSplashWindow.xaml # Startup screen
 │   └── BugReportDialog.xaml.cs # Bug reporting
 ├── Controls/           # Custom WPF controls
 │   ├── TournamentTab.xaml # Main tournament interface
 │   └── LoadingSpinner.xaml # Loading animations
 ├── Helpers/            # Utility classes
+│   ├── PrintHelper.cs   # Print utilities
+│   ├── TournamentDialogHelper.cs
+│   └── TournamentUIHelper.cs
 └── Assets/             # Images, icons, and resources
 ```
 
@@ -243,9 +313,10 @@ We welcome contributions! Here's how you can help:
 - Test on different screen resolutions and Windows versions
 
 ### Areas for Contribution
-- **New Tournament Formats**: Additional tournament structures
+- **New Languages**: Add support for additional languages via ILanguageProvider
+- **Print Features**: Enhanced print layouts and options
+- **Tournament Formats**: Additional tournament structures
 - **UI Improvements**: Enhanced user experience features
-- **Localization**: Additional language support
 - **Bug Fixes**: Issue resolution and stability improvements
 - **Documentation**: Help content and user guides
 
@@ -265,10 +336,11 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 Love the Dart Tournament Planner? Here's how you can support its development:
 
-### Financial Support
-- 💰 **Donate**: Use the integrated donation dialog (**Help** → **Donate**)
-- 💰 **GitHub Sponsors**: [Sponsor on GitHub](https://github.com/sponsors/Peschi90)
-- 💰 **One-time Donation**: [PayPal](https://www.paypal.com/paypalme/I3ull3t)
+### 💰 ### Financial Support
+- **In-App Donations**: Use the integrated donation dialog (**Help** → **Donate**)
+- **GitHub Sponsors**: [Sponsor on GitHub](https://github.com/sponsors/Peschi90)
+- **One-time Donations**: [PayPal](https://www.paypal.com/paypalme/I3ull3t)
+- **Professional Support**: Custom development and enterprise features
 
 ### Non-Financial Support
 - ⭐ **Star** the repository on GitHub
@@ -276,12 +348,14 @@ Love the Dart Tournament Planner? Here's how you can support its development:
 - 📢 **Share** with your dart community
 - 📝 **Write reviews** and tutorials
 - 🌍 **Help with translations** for additional languages
+- 🖨️ **Test print functionality** and provide feedback
 
 ### Corporate Support
 For businesses using this software:
 - 🏢 **Corporate Licensing**: Contact for commercial support options
 - 🤝 **Partnership Opportunities**: Collaboration on tournaments and events
 - 📊 **Custom Features**: Sponsored development of specific requirements
+- 🖨️ **Professional Printing**: Custom print layouts and branding
 
 ## 📞 Contact & Links
 
@@ -293,17 +367,27 @@ For businesses using this software:
 
 ### Developer Contact
 - **GitHub**: [@Peschi90](https://github.com/Peschi90)
+- **Email**: m@peschi.info
 
 ### Community
 - 🎯 **Dart Community**: Share your tournaments and experiences
 - 💬 **Feature Requests**: Suggest new features via GitHub Issues
 - 📖 **Documentation**: Help improve user guides and tutorials
+- 🖨️ **Print Templates**: Share custom print layouts and designs
 
 ---
 
 ## 📈 Version History
 
-### Current: v0.1.6
+### Current: v0.1.7 (Latest) - Print System & Localization Refactoring
+- 🖨️ **NEW**: Professional Print System with comprehensive tournament reports
+- 🌍 **IMPROVED**: Modular localization system with separate language providers
+- 💝 **NEW**: Donation system with GitHub Sponsors integration
+- 🎨 **IMPROVED**: Professional startup experience with animated splash screen
+- 📋 **Enhanced**: 400+ translation keys with context-specific terms
+- 🐛 **Fixed**: Various stability improvements and bug fixes
+
+### Previous: v0.1.0
 - ✨ Initial public release
 - 🏆 Complete tournament management system
 - 🎮 Group phase with Round-Robin support
@@ -312,8 +396,17 @@ For businesses using this software:
 - 🌍 Multi-language support (German/English)
 - 🔄 Automatic update system
 - 💾 Auto-save functionality
+
+### Upcoming: v1.0.0 (Planned)
+- 📊 Advanced statistics and analytics dashboard
+- 🎨 Theme customization and dark mode
+- 📱 Responsive design improvements
+- 🔗 Online tournament integration
+- 📧 Email notifications and tournament invitations
+- 🏆 Achievement and ranking system
+
 ---
 
 *Developed with ❤️ for the Dart Community*
 
-**"Make every dart count, organize every tournament perfectly!"** 🎯
+**"Perfect tournaments start with perfect planning - print them beautifully!"** 🎯🖨️
