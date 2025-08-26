@@ -538,15 +538,23 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             var currentPhaseLabel = _localizationService?.GetString("CurrentPhase") ?? "Aktuelle Phase";
             CurrentPhaseText.Text = $"{currentPhaseLabel}: {phaseText}";
 
+            // KORRIGIERT: Tab-Sichtbarkeit basierend auf aktuellen GameRules bestimmen
             var hasPostPhase = TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None;
-            var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals;
+            var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals ||
+                                      TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket; // Beide Modi zeigen Finals
             var hasKnockout = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket;
             var hasDoubleElimination = TournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination;
 
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: PostGroupPhaseMode = {TournamentClass.GameRules.PostGroupPhaseMode}");
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasRoundRobinFinals = {hasRoundRobinFinals}, hasKnockout = {hasKnockout}");
+
+            // Tab-Sichtbarkeit aktualisieren
             FinalsTabItem.Visibility = hasRoundRobinFinals ? Visibility.Visible : Visibility.Collapsed;
             KnockoutTabItem.Visibility = hasKnockout ? Visibility.Visible : Visibility.Collapsed;
             LoserBracketTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
-            LoserBracketTreeTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible :Visibility.Collapsed;
+            LoserBracketTreeTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
+
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Tab visibility updated - Finals: {FinalsTabItem.Visibility}, KO: {KnockoutTabItem.Visibility}");
 
             bool canAdvance = false;
             try
@@ -1032,6 +1040,13 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             
             gameRulesWindow.DataChanged += (s, args) =>
             {
+                System.Diagnostics.Debug.WriteLine("ConfigureRulesButton_Click: GameRulesWindow DataChanged received");
+                System.Diagnostics.Debug.WriteLine($"  PostGroupPhaseMode: {TournamentClass.GameRules.PostGroupPhaseMode}");
+                System.Diagnostics.Debug.WriteLine($"  QualifyingPlayersPerGroup: {TournamentClass.GameRules.QualifyingPlayersPerGroup}");
+                System.Diagnostics.Debug.WriteLine($"  KnockoutMode: {TournamentClass.GameRules.KnockoutMode}");
+                System.Diagnostics.Debug.WriteLine($"  IncludeGroupPhaseLosersBracket: {TournamentClass.GameRules.IncludeGroupPhaseLosersBracket}");
+                
+                // WICHTIG: Alle bestehenden Matches in allen Gruppen aktualisieren
                 foreach (var group in TournamentClass.Groups)
                 {
                     if (group.MatchesGenerated && group.Matches.Count > 0)
@@ -1039,6 +1054,14 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                         group.UpdateMatchDisplaySettings(TournamentClass.GameRules);
                     }
                 }
+                
+                // KRITISCH: UI-Updates in korrekter Reihenfolge ausführen
+                Dispatcher.BeginInvoke(() =>
+                {
+                    UpdatePhaseDisplay();  // Aktualisiert Tab-Sichtbarkeit basierend auf neuen GameRules
+                    UpdatePlayersView();   // Aktualisiert Player-Anzeige
+                    UpdateMatchesView();   // Aktualisiert Match-Anzeige
+                }, System.Windows.Threading.DispatcherPriority.DataBind);
                 
                 OnDataChanged();
             };

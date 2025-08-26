@@ -55,14 +55,68 @@ public class TournamentClass : INotifyPropertyChanged
     /// <summary>
     /// Spielregeln für diese Turnierklasse
     /// Definiert Punkte (301/401/501), Sets/Legs, K.O.-Modi, etc.
+    /// KORRIGIERT: Verwendet nur ein Backing-Field
     /// </summary>
     public GameRules GameRules
     {
         get => _gameRules;
         set
         {
-            _gameRules = value;
+            // WICHTIG: Event-Handler vom alten GameRules entfernen
+            if (_gameRules != null)
+            {
+                _gameRules.PropertyChanged -= OnGameRulesPropertyChanged;
+            }
+            
+            _gameRules = value ?? new GameRules();
+            
+            // WICHTIG: Event-Handler zum neuen GameRules hinzufügen
+            _gameRules.PropertyChanged += OnGameRulesPropertyChanged;
+            
+            System.Diagnostics.Debug.WriteLine($"GameRules set for {Name}: {_gameRules}");
             OnPropertyChanged(); // Benachrichtigt UI über Änderung
+        }
+    }
+
+    /// <summary>
+    /// Event-Handler für GameRules-Änderungen
+    /// Propagiert Änderungen in den GameRules an die UI
+    /// </summary>
+    private void OnGameRulesPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"GameRules property changed: {e.PropertyName} for {Name}");
+        
+        // WICHTIG: Spezifische Property-Updates loggen
+        if (e.PropertyName == nameof(GameRules.PostGroupPhaseMode))
+        {
+            System.Diagnostics.Debug.WriteLine($"  PostGroupPhaseMode changed to: {GameRules.PostGroupPhaseMode}");
+        }
+        else if (e.PropertyName == nameof(GameRules.QualifyingPlayersPerGroup))
+        {
+            System.Diagnostics.Debug.WriteLine($"  QualifyingPlayersPerGroup changed to: {GameRules.QualifyingPlayersPerGroup}");
+        }
+        else if (e.PropertyName == nameof(GameRules.KnockoutMode))
+        {
+            System.Diagnostics.Debug.WriteLine($"  KnockoutMode changed to: {GameRules.KnockoutMode}");
+        }
+        else if (e.PropertyName == nameof(GameRules.IncludeGroupPhaseLosersBracket))
+        {
+            System.Diagnostics.Debug.WriteLine($"  IncludeGroupPhaseLosersBracket changed to: {GameRules.IncludeGroupPhaseLosersBracket}");
+        }
+        
+        // Propagiere GameRules-Änderungen an UI
+        OnPropertyChanged(nameof(GameRules));
+        
+        // Spezifische Propagation für wichtige Eigenschaften
+        if (e.PropertyName == nameof(GameRules.PostGroupPhaseMode) ||
+            e.PropertyName == nameof(GameRules.QualifyingPlayersPerGroup) ||
+            e.PropertyName == nameof(GameRules.KnockoutMode) ||
+            e.PropertyName == nameof(GameRules.IncludeGroupPhaseLosersBracket))
+        {
+            System.Diagnostics.Debug.WriteLine($"  Triggering UI refresh for important property change: {e.PropertyName}");
+            
+            // Trigger UI refresh wenn sich die Turnierstruktur ändert
+            TriggerUIRefresh();
         }
     }
 
@@ -76,6 +130,7 @@ public class TournamentClass : INotifyPropertyChanged
         set
         {
             _currentPhase = value;
+            System.Diagnostics.Debug.WriteLine($"CurrentPhase set for {Name}: {_currentPhase?.PhaseType}");
             OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
@@ -191,6 +246,12 @@ public class TournamentClass : INotifyPropertyChanged
         // 1. Constructor erstellt GroupPhase (Phases ist noch leer)
         // 2. JSON-Deserialisierung fügt weitere Phases hinzu
         // 3. Resultat: Duplikat-GroupPhases!
+        
+        // KORRIGIERT: Event-Handler für GameRules hinzufügen
+        if (_gameRules != null)
+        {
+            _gameRules.PropertyChanged += OnGameRulesPropertyChanged;
+        }
         
         // Stattdessen: Verwende eine Lazy Initialization-Strategie über EnsureGroupPhaseExists()
         System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Phases collection initialized, count = {Phases.Count}");
@@ -347,7 +408,7 @@ public class TournamentClass : INotifyPropertyChanged
 
     /// <summary>
     /// Prüft ob zur nächsten Phase gewechselt werden kann
-    /// Delegiert die Prüfung an die aktuelle Phase
+    /// KORRIGIERT: Delegiert die Prüfung an die aktuelle Phase UND prüft ob es überhaupt eine nächste Phase gibt
     /// </summary>
     /// <returns>True wenn alle Voraussetzungen für den Phasenwechsel erfüllt sind</returns>
     public bool CanProceedToNextPhase()
@@ -356,9 +417,25 @@ public class TournamentClass : INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase START ===");
             System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: TournamentClass = {Name}");
-            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: CurrentPhase = {CurrentPhase?.PhaseType}");            
-            var result = CurrentPhase?.CanProceedToNextPhase() ?? false;
-            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Result = {result}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: CurrentPhase = {CurrentPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: PostGroupPhaseMode = {GameRules.PostGroupPhaseMode}");
+            
+            // KORREKTUR: Prüfe erst ob überhaupt eine nächste Phase existiert
+            var nextPhase = GetNextPhase();
+            if (nextPhase == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: No next phase available - tournament ends here");
+                System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END (FALSE - no next phase) ===");
+                return false;
+            }
+            
+            // KORREKTUR: Dann prüfe ob die aktuelle Phase bereit für den Übergang ist
+            var currentPhaseReady = CurrentPhase?.CanProceedToNextPhase() ?? false;
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Current phase ready = {currentPhaseReady}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Next phase available = {nextPhase.PhaseType}");
+            
+            var result = currentPhaseReady;
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Final result = {result}");
             System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END ===");
             
             return result;
@@ -374,6 +451,7 @@ public class TournamentClass : INotifyPropertyChanged
     /// <summary>
     /// Ermittelt die nächste Phase basierend auf der aktuellen Phase und den Spielregeln
     /// Implementiert die Turnierlogik für verschiedene Modi (nur Gruppen, Finals, K.O.)
+    /// KORRIGIERT: Bessere Debugging-Ausgabe und korrekte PostGroupPhaseMode-Behandlung
     /// </summary>
     /// <returns>Die nächste Phase oder null wenn das Turnier beendet ist</returns>
     public TournamentPhase? GetNextPhase()
@@ -391,26 +469,30 @@ public class TournamentClass : INotifyPropertyChanged
             System.Diagnostics.Debug.WriteLine($"GetNextPhase: Current phase = {CurrentPhase.PhaseType}");
             System.Diagnostics.Debug.WriteLine($"GetNextPhase: PostGroupPhaseMode = {GameRules.PostGroupPhaseMode}");
 
-            // Bestimme nächste Phase basierend auf aktueller Phase und Spielregeln
+            // KORRIGIERTE Logik: Bestimme nächste Phase basierend auf aktueller Phase und Spielregeln
             TournamentPhase? nextPhase = CurrentPhase.PhaseType switch
             {
                 TournamentPhaseType.GroupPhase => GameRules.PostGroupPhaseMode switch
                 {
                     PostGroupPhaseMode.RoundRobinFinals => CreateRoundRobinFinalsPhase(),
                     PostGroupPhaseMode.KnockoutBracket => CreateKnockoutPhase(),
-                    _ => null // Nur Gruppenphase - Turnier endet hier
+                    PostGroupPhaseMode.None => null, // Nur Gruppenphase - Turnier endet hier
+                    _ => null
                 },
 
-                TournamentPhaseType.RoundRobinFinals => GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket 
-                    ? CreateKnockoutPhase() 
-                    : null, // Finals waren letzte Phase
+                TournamentPhaseType.RoundRobinFinals => GameRules.PostGroupPhaseMode switch
+                {
+                    // KORRIGIERT: Nach Finals kann noch K.O. kommen wenn beide Modi aktiv sind
+                    PostGroupPhaseMode.KnockoutBracket => CreateKnockoutPhase(),
+                    _ => null // Finals waren letzte Phase
+                },
 
                 TournamentPhaseType.KnockoutPhase => null, // K.O.-Phase ist immer die letzte Phase
 
                 _ => null // Unbekannte Phase
             };
             
-            System.Diagnostics.Debug.WriteLine($"GetNextPhase: Next phase = {nextPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"GetNextPhase: Next phase = {nextPhase?.PhaseType.ToString() ?? "null"}");
             System.Diagnostics.Debug.WriteLine($"=== GetNextPhase END ===");
             
             return nextPhase;
@@ -1637,7 +1719,6 @@ public class TournamentClass : INotifyPropertyChanged
 
             // WICHTIG: UI-Refresh triggern um visuelles Update zu erzwingen
             TriggerUIRefresh();
-            System.Diagnostics.Debug.WriteLine($"  UI refresh triggered for manual bye in match {match.Id}");
             
             // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
             DataChangedEvent?.Invoke(this, EventArgs.Empty);
@@ -1721,7 +1802,6 @@ public class TournamentClass : INotifyPropertyChanged
 
             // WICHTIG: Zusätzlicher UI-Refresh um visuelles Update zu erzwingen  
             TriggerUIRefresh();
-            System.Diagnostics.Debug.WriteLine($"  Additional UI refresh triggered after undo bye for match {match.Id}");
             
             // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
             DataChangedEvent?.Invoke(this, EventArgs.Empty);
@@ -2555,7 +2635,7 @@ public class TournamentClass : INotifyPropertyChanged
 
     /// <summary>
     /// NEU: Spezifischer Refresh für Match-Status-Änderungen
-    /// Dieser sollte aufgerufen werden wenn sich der Status einzelner Matches ändert
+    /// Dieser sollte verwendet werden wenn sich der Status einzelner Matches ändert
     /// </summary>
     /// <param name="matchId">ID des geänderten Matches</param>
     /// <param name="newStatus">Der neue Status des Matches</param>

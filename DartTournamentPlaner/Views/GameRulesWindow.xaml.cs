@@ -29,22 +29,76 @@ public partial class GameRulesWindow : Window
 
     private void InitializeUI()
     {
-        // Set initial values
-        GameModeComboBox.SelectedValue = _gameRules.GameMode.ToString();
-        FinishModeComboBox.SelectedValue = _gameRules.FinishMode.ToString();
+        System.Diagnostics.Debug.WriteLine("InitializeUI: START");
+        
+        // Set initial values for game mode
+        var gameModeTag = _gameRules.GameMode.ToString();
+        foreach (ComboBoxItem item in GameModeComboBox.Items)
+        {
+            if (item.Tag?.ToString() == gameModeTag)
+            {
+                GameModeComboBox.SelectedItem = item;
+                System.Diagnostics.Debug.WriteLine($"InitializeUI: Set GameMode to {gameModeTag}");
+                break;
+            }
+        }
+        
+        // Set initial values for finish mode
+        var finishModeTag = _gameRules.FinishMode.ToString();
+        foreach (ComboBoxItem item in FinishModeComboBox.Items)
+        {
+            if (item.Tag?.ToString() == finishModeTag)
+            {
+                FinishModeComboBox.SelectedItem = item;
+                System.Diagnostics.Debug.WriteLine($"InitializeUI: Set FinishMode to {finishModeTag}");
+                break;
+            }
+        }
+        
         LegsToWinTextBox.Text = _gameRules.LegsToWin.ToString();
         PlayWithSetsCheckBox.IsChecked = _gameRules.PlayWithSets;
         SetsToWinTextBox.Text = _gameRules.SetsToWin.ToString();
         LegsPerSetTextBox.Text = _gameRules.LegsPerSet.ToString();
         
-        // Set post-group phase values
-        PostGroupPhaseModeComboBox.SelectedValue = _gameRules.PostGroupPhaseMode.ToString();
+        // KORRIGIERT: Set post-group phase values mit korrekter Tag-Behandlung
+        var postGroupPhaseTag = _gameRules.PostGroupPhaseMode.ToString();
+        System.Diagnostics.Debug.WriteLine($"InitializeUI: Looking for PostGroupPhaseMode tag: {postGroupPhaseTag}");
+        
+        foreach (ComboBoxItem item in PostGroupPhaseModeComboBox.Items)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Checking item with tag: {item.Tag}");
+            if (item.Tag?.ToString() == postGroupPhaseTag)
+            {
+                PostGroupPhaseModeComboBox.SelectedItem = item;
+                System.Diagnostics.Debug.WriteLine($"InitializeUI: Set PostGroupPhaseMode to {postGroupPhaseTag}");
+                break;
+            }
+        }
+        
         QualifyingPlayersTextBox.Text = _gameRules.QualifyingPlayersPerGroup.ToString();
-        KnockoutModeComboBox.SelectedValue = _gameRules.KnockoutMode.ToString();
+        
+        // KORRIGIERT: Set knockout mode mit korrekter Tag-Behandlung
+        var knockoutModeTag = _gameRules.KnockoutMode.ToString();
+        System.Diagnostics.Debug.WriteLine($"InitializeUI: Looking for KnockoutMode tag: {knockoutModeTag}");
+        
+        foreach (ComboBoxItem item in KnockoutModeComboBox.Items)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Checking item with tag: {item.Tag}");
+            if (item.Tag?.ToString() == knockoutModeTag)
+            {
+                KnockoutModeComboBox.SelectedItem = item;
+                System.Diagnostics.Debug.WriteLine($"InitializeUI: Set KnockoutMode to {knockoutModeTag}");
+                break;
+            }
+        }
+        
         IncludeGroupPhaseLosersBracketCheckBox.IsChecked = _gameRules.IncludeGroupPhaseLosersBracket;
         
+        System.Diagnostics.Debug.WriteLine("InitializeUI: Calling UpdateVisibility and UpdatePreview");
         UpdateVisibility();
         UpdatePreview();
+        
+        System.Diagnostics.Debug.WriteLine("InitializeUI: END");
     }
 
     private void UpdateTranslations()
@@ -147,11 +201,25 @@ public partial class GameRulesWindow : Window
     // Event Handlers
     private void GameModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // KORRIGIERT: Verwende das Tag des ausgewählten ComboBoxItems
+        if (GameModeComboBox.SelectedItem is ComboBoxItem selectedItem &&
+            Enum.TryParse<GameMode>(selectedItem.Tag?.ToString(), out var mode))
+        {
+            System.Diagnostics.Debug.WriteLine($"GameModeComboBox_SelectionChanged: Setting GameMode to {mode}");
+            _gameRules.GameMode = mode;
+        }
         UpdatePreview();
     }
 
     private void FinishModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // KORRIGIERT: Verwende das Tag des ausgewählten ComboBoxItems
+        if (FinishModeComboBox.SelectedItem is ComboBoxItem selectedItem &&
+            Enum.TryParse<FinishMode>(selectedItem.Tag?.ToString(), out var mode))
+        {
+            System.Diagnostics.Debug.WriteLine($"FinishModeComboBox_SelectionChanged: Setting FinishMode to {mode}");
+            _gameRules.FinishMode = mode;
+        }
         UpdatePreview();
     }
 
@@ -193,9 +261,24 @@ public partial class GameRulesWindow : Window
 
     private void PostGroupPhaseModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (Enum.TryParse<PostGroupPhaseMode>(PostGroupPhaseModeComboBox.SelectedValue?.ToString(), out var mode))
+        // KORRIGIERT: Verwende das Tag des ausgewählten ComboBoxItems
+        if (PostGroupPhaseModeComboBox.SelectedItem is ComboBoxItem selectedItem &&
+            Enum.TryParse<PostGroupPhaseMode>(selectedItem.Tag?.ToString(), out var mode))
         {
+            System.Diagnostics.Debug.WriteLine($"PostGroupPhaseModeComboBox_SelectionChanged: Setting PostGroupPhaseMode to {mode} (from tag: {selectedItem.Tag})");
             _gameRules.PostGroupPhaseMode = mode;
+            
+            // WICHTIG: Sofort DataChanged Event feuern um sicherzustellen dass die Änderung propagiert wird
+            DataChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"PostGroupPhaseModeComboBox_SelectionChanged: ERROR - Could not parse selection!");
+            System.Diagnostics.Debug.WriteLine($"  SelectedItem: {PostGroupPhaseModeComboBox.SelectedItem}");
+            if (PostGroupPhaseModeComboBox.SelectedItem is ComboBoxItem item)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Item.Tag: {item.Tag}");
+            }
         }
         UpdateVisibility();
     }
@@ -204,27 +287,49 @@ public partial class GameRulesWindow : Window
     {
         if (int.TryParse(QualifyingPlayersTextBox.Text, out var players) && players > 0)
         {
+            System.Diagnostics.Debug.WriteLine($"QualifyingPlayersTextBox_TextChanged: Setting QualifyingPlayersPerGroup to {players}");
             _gameRules.QualifyingPlayersPerGroup = players;
+            
+            // WICHTIG: Sofort DataChanged Event feuern
+            DataChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
     private void KnockoutModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (Enum.TryParse<KnockoutMode>(KnockoutModeComboBox.SelectedValue?.ToString(), out var mode))
+        // KORRIGIERT: Verwende das Tag des ausgewählten ComboBoxItems
+        if (KnockoutModeComboBox.SelectedItem is ComboBoxItem selectedItem &&
+            Enum.TryParse<KnockoutMode>(selectedItem.Tag?.ToString(), out var mode))
         {
+            System.Diagnostics.Debug.WriteLine($"KnockoutModeComboBox_SelectionChanged: Setting KnockoutMode to {mode} (from tag: {selectedItem.Tag})");
             _gameRules.KnockoutMode = mode;
+            
+            // WICHTIG: Sofort DataChanged Event feuern
+            DataChanged?.Invoke(this, EventArgs.Empty);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"KnockoutModeComboBox_SelectionChanged: ERROR - Could not parse selection!");
         }
         UpdateVisibility();
     }
 
     private void IncludeGroupPhaseLosersBracketCheckBox_Checked(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("IncludeGroupPhaseLosersBracketCheckBox_Checked: Setting to true");
         _gameRules.IncludeGroupPhaseLosersBracket = true;
+        
+        // WICHTIG: Sofort DataChanged Event feuern
+        DataChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void IncludeGroupPhaseLosersBracketCheckBox_Unchecked(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("IncludeGroupPhaseLosersBracketCheckBox_Unchecked: Setting to false");
         _gameRules.IncludeGroupPhaseLosersBracket = false;
+        
+        // WICHTIG: Sofort DataChanged Event feuern
+        DataChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -234,39 +339,82 @@ public partial class GameRulesWindow : Window
             System.Diagnostics.Debug.WriteLine("GameRulesWindow.SaveButton_Click: START");
             
             // Validate and save basic rules
-            if (Enum.TryParse<GameMode>(GameModeComboBox.SelectedValue?.ToString(), out var gameMode))
+            if (GameModeComboBox.SelectedItem is ComboBoxItem gameModeItem && 
+                Enum.TryParse<GameMode>(gameModeItem.Tag?.ToString(), out var gameMode))
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting GameMode to {gameMode}");
                 _gameRules.GameMode = gameMode;
+            }
 
-            if (Enum.TryParse<FinishMode>(FinishModeComboBox.SelectedValue?.ToString(), out var finishMode))
+            if (FinishModeComboBox.SelectedItem is ComboBoxItem finishModeItem && 
+                Enum.TryParse<FinishMode>(finishModeItem.Tag?.ToString(), out var finishMode))
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting FinishMode to {finishMode}");
                 _gameRules.FinishMode = finishMode;
+            }
 
             if (int.TryParse(LegsToWinTextBox.Text, out var legsToWin) && legsToWin > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting LegsToWin to {legsToWin}");
                 _gameRules.LegsToWin = legsToWin;
+            }
 
             _gameRules.PlayWithSets = PlayWithSetsCheckBox.IsChecked == true;
+            System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting PlayWithSets to {_gameRules.PlayWithSets}");
 
             if (_gameRules.PlayWithSets)
             {
                 if (int.TryParse(SetsToWinTextBox.Text, out var setsToWin) && setsToWin > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting SetsToWin to {setsToWin}");
                     _gameRules.SetsToWin = setsToWin;
+                }
 
                 if (int.TryParse(LegsPerSetTextBox.Text, out var legsPerSet) && legsPerSet > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting LegsPerSet to {legsPerSet}");
                     _gameRules.LegsPerSet = legsPerSet;
+                }
             }
 
-            // Save post-group phase settings
-            if (Enum.TryParse<PostGroupPhaseMode>(PostGroupPhaseModeComboBox.SelectedValue?.ToString(), out var postGroupMode))
+            // KORRIGIERT: Korrekte Behandlung der PostGroupPhaseMode ComboBox
+            if (PostGroupPhaseModeComboBox.SelectedItem is ComboBoxItem postGroupModeItem && 
+                Enum.TryParse<PostGroupPhaseMode>(postGroupModeItem.Tag?.ToString(), out var postGroupMode))
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting PostGroupPhaseMode to {postGroupMode} (from tag: {postGroupModeItem.Tag})");
                 _gameRules.PostGroupPhaseMode = postGroupMode;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: ERROR - Failed to parse PostGroupPhaseMode!");
+                System.Diagnostics.Debug.WriteLine($"  SelectedItem: {PostGroupPhaseModeComboBox.SelectedItem}");
+                System.Diagnostics.Debug.WriteLine($"  SelectedValue: {PostGroupPhaseModeComboBox.SelectedValue}");
+                if (PostGroupPhaseModeComboBox.SelectedItem is ComboBoxItem item)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  Item.Tag: {item.Tag}");
+                    System.Diagnostics.Debug.WriteLine($"  Item.Content: {item.Content}");
+                }
+            }
 
             if (int.TryParse(QualifyingPlayersTextBox.Text, out var qualifyingPlayers) && qualifyingPlayers > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting QualifyingPlayersPerGroup to {qualifyingPlayers}");
                 _gameRules.QualifyingPlayersPerGroup = qualifyingPlayers;
+            }
 
-            if (Enum.TryParse<KnockoutMode>(KnockoutModeComboBox.SelectedValue?.ToString(), out var knockoutMode))
+            // KORRIGIERT: Korrekte Behandlung der KnockoutMode ComboBox
+            if (KnockoutModeComboBox.SelectedItem is ComboBoxItem knockoutModeItem && 
+                Enum.TryParse<KnockoutMode>(knockoutModeItem.Tag?.ToString(), out var knockoutMode))
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting KnockoutMode to {knockoutMode} (from tag: {knockoutModeItem.Tag})");
                 _gameRules.KnockoutMode = knockoutMode;
+            }
 
             _gameRules.IncludeGroupPhaseLosersBracket = IncludeGroupPhaseLosersBracketCheckBox.IsChecked == true;
+            System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting IncludeGroupPhaseLosersBracket to {_gameRules.IncludeGroupPhaseLosersBracket}");
 
             System.Diagnostics.Debug.WriteLine("GameRulesWindow.SaveButton_Click: Rules saved, triggering DataChanged event");
+            System.Diagnostics.Debug.WriteLine($"Final values: PostGroupPhaseMode = {_gameRules.PostGroupPhaseMode}, KnockoutMode = {_gameRules.KnockoutMode}");
             
             // Trigger data changed event
             DataChanged?.Invoke(this, EventArgs.Empty);
@@ -276,6 +424,7 @@ public partial class GameRulesWindow : Window
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"SaveButton_Click: CRITICAL ERROR: {ex.Message}");
             MessageBox.Show($"Error saving rules: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
