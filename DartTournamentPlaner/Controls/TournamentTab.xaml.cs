@@ -538,23 +538,24 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             var currentPhaseLabel = _localizationService?.GetString("CurrentPhase") ?? "Aktuelle Phase";
             CurrentPhaseText.Text = $"{currentPhaseLabel}: {phaseText}";
 
-            // KORRIGIERT: Tab-Sichtbarkeit basierend auf aktuellen GameRules bestimmen
+            // 🚨 KORRIGIERT: Tab-Sichtbarkeit korrekt bestimmen - KEINE Überschneidungen
             var hasPostPhase = TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None;
-            var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals ||
-                                      TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket; // Beide Modi zeigen Finals
+            var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals; // NUR RoundRobin Finals
             var hasKnockout = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket;
             var hasDoubleElimination = TournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination;
 
             System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: PostGroupPhaseMode = {TournamentClass.GameRules.PostGroupPhaseMode}");
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasRoundRobinFinals = {hasRoundRobinFinals}, hasKnockout = {hasKnockout}");
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasRoundRobinFinals = {hasRoundRobinFinals} (ONLY for RoundRobin)");
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasKnockout = {hasKnockout} (ONLY for Knockout)");
 
-            // Tab-Sichtbarkeit aktualisieren
+            // 🚨 KORRIGIERT: Tab-Sichtbarkeit - KEINE Überlappung zwischen Finals und Knockout
             FinalsTabItem.Visibility = hasRoundRobinFinals ? Visibility.Visible : Visibility.Collapsed;
             KnockoutTabItem.Visibility = hasKnockout ? Visibility.Visible : Visibility.Collapsed;
             LoserBracketTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
             LoserBracketTreeTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
 
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Tab visibility updated - Finals: {FinalsTabItem.Visibility}, KO: {KnockoutTabItem.Visibility}");
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: CORRECTED Tab visibility - Finals: {FinalsTabItem.Visibility}, KO: {KnockoutTabItem.Visibility}");
+            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Finals shows ONLY for RoundRobin classes, KO shows ONLY for Knockout classes");
 
             bool canAdvance = false;
             try

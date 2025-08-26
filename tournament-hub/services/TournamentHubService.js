@@ -1,4 +1,4 @@
-class TournamentHubService {
+Ôªøclass TournamentHubService {
   constructor(db, io, tournamentRegistry) {
     this.db = db;
     this.io = io;
@@ -41,7 +41,7 @@ class TournamentHubService {
       apiKey
     } = tournamentData;
 
-    // Pr¸fe ob Tournament bereits existiert
+    // Pr√ºfe ob Tournament bereits existiert
     if (this.tournaments.has(tournamentId)) {
       const existing = this.tournaments.get(tournamentId);
       existing.lastHeartbeat = new Date();
@@ -97,7 +97,7 @@ class TournamentHubService {
   }
 
   /**
-   * Synchronisiert Matches f¸r ein Tournament
+   * Synchronisiert Matches f√ºr ein Tournament
    */
   async syncMatches(tournamentId, matches) {
     if (!this.tournaments.has(tournamentId)) {
@@ -130,7 +130,7 @@ class TournamentHubService {
         classId: match.classId || null,
         className: match.className || null,
         matchType: match.matchType || 'Group',
-        // KORRIGIERT: Group-Informationen hinzuf¸gen
+        // KORRIGIERT: Group-Informationen hinzuf√ºgen
         groupId: match.groupId || null,
         groupName: match.groupName || null,
         // Game Rules Information
@@ -183,12 +183,12 @@ class TournamentHubService {
     const tournament = this.tournaments.get(tournamentId);
     tournament.name = name;
     tournament.classes = classes || [];
-    // ERWEITERT: Game Rules hinzuf¸gen
+    // ERWEITERT: Game Rules hinzuf√ºgen
     tournament.gameRules = gameRules || [];
     tournament.lastSync = new Date(syncedAt);
     tournament.lastHeartbeat = new Date();
 
-    console.log(`?? [TOURNAMENT-SYNC] Full sync for ${tournamentId}:`);
+    console.log(`üéÆ [TOURNAMENT-SYNC] Full sync for ${tournamentId}:`);
     console.log(`   Name: ${name}`);
     console.log(`   Classes: ${classes?.length || 0}`);
     console.log(`   Matches: ${matches?.length || 0}`);
@@ -199,7 +199,7 @@ class TournamentHubService {
 
     await this.db.updateTournament(tournamentId, tournament);
 
-    console.log(`? [TOURNAMENT-SYNC] Tournament ${tournamentId} synced successfully:`, result);
+    console.log(`‚úÖ [TOURNAMENT-SYNC] Tournament ${tournamentId} synced successfully:`, result);
 
     return {
       ...result,
@@ -209,7 +209,7 @@ class TournamentHubService {
   }
 
   /**
-   * Holt Matches f¸r ein Tournament, optional gefiltert nach Klasse
+   * Holt Matches f√ºr ein Tournament, optional gefiltert nach Klasse
    */
   async getMatches(tournamentId, statusFilter = null, classId = null) {
     const tournamentMatches = this.matches.get(tournamentId);
@@ -242,21 +242,21 @@ class TournamentHubService {
   }
 
   /**
-   * Holt alle Game Rules f¸r ein Tournament
+   * Holt alle Game Rules f√ºr ein Tournament
    */
   async getTournamentGameRules(tournamentId) {
     const tournament = this.tournaments.get(tournamentId);
     if (!tournament || !tournament.gameRules) {
-      console.log(`?? [GAME-RULES] No game rules found for tournament ${tournamentId}`);
+      console.log(`‚ö†Ô∏è [GAME-RULES] No game rules found for tournament ${tournamentId}`);
       return [];
     }
 
-    console.log(`? [GAME-RULES] Found ${tournament.gameRules.length} game rules for tournament ${tournamentId}`);
+    console.log(`‚úÖ [GAME-RULES] Found ${tournament.gameRules.length} game rules for tournament ${tournamentId}`);
     return tournament.gameRules;
   }
 
   /**
-   * Holt alle Klassen f¸r ein Tournament
+   * Holt alle Klassen f√ºr ein Tournament
    */
   async getTournamentClasses(tournamentId) {
     const tournament = this.tournaments.get(tournamentId);
@@ -349,7 +349,7 @@ class TournamentHubService {
   }
 
   /**
-   * Statistiken f¸r Status-Endpoint
+   * Statistiken f√ºr Status-Endpoint
    */
   getStatistics() {
     const onlineCount = Array.from(this.tournaments.values())

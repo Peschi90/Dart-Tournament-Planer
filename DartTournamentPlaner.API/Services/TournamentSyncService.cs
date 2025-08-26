@@ -1,15 +1,15 @@
-using DartTournamentPlaner.Models;
+﻿using DartTournamentPlaner.Models;
 using DartTournamentPlaner.API.Models;
 
 namespace DartTournamentPlaner.API.Services;
 
 /// <summary>
-/// Service f�r die Synchronisierung zwischen WPF-Anwendung und API
+/// Service für die Synchronisierung zwischen WPF-Anwendung und API
 /// </summary>
 public interface ITournamentSyncService
 {
     /// <summary>
-    /// Startet die API und macht Turnierdaten verf�gbar
+    /// Startet die API und macht Turnierdaten verfügbar
     /// </summary>
     Task StartApiAsync(TournamentData tournamentData);
     
@@ -24,12 +24,12 @@ public interface ITournamentSyncService
     Task UpdateTournamentDataAsync(TournamentData tournamentData);
     
     /// <summary>
-    /// Event f�r Match-Ergebnis Updates von der API
+    /// Event für Match-Ergebnis Updates von der API
     /// </summary>
     event EventHandler<MatchResultUpdateEventArgs>? MatchResultUpdated;
     
     /// <summary>
-    /// Pr�ft ob die API l�uft
+    /// Prüft ob die API läuft
     /// </summary>
     bool IsApiRunning { get; }
     
@@ -103,7 +103,7 @@ public class TournamentSyncService : ITournamentSyncService
     /// </summary>
     public void ProcessMatchResultUpdate(int matchId, int classId, MatchResultDto result)
     {
-        Console.WriteLine($"?? [SYNC_SERVICE] Processing match result update:");
+        Console.WriteLine($"🎯 [SYNC_SERVICE] Processing match result update:");
         Console.WriteLine($"   Match ID: {matchId}");
         Console.WriteLine($"   Class ID: {classId}");
         Console.WriteLine($"   Group Name: {result.GroupName}");
@@ -115,7 +115,7 @@ public class TournamentSyncService : ITournamentSyncService
         {
             if (_currentTournamentData == null) 
             {
-                Console.WriteLine($"? [SYNC_SERVICE] No current tournament data available");
+                Console.WriteLine($"❌ [SYNC_SERVICE] No current tournament data available");
                 return;
             }
 
@@ -124,16 +124,16 @@ public class TournamentSyncService : ITournamentSyncService
                 
             if (tournamentClass == null) 
             {
-                Console.WriteLine($"? [SYNC_SERVICE] Tournament class {classId} not found");
+                Console.WriteLine($"❌ [SYNC_SERVICE] Tournament class {classId} not found");
                 return;
             }
 
-            Console.WriteLine($"?? [SYNC_SERVICE] Found tournament class: {tournamentClass.Name}");
+            Console.WriteLine($"🏆 [SYNC_SERVICE] Found tournament class: {tournamentClass.Name}");
 
-            // ?? KORRIGIERT: Verwende GROUP-SPEZIFISCHE Suche f�r Gruppen-Matches
+            // 🚨 KORRIGIERT: Verwende GROUP-SPEZIFISCHE Suche für Gruppen-Matches
             if (!string.IsNullOrEmpty(result.GroupName) && result.MatchType == "Group")
             {
-                Console.WriteLine($"?? [SYNC_SERVICE] Searching for Group match in '{result.GroupName}'...");
+                Console.WriteLine($"🔍 [SYNC_SERVICE] Searching for Group match in '{result.GroupName}'...");
                 
                 // Suche die SPEZIFISCHE Gruppe
                 var targetGroup = tournamentClass.Groups
@@ -141,18 +141,18 @@ public class TournamentSyncService : ITournamentSyncService
                 
                 if (targetGroup == null)
                 {
-                    Console.WriteLine($"? [SYNC_SERVICE] Group '{result.GroupName}' not found in class {tournamentClass.Name}");
+                    Console.WriteLine($"❌ [SYNC_SERVICE] Group '{result.GroupName}' not found in class {tournamentClass.Name}");
                     Console.WriteLine($"   Available groups: {string.Join(", ", tournamentClass.Groups.Select(g => g.Name))}");
                     return;
                 }
 
-                Console.WriteLine($"?? [SYNC_SERVICE] Found target group: {targetGroup.Name} (ID: {targetGroup.Id})");
+                Console.WriteLine($"📋 [SYNC_SERVICE] Found target group: {targetGroup.Name} (ID: {targetGroup.Id})");
 
                 // Suche das Match NUR in der spezifischen Gruppe
                 var match = targetGroup.Matches.FirstOrDefault(m => m.Id == matchId);
                 if (match != null)
                 {
-                    Console.WriteLine($"? [SYNC_SERVICE] Found match {matchId} in group '{targetGroup.Name}'");
+                    Console.WriteLine($"✅ [SYNC_SERVICE] Found match {matchId} in group '{targetGroup.Name}'");
                     Console.WriteLine($"   Match: {match.Player1?.Name} vs {match.Player2?.Name}");
                     
                     // Aktualisiere das Match
@@ -160,9 +160,9 @@ public class TournamentSyncService : ITournamentSyncService
                                    result.Player1Legs, result.Player2Legs);
                     match.Notes = result.Notes ?? string.Empty;
 
-                    Console.WriteLine($"?? [SYNC_SERVICE] Match result updated: {result.Player1Sets}-{result.Player2Sets} Sets, {result.Player1Legs}-{result.Player2Legs} Legs");
+                    Console.WriteLine($"🎯 [SYNC_SERVICE] Match result updated: {result.Player1Sets}-{result.Player2Sets} Sets, {result.Player1Legs}-{result.Player2Legs} Legs");
 
-                    // Feuere Event f�r WPF-Anwendung
+                    // Feuere Event für WPF-Anwendung
                     MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
                     {
                         MatchId = matchId,
@@ -172,34 +172,34 @@ public class TournamentSyncService : ITournamentSyncService
                         GroupId = targetGroup.Id
                     });
                     
-                    Console.WriteLine($"? [SYNC_SERVICE] Successfully processed group match update");
+                    Console.WriteLine($"✅ [SYNC_SERVICE] Successfully processed group match update");
                     return;
                 }
                 else
                 {
-                    Console.WriteLine($"? [SYNC_SERVICE] Match {matchId} not found in group '{targetGroup.Name}'");
+                    Console.WriteLine($"❌ [SYNC_SERVICE] Match {matchId} not found in group '{targetGroup.Name}'");
                     Console.WriteLine($"   Available matches in group: {string.Join(", ", targetGroup.Matches.Select(m => m.Id))}");
                 }
             }
-            // Falls keine Group-Information vorhanden, verwende alte Logik (f�r Finals/Knockout)
+            // Falls keine Group-Information vorhanden, verwende alte Logik (für Finals/Knockout)
             else
             {
-                Console.WriteLine($"?? [SYNC_SERVICE] No group info - searching in Finals/Knockout matches...");
+                Console.WriteLine($"🔍 [SYNC_SERVICE] No group info - searching in Finals/Knockout matches...");
                 
-                // Suche in allen Gruppen (alte Logik f�r Kompatibilit�t)
+                // Suche in allen Gruppen (alte Logik für Kompatibilität)
                 foreach (var group in tournamentClass.Groups)
                 {
                     var match = group.Matches.FirstOrDefault(m => m.Id == matchId);
                     if (match != null)
                     {
-                        Console.WriteLine($"?? [SYNC_SERVICE] Found match {matchId} in group '{group.Name}' (fallback search)");
+                        Console.WriteLine($"⚠️ [SYNC_SERVICE] Found match {matchId} in group '{group.Name}' (fallback search)");
                         
                         // Aktualisiere das Match
                         match.SetResult(result.Player1Sets, result.Player2Sets, 
                                        result.Player1Legs, result.Player2Legs);
                         match.Notes = result.Notes ?? string.Empty;
 
-                        // Feuere Event f�r WPF-Anwendung
+                        // Feuere Event für WPF-Anwendung
                         MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
                         {
                             MatchId = matchId,
@@ -219,14 +219,14 @@ public class TournamentSyncService : ITournamentSyncService
                         .FirstOrDefault(m => m.Id == matchId);
                     if (match != null)
                     {
-                        Console.WriteLine($"?? [SYNC_SERVICE] Found Finals match {matchId}");
+                        Console.WriteLine($"🏆 [SYNC_SERVICE] Found Finals match {matchId}");
                         
                         // Aktualisiere das Match
                         match.SetResult(result.Player1Sets, result.Player2Sets, 
                                        result.Player1Legs, result.Player2Legs);
                         match.Notes = result.Notes ?? string.Empty;
 
-                        // Feuere Event f�r WPF-Anwendung
+                        // Feuere Event für WPF-Anwendung
                         MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
                         {
                             MatchId = matchId,
@@ -246,14 +246,14 @@ public class TournamentSyncService : ITournamentSyncService
                         .FirstOrDefault(m => m.Id == matchId);
                     if (knockoutMatch != null)
                     {
-                        Console.WriteLine($"? [SYNC_SERVICE] Found Winner Bracket match {matchId}");
+                        Console.WriteLine($"⚡ [SYNC_SERVICE] Found Winner Bracket match {matchId}");
                         
                         // Aktualisiere das KnockoutMatch
                         knockoutMatch.SetResult(result.Player1Sets, result.Player2Sets, 
                                                result.Player1Legs, result.Player2Legs);
                         knockoutMatch.Notes = result.Notes ?? string.Empty;
 
-                        // Feuere Event f�r WPF-Anwendung
+                        // Feuere Event für WPF-Anwendung
                         MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
                         {
                             MatchId = matchId,
@@ -273,14 +273,14 @@ public class TournamentSyncService : ITournamentSyncService
                         .FirstOrDefault(m => m.Id == matchId);
                     if (knockoutMatch != null)
                     {
-                        Console.WriteLine($"?? [SYNC_SERVICE] Found Loser Bracket match {matchId}");
+                        Console.WriteLine($"🔄 [SYNC_SERVICE] Found Loser Bracket match {matchId}");
                         
                         // Aktualisiere das KnockoutMatch
                         knockoutMatch.SetResult(result.Player1Sets, result.Player2Sets, 
                                                result.Player1Legs, result.Player2Legs);
                         knockoutMatch.Notes = result.Notes ?? string.Empty;
 
-                        // Feuere Event f�r WPF-Anwendung
+                        // Feuere Event für WPF-Anwendung
                         MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
                         {
                             MatchId = matchId,
@@ -294,13 +294,13 @@ public class TournamentSyncService : ITournamentSyncService
                 }
             }
             
-            Console.WriteLine($"? [SYNC_SERVICE] Match {matchId} not found anywhere in class {classId}");
+            Console.WriteLine($"❌ [SYNC_SERVICE] Match {matchId} not found anywhere in class {classId}");
         }
     }
 }
 
 /// <summary>
-/// Event-Argumente f�r Match-Ergebnis Updates
+/// Event-Argumente für Match-Ergebnis Updates
 /// </summary>
 public class MatchResultUpdateEventArgs : EventArgs
 {
@@ -308,7 +308,7 @@ public class MatchResultUpdateEventArgs : EventArgs
     public int ClassId { get; set; }
     public MatchResultDto Result { get; set; } = new();
     
-    // ?? HINZUGEF�GT: Group-Information f�r eindeutige Match-Identifikation
+    // 🚨 HINZUGEFÜGT: Group-Information für eindeutige Match-Identifikation
     public string? GroupName { get; set; }
     public int? GroupId { get; set; }
 }

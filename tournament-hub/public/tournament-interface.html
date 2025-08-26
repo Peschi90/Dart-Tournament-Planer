@@ -1025,8 +1025,8 @@
                 const mId = m.matchId || m.id || m.Id;
                 const mClassId = m.classId || m.ClassId;
                 const mGroupId = m.groupId || m.GroupId;
-                const mPlayer1 = typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.player1?.Name || m.Player1);
-                const mPlayer2 = typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.player2?.Name || m.Player2);
+                const mPlayer1 = typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.Player1);
+                const mPlayer2 = typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.Player2);
                 
                 return mId == cardData.matchId && 
                        mClassId == cardData.classId && 
@@ -2153,97 +2153,87 @@
                 console.warn(`⚠️ [CREATE_CARD] Match ${matchId}: Using fallback class data - verify correctness!`);
             }
             
-            console.log(`📊 [CREATE_CARD] Final match data for card - Match ${matchId}:`);
-            console.log(`   📚 Class: "${className}" (ID: ${classId}) - FROM MATCH: ${match.classId || match.ClassId || 'FALLBACK'}`);
-            console.log(`   📋 Group: "${groupName || 'No Group'}" (ID: ${groupId || 'No ID'}) - FROM MATCH: ${match.groupName || match.GroupName || 'NONE'}`);
-            console.log(`   👥 Players: "${player1Name}" vs "${player2Name}"`);
-            console.log(`   🆔 Unique Card ID: ${uniqueCardId}`);
-            
-            // Get game rules for this match
-            let gameRule = null;
-            
-            if (match.gameRules && typeof match.gameRules === 'object') {
-                gameRule = match.gameRules;
-            } else if (match.GameRules && typeof match.GameRules === 'object') {
-                gameRule = match.GameRules;
-            }
-            
-            if (!gameRule) {
-                const gameRulesId = match.gameRulesId || match.GameRulesId || match.gameRuleId || match.GameRuleId;
-                if (gameRulesId) {
-                    gameRule = gameRules.find(gr => gr.id === gameRulesId || gr.Id === gameRulesId);
-                }
-            }
-            
-            if (!gameRule && classId) {
-                gameRule = gameRules.find(gr => (gr.classId || gr.ClassId) === classId);
-                
-                if (!gameRule) {
-                    const classSpecificRule = gameRules.find(gr => 
-                        (gr.className || gr.ClassName || '').toLowerCase() === className.toLowerCase()
-                    );
-                    if (classSpecificRule) {
-                        gameRule = classSpecificRule;
-                    }
-                }
-            }
-            
-            if (!gameRule && className) {
-                gameRule = gameRules.find(gr => 
-                    (gr.className || gr.ClassName || '').toLowerCase() === className.toLowerCase() ||
-                    (gr.name || gr.Name || '').toLowerCase().includes(className.toLowerCase())
-                );
-            }
-            
-            if (!gameRule && currentClassId) {
-                gameRule = gameRules.find(gr => (gr.classId || gr.ClassId) == currentClassId);
-            }
-            
-            if (!gameRule) {
-                if (gameRules.length > 0) {
-                    gameRule = gameRules[0];
-                } else {
-                    gameRule = {
-                        id: classId || 1,
-                        name: `${className} Standard`,
-                        gamePoints: 501,
-                        setsToWin: 3,
-                        legsToWin: 3,
-                        legsPerSet: 5,
-                        maxSets: 5,
-                        maxLegsPerSet: 5,
-                        playWithSets: true,
-                        gameMode: '501',
-                        finishMode: 'DoubleOut',
-                        classId: classId,
-                        className: className
-                    };
-                }
-            }
-            
-            const maxSets = gameRule.maxSets || gameRule.setsToWin * 2 - 1 || 5;
-            const maxLegs = gameRule.maxLegsPerSet || gameRule.legsPerSet || 5;
-            const setsToWin = gameRule.setsToWin || 3;
-            const legsToWin = gameRule.legsToWin || 3;
-            const gamePoints = gameRule.gamePoints || 501;
-            const playWithSets = gameRule.playWithSets !== false;
-            const gameMode = gameRule.gameMode || gameRule.GameMode || '501';
-            const finishMode = gameRule.finishMode || gameRule.FinishMode || 'DoubleOut';
-
+            // 🚨 KORRIGIERT: Präzisere Match-Type Unterscheidung für KO-Runden
             const matchTypeIndicator = {
                 'Group': '🔸 Gruppe',
-                'Finals': '🏆 Finale',
-                'Knockout-WB': '⚡ K.O. Winner',
-                'Knockout-LB': '🔄 K.O. Loser'
+                'Finals': '🏆 Finale',  // NUR für echte Finals (RoundRobin-Finals)
+                'Knockout-WB-Best64': '⚡ K.O. Beste 64',
+                'Knockout-WB-Best32': '⚡ K.O. Beste 32', 
+                'Knockout-WB-Best16': '⚡ K.O. Beste 16',
+                'Knockout-WB-Quarterfinal': '⚡ K.O. Viertelfinale',
+                'Knockout-WB-Semifinal': '⚡ K.O. Halbfinale',
+                'Knockout-WB-Final': '🏆 K.O. Finale',        // Echtes KO-Finale
+                'Knockout-WB-GrandFinal': '🏆 K.O. Grand Final',
+                'Knockout-WB': '⚡ K.O. Winner',              // Fallback für Winner Bracket
+                'Knockout-LB-LoserRound': '🔄 K.O. Loser Runde',
+                'Knockout-LB-LoserFinal': '🔄 K.O. Loser Final',
+                'Knockout-LB': '🔄 K.O. Loser'               // Fallback für Loser Bracket
             };
             
+            // 🚨 KORRIGIERT: Intelligentere Match-Type Anzeige-Funktion
             const getMatchTypeDisplay = (type) => {
-                for (const [key, display] of Object.entries(matchTypeIndicator)) {
-                    if (type.startsWith(key)) {
-                        return display + (type.includes('-') ? ` (${type.split('-')[2] || ''})` : '' );
-                    }
+                console.log(`🔍 [MATCH_TYPE] Processing match type: "${type}"`);
+                
+                if (!type) {
+                    console.log(`⚠️ [MATCH_TYPE] Empty type, using default`);
+                    return '🎯 Match';
                 }
-                return '🎯 ' + type;
+                
+                // SPEZIFISCH: Prüfe exakte Übereinstimmungen ZUERST
+                if (matchTypeIndicator[type]) {
+                    console.log(`✅ [MATCH_TYPE] Exact match found: "${type}" -> "${matchTypeIndicator[type]}"`);
+                    return matchTypeIndicator[type];
+                }
+                
+                // KNOCKOUT WINNER BRACKET: Detaillierte Erkennung
+                if (type.startsWith('Knockout-WB') || type.includes('Knockout') && type.includes('WB')) {
+                    // Extrahiere die spezifische Runde
+                    if (type.includes('Best64')) return '⚡ K.O. Beste 64';
+                    if (type.includes('Best32')) return '⚡ K.O. Beste 32';
+                    if (type.includes('Best16')) return '⚡ K.O. Beste 16';
+                    if (type.includes('Quarterfinal')) return '⚡ K.O. Viertelfinale';
+                    if (type.includes('Semifinal')) return '⚡ K.O. Halbfinale';
+                    if (type.includes('GrandFinal')) return '🏆 K.O. Grand Final';
+                    if (type.includes('Final')) return '🏆 K.O. Finale';
+                    
+                    // Fallback für Winner Bracket
+                    console.log(`⚡ [MATCH_TYPE] Winner Bracket fallback: "${type}"`);
+                    return '⚡ K.O. Winner Bracket';
+                }
+                
+                // KNOCKOUT LOSER BRACKET: Detaillierte Erkennung  
+                if (type.startsWith('Knockout-LB') || type.includes('Knockout') && type.includes('LB')) {
+                    // Extrahiere die spezifische Runde
+                    if (type.includes('LoserFinal')) return '🔄 K.O. Loser Final';
+                    if (type.includes('LoserRound')) {
+                        // Versuche Rundennummer zu extrahieren
+                        const roundMatch = type.match(/LoserRound(\d+)/);
+                        if (roundMatch) {
+                            return `🔄 K.O. Loser Runde ${roundMatch[1]}`;
+                        }
+                        return '🔄 K.O. Loser Runde';
+                    }
+                    
+                    // Fallback für Loser Bracket
+                    console.log(`🔄 [MATCH_TYPE] Loser Bracket fallback: "${type}"`);
+                    return '🔄 K.O. Loser Bracket';
+                }
+                
+                // ECHTE FINALS (RoundRobin-Finals): NUR für RoundRobin nach Gruppenphase
+                if (type === 'Finals' || type === 'RoundRobinFinals') {
+                    console.log(`🏆 [MATCH_TYPE] Genuine Finals (RoundRobin): "${type}"`);
+                    return '🏆 Finalrunde';
+                }
+                
+                // GROUP MATCHES
+                if (type === 'Group' || type.includes('Group')) {
+                    console.log(`🔸 [MATCH_TYPE] Group match: "${type}"`);
+                    return '🔸 Gruppe';
+                }
+                
+                // UNBEKANNT: Fallback mit Original-Type-Info
+                console.log(`❓ [MATCH_TYPE] Unknown type, using fallback: "${type}"`);
+                return `🎯 ${type.replace('Knockout-', 'K.O. ').replace('WB', 'Winner').replace('LB', 'Loser')}`;
             };
             
             const classColors = {

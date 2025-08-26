@@ -1,4 +1,4 @@
-// WebSocket Handler Module
+﻿// WebSocket Handler Module
 // Handles WebSocket message processing and client management
 
 class WebSocketHandlers {
@@ -17,15 +17,15 @@ class WebSocketHandlers {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
         
-        console.log(`?? [WebSocket-Direct] ===== PROCESSING MESSAGE =====`);
-        console.log(`?? [WebSocket-Direct] Client ID: ${clientId}`);
-        console.log(`?? [WebSocket-Direct] Raw Message:`, JSON.stringify(message, null, 2));
+        console.log(`🔄 [WebSocket-Direct] ===== PROCESSING MESSAGE =====`);
+        console.log(`🔄 [WebSocket-Direct] Client ID: ${clientId}`);
+        console.log(`🔄 [WebSocket-Direct] Raw Message:`, JSON.stringify(message, null, 2));
         
         // Behandle sowohl direkte Messages als auch Messages mit 'data' Wrapper
         const actualMessage = message.data || message;
         const messageType = actualMessage.type || message.type;
         
-        console.log(`?? [WebSocket-Direct] Extracted message type: ${messageType}`);
+        console.log(`🎯 [WebSocket-Direct] Extracted message type: ${messageType}`);
         
         try {
             switch (messageType) {
@@ -62,7 +62,7 @@ class WebSocketHandlers {
                     break;
                     
                 default:
-                    console.log(`? [WebSocket-Direct] Unknown message type: ${messageType}`);
+                    console.log(`❓ [WebSocket-Direct] Unknown message type: ${messageType}`);
                     ws.send(JSON.stringify({
                         type: 'error',
                         error: `Unknown message type: ${messageType}`,
@@ -70,7 +70,7 @@ class WebSocketHandlers {
                     }));
             }
         } catch (error) {
-            console.error(`? [WebSocket-Direct] Error handling message type ${messageType}:`, error);
+            console.error(`❌ [WebSocket-Direct] Error handling message type ${messageType}:`, error);
             ws.send(JSON.stringify({
                 type: 'error',
                 error: `Error processing ${messageType}: ${error.message}`,
@@ -78,17 +78,17 @@ class WebSocketHandlers {
             }));
         }
         
-        console.log(`?? [WebSocket-Direct] ===== MESSAGE PROCESSING COMPLETE =====`);
+        console.log(`🔄 [WebSocket-Direct] ===== MESSAGE PROCESSING COMPLETE =====`);
     }
 
     handleTournamentSubscription(ws, clientId, tournamentId) {
         const client = this.websocketClients.get(clientId);
         if (!client || !tournamentId) {
-            console.log(`? [WebSocket-Direct] Tournament subscription failed - missing client or tournamentId`);
+            console.log(`❌ [WebSocket-Direct] Tournament subscription failed - missing client or tournamentId`);
             return;
         }
         
-        console.log(`?? [WebSocket-Direct] Client ${clientId} subscribing to tournament: ${tournamentId}`);
+        console.log(`🎯 [WebSocket-Direct] Client ${clientId} subscribing to tournament: ${tournamentId}`);
         
         client.tournamentId = tournamentId;
         
@@ -110,14 +110,14 @@ class WebSocketHandlers {
         
         ws.send(JSON.stringify(responseData));
         
-        console.log(`? [WebSocket-Direct] Tournament subscription confirmed for ${clientId}`);
+        console.log(`✅ [WebSocket-Direct] Tournament subscription confirmed for ${clientId}`);
     }
 
     handlePlannerRegistration(ws, clientId, tournamentId, plannerInfo) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
         
-        console.log(`?? [WebSocket-Direct] Planner registration for client ${clientId}`);
+        console.log(`🏁 [WebSocket-Direct] Planner registration for client ${clientId}`);
         
         client.tournamentId = tournamentId;
         client.isPlannerClient = true;
@@ -133,16 +133,16 @@ class WebSocketHandlers {
         
         ws.send(JSON.stringify(responseData));
         
-        console.log(`? [WebSocket-Direct] Planner registration confirmed for ${clientId}`);
+        console.log(`✅ [WebSocket-Direct] Planner registration confirmed for ${clientId}`);
     }
 
     handleMatchResultSubmission(ws, clientId, message) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
         
-        console.log(`?? [WebSocket-Direct] ===== MATCH RESULT SUBMISSION =====`);
-        console.log(`?? [WebSocket-Direct] Client: ${clientId}`);
-        console.log(`?? [WebSocket-Direct] Raw message:`, JSON.stringify(message, null, 2));
+        console.log(`🎯 [WebSocket-Direct] ===== MATCH RESULT SUBMISSION =====`);
+        console.log(`🎯 [WebSocket-Direct] Client: ${clientId}`);
+        console.log(`🎯 [WebSocket-Direct] Raw message:`, JSON.stringify(message, null, 2));
         
         const { tournamentId, matchId, result } = message;
         
@@ -156,7 +156,7 @@ class WebSocketHandlers {
         }
         
         // KORRIGIERT: Extrahiere Class-Information aus Message und Result
-        console.log(`?? [WebSocket-Direct] Class-ID Analysis:`);
+        console.log(`📊 [WebSocket-Direct] Class-ID Analysis:`);
         console.log(`   Message classId: ${message.classId}`);
         console.log(`   Message className: ${message.className}`);
         console.log(`   Result classId: ${result.classId}`);
@@ -164,20 +164,20 @@ class WebSocketHandlers {
         console.log(`   GameRules classId: ${result.gameRulesUsed?.classId}`);
         console.log(`   GameRules className: ${result.gameRulesUsed?.className}`);
         
-        // ERWEITERT: Vollst�ndige Class-Information f�r Tournament Planner
+        // ERWEITERT: Vollständige Class-Information für Tournament Planner
         const enhancedResult = {
             ...result,
             // Class-Information aus verschiedenen Quellen
             classId: message.classId || result.classId || result.gameRulesUsed?.classId || 1,
             className: message.className || result.className || result.gameRulesUsed?.className || 'Unbekannte Klasse',
-            // Zus�tzliche Metadaten
+            // Zusätzliche Metadaten
             submissionSource: 'websocket-direct',
             submissionTimestamp: new Date().toISOString(),
             originalMessageClassId: message.classId,
             originalMessageClassName: message.className
         };
         
-        console.log(`?? [WebSocket-Direct] Enhanced result for Tournament Planner:`);
+        console.log(`📋 [WebSocket-Direct] Enhanced result for Tournament Planner:`);
         console.log(`   Final classId: ${enhancedResult.classId}`);
         console.log(`   Final className: ${enhancedResult.className}`);
         console.log(`   Enhanced result:`, JSON.stringify(enhancedResult, null, 2));
@@ -197,7 +197,7 @@ class WebSocketHandlers {
                         timestamp: new Date().toISOString()
                     }));
                     
-                    console.log(`? [WebSocket-Direct] Match result submitted for ${enhancedResult.className} (ID: ${enhancedResult.classId})`);
+                    console.log(`✅ [WebSocket-Direct] Match result submitted for ${enhancedResult.className} (ID: ${enhancedResult.classId})`);
                     
                     // Broadcast to other clients with enhanced class information
                     this.broadcastMatchUpdate(tournamentId, matchId, enhancedResult);
@@ -211,7 +211,7 @@ class WebSocketHandlers {
                 }
             })
             .catch(error => {
-                console.error(`? [WebSocket-Direct] Error in match result submission:`, error);
+                console.error(`❌ [WebSocket-Direct] Error in match result submission:`, error);
                 ws.send(JSON.stringify({
                     type: 'match-result-error',
                     success: false,
@@ -222,7 +222,7 @@ class WebSocketHandlers {
                 }));
             });
             
-        console.log(`?? [WebSocket-Direct] ===== MATCH RESULT SUBMISSION COMPLETE =====`);
+        console.log(`🎯 [WebSocket-Direct] ===== MATCH RESULT SUBMISSION COMPLETE =====`);
     }
 
     handleHeartbeat(ws, clientId) {
@@ -242,7 +242,7 @@ class WebSocketHandlers {
     }
 
     handleMatchUpdateAcknowledgment(ws, clientId, message) {
-        console.log(`?? [WebSocket-Direct] Client ${clientId} acknowledged match update`);
+        console.log(`📬 [WebSocket-Direct] Client ${clientId} acknowledged match update`);
         
         const client = this.websocketClients.get(clientId);
         if (!client) return;
@@ -260,7 +260,7 @@ class WebSocketHandlers {
     }
 
     handleMatchUpdateError(ws, clientId, message) {
-        console.log(`? [WebSocket-Direct] Client ${clientId} reported match update error`);
+        console.log(`❌ [WebSocket-Direct] Client ${clientId} reported match update error`);
         
         const client = this.websocketClients.get(clientId);
         if (!client) return;
@@ -291,12 +291,12 @@ class WebSocketHandlers {
             isPlannerClient: false
         });
         
-        console.log(`?? [WebSocket-Direct] Client connected: ${clientId} from ${clientIP}`);
+        console.log(`🔌 [WebSocket-Direct] Client connected: ${clientId} from ${clientIP}`);
     }
 
     removeClient(clientId) {
         this.websocketClients.delete(clientId);
-        console.log(`?? [WebSocket-Direct] Client disconnected: ${clientId}`);
+        console.log(`🔌 [WebSocket-Direct] Client disconnected: ${clientId}`);
     }
 
     getClient(clientId) {
@@ -308,14 +308,14 @@ class WebSocketHandlers {
     // ========================
 
     broadcastMatchUpdate(tournamentId, matchId, result) {
-        console.log(`?? [WebSocket-Direct] ===== BROADCASTING MATCH UPDATE =====`);
-        console.log(`?? [WebSocket-Direct] Tournament: ${tournamentId}, Match: ${matchId}`);
-        console.log(`?? [WebSocket-Direct] Result data:`, JSON.stringify(result, null, 2));
+        console.log(`📡 [WebSocket-Direct] ===== BROADCASTING MATCH UPDATE =====`);
+        console.log(`📡 [WebSocket-Direct] Tournament: ${tournamentId}, Match: ${matchId}`);
+        console.log(`📡 [WebSocket-Direct] Result data:`, JSON.stringify(result, null, 2));
         
-        // KORRIGIERT: Hole Match-Informationen aus Tournament Registry f�r korrekte Class-ID
+        // KORRIGIERT: Hole Match-Informationen aus Tournament Registry für korrekte Class-ID
         const tournament = this.tournamentRegistry.getTournament(tournamentId);
         if (!tournament) {
-            console.error(`? [WebSocket-Direct] Tournament not found for broadcasting: ${tournamentId}`);
+            console.error(`❌ [WebSocket-Direct] Tournament not found for broadcasting: ${tournamentId}`);
             return;
         }
         
@@ -327,16 +327,16 @@ class WebSocketHandlers {
         );
         
         if (!originalMatch) {
-            console.error(`? [WebSocket-Direct] Match not found in tournament data: ${matchId}`);
-            console.log(`?? [WebSocket-Direct] Available matches: ${matches.map(m => `${m.id}/${m.matchId} (Class: ${m.classId})`).join(', ')}`);
+            console.error(`❌ [WebSocket-Direct] Match not found in tournament data: ${matchId}`);
+            console.log(`📋 [WebSocket-Direct] Available matches: ${matches.map(m => `${m.id}/${m.matchId} (Class: ${m.classId})`).join(', ')}`);
             return;
         }
         
-        // KORRIGIERT: Extrahiere korrekte Class-Information aus urspr�nglichem Match
+        // KORRIGIERT: Extrahiere korrekte Class-Information aus ursprünglichem Match
         const classId = originalMatch.classId || originalMatch.ClassId || result.classId || 1;
         const className = originalMatch.className || originalMatch.ClassName || result.className || 'Unbekannte Klasse';
         
-        console.log(`?? [WebSocket-Direct] Match class information:`, {
+        console.log(`📚 [WebSocket-Direct] Match class information:`, {
             originalClassId: originalMatch.classId,
             originalClassName: originalMatch.className,
             resultClassId: result.classId,
@@ -352,21 +352,21 @@ class WebSocketHandlers {
                 ...result,
                 submittedAt: new Date().toISOString(),
                 source: 'websocket-direct',
-                // KORRIGIERT: Class-Information aus urspr�nglichem Match hinzuf�gen
+                // KORRIGIERT: Class-Information aus ursprünglichem Match hinzufügen
                 classId: classId,
                 className: className,
-                // Match-Details f�r bessere Debugging
+                // Match-Details für bessere Debugging
                 player1Name: originalMatch.player1 || originalMatch.Player1 || result.player1Name || 'Spieler 1',
                 player2Name: originalMatch.player2 || originalMatch.Player2 || result.player2Name || 'Spieler 2',
                 matchType: originalMatch.matchType || originalMatch.MatchType || result.matchType || 'Group'
             },
             timestamp: new Date().toISOString(),
-            // KORRIGIERT: Class-Information auf Top-Level f�r bessere Verarbeitung
+            // KORRIGIERT: Class-Information auf Top-Level für bessere Verarbeitung
             classId: classId,
             className: className
         };
         
-        console.log(`?? [WebSocket-Direct] Enhanced match update:`, JSON.stringify(matchUpdate, null, 2));
+        console.log(`📊 [WebSocket-Direct] Enhanced match update:`, JSON.stringify(matchUpdate, null, 2));
         
         // Broadcast to WebSocket clients
         this.websocketClients.forEach((client, clientId) => {
@@ -378,7 +378,7 @@ class WebSocketHandlers {
                         matchUpdate: matchUpdate,
                         timestamp: new Date().toISOString(),
                         source: 'websocket-direct',
-                        // KORRIGIERT: Match result highlight f�r Tournament Planner
+                        // KORRIGIERT: Match result highlight für Tournament Planner
                         matchResultHighlight: true,
                         // KORRIGIERT: Class-Information direkt auf Message-Level
                         classId: classId,
@@ -386,9 +386,9 @@ class WebSocketHandlers {
                     };
                     
                     client.ws.send(JSON.stringify(message));
-                    console.log(`?? [WebSocket-Direct] Message sent to client ${clientId} with Class: ${className} (ID: ${classId})`);
+                    console.log(`📤 [WebSocket-Direct] Message sent to client ${clientId} with Class: ${className} (ID: ${classId})`);
                 } catch (error) {
-                    console.error(`? [WebSocket-Direct] Error sending to client ${clientId}:`, error);
+                    console.error(`❌ [WebSocket-Direct] Error sending to client ${clientId}:`, error);
                     this.removeClient(clientId);
                 }
             }
@@ -402,7 +402,7 @@ class WebSocketHandlers {
             result: matchUpdate.result,
             timestamp: new Date().toISOString(),
             source: 'websocket-direct-bridge',
-            // KORRIGIERT: Class-Information f�r Socket.IO
+            // KORRIGIERT: Class-Information für Socket.IO
             classId: classId,
             className: className,
             matchResultHighlight: true
@@ -410,8 +410,8 @@ class WebSocketHandlers {
         
         this.io.to(`tournament-${tournamentId}`).emit('tournament-match-updated', socketIOMessage);
         
-        console.log(`?? [WebSocket-Direct] Broadcasting complete for Match ${matchId} in ${className} (Class ID: ${classId})`);
-        console.log(`?? [WebSocket-Direct] ===== BROADCASTING COMPLETE =====`);
+        console.log(`📡 [WebSocket-Direct] Broadcasting complete for Match ${matchId} in ${className} (Class ID: ${classId})`);
+        console.log(`📡 [WebSocket-Direct] ===== BROADCASTING COMPLETE =====`);
     }
 }
 
