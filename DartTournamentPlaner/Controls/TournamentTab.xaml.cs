@@ -475,8 +475,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                         AddPlayerButton.IsEnabled = false;
                         GenerateMatchesButton.IsEnabled = false;
                         ResetMatchesButton.IsEnabled = false;
-                        
-                        }
+                    }
                     catch (Exception ex)
                     {
                         System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for knockout: {ex.Message}");
@@ -1195,7 +1194,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                     MainTabControl.SelectedItem = SetupTabItem;
                 }
                 
-                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurücksetz.";
+                var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
                 
                 // Trigger data changed event
@@ -1206,6 +1205,63 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen:"} {ex.Message}";
             TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
+        }
+    }
+
+    private async void FinalsMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (FinalsMatchesDataGrid.SelectedItem is Match selectedMatch && !selectedMatch.IsBye && _localizationService != null)
+        {
+            var resultWindow = new MatchResultWindow(selectedMatch, TournamentClass.GameRules, _localizationService);
+            resultWindow.Owner = Window.GetWindow(this);
+            
+            if (resultWindow.ShowDialog() == true)
+            {
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.ScoreDisplay));
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
+                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
+                
+                // 🚨 NEU: Übertrage Finals-Match-Ergebnis an Tournament Hub
+                await SendMatchResultToHub(selectedMatch, TournamentClass, "Finals");
+                
+                RefreshFinalsView();
+                
+                // Auto-check finals completion using helper
+                var parentWindow = Window.GetWindow(this);
+                Task.Run(() => TournamentValidationHelper.CheckFinalsCompletion(TournamentClass, parentWindow, _localizationService));
+                
+                OnDataChanged();
+            }
+        }
+    }
+
+    private async void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
+        {
+            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
+            {
+                // 🚨 NEU: Übertrage Knockout-Match-Ergebnis an Tournament Hub (Winner Bracket)
+                await SendKnockoutMatchResultToHub(viewModel.Match, TournamentClass, "Winner Bracket");
+                
+                RefreshKnockoutView();
+                OnDataChanged();
+            }
+        }
+    }
+
+    private async void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
+        {
+            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
+            {
+                // 🚨 NEU: Übertrage Knockout-Match-Ergebnis an Tournament Hub (Loser Bracket)
+                await SendKnockoutMatchResultToHub(viewModel.Match, TournamentClass, "Loser Bracket");
+                
+                RefreshKnockoutView();
+                OnDataChanged();
+            }
         }
     }
 
@@ -1222,6 +1278,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
                 selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
                 
+                // 🚨 NEU: Übertrage Gruppenphasen-Match-Ergebnis an Tournament Hub
+                await SendMatchResultToHub(selectedMatch, TournamentClass, "Group");
+                
                 UpdateMatchesView();
                 
                 // Use validation helper for automatic group status checking
@@ -1233,117 +1292,41 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
-    private void FinalsMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    /// <summary>
+    /// Leert alle Knockout-spezifischen Canvas-Elemente
+    /// </summary>
+    private void ClearKnockoutCanvases()
     {
-        if (FinalsMatchesDataGrid.SelectedItem is Match selectedMatch && !selectedMatch.IsBye && _localizationService != null)
+        try
         {
-            var resultWindow = new MatchResultWindow(selectedMatch, TournamentClass.GameRules, _localizationService);
-            resultWindow.Owner = Window.GetWindow(this);
+            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Clearing all knockout-related canvases");
             
-            if (resultWindow.ShowDialog() == true)
+            // Winner Bracket Canvas leeren
+            if (BracketCanvas != null)
             {
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.ScoreDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
-                
-                RefreshFinalsView();
-                
-                // Auto-check finals completion using helper
-                var parentWindow = Window.GetWindow(this);
-                Task.Run(() => TournamentValidationHelper.CheckFinalsCompletion(TournamentClass, parentWindow, _localizationService));
-                
-                OnDataChanged();
+                System.Diagnostics.Debug.WriteLine($"  - Clearing BracketCanvas with {BracketCanvas.Children.Count} children");
+                BracketCanvas.Children.Clear();
+                BracketCanvas.Background = System.Windows.Media.Brushes.White;
             }
+            
+            // Loser Bracket Canvas leeren
+            if (LoserBracketCanvas != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"  - Clearing LoserBracketCanvas with {LoserBracketCanvas.Children.Count} children");
+                LoserBracketCanvas.Children.Clear();
+                LoserBracketCanvas.Background = System.Windows.Media.Brushes.White;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Successfully cleared all canvases");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ClearKnockoutCanvases: ERROR: {ex.Message}");
         }
     }
-
-    private void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
-        {
-            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
-            {
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
-        {
-            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
-            {
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private void GiveByeButton_Click(object sender, RoutedEventArgs e)
-    {
-        KnockoutMatch? match = null;
-
-        // Extract match from button tag
-        if (sender is Button button)
-        {
-            if (button.Tag is KnockoutMatchViewModel viewModel)
-            {
-                match = viewModel.Match;
-            }
-            else if (button.Tag is KnockoutMatch knockoutMatch)
-            {
-                match = knockoutMatch;
-            }
-        }
-
-        if (match != null)
-        {
-            if (TournamentKnockoutHelper.ProcessByeSelection(TournamentClass, match, Window.GetWindow(this), _localizationService))
-            {
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private void UndoByeButton_Click(object sender, RoutedEventArgs e)
-    {
-        KnockoutMatch? match = null;
-
-        // Extract match from button tag
-        if (sender is Button button)
-        {
-            if (button.Tag is KnockoutMatchViewModel viewModel)
-            {
-                match = viewModel.Match;
-            }
-            else if (button.Tag is KnockoutMatch knockoutMatch)
-            {
-                match = knockoutMatch;
-            }
-        }
-
-        if (match != null)
-        {
-            if (TournamentKnockoutHelper.HandleUndoKnockoutBye(TournamentClass, match, _localizationService))
-            {
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private DateTime? _lastCompletionNotification;
-
-    // Helper methods for knockout bye handling - now in TournamentKnockoutHelper
-    // Helper methods for dialogs - now in TournamentDialogHelper  
-    // Helper methods for validation - now in TournamentValidationHelper
-    
-    // Old complex methods removed - now using helper classes
 
     // Missing Event Handlers
+
     private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: START");
@@ -1642,36 +1625,198 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // Currently just a placeholder to satisfy XAML bindings
     }
 
+    private void GiveByeButton_Click(object sender, RoutedEventArgs e)
+    {
+        KnockoutMatch? match = null;
+
+        // Extract match from button tag
+        if (sender is Button button)
+        {
+            if (button.Tag is KnockoutMatchViewModel viewModel)
+            {
+                match = viewModel.Match;
+            }
+            else if (button.Tag is KnockoutMatch knockoutMatch)
+            {
+                match = knockoutMatch;
+            }
+        }
+
+        if (match != null)
+        {
+            if (TournamentKnockoutHelper.ProcessByeSelection(TournamentClass, match, Window.GetWindow(this), _localizationService))
+            {
+                RefreshKnockoutView();
+                OnDataChanged();
+            }
+        }
+    }
+
+    private void UndoByeButton_Click(object sender, RoutedEventArgs e)
+    {
+        KnockoutMatch? match = null;
+
+        // Extract match from button tag
+        if (sender is Button button)
+        {
+            if (button.Tag is KnockoutMatchViewModel viewModel)
+            {
+                match = viewModel.Match;
+            }
+            else if (button.Tag is KnockoutMatch knockoutMatch)
+            {
+                match = knockoutMatch;
+            }
+        }
+
+        if (match != null)
+        {
+            if (TournamentKnockoutHelper.HandleUndoKnockoutBye(TournamentClass, match, _localizationService))
+            {
+                RefreshKnockoutView();
+                OnDataChanged();
+            }
+        }
+    }
+
     /// <summary>
-    /// Leert alle Knockout-spezifischen Canvas-Elemente
+    /// 🆕 NEW METHOD: Sends match result to Tournament Hub
     /// </summary>
-    private void ClearKnockoutCanvases()
+    private async Task SendMatchResultToHub(Match match, TournamentClass tournamentClass, string matchType)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Clearing all knockout-related canvases");
-            
-            // Winner Bracket Canvas leeren
-            if (BracketCanvas != null)
+            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Sending match result to Hub...");
+            System.Diagnostics.Debug.WriteLine($"   Match: {match.Id} ({match.Player1?.Name} vs {match.Player2?.Name})");
+            System.Diagnostics.Debug.WriteLine($"   Score: {match.Player1Sets}-{match.Player2Sets} Sets, {match.Player1Legs}-{match.Player2Legs} Legs");
+            System.Diagnostics.Debug.WriteLine($"   Class: {tournamentClass.Name} (ID: {tournamentClass.Id})");
+            System.Diagnostics.Debug.WriteLine($"   Type: {matchType}");
+
+            // Check if Hub Service is available
+            var hubService = App.ApiIntegrationService as ApiIntegrationService;
+            if (hubService == null)
             {
-                System.Diagnostics.Debug.WriteLine($"  - Clearing BracketCanvas with {BracketCanvas.Children.Count} children");
-                BracketCanvas.Children.Clear();
-                BracketCanvas.Background = System.Windows.Media.Brushes.White;
+                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB_SEND] API Integration Service not available");
+                return;
             }
+
+            // Find group information for the match
+            string? groupName = null;
+            int? groupId = null;
             
-            // Loser Bracket Canvas leeren
-            if (LoserBracketCanvas != null)
+            foreach (var group in tournamentClass.Groups)
             {
-                System.Diagnostics.Debug.WriteLine($"  - Clearing LoserBracketCanvas with {LoserBracketCanvas.Children.Count} children");
-                LoserBracketCanvas.Children.Clear();
-                LoserBracketCanvas.Background = System.Windows.Media.Brushes.White;
+                if (group.Matches.Contains(match))
+                {
+                    groupName = group.Name;
+                    groupId = group.Id;
+                    break;
+                }
             }
+
+            if (matchType == "Finals" && tournamentClass.CurrentPhase?.FinalsGroup != null)
+            {
+                groupName = "Finals";
+                groupId = tournamentClass.CurrentPhase.FinalsGroup.Id;
+            }
+
+            // Create match result data
+            var matchResultData = new
+            {
+                matchId = match.Id,
+                player1Sets = match.Player1Sets,
+                player2Sets = match.Player2Sets,
+                player1Legs = match.Player1Legs,
+                player2Legs = match.Player2Legs,
+                status = match.Status.ToString(),
+                notes = match.Notes ?? "",
+                submittedAt = DateTime.Now.ToString("o"),
+                player1Name = match.Player1?.Name ?? "Unknown",
+                player2Name = match.Player2?.Name ?? "Unknown",
+                // Tournament-specific data
+                classId = tournamentClass.Id,
+                className = tournamentClass.Name,
+                groupId = groupId,
+                groupName = groupName,
+                matchType = matchType
+            };
+
+            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Match result data prepared for Hub transmission");
             
-            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Successfully cleared all canvases");
+            // TODO: Send to Hub through API Integration Service
+            // This would require implementing a method in ApiIntegrationService
+            // await hubService.SendMatchResultToHubAsync(matchResultData);
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [HUB_SEND] Match result prepared for Hub transmission");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ClearKnockoutCanvases: ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [HUB_SEND] Error in SendMatchResultToHub: {ex.Message}");
+            // Don't throw - this is a background operation
+        }
+    }
+
+    /// <summary>
+    /// 🆕 NEW METHOD: Sends knockout match result to Tournament Hub
+    /// </summary>
+    private async Task SendKnockoutMatchResultToHub(KnockoutMatch knockoutMatch, TournamentClass tournamentClass, string bracketType)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Sending knockout match result to Hub...");
+            System.Diagnostics.Debug.WriteLine($"   Match: {knockoutMatch.Id} ({knockoutMatch.Player1?.Name} vs {knockoutMatch.Player2?.Name})");
+            System.Diagnostics.Debug.WriteLine($"   Score: {knockoutMatch.Player1Sets}-{knockoutMatch.Player2Sets} Sets, {knockoutMatch.Player1Legs}-{knockoutMatch.Player2Legs} Legs");
+            System.Diagnostics.Debug.WriteLine($"   Winner: {knockoutMatch.Winner?.Name}");
+            System.Diagnostics.Debug.WriteLine($"   Class: {tournamentClass.Name} (ID: {tournamentClass.Id})");
+            System.Diagnostics.Debug.WriteLine($"   Bracket: {bracketType}");
+
+            // Check if API Integration Service is available
+            var hubService = App.ApiIntegrationService as ApiIntegrationService;
+            if (hubService == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB_SEND] API Integration Service not available");
+                return;
+            }
+
+            // Create knockout match result data
+            var knockoutResultData = new
+            {
+                matchId = knockoutMatch.Id,
+                player1Sets = knockoutMatch.Player1Sets,
+                player2Sets = knockoutMatch.Player2Sets,
+                player1Legs = knockoutMatch.Player1Legs,
+                player2Legs = knockoutMatch.Player2Legs,
+                status = knockoutMatch.Status.ToString(),
+                notes = knockoutMatch.Notes ?? "",
+                submittedAt = DateTime.Now.ToString("o"),
+                player1Name = knockoutMatch.Player1?.Name ?? "Unknown",
+                player2Name = knockoutMatch.Player2?.Name ?? "Unknown",
+                winner = knockoutMatch.Winner?.Name,
+                loser = knockoutMatch.Loser?.Name,
+                // Tournament-specific data
+                classId = tournamentClass.Id,
+                className = tournamentClass.Name,
+                groupName = bracketType,
+                matchType = bracketType,
+                // Knockout-specific data
+                round = knockoutMatch.Round.ToString(),
+                roundDisplay = knockoutMatch.RoundDisplay,
+                bracketType = knockoutMatch.BracketType.ToString(),
+                position = knockoutMatch.Position
+            };
+
+            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Knockout match result data prepared for Hub transmission");
+            
+            // TODO: Send to Hub through API Integration Service
+            // This would require implementing a method in ApiIntegrationService
+            // await hubService.SendKnockoutMatchResultToHubAsync(knockoutResultData);
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [HUB_SEND] Knockout match result prepared for Hub transmission");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [HUB_SEND] Error in SendKnockoutMatchResultToHub: {ex.Message}");
+            // Don't throw - this is a background operation
         }
     }
 }

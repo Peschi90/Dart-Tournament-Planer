@@ -41,7 +41,7 @@ public interface ITournamentSyncService
     /// <summary>
     /// Verarbeitet Match-Result Updates von der API mit Group-Information
     /// </summary>
-    void ProcessMatchResultUpdate(int matchId, int classId, MatchResultDto result);
+    void UpdateMatchResult(int matchId, int classId, MatchResultDto result);
 }
 
 /// <summary>
@@ -101,201 +101,146 @@ public class TournamentSyncService : ITournamentSyncService
     /// <summary>
     /// Verarbeitet Match-Result Updates von der API mit Group-Information
     /// </summary>
-    public void ProcessMatchResultUpdate(int matchId, int classId, MatchResultDto result)
+    public void UpdateMatchResult(int matchId, int classId, MatchResultDto result)
     {
-        Console.WriteLine($"🎯 [SYNC_SERVICE] Processing match result update:");
-        Console.WriteLine($"   Match ID: {matchId}");
-        Console.WriteLine($"   Class ID: {classId}");
-        Console.WriteLine($"   Group Name: {result.GroupName}");
-        Console.WriteLine($"   Group ID: {result.GroupId}");
-        Console.WriteLine($"   Match Type: {result.MatchType}");
-        
-        // Finde das entsprechende Match und aktualisiere es
-        lock (_dataLock)
+        Console.WriteLine($"🎯 [SYNC_SERVICE] ===== UPDATING MATCH RESULT =====");
+        Console.WriteLine($"🎯 [SYNC_SERVICE] Match ID: {matchId}");
+        Console.WriteLine($"🎯 [SYNC_SERVICE] Class ID: {classId}");
+        Console.WriteLine($"📊 [SYNC_SERVICE] Result: {result.Player1Sets}-{result.Player2Sets} Sets, {result.Player1Legs}-{result.Player2Legs} Legs");
+        Console.WriteLine($"📝 [SYNC_SERVICE] Notes: \"{result.Notes ?? "None"}\"");
+        Console.WriteLine($"🔍 [SYNC_SERVICE] Status: Finished");
+
+        if (_currentTournamentData?.TournamentClasses == null)
         {
-            if (_currentTournamentData == null) 
-            {
-                Console.WriteLine($"❌ [SYNC_SERVICE] No current tournament data available");
-                return;
-            }
-
-            var tournamentClass = _currentTournamentData.TournamentClasses
-                .FirstOrDefault(tc => tc.Id == classId);
-                
-            if (tournamentClass == null) 
-            {
-                Console.WriteLine($"❌ [SYNC_SERVICE] Tournament class {classId} not found");
-                return;
-            }
-
-            Console.WriteLine($"🏆 [SYNC_SERVICE] Found tournament class: {tournamentClass.Name}");
-
-            // 🚨 KORRIGIERT: Verwende GROUP-SPEZIFISCHE Suche für Gruppen-Matches
-            if (!string.IsNullOrEmpty(result.GroupName) && result.MatchType == "Group")
-            {
-                Console.WriteLine($"🔍 [SYNC_SERVICE] Searching for Group match in '{result.GroupName}'...");
-                
-                // Suche die SPEZIFISCHE Gruppe
-                var targetGroup = tournamentClass.Groups
-                    .FirstOrDefault(g => g.Name.Equals(result.GroupName, StringComparison.OrdinalIgnoreCase));
-                
-                if (targetGroup == null)
-                {
-                    Console.WriteLine($"❌ [SYNC_SERVICE] Group '{result.GroupName}' not found in class {tournamentClass.Name}");
-                    Console.WriteLine($"   Available groups: {string.Join(", ", tournamentClass.Groups.Select(g => g.Name))}");
-                    return;
-                }
-
-                Console.WriteLine($"📋 [SYNC_SERVICE] Found target group: {targetGroup.Name} (ID: {targetGroup.Id})");
-
-                // Suche das Match NUR in der spezifischen Gruppe
-                var match = targetGroup.Matches.FirstOrDefault(m => m.Id == matchId);
-                if (match != null)
-                {
-                    Console.WriteLine($"✅ [SYNC_SERVICE] Found match {matchId} in group '{targetGroup.Name}'");
-                    Console.WriteLine($"   Match: {match.Player1?.Name} vs {match.Player2?.Name}");
-                    
-                    // Aktualisiere das Match
-                    match.SetResult(result.Player1Sets, result.Player2Sets, 
-                                   result.Player1Legs, result.Player2Legs);
-                    match.Notes = result.Notes ?? string.Empty;
-
-                    Console.WriteLine($"🎯 [SYNC_SERVICE] Match result updated: {result.Player1Sets}-{result.Player2Sets} Sets, {result.Player1Legs}-{result.Player2Legs} Legs");
-
-                    // Feuere Event für WPF-Anwendung
-                    MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
-                    {
-                        MatchId = matchId,
-                        ClassId = classId,
-                        Result = result,
-                        GroupName = targetGroup.Name,
-                        GroupId = targetGroup.Id
-                    });
-                    
-                    Console.WriteLine($"✅ [SYNC_SERVICE] Successfully processed group match update");
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine($"❌ [SYNC_SERVICE] Match {matchId} not found in group '{targetGroup.Name}'");
-                    Console.WriteLine($"   Available matches in group: {string.Join(", ", targetGroup.Matches.Select(m => m.Id))}");
-                }
-            }
-            // Falls keine Group-Information vorhanden, verwende alte Logik (für Finals/Knockout)
-            else
-            {
-                Console.WriteLine($"🔍 [SYNC_SERVICE] No group info - searching in Finals/Knockout matches...");
-                
-                // Suche in allen Gruppen (alte Logik für Kompatibilität)
-                foreach (var group in tournamentClass.Groups)
-                {
-                    var match = group.Matches.FirstOrDefault(m => m.Id == matchId);
-                    if (match != null)
-                    {
-                        Console.WriteLine($"⚠️ [SYNC_SERVICE] Found match {matchId} in group '{group.Name}' (fallback search)");
-                        
-                        // Aktualisiere das Match
-                        match.SetResult(result.Player1Sets, result.Player2Sets, 
-                                       result.Player1Legs, result.Player2Legs);
-                        match.Notes = result.Notes ?? string.Empty;
-
-                        // Feuere Event für WPF-Anwendung
-                        MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
-                        {
-                            MatchId = matchId,
-                            ClassId = classId,
-                            Result = result,
-                            GroupName = group.Name,
-                            GroupId = group.Id
-                        });
-                        return;
-                    }
-                }
-
-                // Suche in Finals
-                if (tournamentClass.CurrentPhase?.FinalsGroup != null)
-                {
-                    var match = tournamentClass.CurrentPhase.FinalsGroup.Matches
-                        .FirstOrDefault(m => m.Id == matchId);
-                    if (match != null)
-                    {
-                        Console.WriteLine($"🏆 [SYNC_SERVICE] Found Finals match {matchId}");
-                        
-                        // Aktualisiere das Match
-                        match.SetResult(result.Player1Sets, result.Player2Sets, 
-                                       result.Player1Legs, result.Player2Legs);
-                        match.Notes = result.Notes ?? string.Empty;
-
-                        // Feuere Event für WPF-Anwendung
-                        MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
-                        {
-                            MatchId = matchId,
-                            ClassId = classId,
-                            Result = result,
-                            GroupName = "Finals",
-                            GroupId = null
-                        });
-                        return;
-                    }
-                }
-
-                // Suche in Winner Bracket
-                if (tournamentClass.CurrentPhase?.WinnerBracket != null)
-                {
-                    var knockoutMatch = tournamentClass.CurrentPhase.WinnerBracket
-                        .FirstOrDefault(m => m.Id == matchId);
-                    if (knockoutMatch != null)
-                    {
-                        Console.WriteLine($"⚡ [SYNC_SERVICE] Found Winner Bracket match {matchId}");
-                        
-                        // Aktualisiere das KnockoutMatch
-                        knockoutMatch.SetResult(result.Player1Sets, result.Player2Sets, 
-                                               result.Player1Legs, result.Player2Legs);
-                        knockoutMatch.Notes = result.Notes ?? string.Empty;
-
-                        // Feuere Event für WPF-Anwendung
-                        MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
-                        {
-                            MatchId = matchId,
-                            ClassId = classId,
-                            Result = result,
-                            GroupName = $"Winner Bracket - {knockoutMatch.Round}",
-                            GroupId = null
-                        });
-                        return;
-                    }
-                }
-
-                // Suche in Loser Bracket
-                if (tournamentClass.CurrentPhase?.LoserBracket != null)
-                {
-                    var knockoutMatch = tournamentClass.CurrentPhase.LoserBracket
-                        .FirstOrDefault(m => m.Id == matchId);
-                    if (knockoutMatch != null)
-                    {
-                        Console.WriteLine($"🔄 [SYNC_SERVICE] Found Loser Bracket match {matchId}");
-                        
-                        // Aktualisiere das KnockoutMatch
-                        knockoutMatch.SetResult(result.Player1Sets, result.Player2Sets, 
-                                               result.Player1Legs, result.Player2Legs);
-                        knockoutMatch.Notes = result.Notes ?? string.Empty;
-
-                        // Feuere Event für WPF-Anwendung
-                        MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
-                        {
-                            MatchId = matchId,
-                            ClassId = classId,
-                            Result = result,
-                            GroupName = $"Loser Bracket - {knockoutMatch.Round}",
-                            GroupId = null
-                        });
-                        return;
-                    }
-                }
-            }
-            
-            Console.WriteLine($"❌ [SYNC_SERVICE] Match {matchId} not found anywhere in class {classId}");
+            Console.WriteLine($"❌ [SYNC_SERVICE] No tournament data available");
+            return;
         }
+
+        var tournamentClass = _currentTournamentData.TournamentClasses.FirstOrDefault(tc => tc.Id == classId);
+        if (tournamentClass == null)
+        {
+            Console.WriteLine($"❌ [SYNC_SERVICE] Tournament class {classId} not found");
+            return;
+        }
+
+        Console.WriteLine($"✅ [SYNC_SERVICE] Found tournament class: {tournamentClass.Name}");
+        Console.WriteLine($"🔍 [SYNC_SERVICE] Searching for match {matchId} in all match types...");
+
+        // ERWEITERTE SUCHE: Zuerst in aktueller Phase suchen, dann in Gruppen
+
+        // 1. NEUE: Suche in Winner Bracket (höchste Priorität)
+        if (tournamentClass.CurrentPhase?.WinnerBracket != null)
+        {
+            var winnerMatch = tournamentClass.CurrentPhase.WinnerBracket
+                .FirstOrDefault(m => m.Id == matchId);
+            if (winnerMatch != null)
+            {
+                Console.WriteLine($"⚡ [SYNC_SERVICE] Found Winner Bracket match {matchId} in round {winnerMatch.Round}");
+                
+                // Aktualisiere das KnockoutMatch
+                winnerMatch.SetResult(result.Player1Sets, result.Player2Sets, 
+                                     result.Player1Legs, result.Player2Legs);
+                winnerMatch.Notes = result.Notes ?? string.Empty;
+
+                // Feuere Event für WPF-Anwendung
+                MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
+                {
+                    MatchId = matchId,
+                    ClassId = classId,
+                    Result = result,
+                    GroupName = $"Winner Bracket - Round {winnerMatch.Round}",
+                    GroupId = null
+                });
+                return;
+            }
+        }
+
+        // 2. NEUE: Suche in Loser Bracket (zweite Priorität)
+        if (tournamentClass.CurrentPhase?.LoserBracket != null)
+        {
+            var loserMatch = tournamentClass.CurrentPhase.LoserBracket
+                .FirstOrDefault(m => m.Id == matchId);
+            if (loserMatch != null)
+            {
+                Console.WriteLine($"🔄 [SYNC_SERVICE] Found Loser Bracket match {matchId} in round {loserMatch.Round}");
+                
+                // Aktualisiere das KnockoutMatch
+                loserMatch.SetResult(result.Player1Sets, result.Player2Sets, 
+                                    result.Player1Legs, result.Player2Legs);
+                loserMatch.Notes = result.Notes ?? string.Empty;
+
+                // Feuere Event für WPF-Anwendung
+                MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
+                {
+                    MatchId = matchId,
+                    ClassId = classId,
+                    Result = result,
+                    GroupName = $"Loser Bracket - Round {loserMatch.Round}",
+                    GroupId = null
+                });
+                return;
+            }
+        }
+
+        // 3. NEUE: Suche in Finals (dritte Priorität)
+        if (tournamentClass.CurrentPhase?.FinalsGroup != null)
+        {
+            var finalsMatch = tournamentClass.CurrentPhase.FinalsGroup.Matches
+                .FirstOrDefault(m => m.Id == matchId);
+            if (finalsMatch != null)
+            {
+                Console.WriteLine($"🏆 [SYNC_SERVICE] Found Finals match {matchId}");
+                
+                // Aktualisiere das Match
+                finalsMatch.SetResult(result.Player1Sets, result.Player2Sets, 
+                                     result.Player1Legs, result.Player2Legs);
+                finalsMatch.Notes = result.Notes ?? string.Empty;
+
+                // Feuere Event für WPF-Anwendung
+                MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
+                {
+                    MatchId = matchId,
+                    ClassId = classId,
+                    Result = result,
+                    GroupName = "Finals",
+                    GroupId = null
+                });
+                return;
+            }
+        }
+
+        // 4. Fallback: Suche in allen Gruppen (niedrigste Priorität, für Kompatibilität)
+        foreach (var group in tournamentClass.Groups)
+        {
+            var groupMatch = group.Matches.FirstOrDefault(m => m.Id == matchId);
+            if (groupMatch != null)
+            {
+                Console.WriteLine($"🔸 [SYNC_SERVICE] Found Group match {matchId} in group '{group.Name}' (fallback search)");
+                
+                // Aktualisiere das Match
+                groupMatch.SetResult(result.Player1Sets, result.Player2Sets, 
+                                    result.Player1Legs, result.Player2Legs);
+                groupMatch.Notes = result.Notes ?? string.Empty;
+
+                // Feuere Event für WPF-Anwendung
+                MatchResultUpdated?.Invoke(this, new MatchResultUpdateEventArgs
+                {
+                    MatchId = matchId,
+                    ClassId = classId,
+                    Result = result,
+                    GroupName = group.Name,
+                    GroupId = group.Id
+                });
+                return;
+            }
+        }
+
+        Console.WriteLine($"❌ [SYNC_SERVICE] Match {matchId} not found in any match type for class {classId}");
+        Console.WriteLine($"🔍 [SYNC_SERVICE] Searched in:");
+        Console.WriteLine($"   - Winner Bracket: {tournamentClass.CurrentPhase?.WinnerBracket?.Count ?? 0} matches");
+        Console.WriteLine($"   - Loser Bracket: {tournamentClass.CurrentPhase?.LoserBracket?.Count ?? 0} matches");
+        Console.WriteLine($"   - Finals: {tournamentClass.CurrentPhase?.FinalsGroup?.Matches?.Count ?? 0} matches");
+        Console.WriteLine($"   - Groups: {tournamentClass.Groups.Sum(g => g.Matches.Count)} matches");
     }
 }
 

@@ -956,7 +956,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"🔄 [API] Starting full tournament sync with Game Rules: {tournamentId}");
+            System.Diagnostics.Debug.WriteLine($"🔄 [API] Starting full tournament sync with ALL match types: {tournamentId}");
             
             var allMatches = new List<object>();
             var tournamentClasses = new List<object>();
@@ -970,7 +970,16 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 System.Diagnostics.Debug.WriteLine($"   Legs to Win: {tournamentClass.GameRules.LegsToWin}");
                 System.Diagnostics.Debug.WriteLine($"   Sets to Win: {tournamentClass.GameRules.SetsToWin}");
                 System.Diagnostics.Debug.WriteLine($"   Play With Sets: {tournamentClass.GameRules.PlayWithSets}");
-                System.Diagnostics.Debug.WriteLine($"   Legs per Set: {tournamentClass.GameRules.LegsPerSet}");
+                System.Diagnostics.Debug.WriteLine($"   Legs per Set: {tournamentClass.GameRules.LegsPerSet}");                
+                
+                // ERWEITERT: Zähle alle Match-Typen
+                int groupMatches = tournamentClass.Groups.Sum(g => g.Matches.Count);
+                int finalsMatches = tournamentClass.CurrentPhase?.FinalsGroup?.Matches.Count ?? 0;
+                int winnerBracketMatches = tournamentClass.CurrentPhase?.WinnerBracket?.Count ?? 0;
+                int loserBracketMatches = tournamentClass.CurrentPhase?.LoserBracket?.Count ?? 0;
+                int totalMatches = groupMatches + finalsMatches + winnerBracketMatches + loserBracketMatches;
+                
+                System.Diagnostics.Debug.WriteLine($"   📊 Match Count: Groups={groupMatches}, Finals={finalsMatches}, Winner={winnerBracketMatches}, Loser={loserBracketMatches}, Total={totalMatches}");
                 
                 tournamentClasses.Add(new
                 {
@@ -978,7 +987,8 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     name = tournamentClass.Name,
                     playerCount = tournamentClass.Groups.Sum(g => g.Players.Count),
                     groupCount = tournamentClass.Groups.Count,
-                    matchCount = tournamentClass.Groups.Sum(g => g.Matches.Count)
+                    matchCount = totalMatches, // KORRIGIERT: Alle Match-Typen einbeziehen
+                    phase = GetTournamentPhase(tournamentClass) // NEUE: Aktuelle Phase
                 });
 
                 // KORRIGIERT: Game Rules für jede Klasse hinzufügen
@@ -997,6 +1007,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     className = tournamentClass.Name
                 });
 
+                // 1. GRUPPENPHASEN-MATCHES (wie bisher)
                 foreach (var group in tournamentClass.Groups)
                 {
                     foreach (var match in group.Matches)
@@ -1013,18 +1024,147 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             player2Legs = match.Player2Legs,
                             status = GetMatchStatus(match),
                             winner = GetWinner(match),
+                            notes = match.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
                             matchType = "Group",
-                            // KORRIGIERT: BEIDE Group-Informationen hinzufügen
                             groupId = group.Id,
                             groupName = group.Name,
-                            // KORRIGIERT: Game Rules für jedes Match hinzufügen
                             gameRulesId = tournamentClass.Id,
                             gameRulesUsed = new
                             {
                                 id = tournamentClass.Id,
                                 name = $"{tournamentClass.Name} Regel",
+                                gamePoints = tournamentClass.GameRules.GamePoints,
+                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                                setsToWin = tournamentClass.GameRules.SetsToWin,
+                                legsToWin = tournamentClass.GameRules.LegsToWin,
+                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
+                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                            }
+                        });
+                    }
+                }
+
+                // 2. NEUE: FINALRUNDEN-MATCHES
+                if (tournamentClass.CurrentPhase?.FinalsGroup != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches");
+                    
+                    foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
+                    {
+                        allMatches.Add(new
+                        {
+                            id = match.Id,
+                            matchId = match.Id,
+                            player1 = match.Player1?.Name ?? "TBD",
+                            player2 = match.Player2?.Name ?? "TBD",
+                            player1Sets = match.Player1Sets,
+                            player2Sets = match.Player2Sets,
+                            player1Legs = match.Player1Legs,
+                            player2Legs = match.Player2Legs,
+                            status = GetMatchStatus(match),
+                            winner = GetWinner(match),
+                            notes = match.Notes ?? "",
+                            classId = tournamentClass.Id,
+                            className = tournamentClass.Name,
+                            matchType = "Finals", // WICHTIG: Finals Match-Type
+                            groupId = (int?)null, // Finals haben keine Gruppe
+                            groupName = "Finals", // WICHTIG: Eindeutige Group-Name für Finals
+                            gameRulesId = tournamentClass.Id,
+                            gameRulesUsed = new
+                            {
+                                id = tournamentClass.Id,
+                                name = $"{tournamentClass.Name} Finals Regel",
+                                gamePoints = tournamentClass.GameRules.GamePoints,
+                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                                setsToWin = tournamentClass.GameRules.SetsToWin,
+                                legsToWin = tournamentClass.GameRules.LegsToWin,
+                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
+                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                            }
+                        });
+                    }
+                }
+
+                // 3. NEUE: WINNER BRACKET MATCHES
+                if (tournamentClass.CurrentPhase?.WinnerBracket != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚡ [API] Processing Winner Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.WinnerBracket.Count} matches");
+                    
+                    foreach (var knockoutMatch in tournamentClass.CurrentPhase.WinnerBracket)
+                    {
+                        allMatches.Add(new
+                        {
+                            id = knockoutMatch.Id,
+                            matchId = knockoutMatch.Id,
+                            player1 = knockoutMatch.Player1?.Name ?? "TBD",
+                            player2 = knockoutMatch.Player2?.Name ?? "TBD",
+                            player1Sets = knockoutMatch.Player1Sets,
+                            player2Sets = knockoutMatch.Player2Sets,
+                            player1Legs = knockoutMatch.Player1Legs,
+                            player2Legs = knockoutMatch.Player2Legs,
+                            status = GetKnockoutMatchStatus(knockoutMatch),
+                            winner = GetKnockoutWinner(knockoutMatch),
+                            notes = knockoutMatch.Notes ?? "",
+                            classId = tournamentClass.Id,
+                            className = tournamentClass.Name,
+                            matchType = GetWinnerBracketMatchType(knockoutMatch), // WICHTIG: Spezifischer Winner Bracket Match-Type
+                            groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
+                            groupName = $"Winner Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Winner Bracket
+                            round = knockoutMatch.Round,
+                            position = knockoutMatch.Position,
+                            gameRulesId = tournamentClass.Id,
+                            gameRulesUsed = new
+                            {
+                                id = tournamentClass.Id,
+                                name = $"{tournamentClass.Name} Winner Bracket Regel",
+                                gamePoints = tournamentClass.GameRules.GamePoints,
+                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                                setsToWin = tournamentClass.GameRules.SetsToWin,
+                                legsToWin = tournamentClass.GameRules.LegsToWin,
+                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
+                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                            }
+                        });
+                    }
+                }
+
+                // 4. NEUE: LOSER BRACKET MATCHES
+                if (tournamentClass.CurrentPhase?.LoserBracket != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 [API] Processing Loser Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.LoserBracket.Count} matches");
+                    
+                    foreach (var knockoutMatch in tournamentClass.CurrentPhase.LoserBracket)
+                    {
+                        allMatches.Add(new
+                        {
+                            id = knockoutMatch.Id,
+                            matchId = knockoutMatch.Id,
+                            player1 = knockoutMatch.Player1?.Name ?? "TBD",
+                            player2 = knockoutMatch.Player2?.Name ?? "TBD",
+                            player1Sets = knockoutMatch.Player1Sets,
+                            player2Sets = knockoutMatch.Player2Sets,
+                            player1Legs = knockoutMatch.Player1Legs,
+                            player2Legs = knockoutMatch.Player2Legs,
+                            status = GetKnockoutMatchStatus(knockoutMatch),
+                            winner = GetKnockoutWinner(knockoutMatch),
+                            notes = knockoutMatch.Notes ?? "",
+                            classId = tournamentClass.Id,
+                            className = tournamentClass.Name,
+                            matchType = GetLoserBracketMatchType(knockoutMatch), // WICHTIG: Spezifischer Loser Bracket Match-Type
+                            groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
+                            groupName = $"Loser Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Loser Bracket
+                            round = knockoutMatch.Round,
+                            position = knockoutMatch.Position,
+                            gameRulesId = tournamentClass.Id,
+                            gameRulesUsed = new
+                            {
+                                id = tournamentClass.Id,
+                                name = $"{tournamentClass.Name} Loser Bracket Regel",
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
@@ -1045,12 +1185,25 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 classes = tournamentClasses,
                 matches = allMatches,
                 gameRules = gameRulesArray,
-                syncedAt = DateTime.UtcNow
+                syncedAt = DateTime.UtcNow,
+                // NEUE: Zusätzliche Match-Typ Statistiken
+                matchTypeStats = new
+                {
+                    totalMatches = allMatches.Count,
+                    groupMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString() == "Group"),
+                    finalsMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString() == "Finals"),
+                    winnerBracketMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString().StartsWith("Knockout-WB")),
+                    loserBracketMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString().StartsWith("Knockout-LB"))
+                }
             };
 
             System.Diagnostics.Debug.WriteLine($"🎯 [API] Tournament sync data prepared:");
             System.Diagnostics.Debug.WriteLine($"   Classes: {tournamentClasses.Count}");
-            System.Diagnostics.Debug.WriteLine($"   Matches: {allMatches.Count}");
+            System.Diagnostics.Debug.WriteLine($"   Total Matches: {allMatches.Count}");
+            System.Diagnostics.Debug.WriteLine($"     - Group Matches: {syncData.matchTypeStats.groupMatches}");
+            System.Diagnostics.Debug.WriteLine($"     - Finals Matches: {syncData.matchTypeStats.finalsMatches}");
+            System.Diagnostics.Debug.WriteLine($"     - Winner Bracket Matches: {syncData.matchTypeStats.winnerBracketMatches}");
+            System.Diagnostics.Debug.WriteLine($"     - Loser Bracket Matches: {syncData.matchTypeStats.loserBracketMatches}");
             System.Diagnostics.Debug.WriteLine($"   Game Rules: {gameRulesArray.Count}");
 
             var json = JsonSerializer.Serialize(syncData);
@@ -1062,7 +1215,9 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             
             if (response.IsSuccessStatusCode)
             {
-                System.Diagnostics.Debug.WriteLine($"✅ [API] Tournament sync successful with Game Rules: {gameRulesArray.Count} rules synced");
+                System.Diagnostics.Debug.WriteLine($"✅ [API] Tournament sync successful with ALL match types:");
+                System.Diagnostics.Debug.WriteLine($"   📊 Synced: {syncData.matchTypeStats.totalMatches} total matches");
+                System.Diagnostics.Debug.WriteLine($"   📊 Game Rules: {gameRulesArray.Count} rules synced");
                 return true;
             }
             else
@@ -1080,17 +1235,111 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         }
     }
 
-    public string GetJoinUrl(string tournamentId)
+    // NEUE HELPER-METHODEN für verschiedene Match-Typen
+
+    /// <summary>
+    /// Bestimmt die aktuelle Tournament-Phase
+    /// </summary>
+    private string GetTournamentPhase(TournamentClass tournamentClass)
     {
-        if (_hubData.TryGetValue($"TournamentHub_Registration_{tournamentId}_JoinUrl", out var joinUrl))
+        if (tournamentClass.CurrentPhase?.WinnerBracket?.Any() == true || tournamentClass.CurrentPhase?.LoserBracket?.Any() == true)
         {
-            return joinUrl;
+            return "Knockout";
         }
-        
-        return $"{HubUrl}/join/{tournamentId}";
+        else if (tournamentClass.CurrentPhase?.FinalsGroup?.Matches?.Any() == true)
+        {
+            return "Finals";
+        }
+        else
+        {
+            return "GroupPhase";
+        }
     }
 
-    // Helper Methods
+    /// <summary>
+    /// Ermittelt den Status eines Match
+    /// </summary>
+    private string GetMatchStatus(Match match)
+    {
+        return match.Status switch
+        {
+            MatchStatus.NotStarted => "NotStarted",
+            MatchStatus.InProgress => "InProgress", 
+            MatchStatus.Finished => "Finished",
+            MatchStatus.Bye => "Finished",
+            _ => "NotStarted"
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt den Gewinner eines Match
+    /// </summary>
+    private string GetWinner(Match match)
+    {
+        if (match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
+            return null;
+        return match.Winner?.Name;
+    }
+
+    /// <summary>
+    /// Ermittelt den Status eines KnockoutMatch
+    /// </summary>
+    private string GetKnockoutMatchStatus(KnockoutMatch match)
+    {
+        return match.Status switch
+        {
+            MatchStatus.NotStarted => "NotStarted",
+            MatchStatus.InProgress => "InProgress", 
+            MatchStatus.Finished => "Finished",
+            MatchStatus.Bye => "Finished",
+            _ => "NotStarted"
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt den Gewinner eines KnockoutMatch
+    /// </summary>
+    private string GetKnockoutWinner(KnockoutMatch match)
+    {
+        if (match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
+            return null;
+        return match.Winner?.Name;
+    }
+
+    /// <summary>
+    /// Ermittelt den spezifischen Match-Type für Winner Bracket Matches
+    /// </summary>
+    private string GetWinnerBracketMatchType(KnockoutMatch match)
+    {
+        // Verwende eine vereinfachte Rundenbeschreibung basierend auf der Round-Eigenschaft
+        return match.Round switch
+        {
+            KnockoutRound.Final => "Knockout-WB-Final",
+            KnockoutRound.Semifinal => "Knockout-WB-Semifinal", 
+            KnockoutRound.Quarterfinal => "Knockout-WB-Quarterfinal",
+            KnockoutRound.Best16 => "Knockout-WB-Best16",
+            KnockoutRound.Best32 => "Knockout-WB-Best32",
+            KnockoutRound.Best64 => "Knockout-WB-Best64",
+            _ => $"Knockout-WB-{match.Round}"
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt den spezifischen Match-Type für Loser Bracket Matches
+    /// </summary>
+    private string GetLoserBracketMatchType(KnockoutMatch match)
+    {
+        // Für Loser Bracket verwenden wir eine einfachere Struktur
+        return match.Round switch
+        {
+            KnockoutRound.LoserFinal => "Knockout-LB-LoserFinal",
+            _ => $"Knockout-LB-LoserRound{(int)match.Round}"
+        };
+    }
+
+    /// <summary>
+    /// Entdeckt den API-Endpunkt
+    /// </summary>
     private async Task<string> DiscoverApiEndpoint()
     {
         string apiEndpoint = "http://localhost:5000";
@@ -1123,29 +1372,23 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         return apiEndpoint;
     }
 
-    private string GetMatchStatus(Match match)
-    {
-        return match.Status switch
-        {
-            MatchStatus.NotStarted => "NotStarted",
-            MatchStatus.InProgress => "InProgress", 
-            MatchStatus.Finished => "Finished",
-            MatchStatus.Bye => "Finished",
-            _ => "NotStarted"
-        };
-    }
-
-    private string GetWinner(Match match)
-    {
-        if (match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
-            return null;
-        return match.Winner?.Name;
-    }
-
+    /// <summary>
+    /// Generiert einen API-Schlüssel
+    /// </summary>
     private string GenerateApiKey(string tournamentId)
     {
         var combined = $"{tournamentId}_{Environment.MachineName}_{DateTime.UtcNow.Ticks}";
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(combined))[..20];
+    }
+
+    public string GetJoinUrl(string tournamentId)
+    {
+        if (_hubData.TryGetValue($"TournamentHub_Registration_{tournamentId}_JoinUrl", out var joinUrl))
+        {
+            return joinUrl;
+        }
+        
+        return $"{HubUrl}/join/{tournamentId}";
     }
 
     public void Dispose()

@@ -342,7 +342,7 @@ public class LiveMatchesController : ControllerBase
             }
 
             // Prozessiere das Update über den Sync Service
-            _syncService.ProcessMatchResultUpdate(matchId, targetClassId, result);
+            _syncService.UpdateMatchResult(matchId, targetClassId, result);
 
             // Erstelle Response DTO
             MatchDto dto;

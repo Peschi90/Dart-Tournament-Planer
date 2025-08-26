@@ -112,7 +112,7 @@ public class MatchApiService : IMatchApiService
             }
 
             // Prozessiere das Update über den Sync Service
-            _syncService.ProcessMatchResultUpdate(matchId, classId, result);
+            _syncService.UpdateMatchResult(matchId, classId, result);
 
             // Hole das aktualisierte Match
             var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(tc => tc.Id == classId);

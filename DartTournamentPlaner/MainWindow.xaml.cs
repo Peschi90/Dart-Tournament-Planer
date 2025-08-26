@@ -29,6 +29,16 @@ public partial class MainWindow : Window
     
     // Tournament Hub Integration
     private ITournamentHubService _tournamentHubService;
+    
+    // 🚨 NEUE EIGENSCHAFT: Ermöglicht anderen Komponenten Zugriff auf den TournamentHubService
+    public ITournamentHubService? TournamentHubService => _tournamentHubService;
+    
+    // 🚨 NEUE METHODE: Gibt die aktuelle Tournament-ID zurück
+    public string GetCurrentTournamentId() => _currentTournamentId ?? string.Empty;
+    
+    // 🚨 NEUE METHODE: Prüft ob Tournament beim Hub registriert ist
+    public bool IsRegisteredWithHub => _isRegisteredWithHub;
+    
     private System.Windows.Threading.DispatcherTimer _hubHeartbeatTimer;
     private System.Windows.Threading.DispatcherTimer _hubSyncTimer;
     private string _currentTournamentId;
