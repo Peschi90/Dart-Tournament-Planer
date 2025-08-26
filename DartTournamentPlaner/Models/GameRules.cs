@@ -24,7 +24,7 @@ public enum PostGroupPhaseMode
     KnockoutBracket          // KO-System mit Single/Double Elimination
 }
 
-public enum KnockoutMode
+public enum KnockoutMode 
 {
     SingleElimination,       // Einfaches KO-System
     DoubleElimination       // Doppeltes KO-System (Winner + Loser Bracket)
@@ -120,7 +120,24 @@ public class GameRules : INotifyPropertyChanged
         {
             _gameMode = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(GamePoints)); // Notify that GamePoints changed
         }
+    }
+
+    /// <summary>
+    /// Returns the numeric game points value based on the selected GameMode
+    /// For API compatibility
+    /// </summary>
+    [JsonIgnore]
+    public int GamePoints
+    {
+        get => GameMode switch
+        {
+            GameMode.Points301 => 301,
+            GameMode.Points401 => 401,
+            GameMode.Points501 => 501,
+            _ => 501
+        };
     }
 
     public FinishMode FinishMode

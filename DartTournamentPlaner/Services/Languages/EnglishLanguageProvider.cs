@@ -605,7 +605,24 @@ public class EnglishLanguageProvider : ILanguageProvider
             ["MatchCancelledConfirm"] = "Do you really want to cancel the match?",
             ["MatchCancelledTitle"] = "Cancel Match",
             ["NotImplemented"] = "Not implemented",
-            ["FeatureComingSoon"] = "This feature will be available soon."
+            ["FeatureComingSoon"] = "This feature will be available soon.",
+
+            // API Functions
+            ["API"] = "API",
+            ["StartAPI"] = "Start API",
+            ["StopAPI"] = "Stop API", 
+            ["APIDocumentation"] = "API Documentation",
+            ["APIStatus"] = "API Status",
+            ["APIRunning"] = "API running",
+            ["APIStopped"] = "API stopped",
+            ["APIError"] = "API error",
+            ["APIStarted"] = "API started successfully!\n\nURL: {0}\nDocumentation: {0}",
+            ["APIStartError"] = "API could not be started. Check if port 5000 is available.",
+            ["APIStopError"] = "Error stopping API.",
+            ["APINotRunning"] = "API is not running. Start the API first.",
+            ["APIURLNotAvailable"] = "API URL is not available.",
+            ["ErrorOpeningBrowser"] = "Error opening browser",
+            ["Success"] = "Success"
         };
     }
 }

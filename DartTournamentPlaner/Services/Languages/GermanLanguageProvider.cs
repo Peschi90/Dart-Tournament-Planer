@@ -603,7 +603,24 @@ public class GermanLanguageProvider : ILanguageProvider
             ["MatchCancelledConfirm"] = "Möchten Sie das Spiel wirklich abbrechen?",
             ["MatchCancelledTitle"] = "Spiel abbrechen",
             ["NotImplemented"] = "Nicht implementiert",
-            ["FeatureComingSoon"] = "Diese Funktion wird bald verfügbar sein."
+            ["FeatureComingSoon"] = "Diese Funktion wird bald verfügbar sein.",
+
+            // API-Funktionen
+            ["API"] = "API",
+            ["StartAPI"] = "API starten",
+            ["StopAPI"] = "API stoppen", 
+            ["APIDocumentation"] = "API Dokumentation",
+            ["APIStatus"] = "API Status",
+            ["APIRunning"] = "API läuft",
+            ["APIStopped"] = "API gestoppt",
+            ["APIError"] = "API Fehler",
+            ["APIStarted"] = "API wurde erfolgreich gestartet!\n\nURL: {0}\nDokumentation: {0}",
+            ["APIStartError"] = "API konnte nicht gestartet werden. Überprüfen Sie, ob Port 5000 verfügbar ist.",
+            ["APIStopError"] = "Fehler beim Stoppen der API.",
+            ["APINotRunning"] = "API ist nicht gestartet. Starten Sie die API zuerst.",
+            ["APIURLNotAvailable"] = "API-URL ist nicht verfügbar.",
+            ["ErrorOpeningBrowser"] = "Fehler beim Öffnen des Browsers",
+            ["Success"] = "Erfolgreich"
         };
     }
 }

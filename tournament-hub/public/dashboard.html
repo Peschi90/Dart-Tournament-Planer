@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Tournament Hub Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            color: #4a5568;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header p {
+            color: #718096;
+            margin-top: 0.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .stat-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-description {
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        .tournaments-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .tournament-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tournament-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tournament-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .tournament-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .tournament-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+        }
+
+        .tournament-id {
+            font-size: 0.875rem;
+            color: #718096;
+            font-family: 'Courier New', monospace;
+        }
+
+        .tournament-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-inactive {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .tournament-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4a5568;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #718096;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        .tournament-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .no-tournaments {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 1.125rem;
+            color: #718096;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.875rem;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .connection-status.disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .connection-status.error {
+            background: #fbb6ce;
+            color: #97266d;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tournament-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">🔄 Verbinde...</div>
+
+    <div class="header">
+        <h1>🎯 Tournament Hub Dashboard</h1>
+        <p>Zentrale Verwaltung für alle Dart-Turniere</p>
+    </div>
+
+    <div class="container">
+        <!-- Statistiken -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Aktive Turniere</span>
+                    <span class="stat-icon">🏆</span>
+                </div>
+                <div class="stat-value" id="activeTournaments">0</div>
+                <div class="stat-description">Derzeit registriert</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Verbundene Clients</span>
+                    <span class="stat-icon">👥</span>
+                </div>
+                <div class="stat-value" id="connectedClients">0</div>
+                <div class="stat-description">Online-Teilnehmer</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Server-Laufzeit</span>
+                    <span class="stat-icon">⏱️</span>
+                </div>
+                <div class="stat-value" id="serverUptime">0s</div>
+                <div class="stat-description">Kontinuierlich online</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Verarbeitete Matches</span>
+                    <span class="stat-icon">⚔️</span>
+                </div>
+                <div class="stat-value" id="processedMatches">0</div>
+                <div class="stat-description">Heute verarbeitet</div>
+            </div>
+        </div>
+
+        <!-- Turniere -->
+        <div class="tournaments-section">
+            <div class="section-header">
+                <h2 class="section-title">🏆 Aktive Turniere</h2>
+                <button class="refresh-btn" id="refreshButton">🔄 Aktualisieren</button>
+            </div>
+            
+            <div id="tournamentsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Lade Turnierdaten...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Tournament Hub v1.0.0 | 🔒 Sichere HTTPS-Verbindung | Automatische Updates alle 30 Sekunden</p>
+    </div>
+
+    <script>
+        // HTTPS Mode - Secure Tournament Hub
+        console.log('🔒 Tournament Hub running in HTTPS mode');
+        console.log('🌐 Base URL:', window.location.origin);
+        console.log('🔐 Protocol:', window.location.protocol);
+        
+        // Ensure we're running on HTTPS in production
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            console.warn('⚠️ Warning: Not running on HTTPS in production environment');
+        }
+        
+        // Protocol-aware Socket.IO connection
+        let socket = null;
+        let isConnected = false;
+        let connectionAttempts = 0;
+        const maxRetries = 3;
+
+        // Connection Status Update
+        function updateConnectionStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `connection-status ${status}`;
+            statusEl.textContent = message;
+        }
+
+        // Initialize Socket.IO with fallback
+        function initializeSocket() {
+            try {
+                console.log('🔌 Attempting to connect to Socket.IO...');
+                updateConnectionStatus('connecting', '🔄 Verbinde...');
+
+                // Use relative connection - will automatically use same server/port
+                socket = io({
+                    transports: ['websocket', 'polling'],
+                    timeout: 5000,
+                    reconnectionAttempts: 3
+                });
+
+                socket.on('connect', () => {
+                    console.log('✅ Verbunden mit Tournament Hub');
+                    isConnected = true;
+                    connectionAttempts = 0;
+                    updateConnectionStatus('connected', '🟢 Verbunden');
+                    refreshData();
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('❌ Verbindung zu Tournament Hub verloren');
+                    isConnected = false;
+                    updateConnectionStatus('disconnected', '🔴 Getrennt');
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('❌ Socket.IO Verbindungsfehler:', error);
+                    connectionAttempts++;
+                    
+                    if (connectionAttempts < maxRetries) {
+                        updateConnectionStatus('error', `🔄 Retry ${connectionAttempts}/${maxRetries}`);
+                        setTimeout(() => {
+                            console.log(`🔄 Reconnection attempt ${connectionAttempts}`);
+                        }, 2000);
+                    } else {
+                        updateConnectionStatus('error', '❌ Keine Verbindung');
+                        // Fallback to HTTP-only mode
+                        console.log('🔄 Switching to HTTP-only mode...');
+                        setTimeout(initializeHttpOnlyMode, 3000);
+                    }
+                });
+
+                // WebSocket Event Handler
+                socket.on('tournament-registered', (data) => {
+                    console.log('🎯 Neues Turnier registriert:', data);
+                    refreshData();
+                });
+
+                socket.on('tournament-unregistered', (data) => {
+                    console.log('📴 Turnier entregistriert:', data);
+                    refreshData();
+                });
+
+            } catch (error) {
+                console.error('❌ Socket.IO initialization error:', error);
+                initializeHttpOnlyMode();
+            }
+        }
+
+        // HTTP-Only fallback mode
+        function initializeHttpOnlyMode() {
+            console.log('📡 Running in HTTP-only mode (no WebSocket)');
+            updateConnectionStatus('connected', '📡 HTTP-Modus');
+            isConnected = false; // No websocket, but HTTP works
+            refreshData();
+            
+            // Start polling instead of websocket updates
+            setInterval(() => {
+                refreshData();
+            }, 15000); // Every 15 seconds in HTTP mode
+        }
+
+        // Daten laden und anzeigen
+        async function refreshData() {
+            try {
+                console.log('🔄 Refreshing dashboard data...');
+                
+                // Use relative URL - same server communication
+                console.log('🌐 Using relative API calls (same server)');
+                
+                // Server-Statistiken laden
+                const statsResponse = await fetch('/api/status', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!statsResponse.ok) {
+                    throw new Error(`HTTP ${statsResponse.status}: ${statsResponse.statusText}`);
+                }
+
+                const statsData = await statsResponse.json();
+                console.log('📊 Stats response:', statsData);
+
+                // Check if this is the correct API response format
+                if (statsData.status === 'OK') {
+                    // This IS a successful response, not an error!
+                    console.log('✅ Stats request successful:', statsData);
+                    
+                    // Update statistics from the correct data structure
+                    updateStatistics({
+                        activeTournaments: statsData.tournaments?.activeTournaments || 0,
+                        totalConnections: statsData.websocket?.connectedClients || 0,
+                        totalMatchesProcessed: statsData.tournaments?.totalMatchesProcessed || 0,
+                        uptime: statsData.uptime || 0
+                    });
+                    
+                    // Load tournaments separately
+                    await loadTournaments();
+                    
+                } else if (statsData.success) {
+                    // Alternative success format
+                    updateStatistics(statsData.data || statsData);
+                    await loadTournaments();
+                } else {
+                    console.error('❌ Stats request failed:', statsData);
+                    showError('API returned error: ' + (statsData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('❌ Fehler beim Laden der Daten:', error);
+                showError('Verbindungsfehler: ' + error.message);
+            }
+        }
+        
+        // Separate function to load tournaments
+        async function loadTournaments() {
+            try {
+                console.log('🏆 Loading tournaments...');
+                
+                const tournamentsResponse = await fetch('/api/tournaments', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!tournamentsResponse.ok) {
+                    throw new Error(`HTTP ${tournamentsResponse.status}: ${tournamentsResponse.statusText}`);
+                }
+
+                const tournamentsData = await tournamentsResponse.json();
+                console.log('🏆 Tournaments response:', tournamentsData);
+
+                if (tournamentsData.success && tournamentsData.data) {
+                    console.log('✅ Tournaments loaded:', tournamentsData.data.tournaments?.length || 0);
+                    displayTournaments(tournamentsData.data.tournaments || []);
+                } else {
+                    console.log('⚠️ No tournaments data or different format');
+                    displayTournaments([]);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading tournaments:', error);
+                displayTournaments([]);
+            }
+        }
+
+        // Statistiken aktualisieren
+        function updateStatistics(stats) {
+            console.log('📊 Updating statistics with:', stats);
+            
+            document.getElementById('activeTournaments').textContent = stats.activeTournaments || 0;
+            document.getElementById('connectedClients').textContent = stats.totalConnections || 0;
+            document.getElementById('processedMatches').textContent = stats.totalMatchesProcessed || 0;
+            
+            // Laufzeit formatieren
+            const uptime = stats.uptime || 0;
+            document.getElementById('serverUptime').textContent = formatUptime(uptime);
+        }
+
+        // Turniere anzeigen
+        function displayTournaments(tournaments) {
+            const container = document.getElementById('tournamentsContainer');
+            
+            console.log('🎯 displayTournaments called with:', tournaments);
+            console.log('🎯 Tournament count:', Array.isArray(tournaments) ? tournaments.length : 'not an array');
+            
+            if (!Array.isArray(tournaments) || tournaments.length === 0) {
+                container.innerHTML = `
+                    <div class="no-tournaments">
+                        <h3>🎯 Keine aktiven Turniere</h3>
+                        <p>Warten auf Tournament Planner Registrierungen...</p>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 1rem;">
+                            💡 Registrieren Sie ein Turnier über den Tournament Planner<br>
+                            🔄 Dashboard aktualisiert sich automatisch alle 30 Sekunden
+                        </p>
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; font-size: 0.8em; color: #666;">
+                            <strong>Debug Info:</strong><br>
+                            Tournaments type: ${typeof tournaments}<br>
+                            Tournaments value: ${JSON.stringify(tournaments)}<br>
+                            Is Array: ${Array.isArray(tournaments)}<br>
+                            Length: ${tournaments?.length || 'N/A'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const tournamentsHtml = tournaments.map(tournament => {
+                console.log('🎯 Processing tournament:', tournament);
+                
+                const isActive = isRecentHeartbeat(tournament.lastHeartbeat);
+                const statusClass = isActive ? 'status-active' : 'status-inactive';
+                const statusText = isActive ? 'Aktiv' : 'Inaktiv';
+                
+                return `
+                    <div class="tournament-card">
+                        <div class="tournament-header">
+                            <div>
+                                <div class="tournament-name">${tournament.name || 'Unbenanntes Turnier'}</div>
+                                <div class="tournament-id">ID: ${tournament.id}</div>
+                            </div>
+                            <div class="tournament-status ${statusClass}">${statusText}</div>
+                        </div>
+                        
+                        <div class="tournament-info">
+                            <div class="info-item">
+                                <div class="info-value">${tournament.connectedClients || 0}</div>
+                                <div class="info-label">Clients</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${tournament.totalMatches || 0}</div>
+                                <div class="info-label">Matches</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${tournament.classes || 0}</div>
+                                <div class="info-label">Klassen</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-value">${tournament.activeMatches || 0}</div>
+                                <div class="info-label">Aktive</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 1rem;">
+                            <div style="font-size: 0.875rem; color: #718096;">
+                                📍 ${tournament.location || 'Unbekannt'}<br>
+                                ⏰ Registriert: ${formatTimestamp(tournament.registeredAt)}<br>
+                                💓 Letzter Heartbeat: ${formatTimestamp(tournament.lastHeartbeat)}
+                            </div>
+                        </div>
+                        
+                        <div class="tournament-actions">
+                            <a href="/join/${tournament.id}" class="action-btn btn-primary" target="_blank">🎯 Beitreten</a>
+                            <a href="/tournament/${tournament.id}" class="action-btn btn-secondary" target="_blank">📋 Ansehen</a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="tournament-grid">${tournamentsHtml}</div>`;
+            console.log(`✅ ${tournaments.length} tournaments displayed successfully`);
+        }
+
+        // Hilfsfunktionen
+        function formatUptime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Nie';
+            
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Gerade eben';
+            if (diffMins < 60) return `vor ${diffMins} Min`;
+            if (diffMins < 1440) return `vor ${Math.floor(diffMins / 60)} Std`;
+            return date.toLocaleDateString('de-DE');
+        }
+
+        function isRecentHeartbeat(timestamp) {
+            if (!timestamp) return false;
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            return new Date(timestamp) > fiveMinutesAgo;
+        }
+
+        function showError(message) {
+            document.getElementById('tournamentsContainer').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #e53e3e;">
+                    <h3>❌ Fehler beim Laden der Daten</h3>
+                    <p>${message}</p>
+                    <button class="refresh-btn" id="retryButton" style="margin-top: 1rem;">Erneut versuchen</button>
+                </div>
+            `;
+            // Bind retry button event
+            const retryBtn = document.getElementById('retryButton');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', refreshData);
+            }
+        }
+
+        // Automatische Updates (nur wenn nicht im WebSocket-Modus)
+        setInterval(() => {
+            if (!socket || !isConnected) {
+                refreshData();
+            }
+        }, 30000); // Alle 30 Sekunden
+
+        // Ereignis-Listener hinzufügen
+        document.getElementById('refreshButton').addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🔄 Aktualisieren Button geklickt');
+            refreshData();
+        });
+
+        // Initial laden
+        document.addEventListener('DOMContentLoaded', () => {
+            // Bind refresh button event
+            const refreshBtn = document.getElementById('refreshButton');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', refreshData);
+            }
+            
+            initializeSocket();
+            refreshData();
+        });
+    </script>
+</body>
+</html>

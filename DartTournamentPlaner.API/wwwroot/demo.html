@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dart Tournament API - Demo Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        } 
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .matches-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .match-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.2s ease;
+        }
+
+        .match-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .match-item.selected {
+            background-color: #e3f2fd;
+            border-color: #667eea;
+        }
+
+        .tournament-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .api-url {
+            font-family: 'Courier New', monospace;
+            background: rgba(0,0,0,0.1);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>?? Dart Tournament API</h1>
+            <p>Demo Interface f�r externe Match-Ergebnis-Eingabe</p>
+        </div>
+
+        <div class="tournament-info">
+            <h3>API Status</h3>
+            <p>API URL: <span class="api-url" id="apiUrl">http://localhost:5000</span></p>
+            <p id="connectionStatus">?? Nicht verbunden</p>
+        </div>
+
+        <div class="cards">
+            <!-- Tournament Overview Card -->
+            <div class="card">
+                <h2>?? Turnier-�bersicht</h2>
+                <div id="tournamentOverview">
+                    <div class="loading" id="overviewLoading">
+                        <div class="spinner"></div>
+                        <p>Lade Turnierdaten...</p>
+                    </div>
+                    <div id="overviewContent" class="hidden">
+                        <div id="tournamentDetails"></div>
+                        <button onclick="loadTournamentData()">?? Aktualisieren</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Matches Card -->
+            <div class="card">
+                <h2>? Ausstehende Matches</h2>
+                <div id="pendingMatches">
+                    <div class="loading" id="matchesLoading">
+                        <div class="spinner"></div>
+                        <p>Lade ausstehende Matches...</p>
+                    </div>
+                    <div id="matchesContent" class="hidden">
+                        <div class="matches-list" id="matchesList"></div>
+                        <button onclick="loadPendingMatches()">?? Matches aktualisieren</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match Result Entry Card -->
+            <div class="card">
+                <h2>?? Match-Ergebnis eingeben</h2>
+                <div id="resultStatus"></div>
+                
+                <form id="matchResultForm">
+                    <div class="form-group">
+                        <label for="selectedMatch">Ausgew�hltes Match:</label>
+                        <input type="text" id="selectedMatch" readonly placeholder="W�hlen Sie ein Match aus der Liste">
+                        <input type="hidden" id="selectedMatchId">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="player1Sets">Spieler 1 - Sets:</label>
+                        <input type="number" id="player1Sets" min="0" max="10" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="player2Sets">Spieler 2 - Sets:</label>
+                        <input type="number" id="player2Sets" min="0" max="10" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="player1Legs">Spieler 1 - Legs:</label>
+                        <input type="number" id="player1Legs" min="0" max="50" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="player2Legs">Spieler 2 - Legs:</label>
+                        <input type="number" id="player2Legs" min="0" max="50" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notizen (optional):</label>
+                        <textarea id="notes" rows="3" placeholder="Zus�tzliche Informationen..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-success">?? Ergebnis speichern</button>
+                    <button type="button" onclick="clearForm()" class="btn-secondary">??? Zur�cksetzen</button>
+                </form>
+            </div>
+
+            <!-- API Testing Card -->
+            <div class="card">
+                <h2>?? API Testen</h2>
+                <div class="form-group">
+                    <label for="apiEndpoint">API Endpoint:</label>
+                    <select id="apiEndpoint">
+                        <option value="/api/tournaments/status">Tournaments Status</option>
+                        <option value="/api/tournaments/current">Current Tournament</option>
+                        <option value="/api/matches/pending">Pending Matches</option>
+                        <option value="/health">Health Check</option>
+                    </select>
+                </div>
+
+                <button onclick="testApiEndpoint()" class="btn-secondary">?? Endpoint testen</button>
+                <button onclick="openApiDocs()" class="btn-success">?? API Dokumentation �ffnen</button>
+
+                <div id="apiTestResult" style="margin-top: 15px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        let selectedMatchId = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            checkApiConnection();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('matchResultForm').addEventListener('submit', submitMatchResult);
+        }
+
+        async function checkApiConnection() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    document.getElementById('connectionStatus').innerHTML = '?? Verbunden';
+                    loadTournamentData();
+                    loadPendingMatches();
+                } else {
+                    throw new Error('API nicht erreichbar');
+                }
+            } catch (error) {
+                document.getElementById('connectionStatus').innerHTML = '?? Nicht verbunden';
+                showStatus('error', 'API ist nicht erreichbar. Stellen Sie sicher, dass der Dart Tournament Planer l�uft und die API gestartet ist.');
+            }
+        }
+
+        async function loadTournamentData() {
+            const loading = document.getElementById('overviewLoading');
+            const content = document.getElementById('overviewContent');
+            const details = document.getElementById('tournamentDetails');
+
+            loading.style.display = 'block';
+            content.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tournaments/current`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        const tournament = data.data;
+                        details.innerHTML = `
+                            <h4>${tournament.name}</h4>
+                            <p><strong>Status:</strong> ${tournament.status}</p>
+                            <p><strong>Klassen:</strong> ${tournament.classes.length}</p>
+                            <p><strong>Letzte �nderung:</strong> ${new Date(tournament.lastModified).toLocaleString()}</p>
+                        `;
+                    } else {
+                        details.innerHTML = '<p>Keine aktiven Turnierdaten gefunden.</p>';
+                    }
+                } else {
+                    throw new Error('Fehler beim Laden der Turnierdaten');
+                }
+            } catch (error) {
+                details.innerHTML = `<p>Fehler: ${error.message}</p>`;
+            } finally {
+                loading.style.display = 'none';
+                content.classList.remove('hidden');
+            }
+        }
+
+        async function loadPendingMatches() {
+            const loading = document.getElementById('matchesLoading');
+            const content = document.getElementById('matchesContent');
+            const list = document.getElementById('matchesList');
+
+            loading.style.display = 'block';
+            content.classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matches/pending`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data && data.data.length > 0) {
+                        list.innerHTML = data.data.map(match => `
+                            <div class="match-item" onclick="selectMatch(${match.id}, '${match.player1?.name || 'TBD'}', '${match.player2?.name || 'TBD'}')">
+                                <strong>Match ${match.id}:</strong> ${match.player1?.name || 'TBD'} vs ${match.player2?.name || 'TBD'}
+                                <br><small>Status: ${match.status}</small>
+                            </div>
+                        `).join('');
+                    } else {
+                        list.innerHTML = '<p>Keine ausstehenden Matches gefunden.</p>';
+                    }
+                } else {
+                    throw new Error('Fehler beim Laden der Matches');
+                }
+            } catch (error) {
+                list.innerHTML = `<p>Fehler: ${error.message}</p>`;
+            } finally {
+                loading.style.display = 'none';
+                content.classList.remove('hidden');
+            }
+        }
+
+        function selectMatch(matchId, player1, player2) {
+            selectedMatchId = matchId;
+            document.getElementById('selectedMatchId').value = matchId;
+            document.getElementById('selectedMatch').value = `Match ${matchId}: ${player1} vs ${player2}`;
+            
+            // Visual feedback
+            document.querySelectorAll('.match-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+
+            showStatus('info', `Match ${matchId} ausgew�hlt: ${player1} vs ${player2}`);
+        }
+
+        async function submitMatchResult(event) {
+            event.preventDefault();
+
+            if (!selectedMatchId) {
+                showStatus('error', 'Bitte w�hlen Sie zuerst ein Match aus der Liste aus.');
+                return;
+            }
+
+            const formData = {
+                matchId: parseInt(selectedMatchId),
+                player1Sets: parseInt(document.getElementById('player1Sets').value),
+                player2Sets: parseInt(document.getElementById('player2Sets').value),
+                player1Legs: parseInt(document.getElementById('player1Legs').value),
+                player2Legs: parseInt(document.getElementById('player2Legs').value),
+                notes: document.getElementById('notes').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/matches/${selectedMatchId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showStatus('success', `Match-Ergebnis erfolgreich gespeichert!`);
+                    clearForm();
+                    loadPendingMatches(); // Refresh the matches list
+                } else {
+                    throw new Error(data.message || 'Fehler beim Speichern des Ergebnisses');
+                }
+            } catch (error) {
+                showStatus('error', `Fehler: ${error.message}`);
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('matchResultForm').reset();
+            document.getElementById('selectedMatch').value = '';
+            document.getElementById('selectedMatchId').value = '';
+            selectedMatchId = null;
+            
+            document.querySelectorAll('.match-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+
+        async function testApiEndpoint() {
+            const endpoint = document.getElementById('apiEndpoint').value;
+            const resultDiv = document.getElementById('apiTestResult');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`);
+                const data = await response.text();
+
+                resultDiv.innerHTML = `
+                    <h4>Antwort (${response.status}):</h4>
+                    <pre style="background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; max-height: 200px;">${data}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">Fehler: ${error.message}</div>`;
+            }
+        }
+
+        function openApiDocs() {
+            window.open(`${API_BASE_URL}`, '_blank');
+        }
+
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('resultStatus');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds for success/info messages
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+    </script>
+</body>
+</html>

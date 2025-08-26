@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Hub - HTTP Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test { 
+            background: white; 
+            padding: 20px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            border-left: 5px solid #007acc;
+        }
+        .success { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        .loading { border-left-color: #ffc107; }
+        button { 
+            background: #007acc; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        .result { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>?? Tournament Hub HTTP Test</h1>
+    
+    <div class="test" id="httpTest">
+        <h3>1. HTTP API Test</h3>
+        <button onclick="testHttpApi()">Test /api/status</button>
+        <div id="httpResult" class="result">Klicken Sie auf "Test" um zu starten...</div>
+    </div>
+
+    <div class="test" id="socketTest">
+        <h3>2. Socket.IO Test</h3>
+        <button onclick="testSocketIO()">Test WebSocket</button>
+        <div id="socketResult" class="result">Klicken Sie auf "Test" um zu starten...</div>
+    </div>
+
+    <div class="test" id="corsTest">
+        <h3>3. CORS Test</h3>
+        <button onclick="testCORS()">Test Cross-Origin</button>
+        <div id="corsResult" class="result">Klicken Sie auf "Test" um zu starten...</div>
+    </div>
+
+    <div class="test">
+        <h3>4. Server Information</h3>
+        <div class="result">
+            <strong>Current URL:</strong> <span id="currentUrl"></span><br>
+            <strong>Protocol:</strong> <span id="protocol"></span><br>
+            <strong>Host:</strong> <span id="host"></span><br>
+            <strong>User Agent:</strong> <span id="userAgent"></span>
+        </div>
+    </div>
+
+    <div class="test">
+        <h3>5. Quick Links</h3>
+        <a href="/">? Dashboard</a> | 
+        <a href="/api/status">API Status</a> | 
+        <a href="/health">Health Check</a>
+    </div>
+
+    <script>
+        // Display current page info
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentUrl').textContent = window.location.href;
+            document.getElementById('protocol').textContent = window.location.protocol;
+            document.getElementById('host').textContent = window.location.host;
+            document.getElementById('userAgent').textContent = navigator.userAgent;
+        });
+
+        async function testHttpApi() {
+            const resultDiv = document.getElementById('httpResult');
+            const testDiv = document.getElementById('httpTest');
+            
+            testDiv.className = 'test loading';
+            resultDiv.innerHTML = '?? Testing HTTP API...';
+            
+            try {
+                const start = Date.now();
+                const response = await fetch('/api/status');
+                const end = Date.now();
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    testDiv.className = 'test success';
+                    resultDiv.innerHTML = `
+                        ? <strong>HTTP API Test SUCCESSFUL</strong><br>
+                        Response Time: ${end - start}ms<br>
+                        Tournaments: ${data.tournaments ? data.tournaments.length : 0}<br>
+                        Server Status: ${data.status}<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                testDiv.className = 'test error';
+                resultDiv.innerHTML = `
+                    ? <strong>HTTP API Test FAILED</strong><br>
+                    Error: ${error.message}<br>
+                    <pre>${error.stack || error.toString()}</pre>
+                `;
+            }
+        }
+
+        async function testSocketIO() {
+            const resultDiv = document.getElementById('socketResult');
+            const testDiv = document.getElementById('socketTest');
+            
+            testDiv.className = 'test loading';
+            resultDiv.innerHTML = '?? Testing Socket.IO...';
+            
+            try {
+                // Try to load socket.io.js first
+                const script = document.createElement('script');
+                script.src = '/socket.io/socket.io.js';
+                script.onload = () => {
+                    try {
+                        const testSocket = io({
+                            timeout: 5000,
+                            transports: ['websocket', 'polling']
+                        });
+
+                        testSocket.on('connect', () => {
+                            testDiv.className = 'test success';
+                            resultDiv.innerHTML = `
+                                ? <strong>Socket.IO Test SUCCESSFUL</strong><br>
+                                Socket ID: ${testSocket.id}<br>
+                                Transport: ${testSocket.io.engine.transport.name}<br>
+                                Connected: ${testSocket.connected}
+                            `;
+                            testSocket.disconnect();
+                        });
+
+                        testSocket.on('connect_error', (error) => {
+                            testDiv.className = 'test error';
+                            resultDiv.innerHTML = `
+                                ? <strong>Socket.IO Test FAILED</strong><br>
+                                Connection Error: ${error.message}<br>
+                                <pre>${error.toString()}</pre>
+                            `;
+                        });
+                    } catch (error) {
+                        testDiv.className = 'test error';
+                        resultDiv.innerHTML = `
+                            ? <strong>Socket.IO Test FAILED</strong><br>
+                            Initialization Error: ${error.message}
+                        `;
+                    }
+                };
+                
+                script.onerror = () => {
+                    testDiv.className = 'test error';
+                    resultDiv.innerHTML = `
+                        ? <strong>Socket.IO Test FAILED</strong><br>
+                        Could not load Socket.IO library from /socket.io/socket.io.js<br>
+                        This indicates a server configuration issue.
+                    `;
+                };
+                
+                document.head.appendChild(script);
+                
+            } catch (error) {
+                testDiv.className = 'test error';
+                resultDiv.innerHTML = `
+                    ? <strong>Socket.IO Test FAILED</strong><br>
+                    Error: ${error.message}
+                `;
+            }
+        }
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            const testDiv = document.getElementById('corsTest');
+            
+            testDiv.className = 'test loading';
+            resultDiv.innerHTML = '?? Testing CORS...';
+            
+            try {
+                const response = await fetch('/api/status', {
+                    method: 'GET',
+                    mode: 'cors',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+                };
+                
+                testDiv.className = 'test success';
+                resultDiv.innerHTML = `
+                    ? <strong>CORS Test SUCCESSFUL</strong><br>
+                    Response Status: ${response.status}<br>
+                    CORS Headers:<br>
+                    <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                testDiv.className = 'test error';
+                resultDiv.innerHTML = `
+                    ? <strong>CORS Test FAILED</strong><br>
+                    Error: ${error.message}
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

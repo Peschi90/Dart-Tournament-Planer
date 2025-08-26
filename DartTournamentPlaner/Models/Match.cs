@@ -387,6 +387,73 @@ public class Match : INotifyPropertyChanged
         SetResult(player1Sets, player2Sets, player1Legs, player2Legs, usesSets);
     }
 
+    /// <summary>
+    /// Bestimmt den Gewinner basierend auf aktuellen Ergebnissen
+    /// Wird nach Updates vom Tournament Hub aufgerufen
+    /// </summary>
+    public void DetermineWinner()
+    {
+        // Nur bei beendeten Matches Gewinner bestimmen
+        if (Status != MatchStatus.Finished && Status != MatchStatus.Bye)
+        {
+            Winner = null;
+            return;
+        }
+
+        // Bei Freilos ist Player1 automatisch Gewinner
+        if (IsBye)
+        {
+            Winner = Player1;
+            return;
+        }
+
+        // Bestimme Gewinner basierend auf Sets oder Legs
+        if (UsesSets)
+        {
+            // Bei Sets: Zuerst Sets vergleichen, dann Legs bei Gleichstand
+            if (Player1Sets > Player2Sets)
+            {
+                Winner = Player1;
+            }
+            else if (Player2Sets > Player1Sets)
+            {
+                Winner = Player2;
+            }
+            else if (Player1Legs > Player2Legs) // Sets gleich, Legs entscheiden
+            {
+                Winner = Player1;
+            }
+            else if (Player2Legs > Player1Legs)
+            {
+                Winner = Player2;
+            }
+            else
+            {
+                Winner = null; // Unentschieden
+            }
+        }
+        else
+        {
+            // Ohne Sets: Nur Legs zählen
+            if (Player1Legs > Player2Legs)
+            {
+                Winner = Player1;
+            }
+            else if (Player2Legs > Player1Legs)
+            {
+                Winner = Player2;
+            }
+            else
+            {
+                Winner = null; // Unentschieden
+            }
+        }
+
+        // UI-Updates auslösen
+        OnPropertyChanged(nameof(WinnerDisplay));
+        OnPropertyChanged(nameof(ScoreDisplay));
+    }
+
     // INotifyPropertyChanged Implementation für WPF Data Binding
     public event PropertyChangedEventHandler? PropertyChanged;
 

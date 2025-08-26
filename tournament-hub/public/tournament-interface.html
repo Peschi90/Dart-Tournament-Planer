@@ -1,0 +1,2403 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Tournament Interface - Dart Tournament Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0; 
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tournament-info h1 {
+            color: #5a67d8;
+            margin-bottom: 5px;
+            font-size: 1.8em;
+        }
+
+        .tournament-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f56565;
+        }
+
+        .status-indicator.connected {
+            background: #48bb78;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(72, 187, 120, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .match-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .match-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .match-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .match-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .match-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .match-id {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .match-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-notstarted {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status-inprogress {
+            background: #fefcbf;
+            color: #d69e2e;
+        }
+
+        .status-finished {
+            background: #c6f6d5;
+            color: #38a169;
+        }
+
+        .players {
+            margin-bottom: 25px;
+        }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .player-row:last-child {
+            border-bottom: none;
+        }
+
+        .player-name {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 1.1em;
+        }
+
+        .player-scores {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 0.8em;
+            color: #718096;
+            display: block;
+        }
+
+        .score-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #5a67d8;
+        }
+
+        .result-form {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 0.9em;
+            color: #4a5568;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input, .input-group textarea {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .submit-button {
+            width: 100%;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+
+        .submit-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .message.error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
+        .no-matches {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 60px 20px;
+        }
+
+        .no-matches .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .back-button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .delivery-status {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .delivery-status .loading-spinner {
+            display: inline-block;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2b6cb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .live-indicator {
+            background: #48bb78;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        .tournament-info h1 {
+            animation: fadeIn 0.5s ease;
+        }
+
+        .tournament-meta {
+            animation: fadeIn 0.7s ease;
+        }
+
+        .connection-status {
+            animation: fadeIn 0.9s ease;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .match-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .tournament-info h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="tournament-info">
+                <h1 id="tournamentName">🎯 Lade Tournament...</h1>
+                <div class="tournament-meta" id="tournamentMeta">
+                    Verbinde mit Tournament Hub...
+                </div>
+                
+                <!-- Klassen-Auswahl -->
+                <div class="class-selector" id="classSelector" style="display: none; margin-top: 15px;">
+                    <label for="classSelect" style="color: #4a5568; font-weight: bold; margin-right: 10px;">Klasse:</label>
+                    <select id="classSelect" style="padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; min-width: 200px;">
+                        <option value="">Alle Klassen</option>
+                    </select>
+                    <button id="loadClassMatches" style="margin-left: 10px; padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        📋 Laden
+                    </button>
+                </div>
+            </div>
+            <div class="connection-status">
+                <div class="live-indicator">LIVE</div>
+                <div class="status-indicator" id="connectionIndicator"></div>
+                <span id="connectionText">Verbinde...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/" class="back-button">Zurueck zur Tournament-Auswahl</a>
+        
+        <div id="matchContainer">
+            <div class="no-matches">
+                <span class="icon"><div class="loading-spinner"></div></span>
+                Lade Tournament-Daten...
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket = null;
+        let tournamentId = null;
+        let currentTournament = null;
+        let matches = [];
+        let tournamentClasses = [];
+        let gameRules = [];
+        let currentClassId = null;
+
+        // Get tournament ID from URL
+        const pathParts = window.location.pathname.split('/');
+        if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
+            tournamentId = pathParts[2];
+        }
+
+        if (!tournamentId) {
+            window.location.href = '/join';
+        }
+
+        // Event-Handler für Klassen-Auswahl
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Tournament Interface loading for:', tournamentId);
+            initializeSocket();
+            // Also load matches via REST API as fallback
+            loadTournamentData();
+            
+            // Klassen-Event-Handler
+            const loadClassButton = document.getElementById('loadClassMatches');
+            const classSelect = document.getElementById('classSelect');
+            
+            if (loadClassButton) {
+                loadClassButton.addEventListener('click', function() {
+                    currentClassId = classSelect.value || null;
+                    console.log('🎯 Loading matches for class:', currentClassId || 'All');
+                    loadMatches();
+                });
+            }
+            
+            if (classSelect) {
+                classSelect.addEventListener('change', function() {
+                    currentClassId = this.value || null;
+                    console.log('📚 Class changed to:', currentClassId || 'All');
+                    // Auto-load on change
+                    loadMatches();
+                });
+            }
+        });
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            const text = document.getElementById('connectionText');
+            
+            if (connected) {
+                indicator.classList.add('connected');
+                text.textContent = 'Verbunden';
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = 'Getrennt';
+            }
+        }
+
+        function updateTournamentInfo(tournament) {
+            console.log('📋 Updating tournament info:', tournament);
+            
+            const nameElement = document.getElementById('tournamentName');
+            const metaElement = document.getElementById('tournamentMeta');
+            
+            if (nameElement && tournament.name) {
+                nameElement.textContent = `🎯 ${tournament.name}`;
+            } else {
+                console.warn('⚠️ Tournament name element or tournament name not found');
+                if (nameElement) nameElement.textContent = `🎯 Tournament ${tournamentId}`;
+            }
+            
+            if (metaElement) {
+                const location = tournament.location || 'Unbekannter Ort';
+                const description = tournament.description ? ` • ${tournament.description}` : '';
+                const totalMatches = tournament.totalMatches || tournament.matches?.length || 0;
+                const totalPlayers = tournament.totalPlayers || 0;
+                
+                metaElement.innerHTML = `
+                    Tournament-ID: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace;">${tournament.id}</code> 
+                    • 📍 ${location}${description}
+                    <br><small style="color: #666;">
+                        👥 ${totalPlayers} Spieler • 🎮 ${totalMatches} Matches • 📚 ${tournament.classes?.length || 0} Klassen
+                    </small>
+                `;
+            }
+            
+            console.log('✅ Tournament info updated successfully');
+        }
+
+        function displayMatches(matches) {
+            const container = document.getElementById('matchContainer');
+            
+            console.log('🎮 displayMatches called with:', matches?.length, 'matches');
+            console.log('📊 Sample match data:', matches?.[0]);
+            
+            if (!matches || matches.length === 0) {
+                displayNoMatches();
+                return;
+            }
+
+            // NEUE: Automatische Datenvalidierung beim Anzeigen
+            console.log(`🔍 [AUTO-VALIDATION] Performing automatic data integrity check...`);
+            let validationWarnings = 0;
+            matches.forEach((match, index) => {
+                const matchId = match.matchId || match.id || match.Id || `Unknown-${index}`;
+                const classId = match.classId || match.ClassId;
+                const className = match.className || match.ClassName;
+                const groupName = match.groupName || match.GroupName;
+                
+                if (!classId) {
+                    console.warn(`⚠️ [VALIDATION] Match ${matchId}: Missing class ID`);
+                    validationWarnings++;
+                }
+                if (!className) {
+                    console.warn(`⚠️ [VALIDATION] Match ${matchId}: Missing class name`);
+                    validationWarnings++;
+                }
+                if (!groupName && match.matchType !== 'Finals' && match.MatchType !== 'Finals') {
+                    console.warn(`⚠️ [VALIDATION] Match ${matchId}: Missing group name (type: ${match.matchType || match.MatchType || 'Unknown'})`);
+                    validationWarnings++;
+                }
+            });
+            
+            if (validationWarnings > 0) {
+                console.warn(`⚠️ [AUTO-VALIDATION] Found ${validationWarnings} data integrity warnings`);
+                console.warn(`   Run window.validateMatchData() for detailed analysis`);
+                showNotification(`⚠️ ${validationWarnings} Datenwarnungen gefunden - siehe Konsole für Details`, 'warning');
+            } else {
+                console.log(`✅ [AUTO-VALIDATION] All match data appears complete`);
+            }
+
+            // Group matches by status with flexible status handling
+            const getMatchStatus = (match) => {
+                const status = match.status || match.Status || 'NotStarted';
+                return status.toLowerCase();
+            };
+            
+            const pending = matches.filter(m => {
+                const status = getMatchStatus(m);
+                return status === 'notstarted' || status === 'pending';
+            });
+            
+            const inProgress = matches.filter(m => {
+                const status = getMatchStatus(m);
+                return status === 'inprogress' || status === 'active';
+            });
+            
+            const finished = matches.filter(m => {
+                const status = getMatchStatus(m);
+                return status === 'finished' || status === 'completed';
+            });
+
+            console.log(`📊 Match distribution: ${pending.length} pending, ${inProgress.length} in progress, ${finished.length} finished`);
+
+            let html = '<div class="match-grid">';
+
+            // Show in-progress matches first, then pending, then finished
+            const orderedMatches = [...inProgress, ...pending, ...finished];
+
+            orderedMatches.forEach((match, index) => {
+                console.log(`🎮 Processing match ${index + 1}:`, {
+                    matchId: match.matchId || match.id || match.Id,
+                    player1: match.player1 || match.Player1,
+                    player2: match.player2 || match.Player2,
+                    status: match.status || match.Status,
+                    matchType: match.matchType || match.MatchType || 'Group',
+                    // NEUE: Zusätzliche Validierungsinfo
+                    classId: match.classId || match.ClassId || 'MISSING',
+                    className: match.className || match.ClassName || 'MISSING',
+                    groupName: match.groupName || match.GroupName || 'MISSING'
+                });
+                html += createMatchCard(match);
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+            
+            console.log(`✅ Successfully displayed ${orderedMatches.length} matches`);
+            
+            // NEUE: Füge Validierungsinfo zur UI hinzu wenn Probleme gefunden
+            if (validationWarnings > 0) {
+                const warningDiv = document.createElement('div');
+                warningDiv.style.cssText = `
+                    background: #fefcbf;
+                    color: #d69e2e;
+                    border: 2px solid #f6e05e;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                    font-size: 0.9em;
+                    text-align: center;
+                `;
+                warningDiv.innerHTML = `
+                    ⚠️ <strong>${validationWarnings} Datenintegritäts-Warnungen</strong> gefunden<br>
+                    <small>Öffnen Sie die Browser-Konsole für Details oder verwenden Sie <code>validateMatchData()</code></small>
+                `;
+                container.insertBefore(warningDiv, container.firstChild);
+            }
+        }
+
+        function displayNoMatches(errorMessage = null) {
+            const container = document.getElementById('matchContainer');
+            
+            if (errorMessage) {
+                container.innerHTML = `
+                    <div class="no-matches">
+                        <span class="icon">❌</span>
+                        <strong>Fehler beim Laden der Matches</strong><br>
+                        ${errorMessage}<br>
+                        <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            🔄 Erneut versuchen
+                        </button>
+                        <button onclick="debugMatches()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            🔧 Debug
+                        </button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="no-matches">
+                        <span class="icon">🎯</span>
+                        <strong>Keine Matches verfügbar</strong><br>
+                        <small>Matches werden vom Tournament Planner synchronisiert...</small><br>
+                        <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            🔄 Aktualisieren
+                        </button>
+                        <button onclick="debugMatches()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            🔧 Debug Test
+                        </button>
+                        <div style="margin-top: 15px; font-size: 0.9em; color: rgba(255,255,255,0.8);">
+                            Tournament ID: <code style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">${tournamentId}</code>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function getStatusText(status) {
+            const statusTexts = {
+                'NotStarted': 'Ausstehend',
+                'InProgress': 'Läuft', 
+                'Finished': 'Beendet',
+                'notstarted': 'Ausstehend',
+                'inprogress': 'Läuft',
+                'finished': 'Beendet'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function submitResult(matchId) {
+            console.log(`🎯 Submitting result for match ${matchId}`);
+            
+            // KORRIGIERT: Suche das Match KLASSENSPEZIFISCH wenn eine Klasse ausgewählt ist
+            let match;
+            if (currentClassId) {
+                // WICHTIG: Suche nur in der aktuell gefilterten Klasse
+                match = matches.find(m => 
+                    (m.matchId || m.id) == matchId && 
+                    (m.classId || m.ClassId) == currentClassId
+                );
+                console.log(`🔍 [SUBMIT] Searching for Match ${matchId} in class ${currentClassId}:`, match ? 'Found' : 'Not found');
+            } else {
+                // Falls keine Klasse gewählt, normale Suche
+                match = matches.find(m => (m.matchId || m.id) == matchId);
+                console.log(`🔍 [SUBMIT] Searching for Match ${matchId} in all classes:`, match ? 'Found' : 'Not found');
+            }
+            
+            if (!match) {
+                console.error(`❌ Match ${matchId} not found in ${currentClassId ? `class ${currentClassId}` : 'all classes'}`);
+                console.log(`📊 Available matches in current view:`, matches.map(m => `Match ${m.matchId || m.id} (Class: ${m.classId || m.ClassId})`));
+                showNotification(`❌ Match ${matchId} nicht gefunden in der aktuellen Auswahl!`, 'error');
+                return;
+            }
+            
+            console.log(`📊 [SUBMIT] ===== CORRECT MATCH FOUND =====`);
+            console.log(`📊 [SUBMIT] Match object from FILTERED array:`, match);
+            console.log(`📊 [SUBMIT] Match ID: ${matchId}`);
+            console.log(`📊 [SUBMIT] Current class filter: ${currentClassId || 'None'}`);
+            console.log(`📊 [SUBMIT] Match class: ${match.classId || match.ClassId}`);
+            console.log(`📊 [SUBMIT] Match group: ${match.groupName || match.GroupName || 'No group'}`);
+            console.log(`📊 [SUBMIT] Players: ${match.player1 || match.Player1} vs ${match.player2 || match.Player2}`);
+            
+            // Validiere dass das Match zur aktuellen Filterung passt
+            if (currentClassId && (match.classId || match.ClassId) != currentClassId) {
+                console.error(`🚨 [SUBMIT] CRITICAL ERROR: Match class mismatch!`);
+                console.error(`   Expected class: ${currentClassId}`);
+                console.error(`   Match class: ${match.classId || match.ClassId}`);
+                showNotification(`❌ Klassen-Konflikt: Match gehört zu anderer Klasse!`, 'error');
+                return;
+            }
+            
+            console.log(`✅ [SUBMIT] Match validation successful`);
+            
+            // 🚨 KRITISCHE KORREKTUR: Verwende IMMER die Daten vom KONKRETEN MATCH, nicht vom Filter!
+            // Die Class- und Group-Informationen MÜSSEN vom spezifischen Match stammen, nicht von der Filter-Auswahl
+            const classId = match.classId || match.ClassId || 1; // DIREKT vom Match, nicht currentClassId!
+            
+            // VERBESSERT: Robustere Class-Name-Extraktion
+            let className = match.className || match.ClassName || null;
+            if (!className) {
+                const foundClass = tournamentClasses.find(c => c.id == classId);
+                className = foundClass?.name || `Klasse ${classId}`;
+            }
+                            
+            // 🚨 KRITISCHE KORREKTUR: Group-Information DIREKT vom Match, nicht von der Filter-Auswahl!
+            let groupName = match.groupName || match.GroupName || null; // DIREKT vom Match!
+            let groupId = match.groupId || match.GroupId || null; // DIREKT vom Match!
+            
+            console.log(`🎯 [SUBMIT] FINAL CLASS & GROUP FROM CONCRETE MATCH (NOT FROM FILTER):`);
+            console.log(`   🎯 Selected Match ID: ${matchId}`);
+            console.log(`   📚 MATCH Class ID: ${classId} (from match.classId=${match.classId}, match.ClassId=${match.ClassId})`);
+            console.log(`   📚 MATCH Class Name: "${className}"`);
+            console.log(`   📋 MATCH Group Name: "${groupName}" (from match.groupName=${match.groupName}, match.GroupName=${match.GroupName})`);
+            console.log(`   📋 MATCH Group ID: ${groupId} (from match.groupId=${match.groupId}, match.GroupId=${match.GroupId})`);
+            console.log(`   🔍 Current Filter: ${currentClassId || 'None'} (IGNORED for result data!)`);
+            console.log(`   📍 Match Context: ${className}/${groupName || 'NoGroup'}/Match${matchId}`);
+            
+            // WICHTIG: Zusätzliche Validierung um sicherzustellen dass wir niemals Default-Werte verwenden
+            if (classId == 1 && className === 'Platin' && !match.classId && !match.ClassId) {
+                console.warn(`⚠️ [SUBMIT] WARNING: Using default class values - this might be incorrect!`);
+                console.warn(`   Match data:`, Object.keys(match));
+                console.warn(`   If this match is not actually from Platin class, there's a data issue!`);
+            }
+            
+            if (groupName === 'Gruppe 1' && !match.groupName && !match.GroupName) {
+                console.warn(`⚠️ [SUBMIT] WARNING: Using default group name - verify this is correct!`);
+                console.warn(`   This match might not actually belong to 'Gruppe 1'`);
+            }
+            
+            // WICHTIG: Zusätzliche Logging um sicherzustellen dass wir die RICHTIGEN Daten verwenden
+            console.log(`🔍 [SUBMIT] MATCH DATA VERIFICATION:`);
+            console.log(`   Raw Match Object keys:`, Object.keys(match));
+            console.log(`   match.classId: ${match.classId}`);
+            console.log(`   match.ClassId: ${match.ClassId}`);
+            console.log(`   match.className: ${match.className}`);
+            console.log(`   match.ClassName: ${match.ClassName}`);
+            console.log(`   match.groupName: ${match.groupName}`);
+            console.log(`   match.GroupName: ${match.GroupName}`);
+            console.log(`   match.groupId: ${match.groupId}`);
+            console.log(`   match.GroupId: ${match.GroupId}`);
+            
+            // Extrahiere Spielernamen aus dem KORREKTEN Match
+            let player1Name = 'Spieler 1';
+            let player2Name = 'Spieler 2';
+            
+            // VERBESSERT: Robustere Player-Name-Extraktion
+            if (match.player1) {
+                if (typeof match.player1 === 'string') {
+                    player1Name = match.player1;
+                } else if (match.player1.name || match.player1.Name) {
+                    player1Name = match.player1.name || match.player1.Name;
+                }
+            } else if (match.Player1) {
+                if (typeof match.Player1 === 'string') {
+                    player1Name = match.Player1;
+                } else if (match.Player1.Name || match.Player1.name) {
+                    player1Name = match.Player1.Name || match.Player1.name;
+                }
+            }
+            
+            if (match.player2) {
+                if (typeof match.player2 === 'string') {
+                    player2Name = match.player2;
+                } else if (match.player2.name || match.player2.Name) {
+                    player2Name = match.player2.name || match.player2.Name;
+                }
+            } else if (match.Player2) {
+                if (typeof match.Player2 === 'string') {
+                    player2Name = match.Player2;
+                } else if (match.Player2.Name || match.Player2.name) {
+                    player2Name = match.Player2.Name || match.Player2.name;
+                }
+            }
+            
+            console.log(`👥 [SUBMIT] MATCH Player names: "${player1Name}" vs "${player2Name}"`);
+            console.log(`📍 [SUBMIT] FINAL match context: ${className}/${groupName}/Match${matchId}`);
+            
+            // Determine if this match uses sets (aus dem KORREKTEN Match)
+            let gameRule = null;
+            if (match.gameRules || match.GameRules) {
+                gameRule = match.gameRules || match.GameRules;
+            }
+            if (!gameRule) {
+                const gameRulesId = match.gameRulesId || match.GameRulesId || classId;
+                gameRule = gameRules.find(gr => gr.id === gameRulesId) || 
+                          gameRules.find(gr => gr.classId === classId) || 
+                          { playWithSets: true, name: `${className} Regel` }; // Default fallback
+            }
+            
+            const playWithSets = gameRule.playWithSets !== false;
+            
+            // Get values based on whether sets are used
+            let p1Sets = 0, p2Sets = 0;
+            const p1Legs = parseInt(document.getElementById(`p1Legs_${matchId}`).value) || 0;
+            const p2Legs = parseInt(document.getElementById(`p2Legs_${matchId}`).value) || 0;
+            
+            if (playWithSets) {
+                p1Sets = parseInt(document.getElementById(`p1Sets_${matchId}`).value) || 0;
+                p2Sets = parseInt(document.getElementById(`p2Sets_${matchId}`).value) || 0;
+            }
+            
+            const notes = document.getElementById(`notes_${matchId}`).value.trim();
+
+            // 🚨 KORRIGIERT: Result-Objekt mit den ECHTEN Match-Daten (nicht Filter-Daten!)
+            const result = {
+                matchId: matchId,
+                player1Sets: p1Sets,
+                player1Legs: p1Legs,
+                player2Sets: p2Sets,
+                player2Legs: p2Legs,
+                notes: notes,
+                status: 'Finished',
+                submittedAt: new Date().toISOString(),
+                playWithSets: playWithSets,
+                // 🚨 KORRIGIERT: Class-Information DIREKT vom spezifischen Match!
+                classId: classId, // DIREKT vom Match!
+                className: className, // DIREKT vom Match!
+                // 🚨 KORRIGIERT: Group-Information DIREKT vom spezifischen Match!
+                groupId: groupId, // DIREKT vom Match!
+                groupName: groupName, // DIREKT vom Match!
+                // KORRIGIERT: Player information vom spezifischen Match
+                player1Name: player1Name,
+                player2Name: player2Name,
+                // Match-Type Information
+                matchType: match.matchType || match.MatchType || 'Group',
+                // Game Rules mit der ECHTEN Class-Information vom Match
+                gameRulesUsed: {
+                    id: gameRule.id || classId,
+                    name: gameRule.name || `${className} Regel`,
+                    playWithSets: playWithSets,
+                    setsToWin: gameRule.setsToWin || 3,
+                    legsToWin: gameRule.legsToWin || 3,
+                    gamePoints: gameRule.gamePoints || 501,
+                    gameMode: gameRule.gameMode || 'Standard',
+                    finishMode: gameRule.finishMode || 'DoubleOut',
+                    // 🚨 KORRIGIERT: Class-Information in Game Rules vom ECHTEN Match
+                    classId: classId, // DIREKT vom Match!
+                    className: className // DIREKT vom Match!
+                }
+            };
+
+            console.log(`📊 [SUBMIT] ===== FINAL RESULT WITH CONCRETE MATCH DATA =====`);
+            console.log(`   🎯 Match: "${player1Name}" vs "${player2Name}"`);
+            console.log(`   📚 MATCH Class: "${className}" (ID: ${classId}) - FROM MATCH DATA!`);
+            console.log(`   📋 MATCH Group: "${groupName || 'No Group'}" (ID: ${groupId}) - FROM MATCH DATA!`);
+            console.log(`   🎮 Game Rules: ${gameRule.name || 'Standard'}`);
+            console.log(`   📊 Score: ${playWithSets ? `Sets ${p1Sets}-${p2Sets}, ` : ''}Legs ${p1Legs}-${p2Legs}`);
+            console.log(`   🔍 Current Filter was: ${currentClassId || 'None'} (IGNORED!)`);
+            console.log(`   📋 COMPLETE Result:`, result);
+            
+            // Verification that we're NOT using filter data or default values
+            if (currentClassId && currentClassId != classId) {
+                console.log(`✅ [SUBMIT] CORRECT: Using match class ${classId} instead of filter class ${currentClassId}!`);
+                console.log(`✅ [SUBMIT] This match belongs to "${className}" not to the currently filtered class!`);
+            }
+            
+            if (groupName && groupName !== 'Gruppe 1') {
+                console.log(`✅ [SUBMIT] GOOD: Using specific group "${groupName}" from match data!`);
+            } else if (groupName === 'Gruppe 1') {
+                console.log(`⚠️ [SUBMIT] INFO: Group is "Gruppe 1" - this might be correct or a default value`);
+            } else {
+                console.log(`⚠️ [SUBMIT] INFO: No group information available for this match`);
+            }
+            
+            // FINAL VALIDATION: Prevent submission of obviously wrong data
+            if (!match.classId && !match.ClassId && classId === 1 && className === 'Klasse 1') {
+                console.error(`🚨 [SUBMIT] CRITICAL: Prevented submission with fallback class data!`);
+                showNotification(`❌ Fehler: Match-Daten unvollständig - Klassen-Information fehlt!`, 'error');
+                return;
+            }
+            
+            // ERWEITERTE VALIDIERUNG: Überprüfe auf verdächtige Default-Werte
+            const suspiciousData = [];
+            
+            if (classId === 1 && className.toLowerCase().includes('platin') && !match.classId && !match.ClassId) {
+                suspiciousData.push('Klassen-ID könnte ein Fallback-Wert sein');
+            }
+            
+            if (groupName === 'Gruppe 1' && !match.groupName && !match.GroupName) {
+                suspiciousData.push('Gruppen-Name könnte ein Default-Wert sein');
+            }
+            
+            if (player1Name === 'Spieler 1' || player2Name === 'Spieler 2') {
+                suspiciousData.push('Spieler-Namen sind nicht spezifisch');
+            }
+            
+            // Zeige Warnung bei verdächtige Daten, aber verhindere nicht die Übertragung
+            if (suspiciousData.length > 0) {
+                console.warn(`⚠️ [SUBMIT] Suspicious data detected for match ${matchId}:`);
+                suspiciousData.forEach(issue => console.warn(`   • ${issue}`));
+                
+                // Bestätigungsdialog für verdächtige Daten
+                const proceed = confirm(
+                    `⚠️ Verdächtige Match-Daten erkannt:\n\n` +
+                    suspiciousData.map(issue => `• ${issue}`).join('\n') +
+                    `\n\nMatch: ${player1Name} vs ${player2Name}\n` +
+                    `Klasse: ${className} (ID: ${classId})\n` +
+                    `Gruppe: ${groupName || 'Keine Gruppe'}\n\n` +
+                    `Möchten Sie trotzdem fortfahren?`
+                );
+                
+                if (!proceed) {
+                    console.log(`🚫 [SUBMIT] User cancelled submission due to suspicious data`);
+                    showNotification(`⚠️ Übertragung abgebrochen - überprüfen Sie die Match-Daten`, 'warning');
+                    
+                    // Re-enable button
+                    const submitBtn = document.getElementById(`submitBtn_${matchId}`);
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '🎯 Ergebnis übertragen';
+                    }
+                    return;
+                }
+                
+                console.log(`✅ [SUBMIT] User confirmed submission despite warnings`);
+            }
+            
+            // 🚀 SENSIBLE MATCH-DATEN ÜBERTRAGEN (mit Bestätigung bei Warnungen)
+            const submitBtn = document.getElementById(`submitBtn_${matchId}`);
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading-spinner"></div> Übertrage...';
+
+            // Submit via WebSocket
+            if (socket && socket.connected) {
+                const socketMessage = {
+                    tournamentId: tournamentId,
+                    matchId: matchId,
+                    result: result,
+                    // 🚨 ZUSÄTZLICH: Class- und Group-Information auf Top-Level VOM MATCH!
+                    classId: classId, // DIREKT vom Match!
+                    className: className, // DIREKT vom Match!
+                    groupId: groupId, // DIREKT vom Match!
+                    groupName: groupName // DIREKT vom Match!
+                };
+                
+                console.log(`📡 [SUBMIT] Sending WebSocket message with CONCRETE MATCH DATA:`, socketMessage);
+                console.log(`📚 [SUBMIT] Final verification - Class: "${socketMessage.className}" (ID: ${socketMessage.classId}) FROM MATCH!`);
+                console.log(`📋 [SUBMIT] Final verification - Group: "${socketMessage.groupName || 'No Group'}" (ID: ${socketMessage.groupId || 'No ID'}) FROM MATCH!`);
+                console.log(`🎯 [SUBMIT] Full match context: ${socketMessage.className}/${socketMessage.groupName || 'NoGroup'}/Match${socketMessage.matchId}`);
+                console.log(`🔍 [SUBMIT] Filter class was: ${currentClassId || 'None'} (COMPLETELY IGNORED!)`);
+                
+                socket.emit('submit-match-result', socketMessage);
+                
+                console.log(`✅ Result sent with CONCRETE MATCH DATA (not filter data!)`);
+                console.log(`📚 Sent with MATCH Class: ${className} (ID: ${classId})`);
+                console.log(`📋 Sent with MATCH Group: ${groupName || 'No Group'} (ID: ${groupId})`);
+                
+                // Sofortige UI-Rückmeldung
+                updateMatchDeliveryStatus(matchId, 'pending');
+                showNotification(`🔄 Match ${matchId} wird übertragen - ${className}/${groupName}...`, 'info');
+                
+            } else {
+                // Fallback to REST API
+                console.log('⚠️ WebSocket not available, using REST API fallback');
+                updateMatchDeliveryStatus(matchId, 'pending');
+                submitResultViaAPI(matchId, result);
+            }
+
+            // Re-enable button after timeout
+            setTimeout(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🎯 Ergebnis übertragen';
+                }
+            }, 5000);
+            
+            console.log(`📊 [SUBMIT] ===== SUBMIT RESULT COMPLETE WITH CONCRETE MATCH DATA =====`);
+        }
+
+        // 🆔 NEUE FUNKTION: Submit von spezifischer Match-Card mit eindeutiger ID
+        function submitResultFromCard(uniqueCardId) {
+            console.log(`🎯 [CARD_SUBMIT] Submitting result from card: ${uniqueCardId}`);
+            
+            // 1. Finde die Match-Card mit der eindeutigen ID
+            const cardElement = document.getElementById(uniqueCardId);
+            if (!cardElement) {
+                console.error(`❌ [CARD_SUBMIT] Card element not found: ${uniqueCardId}`);
+                showNotification(`❌ Fehler: Match-Card nicht gefunden!`, 'error');
+                return;
+            }
+            
+            // 2. Extrahiere alle Match-Daten DIREKT aus den data-Attributen der Card
+            const cardData = {
+                matchId: cardElement.dataset.matchId,
+                classId: parseInt(cardElement.dataset.classId),
+                className: cardElement.dataset.className,
+                groupId: cardElement.dataset.groupId || null,
+                groupName: cardElement.dataset.groupName || null,
+                player1Name: cardElement.dataset.player1,
+                player2Name: cardElement.dataset.player2,
+                uniqueCardId: uniqueCardId
+            };
+            
+            console.log(`📊 [CARD_SUBMIT] Card data extracted:`, cardData);
+            
+            // 3. Finde das entsprechende Match-Objekt zur Validierung
+            const match = matches.find(m => {
+                const mId = m.matchId || m.id || m.Id;
+                const mClassId = m.classId || m.ClassId;
+                const mGroupId = m.groupId || m.GroupId;
+                const mPlayer1 = typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.player1?.Name || m.Player1);
+                const mPlayer2 = typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.player2?.Name || m.Player2);
+                
+                return mId == cardData.matchId && 
+                       mClassId == cardData.classId && 
+                       (mGroupId == cardData.groupId || (!mGroupId && !cardData.groupId)) &&
+                       mPlayer1 === cardData.player1Name &&
+                       mPlayer2 === cardData.player2Name;
+            });
+            
+            if (!match) {
+                console.error(`❌ [CARD_SUBMIT] No matching match object found for card data:`, cardData);
+                console.error(`📊 [CARD_SUBMIT] Available matches:`, matches.map(m => ({
+                    id: m.matchId || m.id,
+                    class: m.classId || m.ClassId,
+                    group: m.groupId || m.GroupId,
+                    p1: typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.Player1),
+                    p2: typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.Player2)
+                })));
+                showNotification(`❌ Fehler: Match-Daten inkonsistent!`, 'error');
+                return;
+            }
+            
+            console.log(`✅ [CARD_SUBMIT] Found matching match object:`, match);
+            console.log(`🎯 [CARD_SUBMIT] VERIFIED MATCH DATA:`);
+            console.log(`   Match ID: ${cardData.matchId}`);
+            console.log(`   Class: "${cardData.className}" (ID: ${cardData.classId})`);
+            console.log(`   Group: "${cardData.groupName || 'No Group'}" (ID: ${cardData.groupId || 'No ID'})`);
+            console.log(`   Players: "${cardData.player1Name}" vs "${cardData.player2Name}"`);
+            console.log(`   Card ID: ${uniqueCardId}`);
+            
+            // 4. Bestimme Game Rules für dieses Match
+            let gameRule = null;
+            if (match.gameRules || match.GameRules) {
+                gameRule = match.gameRules || match.GameRules;
+            }
+            if (!gameRule) {
+                const gameRulesId = match.gameRulesId || match.GameRulesId || cardData.classId;
+                gameRule = gameRules.find(gr => gr.id === gameRulesId) || 
+                          gameRules.find(gr => gr.classId === cardData.classId) || 
+                          { playWithSets: true, name: `${cardData.className} Regel` }; // Default fallback
+            }
+            
+            const playWithSets = gameRule.playWithSets !== false;
+            
+            // 5. Extrahiere die Eingabewerte aus den SPEZIFISCHEN Input-Feldern dieser Card
+            let p1Sets = 0, p2Sets = 0;
+            const p1Legs = parseInt(document.getElementById(`p1Legs_${uniqueCardId}`).value) || 0;
+            const p2Legs = parseInt(document.getElementById(`p2Legs_${uniqueCardId}`).value) || 0;
+            
+            if (playWithSets) {
+                p1Sets = parseInt(document.getElementById(`p1Sets_${uniqueCardId}`).value) || 0;
+                p2Sets = parseInt(document.getElementById(`p2Sets_${uniqueCardId}`).value) || 0;
+            }
+            
+            const notes = document.getElementById(`notes_${uniqueCardId}`).value.trim();
+            
+            console.log(`📊 [CARD_SUBMIT] Input values from card ${uniqueCardId}:`);
+            console.log(`   Sets: ${p1Sets}-${p2Sets} (playWithSets: ${playWithSets})`);
+            console.log(`   Legs: ${p1Legs}-${p2Legs}`);
+            console.log(`   Notes: "${notes}"`);
+
+            // 6. Erstelle Result-Objekt mit den KORREKTEN Card-spezifischen Daten
+            const result = {
+                matchId: cardData.matchId,
+                player1Sets: p1Sets,
+                player1Legs: p1Legs,
+                player2Sets: p2Sets,
+                player2Legs: p2Legs,
+                notes: notes,
+                status: 'Finished',
+                submittedAt: new Date().toISOString(),
+                playWithSets: playWithSets,
+                // KORREKT: Class-Information DIREKT von der spezifischen Card!
+                classId: cardData.classId,
+                className: cardData.className,
+                // KORREKT: Group-Information DIREKT von der spezifischen Card!
+                groupId: cardData.groupId,
+                groupName: cardData.groupName,
+                // KORREKT: Player information von der spezifischen Card
+                player1Name: cardData.player1Name,
+                player2Name: cardData.player2Name,
+                // Match-Type Information
+                matchType: match.matchType || match.MatchType || 'Group',
+                // Game Rules mit den KORREKTEN Class-Informationen
+                gameRulesUsed: {
+                    id: gameRule.id || cardData.classId,
+                    name: gameRule.name || `${cardData.className} Regel`,
+                    playWithSets: playWithSets,
+                    setsToWin: gameRule.setsToWin || 3,
+                    legsToWin: gameRule.legsToWin || 3,
+                    gamePoints: gameRule.gamePoints || 501,
+                    gameMode: gameRule.gameMode || 'Standard',
+                    finishMode: gameRule.finishMode || 'DoubleOut',
+                    classId: cardData.classId,
+                    className: cardData.className
+                }
+            };
+
+            console.log(`📊 [CARD_SUBMIT] ===== FINAL RESULT WITH CARD-SPECIFIC DATA =====`);
+            console.log(`   🎯 Match: "${cardData.player1Name}" vs "${cardData.player2Name}"`);
+            console.log(`   📚 CARD Class: "${cardData.className}" (ID: ${cardData.classId})`);
+            console.log(`   📋 CARD Group: "${cardData.groupName || 'No Group'}" (ID: ${cardData.groupId})`);
+            console.log(`   🎮 Game Rules: ${gameRule.name || 'Standard'}`);
+            console.log(`   📊 Score: ${playWithSets ? `Sets ${p1Sets}-${p2Sets}, ` : ''}Legs ${p1Legs}-${p2Legs}`);
+            console.log(`   🆔 Card ID: ${uniqueCardId}`);
+            console.log(`   📋 COMPLETE Result:`, result);
+            
+            // 7. Validierung dass wir die richtigen Daten verwenden
+            if (cardData.className !== 'Platin' || cardData.groupName !== 'Gruppe 1') {
+                console.log(`✅ [CARD_SUBMIT] EXCELLENT: Using specific card data - NOT default values!`);
+                console.log(`✅ [CARD_SUBMIT] Class: "${cardData.className}", Group: "${cardData.groupName}"`);
+            } else {
+                console.warn(`⚠️ [CARD_SUBMIT] WARNING: Card data shows Platin/Gruppe 1 - verify this is correct!`);
+            }
+            
+            // 8. Submit Result
+            const submitBtn = document.getElementById(`submitBtn_${uniqueCardId}`);
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading-spinner"></div> Übertrage...';
+
+            // Submit via WebSocket mit Card-spezifischen Daten
+            if (socket && socket.connected) {
+                const socketMessage = {
+                    tournamentId: tournamentId,
+                    matchId: cardData.matchId,
+                    result: result,
+                    // Top-Level Information VON DER SPEZIFISCHEN CARD!
+                    classId: cardData.classId,
+                    className: cardData.className,
+                    groupId: cardData.groupId,
+                    groupName: cardData.groupName,
+                    // Zusätzliche Debugging-Information
+                    submittedFromCard: uniqueCardId,
+                    cardVerification: {
+                        player1: cardData.player1Name,
+                        player2: cardData.player2Name,
+                        classContext: `${cardData.className}/${cardData.groupName}`
+                    }
+                };
+                
+                console.log(`📡 [CARD_SUBMIT] Sending WebSocket message with CARD-SPECIFIC DATA:`, socketMessage);
+                console.log(`📚 [CARD_SUBMIT] Final verification - Class: "${socketMessage.className}" (ID: ${socketMessage.classId}) FROM CARD!`);
+                console.log(`📋 [CARD_SUBMIT] Final verification - Group: "${socketMessage.groupName || 'No Group'}" (ID: ${socketMessage.groupId || 'No ID'}) FROM CARD!`);
+                console.log(`🎯 [CARD_SUBMIT] Full context: ${socketMessage.className}/${socketMessage.groupName || 'NoGroup'}/Match${socketMessage.matchId}`);
+                console.log(`🆔 [CARD_SUBMIT] Submitted from card: ${uniqueCardId}`);
+                
+                socket.emit('submit-match-result', socketMessage);
+                
+                console.log(`✅ [CARD_SUBMIT] Result sent with CARD-SPECIFIC DATA!`);
+                console.log(`📚 Sent with CARD Class: ${cardData.className} (ID: ${cardData.classId})`);
+                console.log(`📋 Sent with CARD Group: ${cardData.groupName || 'No Group'} (ID: ${cardData.groupId})`);
+                
+                // UI-Rückmeldung
+                updateMatchDeliveryStatus(cardData.matchId, 'pending');
+                showNotification(`🔄 Match ${cardData.matchId} wird übertragen - ${cardData.className}/${cardData.groupName}...`, 'info');
+                
+            } else {
+                // Fallback to REST API
+                console.log('⚠️ WebSocket not available, using REST API fallback');
+                updateMatchDeliveryStatus(cardData.matchId, 'pending');
+                submitResultViaAPI(cardData.matchId, result);
+            }
+
+            // Re-enable button after timeout
+            setTimeout(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🎯 Ergebnis übertragen';
+                }
+            }, 5000);
+            
+            console.log(`📊 [CARD_SUBMIT] ===== CARD-SPECIFIC SUBMIT COMPLETE =====`);
+        }
+
+        // Angepasste validateMatchResult Funktion für eindeutige Card-IDs
+        function validateMatchResult(uniqueCardId) {
+            console.log(`🔍 [VALIDATE] Validating result for card: ${uniqueCardId}`);
+            
+            // Finde das Match über die Card-ID
+            const cardElement = document.getElementById(uniqueCardId);
+            if (!cardElement) {
+                console.error(`❌ [VALIDATE] Card element not found: ${uniqueCardId}`);
+                return;
+            }
+            
+            const matchId = cardElement.dataset.matchId;
+            const match = matches.find(m => (m.matchId || m.id) == matchId);
+            if (!match) {
+                console.error(`❌ [VALIDATE] Match not found for validation: ${matchId}`);
+                return;
+            }
+            
+            let gameRule = null;
+            if (match.gameRules || match.GameRules) {
+                gameRule = match.gameRules || match.GameRules;
+            }
+            
+            if (!gameRule) {
+                const classId = match.classId || match.ClassId || currentClassId || 1;
+                gameRule = gameRules.find(gr => (gr.classId || gr.ClassId) === classId) || 
+                          gameRules.find(gr => (gr.id || gr.Id) === classId) ||
+                          gameRules[0] || {};
+            }
+            
+            const setsToWin = gameRule.setsToWin || 3;
+            const legsToWin = gameRule.legsToWin || 3;
+            const playWithSets = gameRule.playWithSets !== false;
+            
+            const validationDiv = document.getElementById(`validationMessage_${uniqueCardId}`);
+            const submitBtn = document.getElementById(`submitBtn_${uniqueCardId}`);
+            
+            let isValid = true;
+            let message = '';
+            
+            if (playWithSets) {
+                const p1Sets = parseInt(document.getElementById(`p1Sets_${uniqueCardId}`).value) || 0;
+                const p2Sets = parseInt(document.getElementById(`p2Sets_${uniqueCardId}`).value) || 0;
+                
+                if (p1Sets >= setsToWin || p2Sets >= setsToWin) {
+                    const winner = p1Sets >= setsToWin ? match.player1 || 'Spieler 1' : match.player2 || 'Spieler 2';
+                    message = `✅ ${winner} gewinnt das Match (${setsToWin} Sets benötigt)`;
+                    validationDiv.style.background = '#c6f6d5';
+                    validationDiv.style.color = '#22543d';
+                } else if (p1Sets === p2Sets && p1Sets > 0) {
+                    message = `⚖️ Unentschieden bei Sets - Match läuft weiter`;
+                    validationDiv.style.background = '#fefcbf';
+                    validationDiv.style.color = '#d69e2e';
+                } else if (p1Sets > 0 || p2Sets > 0) {
+                    message = `🎯 Match läuft: ${p1Sets}-${p2Sets} Sets (${setsToWin} zum Sieg benötigt)`;
+                    validationDiv.style.background = '#bee3f8';
+                    validationDiv.style.color = '#2b6cb0';
+                }
+            } else {
+                const p1Legs = parseInt(document.getElementById(`p1Legs_${uniqueCardId}`).value) || 0;
+                const p2Legs = parseInt(document.getElementById(`p2Legs_${uniqueCardId}`).value) || 0;
+                
+                if (p1Legs >= legsToWin || p2Legs >= legsToWin) {
+                    const winner = p1Legs >= legsToWin ? match.player1 || 'Spieler 1' : match.player2 || 'Spieler 2';
+                    message = `✅ ${winner} gewinnt das Match (${legsToWin} Legs benötigt)`;
+                    validationDiv.style.background = '#c6f6d5';
+                    validationDiv.style.color = '#22543d';
+                } else if (p1Legs === p2Legs && p1Legs > 0) {
+                    message = `⚖️ Unentschieden bei Legs - Match läuft weiter`;
+                    validationDiv.style.background = '#fefcbf';
+                    validationDiv.style.color = '#d69e2e';
+                } else if (p1Legs > 0 || p2Legs > 0) {
+                    message = `🎯 Match läuft: ${p1Legs}-${p2Legs} Legs (${legsToWin} zum Sieg benötigt)`;
+                    validationDiv.style.background = '#bee3f8';
+                    validationDiv.style.color = '#2b6cb0';
+                }
+            }
+            
+            if (message) {
+                validationDiv.textContent = message;
+                validationDiv.style.display = 'block';
+            } else {
+                validationDiv.style.display = 'none';
+            }
+            
+            submitBtn.disabled = !isValid;
+        }
+
+        // Debug functions (essential only)
+        window.debugMatches = async function() {
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/matches`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    matches = data.data;
+                    displayMatches(matches);
+                    console.log('Matches reloaded via debug');
+                }
+            } catch (error) {
+                console.error('Debug error:', error);
+            }
+        };
+
+        // NEUE Debug-Funktion für Match-Datenintegrität
+        window.validateMatchData = function() {
+            console.log(`🔍 ===== MATCH DATA VALIDATION =====`);
+            console.log(`Total matches loaded: ${matches.length}`);
+            console.log(`Current class filter: ${currentClassId || 'None'}`);
+            
+            const classDistribution = {};
+            const groupDistribution = {};
+            const issuesFound = [];
+            
+            matches.forEach((match, index) => {
+                const matchId = match.matchId || match.id || match.Id || `Unknown-${index}`;
+                const classId = match.classId || match.ClassId || 'MISSING';
+                const className = match.className || match.ClassName || 'MISSING';
+                const groupName = match.groupName || match.GroupName || 'MISSING';
+                
+                // Count class distribution
+                if (!classDistribution[classId]) {
+                    classDistribution[classId] = { count: 0, className: className };
+                }
+                classDistribution[classId].count++;
+                
+                // Count group distribution
+                const groupKey = `${classId}-${groupName}`;
+                if (!groupDistribution[groupKey]) {
+                    groupDistribution[groupKey] = { count: 0, classId: classId, className: className, groupName: groupName };
+                }
+                groupDistribution[groupKey].count++;
+                
+                // Check for data issues
+                if (!match.classId && !match.ClassId) {
+                    issuesFound.push(`Match ${matchId}: Missing class ID (using fallback: ${classId})`);
+                }
+                
+                if (!match.className && !match.ClassName) {
+                    issuesFound.push(`Match ${matchId}: Missing class name (using fallback: ${className})`);
+                }
+                
+                if (classId === 1 && className.includes('Klasse 1') && !match.classId && !match.ClassId) {
+                    issuesFound.push(`Match ${matchId}: Suspicious fallback to class 1 - verify data source`);
+                }
+                
+                if (groupName === 'MISSING') {
+                    issuesFound.push(`Match ${matchId}: No group information available`);
+                }
+                
+                console.log(`Match ${matchId}:`, {
+                    classId: `${classId} (from: ${match.classId ? 'classId' : match.ClassId ? 'ClassId' : 'FALLBACK'})`,
+                    className: `"${className}" (from: ${match.className ? 'className' : match.ClassName ? 'ClassName' : 'COMPUTED'})`,
+                    groupName: `"${groupName}" (from: ${match.groupName ? 'groupName' : match.GroupName ? 'GroupName' : 'MISSING'})`,
+                    players: `"${match.player1 || match.Player1 || 'Unknown'}" vs "${match.player2 || match.Player2 || 'Unknown'}"`
+                });
+            });
+            
+            console.log(`\n📊 Class Distribution:`);
+            Object.entries(classDistribution).forEach(([classId, info]) => {
+                console.log(`   Class ${classId} ("${info.className}"): ${info.count} matches`);
+            });
+            
+            console.log(`\n📋 Group Distribution:`);
+            Object.entries(groupDistribution).forEach(([key, info]) => {
+                console.log(`   ${info.className}/${info.groupName}: ${info.count} matches`);
+            });
+            
+            if (issuesFound.length > 0) {
+                console.log(`\n⚠️ Issues Found (${issuesFound.length}):`);
+                issuesFound.forEach(issue => console.warn(`   ${issue}`));
+            } else {
+                console.log(`\n✅ No data integrity issues found!`);
+            }
+            
+            console.log(`\n🎯 Current tournament classes:`);
+            tournamentClasses.forEach(tc => {
+                const matchCount = matches.filter(m => (m.classId || m.ClassId) == tc.id).length;
+                console.log(`   Class ${tc.id} ("${tc.name}"): ${matchCount} matches loaded`);
+            });
+            
+            return {
+                totalMatches: matches.length,
+                classDistribution,
+                groupDistribution,
+                issuesFound
+            };
+        };
+
+        // NEUE Funktion zum Analysieren der aktuell angezeigten Cards
+        window.analyzeDisplayedCards = function() {
+            console.log(`🔍 ===== DISPLAYED CARDS ANALYSIS =====`);
+            
+            const cards = document.querySelectorAll('.match-card');
+            console.log(`Total cards displayed: ${cards.length}`);
+            
+            const cardAnalysis = [];
+            cards.forEach((card, index) => {
+                const analysis = {
+                    index: index,
+                    cardId: card.id || 'NO_ID',
+                    matchId: card.dataset.matchId,
+                    classId: card.dataset.classId,
+                    className: card.dataset.className,
+                    groupId: card.dataset.groupId,
+                    groupName: card.dataset.groupName,
+                    player1: card.dataset.player1,
+                    player2: card.dataset.player2,
+                    hasSubmitButton: !!card.querySelector('.submit-button'),
+                    submitButtonId: card.querySelector('.submit-button')?.id || 'NONE',
+                    submitButtonOnClick: card.querySelector('.submit-button')?.onclick?.toString() || 'NONE'
+                };
+                
+                cardAnalysis.push(analysis);
+                
+                console.log(`Card ${index + 1}:`, analysis);
+            });
+            
+            // Prüfe auf Duplikate
+            const duplicateCheck = {};
+            cardAnalysis.forEach(card => {
+                const key = `${card.matchId}_${card.classId}_${card.groupId}`;
+                if (duplicateCheck[key]) {
+                    console.warn(`⚠️ POTENTIAL DUPLICATE: ${key}`, {
+                        card1: duplicateCheck[key],
+                        card2: card
+                    });
+                } else {
+                    duplicateCheck[key] = card;
+                }
+            });
+            
+            return cardAnalysis;
+        };
+
+        // NEUE Funktion zum Testen spezifischer Cards
+        window.testCardSubmission = function(cardId) {
+            console.log(`🧪 ===== TESTING CARD SUBMISSION: ${cardId} =====`);
+            
+            const cardElement = document.getElementById(cardId);
+            if (!cardElement) {
+                console.error(`❌ Card not found: ${cardId}`);
+                return { success: false, error: 'Card not found' };
+            }
+            
+            const cardData = {
+                cardId: cardId,
+                matchId: cardElement.dataset.matchId,
+                classId: cardElement.dataset.classId,
+                className: cardElement.dataset.className,
+                groupId: cardElement.dataset.groupId,
+                groupName: cardElement.dataset.groupName,
+                player1: cardElement.dataset.player1,
+                player2: cardElement.dataset.player2
+            };
+            
+            console.log(`📊 Card data that WOULD be submitted:`, cardData);
+            
+            // Finde das entsprechende Match-Objekt
+            const match = matches.find(m => {
+                const mId = m.matchId || m.id || m.Id;
+                const mClassId = m.classId || m.ClassId;
+                const mGroupId = m.groupId || m.GroupId;
+                const mPlayer1 = typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.Player1);
+                const mPlayer2 = typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.Player2);
+                
+                return mId == cardData.matchId && 
+                       mClassId == cardData.classId && 
+                       (mGroupId == cardData.groupId || (!mGroupId && !cardData.groupId)) &&
+                       mPlayer1 === cardData.player1 &&
+                       mPlayer2 === cardData.player2;
+            });
+            
+            if (match) {
+                console.log(`✅ Found matching match object:`, {
+                    id: match.matchId || match.id,
+                    class: `${match.className || match.ClassName} (${match.classId || match.ClassId})`,
+                    group: `${match.groupName || match.GroupName} (${match.groupId || match.GroupId})`,
+                    players: `${match.player1 || match.Player1} vs ${match.player2 || match.Player2}`
+                });
+            } else {
+                console.error(`❌ No matching match object found`);
+                console.log(`Available matches:`, matches.map(m => ({
+                    id: m.matchId || m.id,
+                    class: m.classId || m.ClassId,
+                    group: m.groupId || m.GroupId,
+                    p1: typeof m.player1 === 'string' ? m.player1 : (m.player1?.name || m.Player1),
+                    p2: typeof m.player2 === 'string' ? m.player2 : (m.player2?.name || m.Player2)
+                })));
+            }
+            
+            return {
+                success: !!match,
+                cardData: cardData,
+                matchFound: !!match,
+                matchData: match ? {
+                    id: match.matchId || match.id,
+                    class: `${match.className || match.ClassName} (${match.classId || match.ClassId})`,
+                    group: `${match.groupName || match.GroupName} (${match.groupId || match.GroupId})`,
+                    players: `${match.player1 || match.Player1} vs ${match.player2 || match.Player2}`
+                } : null
+            };
+        };
+
+        // NEUE Funktion für automatisches Testen aller Cards
+        window.testAllCards = function() {
+            console.log(`🧪 ===== TESTING ALL DISPLAYED CARDS =====`);
+            
+            const cards = document.querySelectorAll('.match-card');
+            const results = [];
+            
+            cards.forEach((card, index) => {
+                if (card.id) {
+                    const result = testCardSubmission(card.id);
+                    results.push(result);
+                    
+                    console.log(`Card ${index + 1} (${card.id}): ${result.success ? '✅ OK' : '❌ FAILED'}`);
+                    if (!result.success) {
+                        console.warn(`   Problem: ${result.error || 'No matching match found'}`);
+                    }
+                } else {
+                    console.warn(`Card ${index + 1}: No ID assigned`);
+                    results.push({ success: false, error: 'No ID assigned' });
+                }
+            });
+            
+            const successCount = results.filter(r => r.success).length;
+            const failCount = results.filter(r => !r.success).length;
+            
+            console.log(`\n📊 Test Summary: ${successCount} OK, ${failCount} FAILED out of ${results.length} cards`);
+            
+            return {
+                total: results.length,
+                success: successCount,
+                failed: failCount,
+                results: results
+            };
+        };
+        
+        async function submitResultViaAPI(matchId, result) {
+            try {
+                const response = await fetch(`/api/matches/${tournamentId}/${matchId}/result`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(result)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`Ergebnis erfolgreich über API übertragen! (${result.className})`, 'success');
+                    await loadMatches();
+                } else {
+                    showNotification('Fehler beim Übertragen: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Netzwerkfehler beim Übertragen', 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            
+            const typeStyles = {
+                'success': {
+                    background: '#c6f6d5',
+                    color: '#22543d',
+                    border: '2px solid #9ae6b4',
+                    icon: '✅'
+                },
+                'error': {
+                    background: '#fed7d7',
+                    color: '#c53030',
+                    border: '2px solid #feb2b2',
+                    icon: '❌'
+                },
+                'info': {
+                    background: '#bee3f8',
+                    color: '#2b6cb0',
+                    border: '2px solid #90cdf4',
+                    icon: '📬'
+                },
+                'warning': {
+                    background: '#fefcbf',
+                    color: '#d69e2e',
+                    border: '2px solid #f6e05e',
+                    icon: '⚠️'
+                }
+            };
+            
+            const style = typeStyles[type] || typeStyles['info'];
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${style.background};
+                color: ${style.color};
+                border: ${style.border};
+                padding: 15px 20px;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-weight: bold;
+                font-size: 14px;
+                max-width: 400px;
+                transition: all 0.3s ease;
+                transform: translateX(450px);
+                backdrop-filter: blur(8px);
+            `;
+            
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 18px;">${style.icon}</span>
+                    <div style="flex: 1;">${message}</div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            const duration = type === 'error' ? 6000 : type === 'success' ? 4000 : 5000;
+            setTimeout(() => {
+                notification.style.transform = 'translateX(450px)';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        }
+
+        function updateMatchDeliveryStatus(matchId, status, plannerCount = 0) {
+            // VERBESSERT: Suche sowohl nach alten als auch neuen Card-IDs
+            const matchCards = document.querySelectorAll('.match-card');
+            matchCards.forEach(card => {
+                // Prüfe sowohl die alte Methode (match-id im Text) als auch die neue (data-match-id)
+                const cardMatchId = card.querySelector('.match-id')?.textContent?.replace('Match ', '') || 
+                                  card.dataset.matchId;
+                                  
+                if (cardMatchId == matchId) {
+                    console.log(`🔄 [DELIVERY_STATUS] Updating delivery status for match ${matchId} to ${status}`);
+                    
+                    const existingIndicator = card.querySelector('.delivery-status');
+                    if (existingIndicator) {
+                        existingIndicator.remove();
+                    }
+                    
+                    const deliveryIndicator = document.createElement('div');
+                    deliveryIndicator.className = 'delivery-status';
+                    
+                    let statusHTML = '';
+                    let statusStyle = '';
+                    
+                    switch (status) {
+                        case 'delivered':
+                            statusHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: #38a169; font-size: 16px;">✅</span>
+                                    <span style="color: #38a169; font-weight: bold; font-size: 12px;">
+                                        ${plannerCount > 1 ? `${plannerCount} Planner bestätigt` : 'Planner bestätigt'}
+                                    </span>
+                                    <span style="color: #38a169; font-size: 10px;">
+                                        ${new Date().toLocaleTimeString()}
+                                    </span>
+                                </div>
+                            `;
+                            statusStyle = 'background: #c6f6d5; border: 2px solid #9ae6b4; color: #22543d;';
+                            break;
+                            
+                        case 'pending':
+                            statusHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="loading-spinner" style="width: 12px; height: 12px; border-width: 2px;"></div>
+                                    <span style="color: #2b6cb0; font-weight: bold; font-size: 12px;">
+                                        Warte auf Planner-Bestätigung...
+                                    </span>
+                                    <span style="color: #2b6cb0; font-size: 10px;">
+                                        Card: ${card.id || 'legacy'}
+                                    </span>
+                                </div>
+                            `;
+                            statusStyle = 'background: #bee3f8; border: 2px solid #90cdf4; color: #2b6cb0;';
+                            break;
+                            
+                        case 'failed':
+                            statusHTML = `
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="color: #c53030; font-size: 16px;">❌</span>
+                                    <span style="color: #c53030; font-weight: bold; font-size: 12px;">
+                                        Übertragung fehlgeschlagen
+                                    </span>
+                                    <button onclick="retryMatchUpdate('${matchId}')" style="margin-left: 8px; padding: 2px 8px; background: #c53030; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 10px;">
+                                        🔄 Wiederholen
+                                    </button>
+                                </div>
+                            `;
+                            statusStyle = 'background: #fed7d7; border: 2px solid #feb2b2; color: #c53030;';
+                            break;
+                    }
+                    
+                    deliveryIndicator.style.cssText = `
+                        ${statusStyle}
+                        padding: 8px 12px;
+                        border-radius: 8px;
+                        margin-top: 10px;
+                        font-size: 11px;
+                        animation: fadeIn 0.3s ease;
+                    `;
+                    
+                    deliveryIndicator.innerHTML = statusHTML;
+                    
+                    const matchHeader = card.querySelector('.match-header');
+                    if (matchHeader) {
+                        matchHeader.insertAdjacentElement('afterend', deliveryIndicator);
+                    }
+                    
+                    console.log(`✅ [DELIVERY_STATUS] Updated delivery status for card: ${card.id || 'legacy'}`);
+                }
+            });
+        }
+
+        window.retryMatchUpdate = function(matchId) {
+            const match = matches.find(m => (m.matchId || m.id) == matchId);
+            if (!match) {
+                return;
+            }
+            
+            showNotification(`🔄 Wiederhole Übertragung für Match ${matchId}...`, 'info');
+            updateMatchDeliveryStatus(matchId, 'pending');
+            
+            if (socket && socket.connected) {
+                socket.emit('retry-match-update', {
+                    tournamentId: tournamentId,
+                    matchId: matchId,
+                    timestamp: new Date().toISOString()
+                });
+            } else {
+                showNotification(`❌ Keine Verbindung zum Server für Wiederholung`, 'error');
+                updateMatchDeliveryStatus(matchId, 'failed');
+            }
+        };
+
+        async function loadGameRules() {
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/gamerules`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    gameRules = data.data;
+                } else {
+                    gameRules = tournamentClasses.map((tc, index) => ({
+                        id: index + 1,
+                        name: `${tc.name} Standard`,
+                        gamePoints: 501,
+                        setsToWin: 3,
+                        legsToWin: 3,
+                        legsPerSet: 5,
+                        maxSets: 5,
+                        maxLegsPerSet: 5,
+                        classId: tc.id,
+                        className: tc.name
+                    }));
+                }
+            } catch (error) {
+                gameRules = [
+                    { id: 1, name: 'Platin Standard', gamePoints: 501, setsToWin: 3, legsToWin: 3, classId: 1, className: 'Platin' },
+                    { id: 2, name: 'Gold Standard', gamePoints: 501, setsToWin: 3, legsToWin: 3, classId: 2, className: 'Gold' },
+                    { id: 3, name: 'Silber Standard', gamePoints: 501, setsToWin: 3, legsToWin: 3, classId: 3, className: 'Silber' },
+                    { id: 4, name: 'Bronze Standard', gamePoints: 501, setsToWin: 3, legsToWin: 3, classId: 4, className: 'Bronze' }
+                ];
+            }
+        }
+
+        function initializeSocket() {
+            socket = io({
+                transports: ['websocket', 'polling'],
+                timeout: 5000,
+                reconnectionAttempts: 3
+            });
+            
+            socket.on('connect', function() {
+                updateConnectionStatus(true);
+                joinTournament();
+            });
+
+            socket.on('disconnect', function() {
+                updateConnectionStatus(false);
+            });
+
+            socket.on('tournament-joined', function(data) {
+                if (data.success) {
+                    currentTournament = data.tournament;
+                    updateTournamentInfo(currentTournament);
+                    
+                    if (data.tournament.classes && data.tournament.classes.length > 0) {
+                        tournamentClasses = data.tournament.classes;
+                        updateClassSelector();
+                    }
+                    
+                    if (data.tournament.gameRules && data.tournament.gameRules.length > 0) {
+                        gameRules = data.tournament.gameRules;
+                    }
+                    
+                    if (data.matches && data.matches.length > 0) {
+                        matches = data.matches;
+                        displayMatches(matches);
+                        updateClassMatchCounts();
+                    } else {
+                        socket.emit('get-tournament-matches', { tournamentId: tournamentId });
+                    }
+                } else {
+                    showNotification('Fehler beim Beitreten: ' + data.error, 'error');
+                }
+            });
+
+            socket.on('tournament-matches', function(data) {
+                if (data.success && data.matches) {
+                    matches = data.matches;
+                    displayMatches(matches);
+                } else {
+                    displayNoMatches('Fehler beim Laden der Matches: ' + data.error);
+                }
+            });
+
+            socket.on('match-result-updated', function(data) {
+                const matchIndex = matches.findIndex(m => m.matchId == data.matchId);
+                if (matchIndex !== -1) {
+                    matches[matchIndex] = { ...matches[matchIndex], ...data.result };
+                    displayMatches(matches);
+                    showNotification(`Match ${data.matchId} wurde aktualisiert!`, 'success');
+                }
+            });
+
+            socket.on('planner-match-acknowledged', function(data) {
+                const { matchId, plannerInfo } = data;
+                
+                if (plannerInfo && plannerInfo.plannerCount > 0) {
+                    showNotification(`✅ ${plannerInfo.plannerCount} Tournament Planner haben Match ${matchId} bestätigt!`, 'success');
+                } else {
+                    showNotification(`📬 Tournament Planner hat Match ${matchId} erhalten`, 'success');
+                }
+                
+                updateMatchDeliveryStatus(matchId, 'delivered', plannerInfo?.plannerCount || 1);
+            });
+
+            socket.on('planner-match-error', function(data) {
+                const { matchId, error } = data;
+                showNotification(`❌ Tournament Planner Fehler bei Match ${matchId}: ${error}`, 'error');
+                updateMatchDeliveryStatus(matchId, 'failed', 0);
+            });
+
+            socket.on('tournament-match-updated', function(data) {
+                const { matchId, result, deliveryStatus, plannerCount } = data;
+                
+                const matchIndex = matches.findIndex(m => (m.matchId || m.id) == matchId);
+                if (matchIndex !== -1) {
+                    matches[matchIndex] = { ...matches[matchIndex], ...result };
+                    matches[matchIndex].deliveryStatus = deliveryStatus || 'pending';
+                    matches[matchIndex].plannerCount = plannerCount || 0;
+                    matches[matchIndex].lastUpdated = new Date().toISOString();
+                    
+                    displayMatches(matches);
+                    
+                    if (deliveryStatus === 'delivered') {
+                        showNotification(`✅ Match ${matchId} aktualisiert und an ${plannerCount || 1} Planner übertragen!`, 'success');
+                    } else if (deliveryStatus === 'pending') {
+                        showNotification(`🔄 Match ${matchId} aktualisiert - warte auf Planner-Bestätigung...`, 'info');
+                    }
+                }
+            });
+
+            socket.on('matches-synced', function(data) {
+                setTimeout(() => {
+                    socket.emit('get-tournament-matches', { tournamentId: tournamentId });
+                }, 500);
+            });
+
+            socket.on('result-submitted', function(data) {
+                showNotification('Ergebnis erfolgreich übertragen!', 'success');
+                setTimeout(() => {
+                    socket.emit('get-tournament-matches', { tournamentId: tournamentId });
+                }, 1000);
+            });
+
+            socket.on('error', function(data) {
+                showNotification(data.message || 'Verbindungsfehler', 'error');
+            });
+        }
+
+        function joinTournament() {
+            if (socket && socket.connected && tournamentId) {
+                socket.emit('join-tournament', { tournamentId: tournamentId });
+            }
+        }
+
+        async function loadTournamentData() {
+            try {
+                const tournamentResponse = await fetch(`/api/tournaments/${tournamentId}`);
+                const tournamentData = await tournamentResponse.json();
+                
+                if (tournamentData.success && tournamentData.data) {
+                    currentTournament = tournamentData.data;
+                    updateTournamentInfo(currentTournament);
+                    document.title = `🎯 ${currentTournament.name} - Tournament Hub`;
+                } else {
+                    showNotification('Tournament nicht gefunden!', 'error');
+                    setTimeout(() => window.location.href = '/dashboard.html', 3000);
+                    return;
+                }
+                
+                await loadTournamentClasses();
+                await loadGameRules();
+                await loadMatches();
+                
+            } catch (error) {
+                showNotification('Verbindungsfehler beim Laden der Tournament-Daten', 'error');
+            }
+        }
+
+        async function loadTournamentClasses() {
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/classes`);
+                const data = await response.json();
+                
+                if (data.success && data.data && data.data.length > 0) {
+                    tournamentClasses = data.data;
+                    updateClassSelector();
+                } else {
+                    tournamentClasses = [
+                        { id: 1, name: 'Platin', playerCount: 0, groupCount: 0, matchCount: 0 },
+                        { id: 2, name: 'Gold', playerCount: 0, groupCount: 0, matchCount: 0 },
+                        { id: 3, name: 'Silber', playerCount: 0, groupCount: 0, matchCount: 0 },
+                        { id: 4, name: 'Bronze', playerCount: 0, groupCount: 0, matchCount: 0 }
+                    ];
+                    updateClassSelector();
+                }
+            } catch (error) {
+                tournamentClasses = [
+                    { id: 1, name: 'Platin', playerCount: 0, groupCount: 0, matchCount: 0 },
+                    { id: 2, name: 'Gold', playerCount: 0, groupCount: 0, matchCount: 0 },
+                    { id: 3, name: 'Silber', playerCount: 0, groupCount: 0, matchCount: 0 },
+                    { id: 4, name: 'Bronze', playerCount: 0, groupCount: 0, matchCount: 0 }
+                ];
+                updateClassSelector();
+            }
+        }
+
+        function updateClassSelector() {
+            const selector = document.getElementById('classSelector');
+            const select = document.getElementById('classSelect');
+            
+            if (tournamentClasses.length > 0) {
+                select.innerHTML = '<option value="">Alle Klassen</option>';
+                
+                tournamentClasses.forEach(cls => {
+                    const option = document.createElement('option');
+                    option.value = cls.id;
+                    
+                    const matchCount = matches.filter(m => (m.classId || m.ClassId) == cls.id).length;
+                    const playerInfo = (cls.playerCount || 0) > 0 ? `${cls.playerCount} Spieler` : 'Keine Spieler';
+                    const matchInfo = matchCount > 0 ? `${matchCount} Matches` : 'Keine Matches';
+                    
+                    option.textContent = `🏆 ${cls.name} (${playerInfo}, ${matchInfo})`;
+                    select.appendChild(option);
+                });
+                
+                selector.style.display = 'block';
+                setTimeout(() => updateClassMatchCounts(), 500);
+                
+            } else {
+                selector.style.display = 'none';
+            }
+        }
+        
+        function updateClassMatchCounts() {
+            const select = document.getElementById('classSelect');
+            
+            if (tournamentClasses.length > 0 && matches.length > 0) {
+                Array.from(select.options).forEach((option, index) => {
+                    if (index === 0) return;
+                    
+                    const classId = parseInt(option.value);
+                    const cls = tournamentClasses.find(c => c.id === classId);
+                    
+                    if (cls) {
+                        const matchCount = matches.filter(m => (m.classId || m.ClassId) == cls.id).length;
+                        const playerInfo = (cls.playerCount || 0) > 0 ? `${cls.playerCount} Spieler` : 'Keine Spieler';
+                        const matchInfo = matchCount > 0 ? `${matchCount} Matches` : 'Keine Matches';
+                        
+                        option.textContent = `🏆 ${cls.name} (${playerInfo}, ${matchInfo})`;
+                    }
+                });
+            }
+        }
+
+        async function loadMatches() {
+            try {
+                let matchesData = null;
+                
+                try {
+                    const classParam = currentClassId ? `?classId=${currentClassId}` : '';
+                    const response1 = await fetch(`/api/tournaments/${tournamentId}/matches${classParam}`);
+                    const data1 = await response1.json();
+                    if (data1.success && data1.data) {
+                        matchesData = data1.data;
+                    }
+                } catch (e) {
+                    // Fallback handling
+                }
+                
+                if (!matchesData) {
+                    try {
+                        const apiUrl = 'http://localhost:5000';
+                        const classParam = currentClassId ? `?classId=${currentClassId}` : '';
+                        const response2 = await fetch(`${apiUrl}/api/tournaments/${tournamentId}/matches${classParam}`);
+                        const data2 = await response2.json();
+                        if (data2.success && data2.data) {
+                            matchesData = data2.data;
+                        }
+                    } catch (e) {
+                        // Fallback handling
+                    }
+                }
+                
+                if (!matchesData && currentTournament && currentTournament.matches) {
+                    matchesData = currentTournament.matches;
+                    if (currentClassId) {
+                        matchesData = matchesData.filter(match => 
+                            (match.classId || match.ClassId) == currentClassId
+                        );
+                    }
+                }
+                
+                if (!matchesData && socket && socket.connected) {
+                    try {
+                        socket.emit('get-tournament-matches', { 
+                            tournamentId: tournamentId, 
+                            classId: currentClassId,
+                            filterByClass: !!currentClassId 
+                        });
+                        
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        
+                        if (matches && matches.length > 0) {
+                            matchesData = currentClassId ? 
+                                matches.filter(match => (match.classId || match.ClassId) == currentClassId) :
+                                matches;
+                        }
+                    } catch (e) {
+                        // Fallback handling
+                    }
+                }
+                
+                if (matchesData && matchesData.length > 0) {
+                    matches = matchesData;
+                    displayMatches(matches);
+                } else {
+                    const selectedClassName = currentClassId 
+                        ? tournamentClasses.find(c => c.id == currentClassId)?.name || `Klasse ${currentClassId}`
+                        : 'Alle Klassen';
+                    displayNoMatches(`Keine Matches für ${selectedClassName} gefunden`);
+                }
+                
+            } catch (error) {
+                displayNoMatches('Fehler beim Laden der Matches: ' + error.message);
+            }
+        }
+
+        function createMatchCard(match) {
+            const canSubmitResult = match.status !== 'Finished' && match.status !== 'finished';
+            
+            // VERBESSERT: Robuste Extraktion aller Match-spezifischen Daten
+            console.log(`🎯 [CREATE_CARD] Creating match card for:`, {
+                matchId: match.matchId || match.id || match.Id,
+                classId: match.classId || match.ClassId,
+                className: match.className || match.ClassName,
+                groupName: match.groupName || match.GroupName,
+                player1: match.player1 || match.Player1,
+                player2: match.player2 || match.Player2
+            });
+            
+            // Handle different player name formats
+            let player1Name = 'Spieler 1';
+            let player2Name = 'Spieler 2';
+            
+            if (match.player1) {
+                if (typeof match.player1 === 'string') {
+                    player1Name = match.player1;
+                } else if (match.player1.name) {
+                    player1Name = match.player1.name;
+                } else if (match.player1.Name) {
+                    player1Name = match.player1.Name;
+                }
+            } else if (match.Player1) {
+                if (typeof match.Player1 === 'string') {
+                    player1Name = match.Player1;
+                } else if (match.Player1.Name) {
+                    player1Name = match.Player1.Name;
+                }
+            }
+            
+            if (match.player2) {
+                if (typeof match.player2 === 'string') {
+                    player2Name = match.player2;
+                } else if (match.player2.name) {
+                    player2Name = match.player2.name;
+                } else if (match.player2.Name) {
+                    player2Name = match.player2.Name;
+                }
+            } else if (match.Player2) {
+                if (typeof match.Player2 === 'string') {
+                    player2Name = match.Player2;
+                } else if (match.Player2.Name) {
+                    player2Name = match.Player2.Name;
+                }
+            }
+            
+            const matchId = match.matchId || match.id || match.Id || match.Match?.Id || 'Unknown';
+            const p1Sets = match.player1Sets || match.Player1Sets || match.Player1?.Sets || 0;
+            const p2Sets = match.player2Sets || match.Player2Sets || match.Player2?.Sets || 0;
+            const p1Legs = match.player1Legs || match.Player1Legs || match.Player1?.Legs || 0;
+            const p2Legs = match.player2Legs || match.Player2Legs || match.Player2?.Legs || 0;
+            const notes = match.notes || match.Notes || '';
+            const status = match.status || match.Status || 'NotStarted';
+            const matchType = match.matchType || match.MatchType || 'Group';
+            
+            // KRITISCH: Klassen-ID DIREKT aus dem Match extrahieren, NIE von currentClassId
+            const classId = match.classId || match.ClassId || 1;
+            
+            // VERBESSERT: Robuste Klassen-Name-Extraktion
+            let className = match.className || match.ClassName || null;
+            if (!className) {
+                const foundClass = tournamentClasses.find(c => c.id == classId);
+                className = foundClass?.name || `Klasse ${classId}`;
+            }
+            
+            // KRITISCH: Gruppen-Information DIREKT aus dem Match extrahieren
+            const groupName = match.groupName || match.GroupName || null;
+            const groupId = match.groupId || match.GroupId || null;
+            
+            // 🚨 NEUE LÖSUNG: Erstelle eine EINDEUTIGE ID für diese spezifische Match-Card
+            // Kombination aus matchId, classId, groupId und Player-Namen für absolute Eindeutigkeit
+            const uniqueCardId = `match_${matchId}_class_${classId}_group_${groupId || 'nogroup'}_${player1Name.replace(/\s+/g, '')}_${player2Name.replace(/\s+/g, '')}`;
+            console.log(`🆔 [CREATE_CARD] Generated unique card ID: ${uniqueCardId}`);
+            
+            // WICHTIG: Warnung falls Default-Werte verwendet werden
+            if (classId === 1 && className.includes('Klasse 1') && !match.classId && !match.ClassId) {
+                console.warn(`⚠️ [CREATE_CARD] Match ${matchId}: Using fallback class data - verify correctness!`);
+            }
+            
+            console.log(`📊 [CREATE_CARD] Final match data for card - Match ${matchId}:`);
+            console.log(`   📚 Class: "${className}" (ID: ${classId}) - FROM MATCH: ${match.classId || match.ClassId || 'FALLBACK'}`);
+            console.log(`   📋 Group: "${groupName || 'No Group'}" (ID: ${groupId || 'No ID'}) - FROM MATCH: ${match.groupName || match.GroupName || 'NONE'}`);
+            console.log(`   👥 Players: "${player1Name}" vs "${player2Name}"`);
+            console.log(`   🆔 Unique Card ID: ${uniqueCardId}`);
+            
+            // Get game rules for this match
+            let gameRule = null;
+            
+            if (match.gameRules && typeof match.gameRules === 'object') {
+                gameRule = match.gameRules;
+            } else if (match.GameRules && typeof match.GameRules === 'object') {
+                gameRule = match.GameRules;
+            }
+            
+            if (!gameRule) {
+                const gameRulesId = match.gameRulesId || match.GameRulesId || match.gameRuleId || match.GameRuleId;
+                if (gameRulesId) {
+                    gameRule = gameRules.find(gr => gr.id === gameRulesId || gr.Id === gameRulesId);
+                }
+            }
+            
+            if (!gameRule && classId) {
+                gameRule = gameRules.find(gr => (gr.classId || gr.ClassId) === classId);
+                
+                if (!gameRule) {
+                    const classSpecificRule = gameRules.find(gr => 
+                        (gr.className || gr.ClassName || '').toLowerCase() === className.toLowerCase()
+                    );
+                    if (classSpecificRule) {
+                        gameRule = classSpecificRule;
+                    }
+                }
+            }
+            
+            if (!gameRule && className) {
+                gameRule = gameRules.find(gr => 
+                    (gr.className || gr.ClassName || '').toLowerCase() === className.toLowerCase() ||
+                    (gr.name || gr.Name || '').toLowerCase().includes(className.toLowerCase())
+                );
+            }
+            
+            if (!gameRule && currentClassId) {
+                gameRule = gameRules.find(gr => (gr.classId || gr.ClassId) == currentClassId);
+            }
+            
+            if (!gameRule) {
+                if (gameRules.length > 0) {
+                    gameRule = gameRules[0];
+                } else {
+                    gameRule = {
+                        id: classId || 1,
+                        name: `${className} Standard`,
+                        gamePoints: 501,
+                        setsToWin: 3,
+                        legsToWin: 3,
+                        legsPerSet: 5,
+                        maxSets: 5,
+                        maxLegsPerSet: 5,
+                        playWithSets: true,
+                        gameMode: '501',
+                        finishMode: 'DoubleOut',
+                        classId: classId,
+                        className: className
+                    };
+                }
+            }
+            
+            const maxSets = gameRule.maxSets || gameRule.setsToWin * 2 - 1 || 5;
+            const maxLegs = gameRule.maxLegsPerSet || gameRule.legsPerSet || 5;
+            const setsToWin = gameRule.setsToWin || 3;
+            const legsToWin = gameRule.legsToWin || 3;
+            const gamePoints = gameRule.gamePoints || 501;
+            const playWithSets = gameRule.playWithSets !== false;
+            const gameMode = gameRule.gameMode || gameRule.GameMode || '501';
+            const finishMode = gameRule.finishMode || gameRule.FinishMode || 'DoubleOut';
+
+            const matchTypeIndicator = {
+                'Group': '🔸 Gruppe',
+                'Finals': '🏆 Finale',
+                'Knockout-WB': '⚡ K.O. Winner',
+                'Knockout-LB': '🔄 K.O. Loser'
+            };
+            
+            const getMatchTypeDisplay = (type) => {
+                for (const [key, display] of Object.entries(matchTypeIndicator)) {
+                    if (type.startsWith(key)) {
+                        return display + (type.includes('-') ? ` (${type.split('-')[2] || ''})` : '' );
+                    }
+                }
+                return '🎯 ' + type;
+            };
+            
+            const classColors = {
+                1: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)', // Platin
+                2: 'linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%)', // Gold
+                3: 'linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)', // Silber
+                4: 'linear-gradient(135deg, #92400E 0%, #D97706 100%)'  // Bronze
+            };
+            
+            const classColor = classColors[classId] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+
+            return `
+                <div class="match-card" 
+                     id="${uniqueCardId}"
+                     data-match-id="${matchId}" 
+                     data-class-id="${classId}" 
+                     data-class-name="${className}" 
+                     data-group-name="${groupName || ''}" 
+                     data-group-id="${groupId || ''}"
+                     data-player1="${player1Name}"
+                     data-player2="${player2Name}"
+                     data-unique-card-id="${uniqueCardId}">
+                    <div class="match-header">
+                        <div class="match-id">Match ${matchId}</div>
+                        <div class="match-status status-${status.toLowerCase()}">
+                            ${getStatusText(status)}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 15px; padding: 12px; background: ${classColor}; color: white; border-radius: 8px; font-size: 1em; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative; overflow: hidden;">
+                        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.1); backdrop-filter: blur(1px);"></div>
+                        <div style="position: relative; z-index: 1;">
+                            🏆 ${className}
+                            <div style="font-size: 0.85em; margin-top: 4px; opacity: 0.95;">
+                                ${getMatchTypeDisplay(matchType)}
+                            </div>
+                            ${groupName ? `<div style="font-size: 0.8em; margin-top: 2px; opacity: 0.9;">📋 ${groupName}</div>` : ''}
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 15px; padding: 15px; background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%); border: 2px solid #b3d9ff; border-radius: 10px; font-size: 0.95em; color: #2b6cb0; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                            🎮 <strong style="font-size: 1.1em;">${gameRule.name || 'Standard Regeln'}</strong>
+                            <span style="background: #3182ce; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold;">${className}</span>
+                        </div>
+                        <div style="font-size: 0.9em; color: #4a90b8; display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-bottom: 6px;">
+                            <span title="Spielmodus & Punkte">🎯 ${gamePoints} ${gameMode}</span>
+                            ${playWithSets ? `<span title="Sets zum Sieg" style="font-weight: bold;">🏆 ${setsToWin} Sets</span>` : '' }
+                            <span title="Legs zum Sieg" style="font-weight: bold;">📊 ${legsToWin} Legs</span>
+                            <span title="Finish-Modus">🏁 ${finishMode}</span>
+                        </div>
+                        ${!playWithSets ? `<div style="font-size: 0.85em; color: #e68900; margin-top: 6px; font-weight: bold; padding: 4px 8px; background: rgba(230,137,0,0.1); border-radius: 6px;">⚠️ NUR LEGS (keine Sets)</div>` : '' }
+                    </div>
+                    
+                    <div class="players">
+                        <div class="player-row">
+                            <div class="player-name">${player1Name}</div>
+                            <div class="player-scores">
+                                ${playWithSets ? `
+                                    <div class="score-item">
+                                        <span class="score-label">Sets</span>
+                                        <span class="score-value">${p1Sets}</span>
+                                    </div>
+                                ` : '' }
+                                <div class="score-item">
+                                    <span class="score-label">Legs</span>
+                                    <span class="score-value">${p1Legs}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="player-row">
+                            <div class="player-name">${player2Name}</div>
+                            <div class="player-scores">
+                                ${playWithSets ? `
+                                    <div class="score-item">
+                                        <span class="score-label">Sets</span>
+                                        <span class="score-value">${p2Sets}</span>
+                                    </div>
+                                ` : '' }
+                                <div class="score-item">
+                                    <span class="score-label">Legs</span>
+                                    <span class="score-value">${p2Legs}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${canSubmitResult ? `
+                        <div class="result-form">
+                            <h4 style="margin-bottom: 15px; color: #4a5568;">🎯 Ergebnis eingeben für: ${gameRule.name}</h4>
+                            
+                            ${playWithSets ? `
+                                <div class="form-row">
+                                    <div class="input-group">
+                                        <label>${player1Name} - Sets (max ${maxSets}, benötigt: ${setsToWin})</label>
+                                        <input type="number" min="0" max="${maxSets}" value="${p1Sets}" 
+                                               id="p1Sets_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
+                                               title="Sets für ${player1Name} (${setsToWin} Sets zum Sieg)">
+                                    </div>
+                                    <div class="input-group">
+                                        <label>${player2Name} - Sets (max ${maxSets}, benötigt: ${setsToWin})</label>
+                                        <input type="number" min="0" max="${maxSets}" value="${p2Sets}" 
+                                               id="p2Sets_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
+                                               title="Sets für ${player2Name} (${setsToWin} Sets zum Sieg)">
+                                    </div>
+                                </div>
+                            ` : `
+                                <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; border: 1px solid #ffeaa7;">
+                                    <strong>📊 NUR LEGS-MODUS:</strong> Dieses Match verwendet die Regel "${gameRule.name}" - nur Legs werden gezählt (keine Sets)
+                                </div>
+                            `}
+
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label>${player1Name} - Legs${playWithSets ? ` (max ${maxLegs}/Set)` : ` (benötigt: ${legsToWin})`}</label>
+                                    <input type="number" min="0" max="${playWithSets ? maxLegs : 99}" value="${p1Legs}" 
+                                           id="p1Legs_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
+                                           title="Legs für ${player1Name} (${legsToWin} Legs zum Sieg)">
+                                </div>
+                                <div class="input-group">
+                                    <label>${player2Name} - Legs${playWithSets ? ` (max ${maxLegs}/Set)` : ` (benötigt: ${legsToWin})`}</label>
+                                    <input type="number" min="0" max="${playWithSets ? maxLegs : 99}" value="${p2Legs}" 
+                                           id="p2Legs_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
+                                           title="Legs für ${player2Name} (${legsToWin} Legs zum Sieg)">
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label>Notizen (optional)</label>
+                                <textarea rows="2" placeholder="Match-Details, besondere Ereignisse..." 
+                                         id="notes_${uniqueCardId}">${notes}</textarea>
+                            </div>
+
+                            <div id="validationMessage_${uniqueCardId}" style="display: none; padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9em; font-weight: bold;"></div>
+
+                            <button class="submit-button" onclick="submitResultFromCard('${uniqueCardId}')" 
+                                    id="submitBtn_${uniqueCardId}">
+                                🎯 Ergebnis übertragen (${gameRule.name})
+                            </button>
+
+                            <div class="message" id="message_${uniqueCardId}"></div>
+                        </div>
+                    ` : `
+                        <div style="text-align: center; padding: 20px; background: #f0f8ff; border-radius: 10px; margin-top: 15px; border: 2px solid #e6f3ff;">
+                            <strong style="color: #2b6cb0; font-size: 1.1em;">✅ Match abgeschlossen</strong>
+                            <div style="margin-top: 8px; color: #4a90b8; font-size: 0.9em;">
+                                Regeln: ${gameRule.name} • Klasse: ${className}
+                            </div>
+                            ${notes ? `<p style="margin-top: 12px; font-size: 0.9em; color: #666; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px;">"${notes}"</p>` : '' }
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

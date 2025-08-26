@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartTournamentPlaner", "DartTournamentPlaner\DartTournamentPlaner.csproj", "{C3B65A33-40D6-41D6-A739-8A5F1A5C2F24}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DartTournamentPlaner.API", "DartTournamentPlaner.API\DartTournamentPlaner.API.csproj", "{40687A51-E19C-45A0-98C7-C883FB7B7CFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{C3B65A33-40D6-41D6-A739-8A5F1A5C2F24}.Release|x64.Build.0 = Release|Any CPU
 		{C3B65A33-40D6-41D6-A739-8A5F1A5C2F24}.Release|x86.ActiveCfg = Release|Any CPU
 		{C3B65A33-40D6-41D6-A739-8A5F1A5C2F24}.Release|x86.Build.0 = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|x64.Build.0 = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Debug|x86.Build.0 = Debug|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|x64.ActiveCfg = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|x64.Build.0 = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|x86.ActiveCfg = Release|Any CPU
+		{40687A51-E19C-45A0-98C7-C883FB7B7CFE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -16,6 +16,7 @@ public partial class App : Application
     public static LocalizationService? LocalizationService { get; private set; }
     public static DataService? DataService { get; private set; }
     public static UpdateService? UpdateService { get; private set; }
+    public static IApiIntegrationService? ApiIntegrationService { get; private set; }
 
     /// <summary>
     /// Global event that fires when the application language changes
@@ -36,6 +37,7 @@ public partial class App : Application
             LocalizationService = new LocalizationService();
             DataService = new DataService();
             UpdateService = new UpdateService(LocalizationService);
+            ApiIntegrationService = new ApiIntegrationService();
 
             // Set static reference in Match and KnockoutMatch for localization
             Match.LocalizationService = LocalizationService;
@@ -298,6 +300,13 @@ public partial class App : Application
         {
             System.Diagnostics.Debug.WriteLine("App.OnExit: Cleaning up services");
             
+            // Stop API if running
+            if (ApiIntegrationService?.IsApiRunning == true)
+            {
+                System.Diagnostics.Debug.WriteLine("App.OnExit: Stopping API service");
+                _ = Task.Run(async () => await ApiIntegrationService.StopApiAsync());
+            }
+
             UpdateService?.Dispose();
             
             System.Diagnostics.Debug.WriteLine("App.OnExit: Cleanup completed");

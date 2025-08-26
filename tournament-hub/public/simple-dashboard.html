@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTTP-Only Tournament Hub</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1000px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .card { 
+            background: rgba(255,255,255,0.95); 
+            color: #333;
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        button { 
+            background: #007acc; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+        }
+        button:hover { background: #005999; }
+        .result { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .status { 
+            padding: 8px 16px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            display: inline-block; 
+            margin: 5px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.loading { background: #fff3cd; color: #856404; }
+        h1 { text-align: center; font-size: 2.5rem; margin-bottom: 10px; }
+        .subtitle { text-align: center; opacity: 0.8; margin-bottom: 40px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .stat-card { background: white; padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 2rem; font-weight: bold; color: #007acc; }
+        .stat-label { font-size: 0.9rem; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Tournament Hub</h1>
+    <p class="subtitle">HTTP-Only Dashboard (SSL-Problem gelöst)</p>
+    
+    <div class="card">
+        <h2>📊 Server Status</h2>
+        <div class="status loading" id="serverStatus">🔄 Prüfe...</div>
+        <button id="checkStatusBtn">Status prüfen</button>
+        <div id="statusResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="card">
+        <h2>🏆 Turniere</h2>
+        <div class="status loading" id="tournamentsStatus">🔄 Lade...</div>
+        <button id="loadTournamentsBtn">Turniere laden</button>
+        <div id="tournamentsResult" class="result" style="display:none;"></div>
+        
+        <div id="tournamentsGrid" class="stats-grid" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="card">
+        <h2>🛠️ Quick Actions</h2>
+        <button id="testRegistrationBtn">Test-Turnier registrieren</button>
+        <button onclick="window.location.href='/test'">HTTP-Test Seite</button>
+        <button onclick="window.location.href='/health'">Health Check</button>
+        <button onclick="window.location.href='/api/status'">Raw API</button>
+    </div>
+
+    <script>
+        // Prevent any HTTPS calls
+        const baseUrl = window.location.protocol + '//' + window.location.host;
+        console.log('🌐 Base URL:', baseUrl);
+
+        // Status check
+        document.getElementById('checkStatusBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('serverStatus');
+            const resultEl = document.getElementById('statusResult');
+            
+            statusEl.textContent = '🔄 Prüfe Server...';
+            statusEl.className = 'status loading';
+            resultEl.style.display = 'none';
+            
+            try {
+                const response = await fetch(baseUrl + '/api/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.textContent = '✅ Server online';
+                    statusEl.className = 'status success';
+                    resultEl.innerHTML = `
+                        <strong>Server Status:</strong> ${data.status}<br>
+                        <strong>Uptime:</strong> ${Math.floor(data.statistics.uptime/3600)}h ${Math.floor((data.statistics.uptime%3600)/60)}m<br>
+                        <strong>Turniere:</strong> ${data.tournaments.length}<br>
+                        <strong>Verbindungen:</strong> ${data.statistics.totalConnections}<br>
+                        <strong>Base URL:</strong> ${data.baseUrl}
+                    `;
+                    resultEl.style.display = 'block';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Fehler: ' + error.message;
+                statusEl.className = 'status error';
+                resultEl.innerHTML = `Error: ${error.message}`;
+                resultEl.style.display = 'block';
+            }
+        });
+
+        // Load tournaments
+        document.getElementById('loadTournamentsBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('tournamentsStatus');
+            const resultEl = document.getElementById('tournamentsResult');
+            const gridEl = document.getElementById('tournamentsGrid');
+            
+            statusEl.textContent = '🔄 Lade Turniere...';
+            statusEl.className = 'status loading';
+            resultEl.style.display = 'none';
+            gridEl.innerHTML = '';
+            
+            try {
+                const response = await fetch(baseUrl + '/api/tournaments');
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusEl.textContent = `✅ ${data.data.length} Turniere gefunden`;
+                    statusEl.className = 'status success';
+                    
+                    if (data.data.length > 0) {
+                        resultEl.innerHTML = JSON.stringify(data.data, null, 2);
+                        resultEl.style.display = 'block';
+                        
+                        // Display tournament cards
+                        gridEl.innerHTML = data.data.map(t => `
+                            <div class="stat-card">
+                                <div class="stat-value">${t.name}</div>
+                                <div class="stat-label">ID: ${t.id}</div>
+                                <div class="stat-label">📍 ${t.location}</div>
+                                <div class="stat-label">👥 ${t.connectedClients || 0} Clients</div>
+                                <button onclick="window.open('${baseUrl}/join/${t.id}', '_blank')" style="margin-top: 10px;">🎯 Beitreten</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        gridEl.innerHTML = '<div style="text-align: center; color: #666; grid-column: 1/-1;">Keine Turniere registriert</div>';
+                    }
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                statusEl.textContent = '❌ Fehler: ' + error.message;
+                statusEl.className = 'status error';
+                resultEl.innerHTML = `Error: ${error.message}`;
+                resultEl.style.display = 'block';
+            }
+        });
+
+        // Test registration
+        document.getElementById('testRegistrationBtn').addEventListener('click', async () => {
+            try {
+                const tournamentId = 'HTTP_TEST_' + Date.now();
+                const response = await fetch(baseUrl + '/api/tournaments/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tournamentId: tournamentId,
+                        name: 'HTTP Test Tournament',
+                        description: 'Test via HTTP-Only Dashboard',
+                        location: 'HTTP Test Location'
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Test-Turnier registriert!\n\nID: ${tournamentId}\nJoin URL: ${data.data.joinUrl}`);
+                    // Auto-refresh tournaments
+                    document.getElementById('loadTournamentsBtn').click();
+                } else {
+                    alert('❌ Registrierung fehlgeschlagen: ' + data.error);
+                }
+            } catch (error) {
+                alert('❌ Fehler: ' + error.message);
+            }
+        });
+
+        // Auto-load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('checkStatusBtn').click();
+            document.getElementById('loadTournamentsBtn').click();
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            document.getElementById('checkStatusBtn').click();
+            document.getElementById('loadTournamentsBtn').click();
+        }, 30000);
+    </script>
+</body>
+</html>
