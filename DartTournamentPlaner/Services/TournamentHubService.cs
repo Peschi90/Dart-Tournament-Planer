@@ -1017,8 +1017,9 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     setsToWin = tournamentClass.GameRules.SetsToWin,
                     legsToWin = tournamentClass.GameRules.LegsToWin,
                     legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                    playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
+                    maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
+                    maxLegsPerSet = tournamentClass.GameRules.LegsPerSet,
+                    playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
                     classId = tournamentClass.Id,
                     className = tournamentClass.Name,
                     matchType = "Group", // Standard für Gruppenphase
@@ -1027,9 +1028,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
 
                 // 🎮 ERWEITERT: Rundenspezifische Game Rules für verschiedene Phasen
                 
-                // Finals-spezifische Game Rules (falls vorhanden und anders als Standard)
+                // Finals-spezifische Game Rules (falls vorhanden)
                 if (tournamentClass.CurrentPhase?.FinalsGroup != null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Adding Finals-specific GameRules for {tournamentClass.Name}");
+                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals Rules - PlayWithSets: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin}");
+                    
                     gameRulesArray.Add(new
                     {
                         id = $"{tournamentClass.Id}_Finals",
@@ -1037,11 +1041,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                         gamePoints = tournamentClass.GameRules.GamePoints,
                         gameMode = tournamentClass.GameRules.GameMode.ToString(),
                         finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                        setsToWin = tournamentClass.GameRules.SetsToWin,
-                        legsToWin = tournamentClass.GameRules.LegsToWin,
-                        legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                        // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                        playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
+                        setsToWin = tournamentClass.GameRules.SetsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                        legsToWin = tournamentClass.GameRules.LegsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                        legsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                        maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
+                        maxLegsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                        playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne Logik-Modifikation
                         classId = tournamentClass.Id,
                         className = tournamentClass.Name,
                         matchType = "Finals",
@@ -1184,9 +1189,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 setsToWin = tournamentClass.GameRules.SetsToWin,
                                 legsToWin = tournamentClass.GameRules.LegsToWin,
                                 legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                                playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
-                                matchType = "Group"
+                                maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5), // 🚨 HINZUGEFÜGT
+                                maxLegsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 HINZUGEFÜGT
+                                playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
+                                matchType = "Group",
+                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT
+                                className = tournamentClass.Name // 🚨 HINZUGEFÜGT
                             }
                         });
                     }
@@ -1196,9 +1204,19 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 if (tournamentClass.CurrentPhase?.FinalsGroup != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"🏆 [API] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches");
+                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals GameRules - PlayWithSets: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin}");
+                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals GameRules - LegsToWin: {tournamentClass.GameRules.LegsToWin}, LegsPerSet: {tournamentClass.GameRules.LegsPerSet}");
                     
                     foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
                     {
+                        // 🚨 KORRIGIERT: Verwende die exakten GameRules-Werte vom Planer ohne Modifikation
+                        var finalsPlayWithSets = tournamentClass.GameRules.PlayWithSets;
+                        var finalsSetsToWin = tournamentClass.GameRules.SetsToWin;
+                        var finalsLegsToWin = tournamentClass.GameRules.LegsToWin;
+                        var finalsLegsPerSet = tournamentClass.GameRules.LegsPerSet;
+                        
+                        System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals Match {match.Id}: PlayWithSets={finalsPlayWithSets}, UsesSets={match.UsesSets}");
+                        
                         allMatches.Add(new
                         {
                             id = match.Id,
@@ -1225,12 +1243,16 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = tournamentClass.GameRules.SetsToWin,
-                                legsToWin = tournamentClass.GameRules.LegsToWin,
-                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                                playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
-                                matchType = "Finals"
+                                setsToWin = finalsSetsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                                legsToWin = finalsLegsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                                legsPerSet = finalsLegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                                maxSets = Math.Max(finalsSetsToWin * 2 - 1, 5), // Berechnet basierend auf exakten Werten
+                                maxLegsPerSet = finalsLegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
+                                playWithSets = finalsPlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
+                                matchType = "Finals",
+                                classId = tournamentClass.Id,
+                                className = tournamentClass.Name,
+                                isDefault = false
                             }
                         });
                     }

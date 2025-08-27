@@ -567,10 +567,18 @@ public class TournamentClass : INotifyPropertyChanged
             System.Diagnostics.Debug.WriteLine($"  Added player: {player.Name}");
         }
 
-        // KRITISCHER FIX: Generiere die Round Robin Matches für die Finals-Gruppe!
+        // KRITISCHER FIX: Generiere die Round Robin Matches für die Finals-Gruppe mit korrekten GameRules!
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generating Round Robin matches for {finalsGroup.Players.Count} players");
+        System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Using GameRules - PlayWithSets: {GameRules.PlayWithSets}, SetsToWin: {GameRules.SetsToWin}, LegsToWin: {GameRules.LegsToWin}");
+        
         finalsGroup.GenerateRoundRobinMatches(GameRules);
         System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generated {finalsGroup.Matches.Count} matches");
+        
+        // ZUSÄTZLICHE VALIDIERUNG: Überprüfe ob UsesSets korrekt gesetzt wurde
+        foreach (var match in finalsGroup.Matches)
+        {
+            System.Diagnostics.Debug.WriteLine($"  Finals Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}, UsesSets: {match.UsesSets}");
+        }
 
         // WICHTIG: Setze die Finals-Gruppe sowohl in der Phase als auch als QualifiedPlayers
         finalsPhase.FinalsGroup = finalsGroup;

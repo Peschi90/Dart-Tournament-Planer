@@ -401,6 +401,67 @@
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
+        
+        /* ✅ NEUE STILE: Für abgeschlossene Matches */
+        .match-completed {
+            background: linear-gradient(135deg, #f0fff4 0%, #e6fffa 100%) !important;
+            border: 2px solid #38a169 !important;
+        }
+        
+        .match-completed::before {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        }
+        
+        .match-completed .submit-button {
+            background: #38a169 !important;
+            cursor: not-allowed;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .badge-success {
+            background: #38a169;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #38a169 !important;
+            border-color: #38a169 !important;
+        }
+        
+        .delivery-status-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            z-index: 10;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        /* Animationen für Status-Updates */
+        .match-card {
+            transition: all 0.5s ease;
+        }
+        
+        .match-completed {
+            animation: completedPulse 2s ease-in-out;
+        }
+        
+        @keyframes completedPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>

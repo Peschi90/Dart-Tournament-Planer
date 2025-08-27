@@ -135,10 +135,65 @@ function initializeSocket() {
                     '✅ Match-Ergebnis erfolgreich übertragen!';
                 showNotification(message, 'success');
                 
+                // ✅ VERBESSERT: Mehrere Aktualisierungsstrategien für bessere UX
+                
+                // 1. Sofortige lokale Match-Aktualisierung wenn möglich
+                if (data.matchId && data.result) {
+                    console.log('🔄 Updating match locally with result:', data.result);
+                    updateMatchLocally(data.matchId, data.result);
+                }
+                
+                // 2. Kurze Verzögerung für Server-Sync, dann komplette Match-Liste aktualisieren
                 setTimeout(() => {
-                    console.log('🔄 Reloading matches after successful submission');
+                    console.log('🔄 Reloading all matches after successful submission');
                     loadMatches();
-                }, 1000);
+                }, 500);
+                
+                // 3. Zusätzliche Aktualisierung nach längerer Zeit für Sicherheit
+                setTimeout(() => {
+                    console.log('🔄 Final match list refresh to ensure consistency');
+                    loadMatches();
+                }, 2000);
+                
+                // 4. UI-Feedback: Zeige dass das Match als beendet markiert wurde
+                if (data.matchId) {
+                    updateMatchDeliveryStatus(data.matchId, 'confirmed');
+                    
+                    // Finde die entsprechende Card und aktualisiere sie visuell
+                    const matchCards = document.querySelectorAll(`[data-match-id="${data.matchId}"]`);
+                    matchCards.forEach(card => {
+                        // Markiere die Card als abgeschlossen
+                        card.classList.add('match-completed');
+                        
+                        // Disable Submit-Button
+                        const submitBtn = card.querySelector('[id^="submitBtn_"]');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.innerHTML = '✅ Ergebnis übertragen';
+                            submitBtn.classList.add('btn-success');
+                        }
+                        
+                        // Zeige Status-Indikator
+                        const statusDiv = card.querySelector('.match-status') || 
+                                         card.querySelector('.card-header') || 
+                                         card.firstElementChild;
+                        if (statusDiv) {
+                            const statusBadge = document.createElement('span');
+                            statusBadge.className = 'badge badge-success';
+                            statusBadge.innerHTML = '✅ Beendet';
+                            statusBadge.style.cssText = `
+                                background: #28a745; 
+                                color: white; 
+                                padding: 4px 8px; 
+                                border-radius: 12px; 
+                                font-size: 12px; 
+                                margin-left: 8px;
+                            `;
+                            statusDiv.appendChild(statusBadge);
+                        }
+                    });
+                }
+                
             } catch (error) {
                 console.error('❌ Error processing result submission confirmation:', error);
             }
@@ -419,3 +474,156 @@ function extractGameRulesFromMatches(matchesArray) {
         return [];
     }
 }
+
+// Make functions globally accessible
+window.loadTournamentData = loadTournamentData;
+window.loadMatches = loadMatches;
+window.loadTournamentClasses = loadTournamentClasses;
+window.extractGameRulesFromMatches = extractGameRulesFromMatches;
+
+// 🚨 NEUE FUNKTION: Lokale Match-Aktualisierung für sofortiges Feedback
+function updateMatchLocally(matchId, resultData) {
+    try {
+        console.log(`🔄 [LOCAL_UPDATE] Updating match ${matchId} locally with:`, resultData);
+        
+        // Finde das Match im globalen Array
+        const matchIndex = window.matches.findIndex(m => {
+            const mId = m.matchId || m.id || m.Id;
+            return mId == matchId;
+        });
+        
+        if (matchIndex !== -1) {
+            const match = window.matches[matchIndex];
+            
+            // Update match properties
+            if (resultData.player1Sets !== undefined) match.player1Sets = resultData.player1Sets;
+            if (resultData.player2Sets !== undefined) match.player2Sets = resultData.player2Sets;
+            if (resultData.player1Legs !== undefined) match.player1Legs = resultData.player1Legs;
+            if (resultData.player2Legs !== undefined) match.player2Legs = resultData.player2Legs;
+            if (resultData.status !== undefined) match.status = resultData.status;
+            if (resultData.notes !== undefined) match.notes = resultData.notes;
+            
+            // Determine winner
+            if (resultData.status === 'Finished') {
+                const p1Total = (match.player1Sets || 0) + (match.player1Legs || 0);
+                const p2Total = (match.player2Sets || 0) + (match.player2Legs || 0);
+                
+                if (p1Total > p2Total) {
+                    match.winner = match.player1;
+                } else if (p2Total > p1Total) {
+                    match.winner = match.player2;
+                }
+                
+                match.endTime = new Date().toISOString();
+            }
+            
+            console.log(`✅ [LOCAL_UPDATE] Match ${matchId} updated locally:`, match);
+            
+            // Trigger a re-display of the specific match if visible
+            refreshMatchCard(matchId);
+            
+        } else {
+            console.warn(`⚠️ [LOCAL_UPDATE] Match ${matchId} not found in local matches array`);
+        }
+        
+    } catch (error) {
+        console.error(`❌ [LOCAL_UPDATE] Error updating match ${matchId} locally:`, error);
+    }
+}
+
+// 🚨 NEUE FUNKTION: Refresh einer spezifischen Match-Card
+function refreshMatchCard(matchId) {
+    try {
+        console.log(`🔄 [CARD_REFRESH] Refreshing match card for match ${matchId}`);
+        
+        // Finde alle Cards für diese Match
+        const matchCards = document.querySelectorAll(`[data-match-id="${matchId}"]`);
+        
+        matchCards.forEach(card => {
+            // Extrahiere die ursprünglichen Daten
+            const match = window.matches.find(m => {
+                const mId = m.matchId || m.id || m.Id;
+                return mId == matchId;
+            });
+            
+            if (match && match.status === 'Finished') {
+                // Update Card-Darstellung für beendetes Match
+                card.classList.add('match-completed');
+                
+                // Update Score-Display
+                const scoreElement = card.querySelector('.score-display, .match-score');
+                if (scoreElement && match.player1Legs !== undefined && match.player2Legs !== undefined) {
+                    const scoreText = match.player1Sets !== undefined && match.player2Sets !== undefined ?
+                        `${match.player1Sets}:${match.player2Sets} (${match.player1Legs}:${match.player2Legs})` :
+                        `${match.player1Legs}:${match.player2Legs}`;
+                    scoreElement.textContent = scoreText;
+                }
+                
+                // Update Status
+                const statusElement = card.querySelector('.match-status');
+                if (statusElement) {
+                    statusElement.textContent = 'Beendet';
+                    statusElement.className = 'match-status status-finished';
+                }
+                
+                console.log(`✅ [CARD_REFRESH] Match card ${matchId} refreshed as completed`);
+            }
+        });
+        
+    } catch (error) {
+        console.error(`❌ [CARD_REFRESH] Error refreshing match card ${matchId}:`, error);
+    }
+}
+
+// 🚨 NEUE FUNKTION: Match Delivery Status Update
+function updateMatchDeliveryStatus(matchId, status) {
+    try {
+        console.log(`📊 [DELIVERY_STATUS] Updating delivery status for match ${matchId}: ${status}`);
+        
+        const matchCards = document.querySelectorAll(`[data-match-id="${matchId}"]`);
+        
+        matchCards.forEach(card => {
+            let statusIndicator = card.querySelector('.delivery-status-indicator');
+            
+            if (!statusIndicator) {
+                statusIndicator = document.createElement('div');
+                statusIndicator.className = 'delivery-status-indicator';
+                statusIndicator.style.cssText = `
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 50%;
+                    z-index: 10;
+                `;
+                card.style.position = 'relative';
+                card.appendChild(statusIndicator);
+            }
+            
+            // Update indicator based on status
+            switch (status) {
+                case 'pending':
+                    statusIndicator.style.backgroundColor = '#ffc107';
+                    statusIndicator.title = 'Wird übertragen...';
+                    break;
+                case 'confirmed':
+                    statusIndicator.style.backgroundColor = '#28a745';
+                    statusIndicator.title = 'Erfolgreich übertragen';
+                    break;
+                case 'error':
+                    statusIndicator.style.backgroundColor = '#dc3545';
+                    statusIndicator.title = 'Übertragungsfehler';
+                    break;
+            }
+        });
+        
+    } catch (error) {
+        console.error(`❌ [DELIVERY_STATUS] Error updating delivery status:`, error);
+    }
+}
+
+// Make new functions globally accessible
+window.updateMatchLocally = updateMatchLocally;
+window.refreshMatchCard = refreshMatchCard;
+window.updateMatchDeliveryStatus = updateMatchDeliveryStatus;

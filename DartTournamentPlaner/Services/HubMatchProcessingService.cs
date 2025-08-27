@@ -67,6 +67,12 @@ public class HubMatchProcessingService
             {
                 debugWindow?.AddDebugMessage($"🔧 Updating KnockoutMatch: {matchResult.KnockoutMatch.Id}", "MATCH");
                 wasUpdated = UpdateKnockoutMatch(matchResult.KnockoutMatch, e);
+                
+                // 🚨 WICHTIG: Zusätzliches Logging für KnockoutMatch-Updates
+                if (wasUpdated && matchResult.KnockoutMatch.Status == MatchStatus.Finished)
+                {
+                    debugWindow?.AddDebugMessage($"🎯 KnockoutMatch {matchResult.KnockoutMatch.Id} finished via Hub - progression should be triggered", "MATCH_RESULT");
+                }
             }
 
             if (wasUpdated)
@@ -328,6 +334,9 @@ public class HubMatchProcessingService
                 return false;
             }
 
+            // Speichere alten Status für Vergleich
+            var oldStatus = knockoutMatch.Status;
+
             // Aktualisiere KnockoutMatch-Daten
             knockoutMatch.Player1Sets = hubData.Player1Sets;
             knockoutMatch.Player2Sets = hubData.Player2Sets;
@@ -353,6 +362,41 @@ public class HubMatchProcessingService
             knockoutMatch.SetResult(knockoutMatch.Player1Sets, knockoutMatch.Player2Sets, knockoutMatch.Player1Legs, knockoutMatch.Player2Legs);
             
             debugWindow?.AddDebugMessage($"   Winner determined: {knockoutMatch.Winner?.Name ?? "None"}", "INFO");
+
+            // 🚨 KRITISCH: Wenn das Match jetzt finished ist und vorher nicht, triggere die Progression!
+            if (knockoutMatch.Status == MatchStatus.Finished && oldStatus != MatchStatus.Finished && knockoutMatch.Winner != null)
+            {
+                debugWindow?.AddDebugMessage($"   🎯 Match finished via Hub update - triggering progression!", "MATCH_RESULT");
+                
+                // Hole die TournamentClass über die getTournamentClassById Funktion
+                var tournamentClass = _getTournamentClassById(hubData.ClassId);
+                if (tournamentClass != null)
+                {
+                    debugWindow?.AddDebugMessage($"   📋 Found TournamentClass: {tournamentClass.Name}", "SUCCESS");
+                    
+                    // WICHTIG: Verwende ProcessMatchResult aus TournamentClass für korrekte Progression
+                    bool progressionSuccess = tournamentClass.ProcessMatchResult(knockoutMatch);
+                    
+                    if (progressionSuccess)
+                    {
+                        debugWindow?.AddDebugMessage($"   ✅ KO Match progression completed successfully!", "SUCCESS");
+                        debugWindow?.AddDebugMessage($"   🔄 Winner {knockoutMatch.Winner.Name} advanced to next round", "MATCH_RESULT");
+                    }
+                    else
+                    {
+                        debugWindow?.AddDebugMessage($"   ⚠️ KO Match progression failed or not needed", "WARNING");
+                    }
+                }
+                else
+                {
+                    debugWindow?.AddDebugMessage($"   ❌ Could not find TournamentClass for progression", "ERROR");
+                }
+            }
+            else if (oldStatus == MatchStatus.Finished && knockoutMatch.Status != MatchStatus.Finished)
+            {
+                debugWindow?.AddDebugMessage($"   ⚠️ Match status reverted from finished - manual intervention may be needed", "WARNING");
+            }
+            
             debugWindow?.AddDebugMessage($"   ✅ KnockoutMatch updated successfully", "SUCCESS");
 
             return true;
