@@ -287,37 +287,40 @@ function createMatchCard(match) {
 function getMatchSpecificGameRules(match, matchType, classId, className) {
     console.log(`🎮 [GAME_RULES] Getting game rules for match type: ${matchType}, class: ${classId}`);
     
-    // 1. Direkt vom Match (höchste Priorität)
-    if (match.gameRules || match.GameRules) {
-        const rules = match.gameRules || match.GameRules;
+    // 1. Direkt vom Match (höchste Priorität) - ERWEITERT mit besserer Struktur-Erkennung
+    if (match.gameRules || match.GameRules || match.gameRulesUsed) {
+        const rules = match.gameRules || match.GameRules || match.gameRulesUsed;
         console.log(`🎮 [GAME_RULES] Using direct match rules:`, rules);
         return rules;
     }
     
-    // 2. Match-Type spezifische Regeln aus globalen Game Rules
+    // 2. Match-Type spezifische Regeln aus globalen Game Rules - ERWEITERT
     if (window.gameRules && window.gameRules.length > 0) {
-        // Suche nach rundenspezifischen Regeln
-        let matchSpecificRule = findRoundSpecificGameRules(window.gameRules, matchType, classId);
+        // 🎯 NEUE: Präzise Match-Type und Runden-spezifische Suche
+        let matchSpecificRule = findPreciseMatchTypeGameRules(window.gameRules, matchType, classId, match);
         
         if (matchSpecificRule) {
-            console.log(`🎮 [GAME_RULES] Using round-specific rules for ${matchType}:`, matchSpecificRule);
+            console.log(`🎮 [GAME_RULES] Using precise match-type rules for ${matchType}:`, matchSpecificRule);
             return matchSpecificRule;
         }
         
-        // Fallback: Klassen-Standard-Regeln
-        const classRule = window.gameRules.find(gr => 
+        // Fallback: Klassen-Standard-Regeln mit Match-Type Filter
+        const classRules = window.gameRules.filter(gr => 
             (gr.classId || gr.ClassId) === classId || 
             (gr.id || gr.Id) === classId
         );
         
-        if (classRule) {
-            console.log(`🎮 [GAME_RULES] Using class default rules:`, classRule);
+        if (classRules.length > 0) {
+            // Bevorzuge Default-Regeln wenn verfügbar
+            const defaultRule = classRules.find(gr => gr.isDefault === true);
+            const classRule = defaultRule || classRules[0];
+            console.log(`🎮 [GAME_RULES] Using class ${defaultRule ? 'default' : 'fallback'} rules:`, classRule);
             return classRule;
         }
         
         // Fallback: Erste verfügbare Regel
         const fallbackRule = window.gameRules[0];
-        console.log(`🎮 [GAME_RULES] Using fallback rule:`, fallbackRule);
+        console.log(`🎮 [GAME_RULES] Using global fallback rule:`, fallbackRule);
         return fallbackRule;
     }
     
@@ -327,71 +330,246 @@ function getMatchSpecificGameRules(match, matchType, classId, className) {
     return intelligentDefaults;
 }
 
-// 🎯 NEUE FUNKTION: Rundenspezifische Game Rules finden
-function findRoundSpecificGameRules(gameRules, matchType, classId) {
-    // KO-Phase spezifische Regelsuche
+// 🎯 NEUE FUNKTION: Präzise Match-Type-spezifische Game Rules finden
+function findPreciseMatchTypeGameRules(gameRules, matchType, classId, match) {
+    console.log(`🔍 [GAME_RULES] Searching for precise rules: matchType=${matchType}, classId=${classId}`);
+    
+    // 1. Exakte Match-Type und Class-ID Übereinstimmung
+    let exactMatch = gameRules.find(gr => {
+        const grMatchType = gr.matchType || '';
+        const grClassId = gr.classId || gr.ClassId;
+        return grMatchType === matchType && grClassId === classId;
+    });
+    
+    if (exactMatch) {
+        console.log(`✅ [GAME_RULES] Found exact match-type rule:`, exactMatch);
+        return exactMatch;
+    }
+    
+    // 2. Match mit Game Rule ID aus dem Match selbst
+    if (match.gameRulesId || match.GameRulesId) {
+        const gameRuleId = match.gameRulesId || match.GameRulesId;
+        const ruleById = gameRules.find(gr => (gr.id || gr.Id) === gameRuleId);
+        if (ruleById) {
+            console.log(`✅ [GAME_RULES] Found rule by match gameRulesId '${gameRuleId}':`, ruleById);
+            return ruleById;
+        }
+    }
+    
+    // 🚨 KORRIGIERT: Erweiterte KO-Phase spezifische Regelsuche
     if (matchType.startsWith('Knockout-')) {
         const roundName = extractRoundFromMatchType(matchType);
+        console.log(`🔍 [GAME_RULES] Searching for KO round: ${roundName}, patterns for classId ${classId}`);
         
-        // Suche nach expliziten Rundenregeln
-        const roundSpecific = gameRules.find(gr => {
-            const ruleName = (gr.name || '').toLowerCase();
-            const roundKey = roundName.toLowerCase();
-            return (gr.classId || gr.ClassId) === classId && 
-                   (ruleName.includes(roundKey) || 
-                    ruleName.includes(matchType.toLowerCase()) ||
-                    (gr.matchType && gr.matchType === matchType));
+        // 🎯 ERWEITERTE Suche nach zusammengesetzten Rule-IDs mit verschiedenen Patterns
+        const compositeIdPatterns = [
+            `${classId}_WB_${roundName}`,                    // Format: "2_WB_Semifinal"
+            `${classId}_LB_${roundName}`,                    // Format: "2_LB_LoserRound2"
+            `${classId}_WB_${matchType.split('-').pop()}`,   // Format: "2_WB_Final"
+            `${classId}_LB_${matchType.split('-').pop()}`,   // Format: "2_LB_LoserFinal"
+            `${classId}_${matchType.replace('Knockout-', '').replace('-', '_')}`, // Format: "2_WB_Semifinal"
+            `${classId}_${roundName}`,                       // Format: "2_Semifinal"
+            matchType.replace('Knockout-', `${classId}_`),   // Format: "2_WB-Semifinal"
+        ];
+        
+        // 🚨 DEBUG: Pattern Matching
+        console.log(`🔍 [GAME_RULES] Testing composite ID patterns:`, compositeIdPatterns);
+        
+        for (const pattern of compositeIdPatterns) {
+            const compositeRule = gameRules.find(gr => (gr.id || gr.Id) === pattern);
+            if (compositeRule) {
+                console.log(`✅ [GAME_RULES] Found composite ID rule '${pattern}':`, compositeRule);
+                return compositeRule;
+            }
+        }
+        
+        // 🎯 ERWEITERTE: Suche nach Regeln basierend auf Rundenname in der Rule-ID
+        const rundenPattern = extractDetailedRoundInfo(matchType);
+        console.log(`🔍 [GAME_RULES] Testing round pattern:`, rundenPattern);
+        
+        const roundBasedRule = gameRules.find(gr => {
+            const ruleId = (gr.id || gr.Id || '').toString();
+            const grClassId = gr.classId || gr.ClassId;
+            
+            // Check if rule belongs to this class and contains round info
+            if (grClassId !== classId) return false;
+            
+            // Enhanced pattern matching for different formats
+            const patterns = [
+                ruleId.includes(`_${rundenPattern.bracket}_${rundenPattern.round}`), // "2_WB_Semifinal"
+                ruleId.includes(`_${rundenPattern.round}`),                          // "2_Semifinal"  
+                ruleId.includes(rundenPattern.round),                                // Contains "Semifinal"
+                ruleId.includes(rundenPattern.bracket) && ruleId.includes(rundenPattern.roundNumber) // Contains "WB" and round number
+            ];
+            
+            return patterns.some(p => p);
         });
         
-        if (roundSpecific) return roundSpecific;
+        if (roundBasedRule) {
+            console.log(`✅ [GAME_RULES] Found round-based rule:`, roundBasedRule);
+            return roundBasedRule;
+        }
         
-        // Bracket-spezifische Regeln (Winner vs Loser Bracket)
+        // 🎯 NEUE: Suche nach expliziten Rundenregeln im Namen (case insensitive)
+        const roundSpecific = gameRules.find(gr => {
+            const ruleName = (gr.name || '').toLowerCase();
+            const grClassId = gr.classId || gr.ClassId;
+            
+            if (grClassId !== classId) return false;
+            
+            // Test verschiedene Name-Patterns
+            const namePatterns = [
+                ruleName.includes(rundenPattern.round.toLowerCase()),
+                ruleName.includes(matchType.toLowerCase()),
+                ruleName.includes('halbfinale') && matchType.includes('Semifinal'),
+                ruleName.includes('viertelfinale') && matchType.includes('Quarterfinal'), 
+                ruleName.includes('finale') && (matchType.includes('Final') && !matchType.includes('Semifinal')),
+                ruleName.includes('winner') && matchType.includes('WB'),
+                ruleName.includes('loser') && matchType.includes('LB'),
+                ruleName.includes('k.o.') && matchType.startsWith('Knockout')
+            ];
+            
+            return namePatterns.some(p => p);
+        });
+        
+        if (roundSpecific) {
+            console.log(`✅ [GAME_RULES] Found round-specific rule by name:`, roundSpecific);
+            return roundSpecific;
+        }
+        
+        // Bracket-spezifische Regeln (Winner vs Loser Bracket) - ERWEITERT
         if (matchType.includes('-WB-')) {
-            const winnerBracketRule = gameRules.find(gr => 
-                (gr.classId || gr.ClassId) === classId && 
-                ((gr.name || '').toLowerCase().includes('winner') || 
-                 (gr.name || '').toLowerCase().includes('gewinner'))
-            );
-            if (winnerBracketRule) return winnerBracketRule;
+            const winnerBracketRule = gameRules.find(gr => {
+                const grClassId = gr.classId || gr.ClassId;
+                if (grClassId !== classId) return false;
+                
+                const ruleName = (gr.name || '').toLowerCase();
+                const ruleMatchType = (gr.matchType || '').toLowerCase();
+                const ruleId = (gr.id || gr.Id || '').toString();
+                
+                return ruleName.includes('winner') || 
+                       ruleName.includes('gewinner') ||
+                       ruleMatchType.includes('wb') ||
+                       ruleId.includes('_WB_') ||
+                       ruleId.includes('WB');
+            });
+            if (winnerBracketRule) {
+                console.log(`✅ [GAME_RULES] Found winner bracket rule:`, winnerBracketRule);
+                return winnerBracketRule;
+            }
         }
         
         if (matchType.includes('-LB-')) {
-            const loserBracketRule = gameRules.find(gr => 
-                (gr.classId || gr.ClassId) === classId && 
-                ((gr.name || '').toLowerCase().includes('loser') || 
-                 (gr.name || '').toLowerCase().includes('verlierer'))
-            );
-            if (loserBracketRule) return loserBracketRule;
+            const loserBracketRule = gameRules.find(gr => {
+                const grClassId = gr.classId || gr.ClassId;
+                if (grClassId !== classId) return false;
+                
+                const ruleName = (gr.name || '').toLowerCase();
+                const ruleMatchType = (gr.matchType || '').toLowerCase();
+                const ruleId = (gr.id || gr.Id || '').toString();
+                
+                return ruleName.includes('loser') || 
+                       ruleName.includes('verlierer') ||
+                       ruleMatchType.includes('lb') ||
+                       ruleId.includes('_LB_') ||
+                       ruleId.includes('LB');
+            });
+            if (loserBracketRule) {
+                console.log(`✅ [GAME_RULES] Found loser bracket rule:`, loserBracketRule);
+                return loserBracketRule;
+            }
         }
     }
     
-    // Finals-spezifische Regeln
+    // 4. Finals-spezifische Regeln - ERWEITERT
     if (matchType === 'Finals') {
-        const finalsRule = gameRules.find(gr => 
-            (gr.classId || gr.ClassId) === classId && 
-            ((gr.name || '').toLowerCase().includes('final') || 
-             (gr.name || '').toLowerCase().includes('finale'))
-        );
-        if (finalsRule) return finalsRule;
+        const finalsRuleId = `${classId}_Finals`;
+        const finalsRuleById = gameRules.find(gr => (gr.id || gr.Id) === finalsRuleId);
+        
+        if (finalsRuleById) {
+            console.log(`✅ [GAME_RULES] Found finals rule by ID '${finalsRuleId}':`, finalsRuleById);
+            return finalsRuleById;
+        }
+        
+        const finalsRuleBySearch = gameRules.find(gr => {
+            const grClassId = gr.classId || gr.ClassId;
+            if (grClassId !== classId) return false;
+            
+            const ruleName = (gr.name || '').toLowerCase();
+            const ruleMatchType = (gr.matchType || '');
+            
+            return ruleName.includes('final') || 
+                   ruleName.includes('finale') ||
+                   ruleMatchType === 'Finals';
+        });
+        
+        if (finalsRuleBySearch) {
+            console.log(`✅ [GAME_RULES] Found finals rule by search:`, finalsRuleBySearch);
+            return finalsRuleBySearch;
+        }
     }
     
+    console.log(`❌ [GAME_RULES] No precise match-type specific rule found for ${matchType}`);
     return null;
 }
 
-// 🎮 NEUE FUNKTION: Runde aus Match-Type extrahieren
-function extractRoundFromMatchType(matchType) {
-    if (matchType.includes('Best64')) return 'Best64';
-    if (matchType.includes('Best32')) return 'Best32';
-    if (matchType.includes('Best16')) return 'Best16';
-    if (matchType.includes('Quarterfinal')) return 'Quarterfinal';
-    if (matchType.includes('Semifinal')) return 'Semifinal';
-    if (matchType.includes('GrandFinal')) return 'GrandFinal';
-    if (matchType.includes('Final')) return 'Final';
-    if (matchType.includes('LoserRound')) {
-        const match = matchType.match(/LoserRound(\d+)/);
-        return match ? `LoserRound${match[1]}` : 'LoserRound';
+// 🎮 ERWEITERTE FUNKTION: Detaillierte Rundeninformationen extrahieren
+function extractDetailedRoundInfo(matchType) {
+    const roundInfo = {
+        bracket: 'WB', // Default Winner Bracket
+        round: 'Standard',
+        roundNumber: 0
+    };
+    
+    // Bracket bestimmen
+    if (matchType.includes('-LB-')) {
+        roundInfo.bracket = 'LB';
+    } else if (matchType.includes('-WB-')) {
+        roundInfo.bracket = 'WB';
     }
-    return 'Standard';
+    
+    // Runde extrahieren
+    if (matchType.includes('Best64')) {
+        roundInfo.round = 'Best64';
+        roundInfo.roundNumber = 6;
+    } else if (matchType.includes('Best32')) {
+        roundInfo.round = 'Best32';
+        roundInfo.roundNumber = 5;
+    } else if (matchType.includes('Best16')) {
+        roundInfo.round = 'Best16';
+        roundInfo.roundNumber = 4;
+    } else if (matchType.includes('Quarterfinal')) {
+        roundInfo.round = 'Quarterfinal';
+        roundInfo.roundNumber = 3;
+    } else if (matchType.includes('Semifinal')) {
+        roundInfo.round = 'Semifinal';
+        roundInfo.roundNumber = 2;
+    } else if (matchType.includes('GrandFinal')) {
+        roundInfo.round = 'GrandFinal';
+        roundInfo.roundNumber = 0;
+    } else if (matchType.includes('Final')) {
+        roundInfo.round = 'Final';
+        roundInfo.roundNumber = 1;
+    } else if (matchType.includes('LoserRound')) {
+        const match = matchType.match(/LoserRound(\d+)/);
+        if (match) {
+            roundInfo.round = `LoserRound${match[1]}`;
+            roundInfo.roundNumber = parseInt(match[1]);
+        } else {
+            roundInfo.round = 'LoserRound';
+        }
+    } else if (matchType.includes('LoserFinal')) {
+        roundInfo.round = 'LoserFinal';
+        roundInfo.roundNumber = 1;
+    }
+    
+    return roundInfo;
+}
+
+// 🎮 ERWEITERTE FUNKTION: Runde aus Match-Type extrahieren (compatibility)
+function extractRoundFromMatchType(matchType) {
+    const detailed = extractDetailedRoundInfo(matchType);
+    return detailed.round;
 }
 
 // 🎲 NEUE FUNKTION: Intelligente Standard-Game-Rules erstellen

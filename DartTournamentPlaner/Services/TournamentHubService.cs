@@ -213,7 +213,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     // SSL-spezifische Konfiguration
                     if (endpoint.StartsWith("wss://"))
                     {
-                        // SSL WebSocket Optionen - robuster für Produktions-SSL
+                        // SSL WebSocket Optionen - robuster für Productions-SSL
                         _webSocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
                         {
                             System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS] SSL Certificate validation:");
@@ -223,7 +223,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   Valid to: {certificate?.GetExpirationDateString()}");
                             System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   SSL Policy Errors: {sslPolicyErrors}");
                             
-                            // Für Produktions-SSL: Akzeptiere auch selbst-signierte Zertifikate
+                            // Für Productions-SSL: Akzeptiere auch selbst-signierte Zertifikate
                             return true;
                         };
                         
@@ -551,7 +551,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 
                 DebugLog($"📚 [PLANNER-WS] Tournament Class ID: {classId}", "MATCH_RESULT");
                 
-                // 🚨 HINZUGEFÜGT: Group-Information Extraktion
+                // 🚨 ERWEITERT: Verbesserte Group-Information Extraktion mit Round-Informationen
                 var groupId = ExtractIntValue(result, "groupId", "GroupId") ?? 
                               ExtractIntValue(matchUpdateElement, "groupId", "GroupId") ?? 
                               ExtractIntValue(message, "groupId", "GroupId");
@@ -564,10 +564,21 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 ExtractStringValue(matchUpdateElement, "matchType", "MatchType") ?? 
                                 ExtractStringValue(message, "matchType", "MatchType") ?? "Group";
                 
-                DebugLog($"📋 [PLANNER-WS] Group Information:", "MATCH_RESULT");
+                // 🚨 NEUE: Round-Information für KO-Matches extrahieren
+                var round = ExtractStringValue(result, "round", "Round") ?? 
+                           ExtractStringValue(matchUpdateElement, "round", "Round") ?? 
+                           ExtractStringValue(message, "round", "Round");
+                
+                var position = ExtractIntValue(result, "position", "Position") ?? 
+                              ExtractIntValue(matchUpdateElement, "position", "Position") ?? 
+                              ExtractIntValue(message, "position", "Position");
+                
+                DebugLog($"📋 [PLANNER-WS] Match Identification:", "MATCH_RESULT");
                 DebugLog($"   Group ID: {groupId?.ToString() ?? "None"}", "MATCH_RESULT");
                 DebugLog($"   Group Name: {groupName ?? "None"}", "MATCH_RESULT");
                 DebugLog($"   Match Type: {matchType}", "MATCH_RESULT");
+                DebugLog($"   Round: {round ?? "None"}", "MATCH_RESULT");
+                DebugLog($"   Position: {position?.ToString() ?? "None"}", "MATCH_RESULT");
                 
                 var matchUpdate = new HubMatchUpdateEventArgs
                 {
@@ -581,7 +592,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     Notes = notes,
                     UpdatedAt = DateTime.Now,
                     Source = isMatchResult ? "hub-match-result" : "hub-websocket-direct",
-                    // 🚨 HINZUGEFÜGT: Group-Information hinzufügen
+                    // 🚨 ERWEITERT: Verbesserte Match-Identifikation
                     GroupId = groupId,
                     GroupName = groupName,
                     MatchType = matchType
@@ -969,8 +980,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 System.Diagnostics.Debug.WriteLine($"   Finish Mode: {tournamentClass.GameRules.FinishMode}"); 
                 System.Diagnostics.Debug.WriteLine($"   Legs to Win: {tournamentClass.GameRules.LegsToWin}");
                 System.Diagnostics.Debug.WriteLine($"   Sets to Win: {tournamentClass.GameRules.SetsToWin}");
-                System.Diagnostics.Debug.WriteLine($"   Play With Sets: {tournamentClass.GameRules.PlayWithSets}");
-                System.Diagnostics.Debug.WriteLine($"   Legs per Set: {tournamentClass.GameRules.LegsPerSet}");                
+                System.Diagnostics.Debug.WriteLine($"   Play With Sets (Original): {tournamentClass.GameRules.PlayWithSets}");
+                System.Diagnostics.Debug.WriteLine($"   Legs per Set: {tournamentClass.GameRules.LegsPerSet}");
+                
+                // 🚨 KORRIGIERT: Debug-Ausgabe für PlayWithSets-Logik
+                var correctedPlayWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1;
+                System.Diagnostics.Debug.WriteLine($"   🔧 CORRECTED Play With Sets: {correctedPlayWithSets} (Original: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin})");                
                 
                 // ERWEITERT: Zähle alle Match-Typen
                 int groupMatches = tournamentClass.Groups.Sum(g => g.Matches.Count);
@@ -1002,10 +1017,138 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     setsToWin = tournamentClass.GameRules.SetsToWin,
                     legsToWin = tournamentClass.GameRules.LegsToWin,
                     legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    playWithSets = tournamentClass.GameRules.PlayWithSets,
+                    // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                    playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
                     classId = tournamentClass.Id,
-                    className = tournamentClass.Name
+                    className = tournamentClass.Name,
+                    matchType = "Group", // Standard für Gruppenphase
+                    isDefault = true
                 });
+
+                // 🎮 ERWEITERT: Rundenspezifische Game Rules für verschiedene Phasen
+                
+                // Finals-spezifische Game Rules (falls vorhanden und anders als Standard)
+                if (tournamentClass.CurrentPhase?.FinalsGroup != null)
+                {
+                    gameRulesArray.Add(new
+                    {
+                        id = $"{tournamentClass.Id}_Finals",
+                        name = $"{tournamentClass.Name} Finalrunde",
+                        gamePoints = tournamentClass.GameRules.GamePoints,
+                        gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                        finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                        setsToWin = tournamentClass.GameRules.SetsToWin,
+                        legsToWin = tournamentClass.GameRules.LegsToWin,
+                        legsPerSet = tournamentClass.GameRules.LegsPerSet,
+                        // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                        playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
+                        classId = tournamentClass.Id,
+                        className = tournamentClass.Name,
+                        matchType = "Finals",
+                        isDefault = false
+                    });
+                }
+
+                // Winner Bracket spezifische Game Rules mit rundenabhängiger Eskalation
+                if (tournamentClass.CurrentPhase?.WinnerBracket != null)
+                {
+                    // Gruppiere Winner Bracket Matches nach Runden
+                    var winnerRounds = tournamentClass.CurrentPhase.WinnerBracket
+                        .GroupBy(m => m.Round)
+                        .ToList();
+
+                    foreach (var roundGroup in winnerRounds)
+                    {
+                        var round = roundGroup.Key;
+                        var matchCount = roundGroup.Count();
+                        
+                        // Ermittle eskalierte Regeln basierend auf der Runde
+                        var (setsToWin, legsToWin) = GetEscalatedRulesForWinnerBracket(round, tournamentClass.GameRules);
+                        
+                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
+                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
+                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
+                        {
+                            legsPerSet = roundRules.LegsPerSet;
+                            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific legsPerSet for round {round}: {legsPerSet}");
+                        }
+                        else
+                        {
+                            legsPerSet = Math.Max(tournamentClass.GameRules.LegsPerSet, legsToWin + 2);
+                            System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] Using calculated legsPerSet for round {round}: {legsPerSet}");
+                        }
+                        
+                        gameRulesArray.Add(new
+                        {
+                            id = $"{tournamentClass.Id}_WB_{round}",
+                            name = $"{tournamentClass.Name} {GetWinnerBracketRoundName(round)}",
+                            gamePoints = tournamentClass.GameRules.GamePoints,
+                            gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                            finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                            setsToWin = setsToWin,
+                            legsToWin = legsToWin,
+                            legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                            // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                            playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
+                            classId = tournamentClass.Id,
+                            className = tournamentClass.Name,
+                            matchType = $"Knockout-WB-{round}",
+                            round = round.ToString(),
+                            isDefault = false,
+                            matchCount = matchCount
+                        });
+                    }
+                }
+
+                // Loser Bracket spezifische Game Rules (generell schneller)
+                if (tournamentClass.CurrentPhase?.LoserBracket != null)
+                {
+                    var loserRounds = tournamentClass.CurrentPhase.LoserBracket
+                        .GroupBy(m => m.Round)
+                        .ToList();
+
+                    foreach (var roundGroup in loserRounds)
+                    {
+                        var round = roundGroup.Key;
+                        var matchCount = roundGroup.Count();
+                        
+                        // Loser Bracket hat generell kürzere Spiele
+                        var (setsToWin, legsToWin) = GetLoserBracketRules(round, tournamentClass.GameRules);
+                        
+                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
+                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
+                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
+                        {
+                            legsPerSet = roundRules.LegsPerSet;
+                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {round}: {legsPerSet}");
+                        }
+                        else
+                        {
+                            legsPerSet = Math.Max(3, legsToWin + 1);
+                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {round}: {legsPerSet}");
+                        }
+                        
+                        gameRulesArray.Add(new
+                        {
+                            id = $"{tournamentClass.Id}_LB_{round}",
+                            name = $"{tournamentClass.Name} {GetLoserBracketRoundName(round)}",
+                            gamePoints = tournamentClass.GameRules.GamePoints,
+                            gameMode = tournamentClass.GameRules.GameMode.ToString(),
+                            finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                            setsToWin = setsToWin,
+                            legsToWin = legsToWin,
+                            legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                            // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                            playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
+                            classId = tournamentClass.Id,
+                            className = tournamentClass.Name,
+                            matchType = $"Knockout-LB-{round}",
+                            round = round.ToString(),
+                            isDefault = false,
+                            matchCount = matchCount
+                        });
+                    }
+                }
 
                 // 1. GRUPPENPHASEN-MATCHES (wie bisher)
                 foreach (var group in tournamentClass.Groups)
@@ -1041,7 +1184,9 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 setsToWin = tournamentClass.GameRules.SetsToWin,
                                 legsToWin = tournamentClass.GameRules.LegsToWin,
                                 legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                                playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
+                                matchType = "Group"
                             }
                         });
                     }
@@ -1072,10 +1217,10 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             matchType = "Finals", // WICHTIG: Finals Match-Type
                             groupId = (int?)null, // Finals haben keine Gruppe
                             groupName = "Finals", // WICHTIG: Eindeutige Group-Name für Finals
-                            gameRulesId = tournamentClass.Id,
+                            gameRulesId = $"{tournamentClass.Id}_Finals",
                             gameRulesUsed = new
                             {
-                                id = tournamentClass.Id,
+                                id = $"{tournamentClass.Id}_Finals",
                                 name = $"{tournamentClass.Name} Finals Regel",
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
@@ -1083,19 +1228,49 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 setsToWin = tournamentClass.GameRules.SetsToWin,
                                 legsToWin = tournamentClass.GameRules.LegsToWin,
                                 legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn SetsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                                playWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1,
+                                matchType = "Finals"
                             }
                         });
                     }
                 }
 
-                // 3. NEUE: WINNER BRACKET MATCHES
+                // 3. KORRIGIERT: WINNER BRACKET MATCHES
                 if (tournamentClass.CurrentPhase?.WinnerBracket != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"⚡ [API] Processing Winner Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.WinnerBracket.Count} matches");
                     
                     foreach (var knockoutMatch in tournamentClass.CurrentPhase.WinnerBracket)
                     {
+                        // 🎮 ERWEITERT: Ermittle rundenspezifische Game Rules
+                        var (setsToWin, legsToWin) = GetEscalatedRulesForWinnerBracket(knockoutMatch.Round, tournamentClass.GameRules);
+                        
+                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
+                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
+                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(knockoutMatch.Round, out var roundRules))
+                        {
+                            legsPerSet = roundRules.LegsPerSet;
+                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
+                        }
+                        else
+                        {
+                            legsPerSet = Math.Max(tournamentClass.GameRules.LegsPerSet, legsToWin + 2);
+                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
+                        }
+                        
+                        var gameRuleId = $"{tournamentClass.Id}_WB_{knockoutMatch.Round}";
+                        var roundName = GetWinnerBracketRoundName(knockoutMatch.Round);
+                        var matchType = GetWinnerBracketMatchType(knockoutMatch);
+                        
+                        // 🚨 DEBUG: KO Game Rules Übertragung
+                        System.Diagnostics.Debug.WriteLine($"🎮 [API] Winner Bracket Match {knockoutMatch.Id}:");
+                        System.Diagnostics.Debug.WriteLine($"   Round: {knockoutMatch.Round}");
+                        System.Diagnostics.Debug.WriteLine($"   Game Rule ID: {gameRuleId}");
+                        System.Diagnostics.Debug.WriteLine($"   Match Type: {matchType}");
+                        System.Diagnostics.Debug.WriteLine($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}");
+                        System.Diagnostics.Debug.WriteLine($"   Rule Name: {roundName}");
+                        
                         allMatches.Add(new
                         {
                             id = knockoutMatch.Id,
@@ -1111,35 +1286,72 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = knockoutMatch.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = GetWinnerBracketMatchType(knockoutMatch), // WICHTIG: Spezifischer Winner Bracket Match-Type
+                            matchType = matchType, // WICHTIG: Spezifischer Winner Bracket Match-Type
                             groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
                             groupName = $"Winner Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Winner Bracket
                             round = knockoutMatch.Round,
                             position = knockoutMatch.Position,
-                            gameRulesId = tournamentClass.Id,
+                            gameRulesId = gameRuleId,
+                            // 🚨 KORRIGIERT: Verbesserte gameRulesUsed mit allen notwendigen Properties für Web Interface
                             gameRulesUsed = new
                             {
-                                id = tournamentClass.Id,
-                                name = $"{tournamentClass.Name} Winner Bracket Regel",
+                                id = gameRuleId,
+                                name = $"{tournamentClass.Name} {roundName}",
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = tournamentClass.GameRules.SetsToWin,
-                                legsToWin = tournamentClass.GameRules.LegsToWin,
-                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                                setsToWin = setsToWin,
+                                legsToWin = legsToWin,
+                                legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                                maxSets = Math.Max(setsToWin * 2 - 1, 5), // 🚨 HINZUGEFÜGT: maxSets für Web Interface
+                                maxLegsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                                playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
+                                matchType = matchType,
+                                round = knockoutMatch.Round.ToString(),
+                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT: für Web Interface Matching
+                                className = tournamentClass.Name, // 🚨 HINZUGEFÜGT
+                                isDefault = false
                             }
                         });
                     }
                 }
 
-                // 4. NEUE: LOSER BRACKET MATCHES
+                // 4. KORRIGIERT: LOSER BRACKET MATCHES
                 if (tournamentClass.CurrentPhase?.LoserBracket != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"🔄 [API] Processing Loser Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.LoserBracket.Count} matches");
                     
                     foreach (var knockoutMatch in tournamentClass.CurrentPhase.LoserBracket)
                     {
+                        // 🎮 ERWEITERT: Ermittle Loser Bracket spezifische Game Rules
+                        var (setsToWin, legsToWin) = GetLoserBracketRules(knockoutMatch.Round, tournamentClass.GameRules);
+                        
+                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
+                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
+                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(knockoutMatch.Round, out var roundRules))
+                        {
+                            legsPerSet = roundRules.LegsPerSet;
+                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
+                        }
+                        else
+                        {
+                            legsPerSet = Math.Max(3, legsToWin + 1);
+                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
+                        }
+                        
+                        var gameRuleId = $"{tournamentClass.Id}_LB_{knockoutMatch.Round}";
+                        var roundName = GetLoserBracketRoundName(knockoutMatch.Round);
+                        var matchType = GetLoserBracketMatchType(knockoutMatch);
+                        
+                        // 🚨 DEBUG: KO Game Rules Übertragung
+                        System.Diagnostics.Debug.WriteLine($"🎮 [API] Loser Bracket Match {knockoutMatch.Id}:");
+                        System.Diagnostics.Debug.WriteLine($"   Round: {knockoutMatch.Round}");
+                        System.Diagnostics.Debug.WriteLine($"   Game Rule ID: {gameRuleId}");
+                        System.Diagnostics.Debug.WriteLine($"   Match Type: {matchType}");
+                        System.Diagnostics.Debug.WriteLine($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}");
+                        System.Diagnostics.Debug.WriteLine($"   Rule Name: {roundName}");
+                        
                         allMatches.Add(new
                         {
                             id = knockoutMatch.Id,
@@ -1155,23 +1367,32 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = knockoutMatch.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = GetLoserBracketMatchType(knockoutMatch), // WICHTIG: Spezifischer Loser Bracket Match-Type
+                            matchType = matchType, // WICHTIG: Spezifischer Loser Bracket Match-Type
                             groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
                             groupName = $"Loser Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Loser Bracket
                             round = knockoutMatch.Round,
                             position = knockoutMatch.Position,
-                            gameRulesId = tournamentClass.Id,
+                            gameRulesId = gameRuleId,
+                            // 🚨 KORRIGIERT: Verbesserte gameRulesUsed mit allen notwendigen Properties für Web Interface
                             gameRulesUsed = new
                             {
-                                id = tournamentClass.Id,
-                                name = $"{tournamentClass.Name} Loser Bracket Regel",
+                                id = gameRuleId,
+                                name = $"{tournamentClass.Name} {roundName}",
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = tournamentClass.GameRules.SetsToWin,
-                                legsToWin = tournamentClass.GameRules.LegsToWin,
-                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                playWithSets = tournamentClass.GameRules.PlayWithSets
+                                setsToWin = setsToWin,
+                                legsToWin = legsToWin,
+                                legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                                maxSets = Math.Max(setsToWin * 2 - 1, 3), // 🚨 HINZUGEFÜGT: maxSets für Web Interface (kürzer für Loser)
+                                maxLegsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
+                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                                playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
+                                matchType = matchType,
+                                round = knockoutMatch.Round.ToString(),
+                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT: für Web Interface Matching
+                                className = tournamentClass.Name, // 🚨 HINZUGEFÜGT
+                                isDefault = false
                             }
                         });
                     }
@@ -1334,6 +1555,86 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         {
             KnockoutRound.LoserFinal => "Knockout-LB-LoserFinal",
             _ => $"Knockout-LB-LoserRound{(int)match.Round}"
+        };
+    }
+
+    // 🎮 NEUE HELPER-METHODEN für rundenspezifische Game Rules
+
+    /// <summary>
+    /// Ermittelt eskalierte Regeln für Winner Bracket basierend auf der Runde
+    /// 🚨 KORRIGIERT: Verwendet jetzt die tatsächlichen Round Rules aus GameRules.KnockoutRoundRules
+    /// </summary>
+    private (int setsToWin, int legsToWin) GetEscalatedRulesForWinnerBracket(KnockoutRound round, GameRules baseRules)
+    {
+        // 🚨 KORRIGIERT: Verwende die tatsächlichen Round Rules statt eigene Berechnung
+        if (baseRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
+        {
+            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific rules for {round}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}");
+            return (roundRules.SetsToWin, roundRules.LegsToWin);
+        }
+        
+        // Fallback: Alte Logik wenn keine rundenspezifischen Regeln vorhanden sind
+        System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] No round-specific rules found for {round}, using fallback logic");
+        return round switch
+        {
+            KnockoutRound.Best64 => (Math.Max(2, baseRules.SetsToWin - 1), Math.Max(3, baseRules.LegsToWin)), // Schnelle frühe Runden
+            KnockoutRound.Best32 => (Math.Max(2, baseRules.SetsToWin - 1), Math.Max(3, baseRules.LegsToWin)),
+            KnockoutRound.Best16 => (baseRules.SetsToWin, baseRules.LegsToWin), // Standard
+            KnockoutRound.Quarterfinal => (baseRules.SetsToWin, baseRules.LegsToWin),
+            KnockoutRound.Semifinal => (baseRules.SetsToWin, Math.Min(baseRules.LegsToWin + 1, 6)), // Längere wichtige Spiele
+            KnockoutRound.Final => (Math.Min(baseRules.SetsToWin + 1, 5), Math.Min(baseRules.LegsToWin + 1, 6)),
+            _ => (baseRules.SetsToWin, baseRules.LegsToWin) // Fallback
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt Loser Bracket Regeln (generell schneller als Winner Bracket)
+    /// 🚨 KORRIGIERT: Verwendet jetzt die tatsächlichen Round Rules aus GameRules.KnockoutRoundRules
+    /// </summary>
+    private (int setsToWin, int legsToWin) GetLoserBracketRules(KnockoutRound round, GameRules baseRules)
+    {
+        // 🚨 KORRIGIERT: Verwende die tatsächlichen Round Rules statt eigene Berechnung
+        if (baseRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
+        {
+            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific rules for {round}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}");
+            return (roundRules.SetsToWin, roundRules.LegsToWin);
+        }
+        
+        // Fallback: Alte Logik wenn keine rundenspezifischen Regeln vorhanden sind
+        System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] No round-specific rules found for {round}, using fallback logic");
+        return round switch
+        {
+            KnockoutRound.LoserFinal => (baseRules.SetsToWin, Math.Min(baseRules.LegsToWin + 1, 5)), // Loser Final ist wichtig
+            _ => (Math.Max(2, baseRules.SetsToWin - 1), baseRules.LegsToWin) // Alle anderen Loser Rounds sind schneller
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt benutzerfreundliche Namen für Winner Bracket Runden
+    /// </summary>
+    private string GetWinnerBracketRoundName(KnockoutRound round)
+    {
+        return round switch
+        {
+            KnockoutRound.Best64 => "K.O. Beste 64",
+            KnockoutRound.Best32 => "K.O. Beste 32",
+            KnockoutRound.Best16 => "K.O. Beste 16",
+            KnockoutRound.Quarterfinal => "K.O. Viertelfinale",
+            KnockoutRound.Semifinal => "K.O. Halbfinale",
+            KnockoutRound.Final => "K.O. Finale",
+            _ => $"K.O. Winner {round}"
+        };
+    }
+
+    /// <summary>
+    /// Ermittelt benutzerfreundliche Namen für Loser Bracket Runden
+    /// </summary>
+    private string GetLoserBracketRoundName(KnockoutRound round)
+    {
+        return round switch
+        {
+            KnockoutRound.LoserFinal => "K.O. Loser Final",
+            _ => $"K.O. Loser Runde {(int)round}"
         };
     }
 

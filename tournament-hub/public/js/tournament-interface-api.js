@@ -86,6 +86,12 @@ function initializeSocket() {
                     console.log('🎮 Updating game rules from Socket.IO:', data.gameRules.length, 'rules');
                     gameRules = data.gameRules;
                     window.gameRules = gameRules;
+                } else if (data.matches) {
+                    // 🚨 KORRIGIERT: Game Rules aus Matches extrahieren wenn nicht separat geliefert
+                    console.log('🎮 Extracting game rules from Socket.IO matches...');
+                    gameRules = extractGameRulesFromMatches(data.matches);
+                    window.gameRules = gameRules;
+                    console.log(`🎮 Extracted ${gameRules.length} game rules from Socket.IO matches`);
                 }
                 
                 console.log('✅ Socket.IO tournament data processed successfully');
@@ -101,6 +107,15 @@ function initializeSocket() {
                 if (data.matches && Array.isArray(data.matches)) {
                     matches = data.matches;
                     window.matches = matches;
+                    
+                    // 🚨 KORRIGIERT: Game Rules auch bei Match-Updates extrahieren
+                    if (!window.gameRules || window.gameRules.length === 0) {
+                        console.log('🎮 Extracting game rules from updated matches...');
+                        gameRules = extractGameRulesFromMatches(data.matches);
+                        window.gameRules = gameRules;
+                        console.log(`🎮 Extracted ${gameRules.length} game rules from updated matches`);
+                    }
+                    
                     displayMatches(matches);
                     console.log('✅ Matches updated from Socket.IO successfully');
                 } else {
@@ -227,9 +242,11 @@ async function loadTournamentData() {
                     gameRules = data.gameRules;
                     window.gameRules = gameRules;
                 } else {
-                    console.warn('⚠️ No game rules found in data');
-                    gameRules = [];
+                    console.warn('⚠️ No game rules found in data, extracting from matches...');
+                    // 🚨 KORRIGIERT: Game Rules aus Matches extrahieren
+                    gameRules = extractGameRulesFromMatches(matches);
                     window.gameRules = gameRules;
+                    console.log(`🎮 Extracted ${gameRules.length} game rules from matches`);
                 }
                 
                 console.log('✅ Tournament data processing complete');
@@ -328,3 +345,77 @@ async function loadMatches() {
 window.loadTournamentData = loadTournamentData;
 window.loadMatches = loadMatches;
 window.loadTournamentClasses = loadTournamentClasses;
+window.extractGameRulesFromMatches = extractGameRulesFromMatches;
+
+// 🚨 NEUE FUNKTION: Game Rules aus Matches extrahieren
+function extractGameRulesFromMatches(matchesArray) {
+    try {
+        const extractedRules = [];
+        const seenRuleIds = new Set();
+        
+        console.log('🔍 [EXTRACT_RULES] Starting Game Rules extraction from', matchesArray.length, 'matches');
+        
+        matchesArray.forEach((match, index) => {
+            // Prüfe verschiedene Properties für Game Rules
+            const gameRulesUsed = match.gameRulesUsed || match.gameRules || match.GameRulesUsed || match.GameRules;
+            
+            if (gameRulesUsed) {
+                const ruleId = gameRulesUsed.id || gameRulesUsed.Id || `extracted_rule_${index}`;
+                
+                // Verhindere Duplikate basierend auf ID
+                if (!seenRuleIds.has(ruleId)) {
+                    seenRuleIds.add(ruleId);
+                    
+                    // Erstelle standardisierte Game Rule
+                    const standardizedRule = {
+                        id: ruleId,
+                        name: gameRulesUsed.name || gameRulesUsed.Name || `Regel ${ruleId}`,
+                        gamePoints: gameRulesUsed.gamePoints || gameRulesUsed.GamePoints || 501,
+                        gameMode: gameRulesUsed.gameMode || gameRulesUsed.GameMode || 'Standard',
+                        finishMode: gameRulesUsed.finishMode || gameRulesUsed.FinishMode || 'DoubleOut',
+                        setsToWin: gameRulesUsed.setsToWin || gameRulesUsed.SetsToWin || 3,
+                        legsToWin: gameRulesUsed.legsToWin || gameRulesUsed.LegsToWin || 3,
+                        legsPerSet: gameRulesUsed.legsPerSet || gameRulesUsed.LegsPerSet || 5,
+                        maxSets: gameRulesUsed.maxSets || gameRulesUsed.MaxSets || 5,
+                        maxLegsPerSet: gameRulesUsed.maxLegsPerSet || gameRulesUsed.MaxLegsPerSet || 5,
+                        playWithSets: gameRulesUsed.playWithSets !== false,
+                        matchType: gameRulesUsed.matchType || gameRulesUsed.MatchType || match.matchType || match.MatchType || 'Group',
+                        round: gameRulesUsed.round || gameRulesUsed.Round || null,
+                        classId: gameRulesUsed.classId || gameRulesUsed.ClassId || match.classId || match.ClassId || 1,
+                        className: gameRulesUsed.className || gameRulesUsed.ClassName || match.className || match.ClassName || 'Unknown Class',
+                        isDefault: gameRulesUsed.isDefault === true,
+                        // Zusätzliche Eigenschaften für bessere Matching
+                        extractedFrom: 'matches',
+                        sourceMatchId: match.matchId || match.id || match.Id,
+                        sourceMatchType: match.matchType || match.MatchType
+                    };
+                    
+                    extractedRules.push(standardizedRule);
+                    
+                    console.log(`🎮 [EXTRACT_RULES] Extracted rule: ${standardizedRule.name} (ID: ${ruleId}) for ${standardizedRule.matchType}`);
+                }
+            } else {
+                // Fallback: Erstelle eine Standard-Regel basierend auf Match-Information
+                if (index < 3) { // Nur für die ersten paar Matches loggen
+                    console.log(`⚠️ [EXTRACT_RULES] No gameRulesUsed found for match ${match.matchId || match.id}, match type: ${match.matchType}`);
+                }
+            }
+        });
+        
+        console.log(`✅ [EXTRACT_RULES] Extraction complete: ${extractedRules.length} unique game rules extracted`);
+        
+        // Debug: Zeige Rule-Typen
+        const ruleTypes = {};
+        extractedRules.forEach(rule => {
+            const type = rule.matchType || 'Unknown';
+            ruleTypes[type] = (ruleTypes[type] || 0) + 1;
+        });
+        console.log('📊 [EXTRACT_RULES] Game Rules by Match Type:', ruleTypes);
+        
+        return extractedRules;
+        
+    } catch (error) {
+        console.error('❌ [EXTRACT_RULES] Error extracting game rules:', error);
+        return [];
+    }
+}
