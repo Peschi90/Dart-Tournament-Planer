@@ -24,7 +24,8 @@ public enum MatchStatus
 public class Match : INotifyPropertyChanged
 {
     // Private Backing-Fields für alle Eigenschaften
-    private int _id;                        // Eindeutige ID des Matches
+    private int _id;                        // Eindeutige numerische ID des Matches (legacy)
+    private string _uniqueId;               // Eindeutige UUID für Hub-Integration
     private Player? _player1;               // Erster Spieler
     private Player? _player2;               // Zweiter Spieler (kann null bei Freilos sein)
     private int _player1Sets = 0;           // Gewonnene Sets von Spieler 1
@@ -43,7 +44,29 @@ public class Match : INotifyPropertyChanged
     public static LocalizationService? LocalizationService { get; set; }
 
     /// <summary>
-    /// Eindeutige Identifikations-ID des Matches
+    /// Konstruktor - erstellt automatisch eine eindeutige UUID
+    /// </summary>
+    public Match()
+    {
+        _uniqueId = Guid.NewGuid().ToString();
+    }
+
+    /// <summary>
+    /// Eindeutige UUID des Matches für Hub-Integration
+    /// Diese ID wird für alle Hub-Operationen verwendet
+    /// </summary>
+    public string UniqueId
+    {
+        get => _uniqueId;
+        set
+        {
+            _uniqueId = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Eindeutige numerische ID des Matches (legacy)
     /// Wird zur internen Referenzierung verwendet
     /// </summary>
     public int Id

@@ -166,6 +166,13 @@ app.get('/tournament/:tournamentId', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'tournament-interface.html'));
 });
 
+app.get('/match/:tournamentId/:matchId', (req, res) => {
+    const { tournamentId, matchId } = req.params;
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    console.log(`🎯 [API] Match page: ${matchId} in tournament ${tournamentId} from ${clientIP}`);
+    res.sendFile(path.join(__dirname, 'public', 'match-page.html'));
+});
+
 app.get('/dashboard.html', (req, res) => {
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
     console.log(`📊 [API] Dashboard accessed from ${clientIP}`);

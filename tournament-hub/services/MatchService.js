@@ -12,7 +12,7 @@ class MatchService {
     /**
      * Submit match result with WebSocket broadcasting
      * @param {string} tournamentId - Tournament ID
-     * @param {string} matchId - Match ID
+     * @param {string} matchId - Match ID (kann UUID oder numerische ID sein)
      * @param {Object} result - Match result data
      * @returns {Promise<boolean>} Success status
      */
@@ -20,7 +20,7 @@ class MatchService {
         try {
             console.log(`?? [MatchService] ===== MATCH RESULT SUBMISSION =====`);
             console.log(`?? [MatchService] Tournament: ${tournamentId}`);
-            console.log(`?? [MatchService] Match: ${matchId}`);
+            console.log(`?? [MatchService] Match: ${matchId} (UUID or numeric ID)`);
             console.log(`?? [MatchService] Class Analysis:`);
             console.log(`   Result classId: ${result.classId}`);
             console.log(`   Result className: ${result.className}`);
@@ -49,18 +49,21 @@ class MatchService {
 
             console.log(`? [MatchService] Match result validation passed`);
 
-            // Find the match in tournament data
+            // ERWEITERT: UUID-bewusste Match-Suche
             const matches = tournament.matches || [];
             const matchIndex = matches.findIndex(m => 
-                m.id === matchId || 
-                m.matchId === matchId || 
-                String(m.id) === String(matchId) ||
-                String(m.matchId) === String(matchId)
+                // Priorisiere UniqueId (UUID)
+                (m.uniqueId && m.uniqueId === matchId) ||
+                // Fallback auf numerische IDs
+                (m.id === matchId || m.matchId === matchId || 
+                 String(m.id) === String(matchId) || 
+                 String(m.matchId) === String(matchId))
             );
 
             if (matchIndex === -1) {
                 console.error(`? [MatchService] Match not found in tournament: ${matchId}`);
                 console.log(`?? [MatchService] Available matches:`, matches.map(m => ({
+                    uniqueId: m.uniqueId || 'none',
                     id: m.id || m.matchId,
                     classId: m.classId,
                     className: m.className,
@@ -72,11 +75,13 @@ class MatchService {
 
             const originalMatch = matches[matchIndex];
             console.log(`?? [MatchService] Found match:`, {
+                uniqueId: originalMatch.uniqueId || 'none',
                 id: originalMatch.id || originalMatch.matchId,
                 classId: originalMatch.classId,
                 className: originalMatch.className,
                 player1: originalMatch.player1,
-                player2: originalMatch.player2
+                player2: originalMatch.player2,
+                matchType: originalMatch.matchType || 'Unknown'
             });
 
             // KORRIGIERT: Preserve original class information and enhance with result data
@@ -91,9 +96,12 @@ class MatchService {
             console.log(`   FINAL classId: ${finalClassId}`);
             console.log(`   FINAL className: ${finalClassName}`);
 
-            // Update the match with result including preserved class information
+            // Update the match with result including preserved class information and UUID
             const updatedMatch = {
                 ...originalMatch,
+                // Preserve UUID if available
+                uniqueId: originalMatch.uniqueId,
+                // Results
                 player1Sets: parseInt(result.player1Sets) || 0,
                 player1Legs: parseInt(result.player1Legs) || 0,
                 player2Sets: parseInt(result.player2Sets) || 0,
@@ -106,9 +114,15 @@ class MatchService {
                 // KORRIGIERT: Preserve class information
                 classId: finalClassId,
                 className: finalClassName,
-                // Enhanced metadata
+                // Enhanced metadata with UUID support
                 submissionSource: result.submissionSource || 'unknown',
                 submissionTimestamp: result.submissionTimestamp || new Date().toISOString(),
+                matchIdentification: {
+                    uniqueId: originalMatch.uniqueId,
+                    numericId: originalMatch.id || originalMatch.matchId,
+                    requestedId: matchId,
+                    matchType: originalMatch.matchType || 'Unknown'
+                },
                 gameRulesUsed: {
                     ...result.gameRulesUsed,
                     classId: finalClassId,
@@ -122,6 +136,8 @@ class MatchService {
             tournament.lastUpdate = new Date();
 
             console.log(`? [MatchService] Match updated successfully:`);
+            console.log(`   UUID: ${updatedMatch.uniqueId || 'none'}`);
+            console.log(`   Numeric ID: ${updatedMatch.id || updatedMatch.matchId}`);
             console.log(`   Sets: ${updatedMatch.player1Sets}-${updatedMatch.player2Sets}`);
             console.log(`   Legs: ${updatedMatch.player1Legs}-${updatedMatch.player2Legs}`);
             console.log(`   Status: ${updatedMatch.status}`);
@@ -129,8 +145,12 @@ class MatchService {
             console.log(`   Game Rules: ${updatedMatch.gameRulesUsed ? updatedMatch.gameRulesUsed.name || 'Default' : 'None'}`);
 
             // Process the result for queue handling (Tournament Planner API forwarding)
+            // Verwende UUID wenn verfügbar, sonst numerische ID
+            const forwardMatchId = originalMatch.uniqueId || matchId;
             const processedResult = {
-                matchId: matchId,
+                matchId: forwardMatchId,
+                uniqueId: originalMatch.uniqueId,
+                numericMatchId: originalMatch.id || originalMatch.matchId,
                 tournamentId: tournamentId,
                 ...result,
                 // KORRIGIERT: Ensure class information is preserved
@@ -140,14 +160,18 @@ class MatchService {
                 processed: false
             };
 
-            // Store pending result
-            const resultKey = `${tournamentId}_${matchId}`;
+            // Store pending result with enhanced key
+            const resultKey = originalMatch.uniqueId 
+                ? `${tournamentId}_${originalMatch.uniqueId}`
+                : `${tournamentId}_${matchId}`;
             this.pendingResults.set(resultKey, processedResult);
 
             // Add to processing queue for Tournament Planner API
             this.processingQueue.push({
                 tournamentId,
-                matchId,
+                matchId: forwardMatchId,
+                uniqueId: originalMatch.uniqueId,
+                numericMatchId: originalMatch.id || originalMatch.matchId,
                 result: processedResult,
                 attempts: 0,
                 maxAttempts: 3
@@ -205,7 +229,7 @@ class MatchService {
     /**
      * Get specific match
      * @param {string} tournamentId - Tournament ID
-     * @param {string} matchId - Match ID
+     * @param {string} matchId - Match ID (kann UUID oder numerische ID sein)
      * @returns {Promise<Object|null>} Match data or null
      */
     async getMatch(tournamentId, matchId) {
@@ -215,14 +239,21 @@ class MatchService {
             }
 
             const matches = await this.getTournamentMatches(tournamentId);
-            const match = matches.find(m => m.id === matchId || m.matchId === matchId);
+            
+            // ERWEITERT: UUID-bewusste Match-Suche
+            const match = matches.find(m => 
+                // Priorisiere UniqueId (UUID)
+                (m.uniqueId && m.uniqueId === matchId) ||
+                // Fallback auf numerische IDs
+                (m.id === matchId || m.matchId === matchId)
+            );
             
             if (match) {
-                console.log(`?? Retrieved match: ${tournamentId}/${matchId}`);
+                console.log(`?? Retrieved match: ${tournamentId}/${matchId} (UUID: ${match.uniqueId || 'none'})`);
                 return match;
             }
 
-            console.warn(`? Match not found: ${tournamentId}/${matchId}`);
+            console.warn(`?? Match not found: ${tournamentId}/${matchId}`);
             return null;
         } catch (error) {
             console.error('? Get match error:', error.message);
@@ -591,4 +622,4 @@ class MatchService {
     }
 }
 
-module.exports = MatchService; 
+module.exports = MatchService;

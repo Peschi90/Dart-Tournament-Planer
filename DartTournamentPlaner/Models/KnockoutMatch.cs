@@ -51,7 +51,8 @@ public enum KnockoutRound
 public class KnockoutMatch : INotifyPropertyChanged
 {
     // Private Felder für alle Eigenschaften mit Backing Fields
-    private int _id;                        // Eindeutige ID des Matches
+    private int _id;                        // Eindeutige numerische ID des Matches (legacy)
+    private string _uniqueId;               // Eindeutige UUID für Hub-Integration
     private Player? _player1;               // Erster Spieler (kann null sein wenn TBD)
     private Player? _player2;               // Zweiter Spieler (kann null sein wenn TBD)
     private int _player1Sets = 0;           // Gewonnene Sets von Spieler 1
@@ -77,7 +78,29 @@ public class KnockoutMatch : INotifyPropertyChanged
     public static LocalizationService? LocalizationService { get; set; }
 
     /// <summary>
-    /// Eindeutige Identifikations-ID des Matches
+    /// Konstruktor - erstellt automatisch eine eindeutige UUID
+    /// </summary>
+    public KnockoutMatch()
+    {
+        _uniqueId = Guid.NewGuid().ToString();
+    }
+
+    /// <summary>
+    /// Eindeutige UUID des Matches für Hub-Integration
+    /// Diese ID wird für alle Hub-Operationen verwendet
+    /// </summary>
+    public string UniqueId
+    {
+        get => _uniqueId;
+        set
+        {
+            _uniqueId = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Eindeutige numerische ID des Matches (legacy)
     /// </summary>
     public int Id
     {

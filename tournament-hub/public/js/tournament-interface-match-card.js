@@ -268,6 +268,11 @@ function createMatchCard(match) {
                         🎯 Ergebnis übertragen (${gameRule.name})
                     </button>
 
+                    <button class="match-page-button" onclick="openMatchPage('${matchId}')" 
+                            title="Zur Einzel-Match-Seite wechseln">
+                        📄 Match-Seite öffnen
+                    </button>
+
                     <div class="message" id="message_${uniqueCardId}"></div>
                 </div>
             ` : `
