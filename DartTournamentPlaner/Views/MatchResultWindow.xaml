@@ -411,6 +411,54 @@
                                      Height="80" TextWrapping="Wrap" AcceptsReturn="True" 
                                      VerticalScrollBarVisibility="Auto"/>
                         </StackPanel>
+
+                        <!-- ✅ NEU: QR Code Section für Hub Integration -->
+                        <Border Name="QrCodeSection" Background="#F8FAFC" BorderBrush="#E2E8F0" 
+                                BorderThickness="1" CornerRadius="12" 
+                                Padding="16" Margin="0,0,0,20" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- QR Code Image -->
+                                <Border Grid.Column="0" Background="White" 
+                                        BorderBrush="#CBD5E1" BorderThickness="1" 
+                                        CornerRadius="8" Padding="8" Margin="0,0,16,0">
+                                    <Image Name="QrCodeImage" Width="100" Height="100" 
+                                           Stretch="Uniform"/>
+                                </Border>
+                                
+                                <!-- QR Code Info -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="📱" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Web-Interface verfügbar" FontWeight="SemiBold" 
+                                                   FontSize="14" Foreground="#374151" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Text="Scannen Sie den QR-Code mit Ihrem Smartphone oder Tablet für eine mobile Eingabe des Match-Ergebnisses." 
+                                               FontSize="12" Foreground="#6B7280" TextWrapping="Wrap" 
+                                               Margin="0,0,0,8" LineHeight="18"/>
+                                    
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Name="OpenWebInterfaceButton" Content="🌐 Im Browser öffnen" 
+                                                Style="{StaticResource ModernButton}" 
+                                                Background="#10B981" FontSize="11" 
+                                                Padding="8,6" MinWidth="80"
+                                                Click="OpenWebInterfaceButton_Click" 
+                                                ToolTip="Match-Page im Standard-Browser öffnen"/>
+                                        <Button Name="CopyUrlButton" Content="📋 URL kopieren" 
+                                                Style="{StaticResource ModernCancelButton}" 
+                                                FontSize="11" Padding="8,6" MinWidth="80" 
+                                                Margin="8,0,0,0"
+                                                Click="CopyUrlButton_Click"
+                                                ToolTip="Match-Page URL in Zwischenablage kopieren"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
                 

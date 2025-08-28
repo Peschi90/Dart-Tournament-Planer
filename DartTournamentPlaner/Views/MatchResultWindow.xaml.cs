@@ -1,10 +1,16 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using QRCoder;
+using System.Drawing;
+using System.IO;
+using System.Drawing.Imaging;
+using System.Diagnostics;
 
 namespace DartTournamentPlaner.Views;
 
@@ -13,15 +19,19 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     private readonly Match _match;
     private readonly GameRules _gameRules;
     private readonly LocalizationService _localizationService;
+    private readonly HubIntegrationService? _hubService;
+    private string? _matchPageUrl;
     
-    public MatchResultWindow(Match match, GameRules gameRules, LocalizationService localizationService)
+    public MatchResultWindow(Match match, GameRules gameRules, LocalizationService localizationService, HubIntegrationService? hubService = null)
     {
         _match = match;
         _gameRules = gameRules;
         _localizationService = localizationService;
+        _hubService = hubService;
         
         InitializeComponent();
         InitializeUI();
+        InitializeHubIntegration();
         UpdateTranslations();
     }
 
@@ -32,13 +42,14 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     /// <param name="roundRules">Round-specific rules for this match</param>
     /// <param name="baseGameRules">Base game rules</param>
     /// <param name="localizationService">Localization service</param>
-    public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService)
+    /// <param name="hubService">Hub integration service</param>
+    public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService, HubIntegrationService? hubService = null)
     {
         // Convert KnockoutMatch to Match
         _match = new Match
         {
             Id = knockoutMatch.Id,
-            UniqueId = knockoutMatch.UniqueId, // WICHTIG: UUID �bertragen
+            UniqueId = knockoutMatch.UniqueId, // WICHTIG: UUID übertragen
             Player1 = knockoutMatch.Player1,
             Player2 = knockoutMatch.Player2,
             Player1Sets = knockoutMatch.Player1Sets,
@@ -65,9 +76,11 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         };
 
         _localizationService = localizationService;
+        _hubService = hubService;
         
         InitializeComponent();
         InitializeUI();
+        InitializeHubIntegration();
         UpdateTranslations();
     }
 
@@ -76,7 +89,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         // Set initial values
         MatchInfoBlock.Text = $"{_match.Player1?.Name ?? "Player 1"} vs {_match.Player2?.Name ?? "Player 2"}";
         
-        // HINZUGEF�GT: UUID-Anzeige f�r Debugging/Hub-Integration
+        // HINZUGEFÜGT: UUID-Anzeige für Debugging/Hub-Integration
         MatchUuidBlock.Text = $"UUID: {_match.UniqueId}";
         
         // Display game rules info
@@ -134,7 +147,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         NotesLabel.Text = _localizationService.GetString("Notes") + ":";
         LegsHeaderText.Text = _localizationService.GetString("Legs").ToUpper();
         
-        // HINZUGEF�GT: UUID-Anzeige lokalisiert
+        // HINZUGEFÜGT: UUID-Anzeige lokalisiert
         MatchUuidBlock.Text = $"UUID: {_match.UniqueId}";
         
         // Update header title dynamically
@@ -310,13 +323,13 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             return new ValidationResult(false, _localizationService.GetString("InvalidSetCount", requiredSets, maxPossibleSets));
         }
 
-        // Validierung 2: Unm�gliche Set-Kombinationen
+        // Validierung 2: Unmögliche Set-Kombinationen
         if (p1Sets + p2Sets > maxPossibleSets)
         {
             return new ValidationResult(false, _localizationService.GetString("InvalidSetCount", maxPossibleSets, maxPossibleSets));
         }
 
-        // Validierung 3: Beide Spieler k�nnen nicht gleichzeitig gewinnen
+        // Validierung 3: Beide Spieler können nicht gleichzeitig gewinnen
         if (p1Sets >= requiredSets && p2Sets >= requiredSets)
         {
             return new ValidationResult(false, _localizationService.GetString("BothPlayersWon"));
@@ -347,13 +360,13 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     {
         if (winner != null)
         {
-            // Gewinner hat m�glicherweise ein zus�tzliches Set gewonnen
+            // Gewinner hat möglicherweise ein zusätzliches Set gewonnen
             int winnerSets = winner == _match.Player1 ? p1Sets : p2Sets;
             int loserSets = winner == _match.Player1 ? p2Sets : p1Sets;
             int winnerLegs = winner == _match.Player1 ? p1Legs : p2Legs;
             int loserLegs = winner == _match.Player1 ? p2Legs : p1Legs;
             
-            // Validierung: Gewinner muss gen�gend Legs haben f�r seine gewonnenen Sets
+            // Validierung: Gewinner muss genügend Legs haben für seine gewonnenen Sets
             int minRequiredLegs = winnerSets * legsPerSet;
             if (winnerLegs < minRequiredLegs)
             {
@@ -361,8 +374,8 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
                     winner.Name, minRequiredLegs));
             }
             
-            // Validierung: Nicht zu viele Legs f�r die gewonnenen Sets
-            int maxPossibleLegs = winnerSets * legsPerSet + (legsPerSet - 1); // Zus�tzliche Legs im letzten Set
+            // Validierung: Nicht zu viele Legs für die gewonnenen Sets
+            int maxPossibleLegs = winnerSets * legsPerSet + (legsPerSet - 1); // Zusätzliche Legs im letzten Set
             if (winnerLegs > maxPossibleLegs)
             {
                 return new ValidationResult(false, _localizationService.GetString("ExcessiveLegs", 
@@ -379,7 +392,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         }
         else
         {
-            // Kein Gewinner - pr�fe ob jemand gen�gend Legs f�r einen Set-Sieg hat aber Sets nicht stimmen
+            // Kein Gewinner - prüfe ob jemand genügend Legs für einen Set-Sieg hat aber Sets nicht stimmen
             int p1ExpectedSets = p1Legs / legsPerSet;
             int p2ExpectedSets = p2Legs / legsPerSet;
             
@@ -410,7 +423,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             return new ValidationResult(false, _localizationService.GetString("InvalidLegCount", requiredLegs, maxPossibleLegs));
         }
 
-        // Validierung 2: Unm�gliche Leg-Kombinationen
+        // Validierung 2: Unmögliche Leg-Kombinationen
         if (p1Legs + p2Legs > maxPossibleLegs)
         {
             return new ValidationResult(false, _localizationService.GetString("InvalidLegCount", maxPossibleLegs, maxPossibleLegs));
@@ -483,7 +496,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            // VEREINFACHT: Sets werden nur ber�cksichtigt wenn PlayWithSets = true
+            // VEREINFACHT: Sets werden nur berücksichtigt wenn PlayWithSets = true
             var p1Sets = _gameRules.PlayWithSets ? GetIntValue(Player1SetsTextBox.Text) : 0;
             var p2Sets = _gameRules.PlayWithSets ? GetIntValue(Player2SetsTextBox.Text) : 0;
             var p1Legs = GetIntValue(Player1LegsTextBox.Text);
@@ -545,7 +558,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Event-Handler f�r das Verschieben des Fensters �ber den Header
+    /// Event-Handler für das Verschieben des Fensters über den Header
     /// </summary>
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -559,6 +572,204 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     /// Gets the internal match object for result copying
     /// </summary>
     internal Match InternalMatch => _match;
+
+    /// <summary>
+    /// ✅ NEU: Initialize Hub Integration and QR Code
+    /// </summary>
+    private void InitializeHubIntegration()
+    {
+        try
+        {
+            // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
+            if (_hubService != null && 
+                _hubService.IsRegisteredWithHub && 
+                !string.IsNullOrEmpty(_match.UniqueId) &&
+                !string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
+            {
+                // Erstelle Match-Page URL
+                var tournamentId = _hubService.GetCurrentTournamentId();
+                _matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{_match.UniqueId}?uuid=true";
+                
+                System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Generated Match-Page URL: {_matchPageUrl}");
+                
+                // Zeige QR Code Section
+                QrCodeSection.Visibility = Visibility.Visible;
+                
+                // Generiere QR Code
+                GenerateQrCode(_matchPageUrl);
+                
+                System.Diagnostics.Debug.WriteLine("✅ [MatchResultWindow] Hub integration initialized successfully");
+            }
+            else
+            {
+                // Verstecke QR Code Section
+                QrCodeSection.Visibility = Visibility.Collapsed;
+                
+                var reasons = new List<string>();
+                if (_hubService == null) reasons.Add("HubService not available");
+                if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
+                if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
+                if (string.IsNullOrEmpty(_hubService?.GetCurrentTournamentId())) reasons.Add("Tournament ID not available");
+                
+                System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error initializing hub integration: {ex.Message}");
+            QrCodeSection.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Generate QR Code for Match-Page URL
+    /// </summary>
+    private void GenerateQrCode(string url)
+    {
+        try
+        {
+            using (var qrGenerator = new QRCodeGenerator())
+            {
+                var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.M);
+                
+                using (var qrCode = new QRCoder.QRCode(qrCodeData))
+                {
+                    // Generiere QR Code als Bitmap
+                    using (var qrCodeBitmap = qrCode.GetGraphic(20, Color.Black, Color.White, true))
+                    {
+                        // Konvertiere zu WPF BitmapImage
+                        var bitmapImage = new BitmapImage();
+                        using (var stream = new MemoryStream())
+                        {
+                            qrCodeBitmap.Save(stream, ImageFormat.Png);
+                            stream.Position = 0;
+                            
+                            bitmapImage.BeginInit();
+                            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                            bitmapImage.StreamSource = stream;
+                            bitmapImage.EndInit();
+                            bitmapImage.Freeze(); // Wichtig für Thread-Safety
+                        }
+                        
+                        // Setze QR Code Image
+                        QrCodeImage.Source = bitmapImage;
+                        
+                        System.Diagnostics.Debug.WriteLine("✅ [MatchResultWindow] QR Code generated successfully");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error generating QR code: {ex.Message}");
+            
+            // Fallback: Zeige Fehler-Icon
+            try
+            {
+                // Erstelle einfaches Fehler-Bitmap
+                using (var errorBitmap = new Bitmap(100, 100))
+                {
+                    using (var g = Graphics.FromImage(errorBitmap))
+                    {
+                        g.Clear(Color.LightGray);
+                        g.DrawString("❌", new System.Drawing.Font("Arial", 32), Brushes.Red, 25, 25);
+                    }
+                    
+                    var bitmapImage = new BitmapImage();
+                    using (var stream = new MemoryStream())
+                    {
+                        errorBitmap.Save(stream, ImageFormat.Png);
+                        stream.Position = 0;
+                        
+                        bitmapImage.BeginInit();
+                        bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmapImage.StreamSource = stream;
+                        bitmapImage.EndInit();
+                        bitmapImage.Freeze();
+                    }
+                    
+                    QrCodeImage.Source = bitmapImage;
+                }
+            }
+            catch
+            {
+                // Wenn auch das fehlschlägt, verstecke die Section
+                QrCodeSection.Visibility = Visibility.Collapsed;
+            }
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Open Match-Page in default browser
+    /// </summary>
+    private void OpenWebInterfaceButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_matchPageUrl))
+            {
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = _matchPageUrl,
+                    UseShellExecute = true
+                };
+                
+                Process.Start(processInfo);
+                
+                System.Diagnostics.Debug.WriteLine($"🌐 [MatchResultWindow] Opened Match-Page in browser: {_matchPageUrl}");
+                
+                // Optional: Zeige Toast-Nachricht
+                MessageBox.Show(
+                    "Match-Page wurde im Browser geöffnet!\n\nSie können das Ergebnis nun auch über das Web-Interface eingeben.",
+                    "Web-Interface geöffnet",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Fehler beim Öffnen der Match-Page:\n{ex.Message}",
+                "Fehler",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+                
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error opening browser: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Copy Match-Page URL to clipboard
+    /// </summary>
+    private void CopyUrlButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_matchPageUrl))
+            {
+                Clipboard.SetText(_matchPageUrl);
+                
+                MessageBox.Show(
+                    "Match-Page URL wurde in die Zwischenablage kopiert!\n\n" + 
+                    "Sie können diese URL teilen, um anderen den Zugang zur Match-Eingabe zu ermöglichen.",
+                    "URL kopiert",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                
+                System.Diagnostics.Debug.WriteLine($"📋 [MatchResultWindow] URL copied to clipboard: {_matchPageUrl}");
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Fehler beim Kopieren der URL:\n{ex.Message}",
+                "Fehler",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+                
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error copying URL: {ex.Message}");
+        }
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

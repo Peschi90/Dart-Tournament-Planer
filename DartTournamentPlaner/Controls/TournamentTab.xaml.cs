@@ -2,31 +2,37 @@
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Effects;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Collections.Specialized;
+using System.Reflection;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.ViewModels;
 using DartTournamentPlaner.Views;
-using DartTournamentPlaner.Helpers; // NEU: Helper-Klassen
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Controls;
 
+/// <summary>
+/// TournamentTab Control - Refactored für bessere Wartbarkeit
+/// Delegiert Verantwortlichkeiten an spezialisierte Manager-Klassen
+/// </summary>
 public partial class TournamentTab : UserControl, INotifyPropertyChanged
 {
+    // Core data and services
     private TournamentClass _tournamentClass;
+    private LocalizationService? _localizationService;
     private Group? _selectedGroup;
     private Player? _selectedPlayer;
     private string _newPlayerName = string.Empty;
-    private int _nextGroupId = 1;
-    private int _nextPlayerId = 1;
-    private LocalizationService? _localizationService;
 
+    // Manager classes for different responsibilities
+    private TournamentTabUIManager? _uiManager;
+    private TournamentTabEventHandlers? _eventHandlers;
+    private TournamentTabTranslationManager? _translationManager;
+
+    // Properties
     public TournamentClass TournamentClass
     {
         get => _tournamentClass;
@@ -44,48 +50,26 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             if (_tournamentClass != null)
             {
                 _tournamentClass.UIRefreshRequested += OnTournamentUIRefreshRequested;
-                
-                // KRITISCHER FIX: Validiere und repariere Phasen nach dem Laden
-                System.Diagnostics.Debug.WriteLine($"TournamentClass.set: Validating and repairing phases for {_tournamentClass.Name}");
                 _tournamentClass.ValidateAndRepairPhases();
             }
 
             OnPropertyChanged();
-            UpdateUI();
             
-            // WICHTIG: Spezifische View-Updates je nach aktueller Phase
+            // Initialize managers with new tournament class
+            InitializeManagers();
+            
+            _uiManager?.UpdateUI();
+            
+            // Handle specific phase updates
             if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
-                Dispatcher.BeginInvoke(() =>
-                {
-                    RefreshKnockoutView();
-                }, DispatcherPriority.Loaded);
+                Dispatcher.BeginInvoke(() => _uiManager?.RefreshKnockoutView(), DispatcherPriority.Loaded);
             }
             else if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
             {
-                System.Diagnostics.Debug.WriteLine($"TournamentClass.set: Tournament is in Finals phase, scheduling Finals view refresh");
-                Dispatcher.BeginInvoke(() =>
-                {
-                    RefreshFinalsView();
-                }, DispatcherPriority.Loaded);
+                Dispatcher.BeginInvoke(() => _uiManager?.RefreshFinalsView(), DispatcherPriority.Loaded);
             }
         }
-    }
-
-    private void OnTournamentUIRefreshRequested(object? sender, EventArgs e)
-    {
-        Dispatcher.BeginInvoke(() =>
-        {
-            try
-            {
-                RefreshKnockoutView();
-                UpdateMatchesView();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error in OnTournamentUIRefreshRequested: {ex.Message}");
-            }
-        }, DispatcherPriority.DataBind);
     }
 
     public Group? SelectedGroup
@@ -95,29 +79,15 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (_selectedGroup == value) return;
             
-            if (_selectedGroup != null)
-            {
-                foreach (var match in _selectedGroup.Matches)
-                {
-                    match.PropertyChanged -= Match_PropertyChanged;
-                }
-                _selectedGroup.Matches.CollectionChanged -= Matches_CollectionChanged;
-            }
-
+            UnsubscribeFromGroupEvents(_selectedGroup);
             _selectedGroup = value;
-            OnPropertyChanged();
+            SubscribeToGroupEvents(_selectedGroup);
             
-            if (_selectedGroup != null)
-            {
-                foreach (var match in _selectedGroup.Matches)
-                {
-                    match.PropertyChanged += Match_PropertyChanged;
-                }
-                _selectedGroup.Matches.CollectionChanged += Matches_CollectionChanged;
-            }
-                
-            UpdatePlayersView();
-            UpdateMatchesView();
+            OnPropertyChanged();
+            RemovePlayerButton.IsEnabled = false;
+            
+            _uiManager?.UpdatePlayersView(_selectedGroup);
+            _uiManager?.UpdateMatchesView(_selectedGroup);
         }
     }
 
@@ -142,18 +112,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
+    // Events
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? DataChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected virtual void OnDataChanged()
-    {
-        DataChanged?.Invoke(this, EventArgs.Empty);
-    }
 
     public TournamentTab()
     {
@@ -171,823 +132,190 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             _localizationService.PropertyChanged += (s, e) => 
             {
-                // Update translations immediately on the UI thread
                 if (Dispatcher.CheckAccess())
                 {
                     UpdateTranslations();
                 }
                 else
                 {
-                    Dispatcher.BeginInvoke(() => UpdateTranslations(), System.Windows.Threading.DispatcherPriority.Render);
+                    Dispatcher.BeginInvoke(() => UpdateTranslations(), DispatcherPriority.Render);
                 }
             };
-            UpdateTranslations();
         }
+        
+        InitializeManagers();
+        UpdateTranslations();
+    }
+
+    private void InitializeManagers()
+    {
+        if (_localizationService == null) return;
+
+        // Initialize UI Manager
+        _uiManager = new TournamentTabUIManager(_tournamentClass, _localizationService, Dispatcher);
+        SetupUIManagerElements();
+
+        // ✅ KORRIGIERT: Übergebe HubService-Getter für QR-Code Integration
+        var getHubService = new Func<HubIntegrationService?>(() =>
+        {
+            try
+            {
+                // Versuche HubService über MainWindow zu finden
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    var hubServiceField = mainWindow.GetType()
+                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    return hubServiceField?.GetValue(mainWindow) as HubIntegrationService;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting HubService: {ex.Message}");
+                return null;
+            }
+        });
+
+        // Initialize Event Handlers
+        _eventHandlers = new TournamentTabEventHandlers(
+            _tournamentClass,
+            _localizationService,
+            () => SelectedGroup,
+            () => SelectedPlayer,
+            name => NewPlayerName = name,
+            () => NewPlayerName,
+            () => DataChanged?.Invoke(this, EventArgs.Empty),
+            UpdateNextIds,
+            () => _uiManager?.UpdatePlayersView(SelectedGroup),
+            () => _uiManager?.UpdateMatchesView(SelectedGroup),
+            () => _uiManager?.RefreshFinalsView(),
+            () => _uiManager?.RefreshKnockoutView(),
+            () => Window.GetWindow(this),
+            getHubService
+        );
+
+        // Initialize Translation Manager
+        _translationManager = new TournamentTabTranslationManager(_localizationService);
+        SetupTranslationManagerElements();
+    }
+
+    private void SetupUIManagerElements()
+    {
+        if (_uiManager == null) return;
+        
+        _uiManager.GroupsListBox = GroupsListBox;
+        _uiManager.GroupPhaseGroupsList = GroupPhaseGroupsList;
+        _uiManager.PlayersListBox = PlayersListBox;
+        _uiManager.KnockoutParticipantsListBox = KnockoutParticipantsListBox;
+        _uiManager.FinalistsListBox = FinalistsListBox;
+        _uiManager.MatchesDataGrid = MatchesDataGrid;
+        _uiManager.StandingsDataGrid = StandingsDataGrid;
+        _uiManager.KnockoutMatchesDataGrid = KnockoutMatchesDataGrid;
+        _uiManager.LoserBracketDataGrid = LoserBracketDataGrid;
+        _uiManager.FinalsMatchesDataGrid = FinalsMatchesDataGrid;
+        _uiManager.FinalsStandingsDataGrid = FinalsStandingsDataGrid;
+        _uiManager.PlayersHeaderText = PlayersHeaderText;
+        _uiManager.CurrentPhaseText = CurrentPhaseText;
+        _uiManager.TournamentOverviewText = TournamentOverviewText;
+        _uiManager.GenerateMatchesButton = GenerateMatchesButton;
+        _uiManager.ResetMatchesButton = ResetMatchesButton;
+        _uiManager.AdvanceToNextPhaseButton = AdvanceToNextPhaseButton;
+        _uiManager.ResetTournamentButton = ResetTournamentButton;
+        _uiManager.AddPlayerButton = AddPlayerButton;
+        _uiManager.RemoveGroupButton = RemoveGroupButton;
+        _uiManager.PlayerNameTextBox = PlayerNameTextBox;
+        _uiManager.FinalsTabItem = FinalsTabItem;
+        _uiManager.KnockoutTabItem = KnockoutTabItem;
+        _uiManager.LoserBracketTab = LoserBracketTab;
+        _uiManager.LoserBracketTreeTab = LoserBracketTreeTab;
+        _uiManager.BracketCanvas = BracketCanvas;
+        _uiManager.LoserBracketCanvas = LoserBracketCanvas;
+    }
+
+    private void SetupTranslationManagerElements()
+    {
+        if (_translationManager == null) return;
+        
+        _translationManager.SetupTabItem = SetupTabItem;
+        _translationManager.GroupPhaseTabItem = GroupPhaseTabItem;
+        _translationManager.FinalsTabItem = FinalsTabItem;
+        _translationManager.KnockoutTabItem = KnockoutTabItem;
+        _translationManager.ConfigureRulesButton = ConfigureRulesButton;
+        _translationManager.AddGroupButton = AddGroupButton;
+        _translationManager.RemoveGroupButton = RemoveGroupButton;
+        _translationManager.AddPlayerButton = AddPlayerButton;
+        _translationManager.RemovePlayerButton = RemovePlayerButton;
+        _translationManager.GenerateMatchesButton = GenerateMatchesButton;
+        _translationManager.ResetMatchesButton = ResetMatchesButton;
+        _translationManager.AdvanceToNextPhaseButton = AdvanceToNextPhaseButton;
+        _translationManager.ResetTournamentButton = ResetTournamentButton;
+        _translationManager.ResetKnockoutButton = ResetKnockoutButton;
+        _translationManager.ResetFinalsButton = ResetFinalsButton;
+        _translationManager.RefreshUIButton = RefreshUIButton;
+        _translationManager.GroupsHeaderText = GroupsHeaderText;
+        _translationManager.MatchesHeaderText = MatchesHeaderText;
+        _translationManager.StandingsHeaderText = StandingsHeaderText;
+        _translationManager.SelectGroupText = SelectGroupText;
+        _translationManager.TournamentOverviewHeader = TournamentOverviewHeader;
+        _translationManager.GamesTabItem = GamesTabItem;
+        _translationManager.TableTabItem = TableTabItem;
+        _translationManager.MatchesDataGrid = MatchesDataGrid;
+        _translationManager.FinalsMatchesDataGrid = FinalsMatchesDataGrid;
+        _translationManager.KnockoutMatchesDataGrid = KnockoutMatchesDataGrid;
+        _translationManager.StandingsDataGrid = StandingsDataGrid;
     }
 
     public void UpdateTranslations()
     {
-        if (_localizationService == null) return;
-
-        // Update tab headers
-        SetupTabItem.Header = _localizationService.GetString("SetupTab");
-        GroupPhaseTabItem.Header = _localizationService.GetString("GroupPhaseTab");
-        FinalsTabItem.Header = _localizationService.GetString("FinalsTab");
-        KnockoutTabItem.Header = _localizationService.GetString("KnockoutTab");
-
-        ConfigureRulesButton.Content = _localizationService.GetString("ConfigureRules");
-        AddGroupButton.Content = _localizationService.GetString("AddGroup");
-        RemoveGroupButton.Content = _localizationService.GetString("RemoveGroup");
-        AddPlayerButton.Content = _localizationService.GetString("AddPlayer");
-        RemovePlayerButton.Content = _localizationService.GetString("RemovePlayer");
-        GenerateMatchesButton.Content = _localizationService.GetString("GenerateMatches");
-        ResetMatchesButton.Content = "⚠ " + _localizationService.GetString("ResetMatches");
-        AdvanceToNextPhaseButton.Content = "🏆 " + _localizationService.GetString("AdvanceToNextPhase");
-        ResetTournamentButton.Content = "🔄 " + _localizationService.GetString("ResetTournament");
-        ResetKnockoutButton.Content = "⚠ " + _localizationService.GetString("ResetKnockoutPhase");
-        ResetFinalsButton.Content = "⚠ " + _localizationService.GetString("ResetFinalsPhase");
-        GroupsHeaderText.Text = _localizationService.GetString("Groups");
-        MatchesHeaderText.Text = _localizationService.GetString("Matches");
-        StandingsHeaderText.Text = _localizationService.GetString("Standings");
-        GamesTabItem.Header = _localizationService.GetString("Matches");
-        TableTabItem.Header = _localizationService.GetString("Standings");
-        TournamentOverviewHeader.Text = _localizationService.GetString("TournamentOverview");
-
-
-
-        //Gruppenphasen Tab
-        SelectGroupText.Text = _localizationService.GetString("SelectGroup");
-
-        if (RefreshUIButton != null)
-        {
-            RefreshUIButton.Content = "🔄 " + _localizationService.GetString("RefreshUI");
-            RefreshUIButton.ToolTip = _localizationService.GetString("RefreshUITooltip");
-        }
-        
-        // Update DataGrid columns
-        UpdateDataGridHeaders();
-        
-        // Update players view (this will also update phase display)
-        UpdatePlayersView();
-        
-        // Ensure knockout phase is properly loaded if we're in that phase
-        if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-            RefreshKnockoutView();
-        }
+        _translationManager?.UpdateTranslations();
+        _uiManager?.UpdatePlayersView(SelectedGroup);
     }
 
-    private void UpdateDataGridHeaders()
+    private void OnTournamentUIRefreshRequested(object? sender, EventArgs e)
     {
-        if (_localizationService == null) return;
-
-        if (MatchesDataGrid.Columns.Count >= 3)
+        Dispatcher.BeginInvoke(() =>
         {
-            MatchesDataGrid.Columns[0].Header = _localizationService.GetString("Match") ?? "Match";
-            MatchesDataGrid.Columns[1].Header = _localizationService.GetString("Result");
-            MatchesDataGrid.Columns[2].Header = _localizationService.GetString("Status") ?? "Status";
-        }
-
-        if (FinalsMatchesDataGrid.Columns.Count >= 3)
-        {
-            FinalsMatchesDataGrid.Columns[0].Header = _localizationService.GetString("Match") ?? "Match";
-            FinalsMatchesDataGrid.Columns[1].Header = _localizationService.GetString("Result");
-            FinalsMatchesDataGrid.Columns[2].Header = _localizationService.GetString("Status") ?? "Status";
-        }
-
-        if (KnockoutMatchesDataGrid.Columns.Count >= 4)
-        {
-            KnockoutMatchesDataGrid.Columns[0].Header = _localizationService.GetString("Round") ?? "Runde";
-            KnockoutMatchesDataGrid.Columns[1].Header = _localizationService.GetString("Match") ?? "Match";
-            KnockoutMatchesDataGrid.Columns[2].Header = _localizationService.GetString("Result");
-            KnockoutMatchesDataGrid.Columns[3].Header = _localizationService.GetString("Status") ?? "Status";
-        }
-
-        if (StandingsDataGrid.Columns.Count >= 6)
-        {
-            StandingsDataGrid.Columns[0].Header = _localizationService.GetString("Position") ?? "Pos";
-            StandingsDataGrid.Columns[1].Header = _localizationService.GetString("Player");
-            StandingsDataGrid.Columns[2].Header = _localizationService.GetString("Score");
-            StandingsDataGrid.Columns[3].Header = "W-D-L";
-            StandingsDataGrid.Columns[4].Header = _localizationService.GetString("Sets");
-            StandingsDataGrid.Columns[5].Header = _localizationService.GetString("Legs");
-        }
-    }
-
-    private void UpdateUI()
-    {
-        if (TournamentClass?.Groups != null)
-        {
-            if (GroupsListBox.ItemsSource != TournamentClass.Groups)
-            {
-                GroupsListBox.ItemsSource = TournamentClass.Groups;
-            }
-            
-            if (GroupPhaseGroupsList.ItemsSource != TournamentClass.Groups)
-            {
-                GroupPhaseGroupsList.ItemsSource = TournamentClass.Groups;
-            }
-        }
-        
-        RemoveGroupButton.IsEnabled = GroupsListBox.SelectedItem != null;
-        UpdateNextIds();
-        UpdatePhaseDisplay();
-    }
-
-    private void UpdateNextIds()
-    {
-        if (TournamentClass.Groups.Count > 0)
-        {
-            var maxId = TournamentClass.Groups.Max(g => g.Id);
-            _nextGroupId = maxId + 1;
-        }
-        else
-        {
-            _nextGroupId = 1;
-        }
-
-        var allPlayers = TournamentClass.Groups.SelectMany(g => g.Players);
-        if (allPlayers.Any())
-        {
-            var maxPlayerId = allPlayers.Max(p => p.Id);
-            _nextPlayerId = maxPlayerId + 1;
-        }
-        else
-        {
-            _nextPlayerId = 1;
-        }
-    }
-
-    private void UpdatePlayersView()
-    {
-        try
-        {
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
-            {
-                if (SelectedGroup != null)
-                {
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            PlayersListBox.ItemsSource = SelectedGroup.Players;
-                            if (_localizationService != null)
-                            {
-                                PlayersHeaderText.Text = _localizationService.GetString("PlayersInGroup", SelectedGroup.Name);
-                            }
-                            else
-                            {
-                                PlayersHeaderText.Text = $"Spieler in {SelectedGroup.Name}:";
-                            }
-
-                            PlayerNameTextBox.IsEnabled = true;
-                            AddPlayerButton.IsEnabled = true;
-                            GenerateMatchesButton.IsEnabled = SelectedGroup.Players.Count >= 2;
-                            ResetMatchesButton.IsEnabled = SelectedGroup.MatchesGenerated && SelectedGroup.Matches.Count > 0;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for selected group: {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
-                }
-                else
-                {
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            PlayersListBox.ItemsSource = null;
-                            if (_localizationService != null)
-                            {
-                                PlayersHeaderText.Text = _localizationService.GetString("NoGroupSelectedPlayers");
-                            }
-                            else
-                            {
-                                PlayersHeaderText.Text = "Spieler: (Keine Gruppe ausgewählt)";
-                            }
-
-                            PlayerNameTextBox.IsEnabled = false;
-                            AddPlayerButton.IsEnabled = false;
-                            GenerateMatchesButton.IsEnabled = false;
-                            ResetMatchesButton.IsEnabled = false;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for no group: {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
-                }
-                SelectedPlayer = null;
-            }
-            else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-            {
-                System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Finals phase");
-                
-                // WICHTIG: Validiere Finals-Phase Integrität vor UI-Update
-                TournamentClass.EnsureFinalsPhaseIntegrity();
-                
-                // Finals phase - show qualified players
-                var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
-                if (finalsGroup != null)
-                {
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            PlayersListBox.ItemsSource = finalsGroup.Players;
-                            PlayersHeaderText.Text = _localizationService?.GetString("FinalistsCount", finalsGroup.Players.Count) ?? $"Finalisten ({finalsGroup.Players.Count} Spieler):";
-
-                            // Disable player management in finals
-                            PlayerNameTextBox.IsEnabled = false;
-                            AddPlayerButton.IsEnabled = false;
-                            GenerateMatchesButton.IsEnabled = !finalsGroup.MatchesGenerated;
-                            ResetMatchesButton.IsEnabled = finalsGroup.MatchesGenerated;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for finals: {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Finals phase but no FinalsGroup found after validation!");
-                    
-                    // Fallback: Zeige QualifiedPlayers wenn verfügbar
-                    var qualifiedPlayers = TournamentClass.CurrentPhase.QualifiedPlayers;
-                    if (qualifiedPlayers?.Count > 0)
-                    {
-                        Dispatcher.BeginInvoke(() =>
-                        {
-                            PlayersListBox.ItemsSource = qualifiedPlayers;
-                            PlayersHeaderText.Text = _localizationService?.GetString("FinalistsCount", qualifiedPlayers.Count) ?? $"Finalisten ({qualifiedPlayers.Count} Spieler):";
-                            
-                            PlayerNameTextBox.IsEnabled = false;
-                            AddPlayerButton.IsEnabled = false;
-                            GenerateMatchesButton.IsEnabled = false;
-                            ResetMatchesButton.IsEnabled = false;
-                        }, DispatcherPriority.DataBind);
-                    }
-                }
-            }
-            else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-            {
-                System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Knockout phase");
-                
-                // SICHERHEITSCHECK: Prüfe ob QualifiedPlayers verfügbar sind
-                var qualifiedPlayers = TournamentClass.CurrentPhase.QualifiedPlayers;
-                if (qualifiedPlayers == null)
-                {
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            PlayersListBox.ItemsSource = null;
-                            PlayersHeaderText.Text = "KO-Teilnehmer: (Fehler - keine Daten)";
-
-                            // Disable all player management in knockout
-                            PlayerNameTextBox.IsEnabled = false;
-                            AddPlayerButton.IsEnabled = false;
-                            GenerateMatchesButton.IsEnabled = false;
-                            ResetMatchesButton.IsEnabled = false;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for knockout (null check): {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
-                    return;
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Knockout phase with {qualifiedPlayers.Count} players");
-                
-                // Knockout phase - show qualified players
-                Dispatcher.BeginInvoke(() =>
-                {
-                    try
-                    {
-                        PlayersListBox.ItemsSource = qualifiedPlayers;
-                        PlayersHeaderText.Text = _localizationService?.GetString("KnockoutParticipantsCount", qualifiedPlayers.Count) ?? $"KO-Teilnehmer ({qualifiedPlayers.Count} Spieler):";
-                        
-                        // Disable all player management in knockout
-                        PlayerNameTextBox.IsEnabled = false;
-                        AddPlayerButton.IsEnabled = false;
-                        GenerateMatchesButton.IsEnabled = false;
-                        ResetMatchesButton.IsEnabled = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView for knockout: {ex.Message}");
-                    }
-                }, DispatcherPriority.DataBind);
-            }
-            else
-            {
-                // NEU: FALLBACK für unbekannte oder resetzte Phasen - explizit leeren
-                System.Diagnostics.Debug.WriteLine($"UpdatePlayersView: Unknown or reset phase - clearing all views");
-                
-                Dispatcher.BeginInvoke(() =>
-                {
-                    try
-                    {
-                        // Alle Player-Listen leeren
-                        PlayersListBox.ItemsSource = null;
-                        KnockoutParticipantsListBox.ItemsSource = null;
-                        FinalistsListBox.ItemsSource = null;
-                        
-                        PlayersHeaderText.Text = _localizationService?.GetString("NoGroupSelectedPlayers") ?? "Spieler: (Keine Gruppe ausgewählt)";
-                        
-                        // Player management aktivieren (für Gruppenphase)
-                        PlayerNameTextBox.IsEnabled = false; // Aktiviert sich wenn Gruppe gewählt wird
-                        AddPlayerButton.IsEnabled = false;
-                        GenerateMatchesButton.IsEnabled = false;
-                        ResetMatchesButton.IsEnabled = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView fallback: {ex.Message}");
-                    }
-                }, DispatcherPriority.DataBind);
-            }
-            
-            // Update phase info whenever players view changes
-            UpdatePhaseDisplay();
-            }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error in UpdatePlayersView: {ex.Message}");
-        }
-    }
-
-    private void UpdatePhaseDisplay()
-    {
-        if (TournamentClass?.CurrentPhase == null) return;
-
-        try
-        {
-            var phaseText = TournamentClass.CurrentPhase.PhaseType switch
-            {
-                TournamentPhaseType.GroupPhase => _localizationService?.GetString("GroupPhase") ?? "Gruppenphase",
-                TournamentPhaseType.RoundRobinFinals => _localizationService?.GetString("FinalsPhase") ?? "Finalrunde",
-                TournamentPhaseType.KnockoutPhase => _localizationService?.GetString("KnockoutPhase") ?? "KO-Phase",
-                _ => "Unbekannte Phase"
-            };
-
-            var currentPhaseLabel = _localizationService?.GetString("CurrentPhase") ?? "Aktuelle Phase";
-            CurrentPhaseText.Text = $"{currentPhaseLabel}: {phaseText}";
-
-            // 🚨 KORRIGIERT: Tab-Sichtbarkeit korrekt bestimmen - KEINE Überschneidungen
-            var hasPostPhase = TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None;
-            var hasRoundRobinFinals = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.RoundRobinFinals; // NUR RoundRobin Finals
-            var hasKnockout = TournamentClass.GameRules.PostGroupPhaseMode == PostGroupPhaseMode.KnockoutBracket;
-            var hasDoubleElimination = TournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination;
-
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: PostGroupPhaseMode = {TournamentClass.GameRules.PostGroupPhaseMode}");
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasRoundRobinFinals = {hasRoundRobinFinals} (ONLY for RoundRobin)");
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: hasKnockout = {hasKnockout} (ONLY for Knockout)");
-
-            // 🚨 KORRIGIERT: Tab-Sichtbarkeit - KEINE Überlappung zwischen Finals und Knockout
-            FinalsTabItem.Visibility = hasRoundRobinFinals ? Visibility.Visible : Visibility.Collapsed;
-            KnockoutTabItem.Visibility = hasKnockout ? Visibility.Visible : Visibility.Collapsed;
-            LoserBracketTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
-            LoserBracketTreeTab.Visibility = hasKnockout && hasDoubleElimination ? Visibility.Visible : Visibility.Collapsed;
-
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: CORRECTED Tab visibility - Finals: {FinalsTabItem.Visibility}, KO: {KnockoutTabItem.Visibility}");
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Finals shows ONLY for RoundRobin classes, KO shows ONLY for Knockout classes");
-
-            bool canAdvance = false;
             try
             {
-                canAdvance = TournamentClass.CanProceedToNextPhase() && 
-                           TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None;
+                _uiManager?.RefreshKnockoutView();
+                _uiManager?.UpdateMatchesView(SelectedGroup);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: ERROR in CanProceedToNextPhase: {ex.Message}");
-                canAdvance = false;
+                System.Diagnostics.Debug.WriteLine($"Error in OnTournamentUIRefreshRequested: {ex.Message}");
             }
-
-            AdvanceToNextPhaseButton.IsEnabled = canAdvance;
-            AdvanceToNextPhaseButton.Visibility = TournamentClass.GameRules.PostGroupPhaseMode != PostGroupPhaseMode.None 
-                ? Visibility.Visible 
-                : Visibility.Collapsed;
-
-            var hasGeneratedMatches = TournamentClass.Groups.Any(g => g.MatchesGenerated && g.Matches.Count > 0);
-            var isInAdvancedPhase = TournamentClass.CurrentPhase?.PhaseType != TournamentPhaseType.GroupPhase;
-            ResetTournamentButton.IsEnabled = hasGeneratedMatches || isInAdvancedPhase;
-
-            // Show what next phase would be
-            if (canAdvance)
-            {
-                try
-                {
-                    var nextPhase = TournamentClass.GetNextPhase();
-                    System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: Next phase = {nextPhase?.PhaseType}");                    
-                    if (nextPhase != null)
-                    {
-                        var nextPhaseText = nextPhase.PhaseType switch
-                        {
-                            TournamentPhaseType.RoundRobinFinals => _localizationService?.GetString("FinalsPhase") ?? "Finalrunde",
-                            TournamentPhaseType.KnockoutPhase => _localizationService?.GetString("KnockoutPhase") ?? "KO-Phase",
-                            _ => "Nächste Phase"
-                        };
-                        AdvanceToNextPhaseButton.Content = $"🏆 {_localizationService?.GetString("NextPhaseStart", nextPhaseText) ?? $"{nextPhaseText} starten"}";
-                       }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: ERROR in GetNextPhase: {ex.Message}");
-                }
-            }
-
-            UpdateTournamentOverview();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdatePhaseDisplay: CRITICAL ERROR: {ex.Message}");
-        }
+        }, DispatcherPriority.DataBind);
     }
 
-    private void UpdateTournamentOverview()
+    // Event subscription/unsubscription
+    private void SubscribeToGroupEvents(Group? group)
     {
-        if (TournamentClass == null) return;
-
-        var overview = $"{_localizationService?.GetString("TournamentName") ?? "🏆 Turnier:"} {TournamentClass.Name}\n\n";
-        overview += $"{_localizationService?.GetString("CurrentPhase") ?? "🎯 Aktuelle Phase:"} {TournamentClass.CurrentPhase?.Name}\n";
-        overview += $"{_localizationService?.GetString("GroupsCount") ?? "👥 Gruppen:"} {TournamentClass.Groups.Count}\n";
-        overview += $"{_localizationService?.GetString("PlayersTotal") ?? "🎮 Spieler gesamt:"} {TournamentClass.Groups.SelectMany(g => g.Players).Count()}\n\n";
+        if (group == null) return;
         
-        overview += $"{_localizationService?.GetString("GameRulesColon") ?? "📋 Spielregeln:"}\n{TournamentClass.GameRules}\n\n";
-
-        if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
+        foreach (var match in group.Matches)
         {
-            var finishedGroups = TournamentClass.Groups.Count(g => g.MatchesGenerated && g.Matches.All(m => m.Status == MatchStatus.Finished || m.IsBye));
-            overview += $"{_localizationService?.GetString("CompletedGroups") ?? "✅ Abgeschlossene Gruppen:"} {finishedGroups}/{TournamentClass.Groups.Count}\n";
+            match.PropertyChanged += Match_PropertyChanged;
         }
-        else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-        {
-            var qualifiedCount = TournamentClass.CurrentPhase.QualifiedPlayers.Count;
-            overview += $"{_localizationService?.GetString("QualifiedPlayers") ?? "🏅 Qualifizierte Spieler:"} {qualifiedCount}\n";
-        }
-        else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-            var totalMatches = TournamentClass.CurrentPhase.WinnerBracket.Count;
-            var finishedMatches = TournamentClass.CurrentPhase.WinnerBracket.Count(m => m.Status == MatchStatus.Finished);
-            overview += $"{_localizationService?.GetString("KnockoutMatches") ?? "⚔️ KO-Spiele:"} {finishedMatches}/{totalMatches} {_localizationService?.GetString("Completed") ?? "beendet"}\n";
-        }
-
-        TournamentOverviewText.Text = overview;
+        group.Matches.CollectionChanged += Matches_CollectionChanged;
     }
 
-    private void UpdateMatchesView()
+    private void UnsubscribeFromGroupEvents(Group? group)
     {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: START - Current phase: {TournamentClass?.CurrentPhase?.PhaseType}");
-            
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
-            {
-                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: GroupPhase");
-                
-                // Knockout/Finals DataGrids explizit leeren
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
-                KnockoutParticipantsListBox.ItemsSource = null;
-                FinalsMatchesDataGrid.ItemsSource = null;
-                FinalsStandingsDataGrid.ItemsSource = null;
-                FinalistsListBox.ItemsSource = null;
-                
-                if (SelectedGroup != null)
-                {
-                    MatchesDataGrid.ItemsSource = SelectedGroup.Matches;
-                    var standings = SelectedGroup.GetStandings();
-                    StandingsDataGrid.ItemsSource = standings;
-                }
-                else
-                {
-                    MatchesDataGrid.ItemsSource = null;
-                    StandingsDataGrid.ItemsSource = null;
-                }
-            }
-            else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-            {
-                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: RoundRobinFinals");
-                
-                // Group DataGrids explizit leeren
-                MatchesDataGrid.ItemsSource = null;
-                StandingsDataGrid.ItemsSource = null;
-                // Knockout DataGrids explizit leeren
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
-                KnockoutParticipantsListBox.ItemsSource = null;
-                
-                // WICHTIG: RefreshFinalsView in einem separaten Thread ausführen um Deadlocks zu vermeiden
-                Dispatcher.BeginInvoke(() =>
-                {
-                    RefreshFinalsView();
-                }, DispatcherPriority.Loaded);
-            }
-            else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-            {
-                System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: KnockoutPhase");
-                
-                // Group DataGrids explizit leeren
-                MatchesDataGrid.ItemsSource = null;
-                StandingsDataGrid.ItemsSource = null;
-                // Finals DataGrids explizit leeren
-                FinalsMatchesDataGrid.ItemsSource = null;
-                FinalsStandingsDataGrid.ItemsSource = null;
-                FinalistsListBox.ItemsSource = null;
-                
-                // WICHTIG: RefreshKnockoutView in einem separaten Thread ausführen um Deadlocks zu vermeiden  
-                Dispatcher.BeginInvoke(() =>
-                {
-                    RefreshKnockoutView();
-                }, DispatcherPriority.Loaded);
-            }
-            else
-            {
-                // NEU: Fallback - alle DataGrids explizit leeren
-                System.Diagnostics.Debug.WriteLine("UpdateMatchesView: Unknown phase - clearing all DataGrids");
-                
-                MatchesDataGrid.ItemsSource = null;
-                StandingsDataGrid.ItemsSource = null;
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
-                KnockoutParticipantsListBox.ItemsSource = null;
-                FinalsMatchesDataGrid.ItemsSource = null;
-                FinalsStandingsDataGrid.ItemsSource = null;
-                FinalistsListBox.ItemsSource = null;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateMatchesView: ERROR: {ex.Message}");
-        }
-    }
-
-    private void RefreshFinalsView()
-    {
-        System.Diagnostics.Debug.WriteLine("RefreshFinalsView: START");
+        if (group == null) return;
         
-        try
+        foreach (var match in group.Matches)
         {
-            if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-            {
-                System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: In RoundRobinFinals phase");
-                
-                var finalsGroup = TournamentClass.CurrentPhase.FinalsGroup;
-                if (finalsGroup != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: FinalsGroup found with {finalsGroup.Players.Count} players and {finalsGroup.Matches.Count} matches");
-                    
-                    // WICHTIG: Stelle sicher dass Matches generiert sind
-                    if (!finalsGroup.MatchesGenerated && finalsGroup.Players.Count >= 2)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Generating Finals matches for {finalsGroup.Players.Count} players");
-                        finalsGroup.GenerateRoundRobinMatches(TournamentClass.GameRules);
-                    }
-                    
-                    // UI Components aktualisieren
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Updating UI components");
-                            
-                            FinalistsListBox.ItemsSource = finalsGroup.Players;
-                            FinalsMatchesDataGrid.ItemsSource = finalsGroup.Matches;
-                            
-                            var standings = finalsGroup.GetStandings();
-                            FinalsStandingsDataGrid.ItemsSource = standings;
-                            
-
-                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: UI updated - Players: {finalsGroup.Players.Count}, Matches: {finalsGroup.Matches.Count}, Standings: {standings.Count}");
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: ERROR updating UI: {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: ERROR - FinalsGroup is null!");
-                    
-                    // Versuche die FinalsGroup zu erstellen falls sie fehlt
-                    if (TournamentClass.CurrentPhase.QualifiedPlayers?.Count > 0)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Attempting to create missing FinalsGroup with {TournamentClass.CurrentPhase.QualifiedPlayers.Count} qualified players");
-                        
-                        var recreatedGroup = new Group
-                        {
-                            Id = 999,
-                            Name = "Finalrunde",
-                            MatchesGenerated = false
-                        };
-                        
-                        foreach (var player in TournamentClass.CurrentPhase.QualifiedPlayers)
-                        {
-                            recreatedGroup.Players.Add(player);
-                        }
-                        
-                        TournamentClass.CurrentPhase.FinalsGroup = recreatedGroup;
-                        
-                        // Rekursiver Aufruf nach der Reparatur
-                        RefreshFinalsView();
-                        return;
-                    }
-                    
-                    // Fallback: UI leeren
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        FinalistsListBox.ItemsSource = null;
-                        FinalsMatchesDataGrid.ItemsSource = null;
-                        FinalsStandingsDataGrid.ItemsSource = null;
-                    }, DispatcherPriority.DataBind);
-                }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Not in RoundRobinFinals phase (current: {TournamentClass?.CurrentPhase?.PhaseType})");
-                
-                // Nicht in Finals Phase - UI leeren
-                Dispatcher.BeginInvoke(() =>
-                {
-                    FinalistsListBox.ItemsSource = null;
-                    FinalsMatchesDataGrid.ItemsSource = null;
-                    FinalsStandingsDataGrid.ItemsSource = null;
-                }, DispatcherPriority.DataBind);
-            }
+            match.PropertyChanged -= Match_PropertyChanged;
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: CRITICAL ERROR: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView: Stack trace: {ex.StackTrace}");
-        }
-        
-        System.Diagnostics.Debug.WriteLine("RefreshFinalsView: END");
-    }
-
-    private void RefreshKnockoutView()
-    {
-        if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-            KnockoutParticipantsListBox.ItemsSource = TournamentClass.CurrentPhase.QualifiedPlayers;
-            
-            var winnerBracketMatches = TournamentClass.CurrentPhase.WinnerBracket.Select(match =>
-                new KnockoutMatchViewModel(match, TournamentClass)).ToList();
-            
-            KnockoutMatchesDataGrid.ItemsSource = winnerBracketMatches;
-            
-            if (TournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
-            {
-                var loserBracketMatches = TournamentClass.CurrentPhase.LoserBracket.Select(match =>
-                    new KnockoutMatchViewModel(match, TournamentClass)).ToList();
-                
-                LoserBracketDataGrid.ItemsSource = loserBracketMatches;
-                
-                LoserBracketTab.Visibility = Visibility.Visible;
-                LoserBracketTreeTab.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                LoserBracketTab.Visibility = Visibility.Collapsed;
-                LoserBracketTreeTab.Visibility = Visibility.Collapsed;
-            }
-            
-            // WICHTIG: Turnierbäume neu zeichnen
-            DrawBracketTree();
-            DrawLoserBracketTree();
-            
-            System.Diagnostics.Debug.WriteLine("RefreshKnockoutView: Tournament trees have been redrawn");
-        }
-    }
-
-    private void DrawBracketTree()
-    {
-        if (BracketCanvas == null || TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
-            return;
-
-        BracketCanvas.Children.Clear();
-
-        try
-        {
-            var winnerBracketContent = TournamentClass.CreateTournamentTreeView(BracketCanvas, false, _localizationService);
-            // Der Content wird direkt in den Canvas eingefügt von der TournamentClass
-            System.Diagnostics.Debug.WriteLine("DrawBracketTree: Interactive Winner Bracket tree created successfully");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DrawBracketTree: Error creating interactive tree: {ex.Message}");
-            // Fallback zu alter Implementation
-            DrawStaticBracketTree(false);
-        }
-    }
-
-    private void DrawLoserBracketTree()
-    {
-        if (LoserBracketCanvas == null || TournamentClass?.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
-            return;
-
-        LoserBracketCanvas.Children.Clear();
-
-        if (TournamentClass.GameRules.KnockoutMode != KnockoutMode.DoubleElimination)
-        {
-            DrawEmptyBracketMessage(LoserBracketCanvas, 
-                _localizationService?.GetString("NoLoserBracketSingleElimination") ?? "Kein Loser Bracket (Single Elimination)", 
-                true);
-            return;
-        }
-
-        try
-        {
-            var loserBracketContent = TournamentClass.CreateTournamentTreeView(LoserBracketCanvas, true, _localizationService);
-            // Der Content wird direkt in den Canvas eingefügt von der TournamentClass
-            System.Diagnostics.Debug.WriteLine("DrawLoserBracketTree: Interactive Loser Bracket tree created successfully");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DrawLoserBracketTree: Error creating interactive tree: {ex.Message}");
-            // Fallback zu alter Implementation
-            DrawStaticBracketTree(true);
-        }
-    }
-
-    // Fallback-Methoden für den Fall, dass die interaktiven Methoden nicht verfügbar sind
-    private void DrawStaticBracketTree(bool isLoserBracket)
-    {
-        var canvas = isLoserBracket ? LoserBracketCanvas : BracketCanvas;
-        if (canvas == null) return;
-
-        var matches = isLoserBracket 
-            ? TournamentClass.CurrentPhase.LoserBracket.ToList()
-            : TournamentClass.CurrentPhase.WinnerBracket.ToList();
-
-        if (matches.Count == 0)
-        {
-            var message = isLoserBracket 
-                ? _localizationService?.GetString("NoLoserBracketGames") ?? "Keine Loser Bracket Spiele vorhanden"
-                : _localizationService?.GetString("NoWinnerBracketGames") ?? "Keine Winner Bracket Spiele vorhanden";
-            
-            TournamentUIHelper.DrawEmptyBracketMessage(canvas, message, isLoserBracket, _localizationService);
-            return;
-        }
-
-        TournamentKnockoutHelper.DrawStaticBracketTree(canvas, matches, isLoserBracket, _localizationService);
-    }
-
-    private void DrawEmptyBracketMessage(Canvas canvas, string message, bool isLoserBracket)
-    {
-        TournamentUIHelper.DrawEmptyBracketMessage(canvas, message, isLoserBracket, _localizationService);
-    }
-
-    private void DrawKnockoutBracket(Canvas canvas, List<KnockoutMatch> matches, bool isLoserBracket)
-    {
-        TournamentKnockoutHelper.DrawStaticBracketTree(canvas, matches, isLoserBracket, _localizationService);
-    }
-
-    private Border CreateKnockoutMatchControl(KnockoutMatch match, double width, double height)
-    {
-        return TournamentUIHelper.CreateKnockoutMatchControl(match, width, height, _localizationService);
-    }
-
-    private void DrawBracketConnectionLine(Canvas canvas, double x1, double y1, double x2, double y2)
-    {
-        TournamentUIHelper.DrawBracketConnectionLine(canvas, x1, y1, x2, y2);
-    }
-
-    private void ClearViewsSafely()
-    {
-        try
-        {
-            PlayersListBox.ItemsSource = null;
-            MatchesDataGrid.ItemsSource = null;
-            StandingsDataGrid.ItemsSource = null;
-            
-            if (_localizationService != null)
-            {
-                PlayersHeaderText.Text = _localizationService.GetString("NoGroupSelectedPlayers");
-            }
-            else
-            {
-                PlayersHeaderText.Text = "Spieler: (Keine Gruppe ausgewählt)";
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ClearViewsSafely: ERROR: {ex.Message}");
-        }
+        group.Matches.CollectionChanged -= Matches_CollectionChanged;
     }
 
     private void Match_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(Match.Status) or nameof(Match.Winner))
         {
-            UpdateMatchesView();
+            _uiManager?.UpdateMatchesView(SelectedGroup);
             
-            // Use validation helper for automatic group status checking
             if (sender is Match match && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
                 var parentWindow = Window.GetWindow(this);
@@ -1014,87 +342,32 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             }
         }
         
-        UpdateMatchesView();
+        _uiManager?.UpdateMatchesView(SelectedGroup);
     }
 
-    /// <summary>
-    /// Hilfsmethode: Findet das TextBlock-Element im Header eines TabItems
-    /// Tab-Header bestehen aus StackPanels mit Icons und TextBlocks
-    /// </summary>
-    /// <param name="tabItem">Das TabItem dessen Header durchsucht werden soll</param>
-    /// <returns>Das TextBlock-Element oder null wenn nicht gefunden</returns>
-    private TextBlock? FindTextBlockInHeader(TabItem tabItem)
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
-        return TournamentUIHelper.FindTextBlockInHeader(tabItem);
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    // Event Handlers
+    // Event Handlers - delegated to EventHandlers class
     private void ConfigureRulesButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_localizationService == null) return;
+        => _eventHandlers?.ConfigureRulesButton_Click(sender, e);
 
-        try
-        {
-            var gameRulesWindow = new Views.GameRulesWindow(TournamentClass.GameRules, _localizationService);
-            gameRulesWindow.Owner = Window.GetWindow(this);
-            
-            gameRulesWindow.DataChanged += (s, args) =>
-            {
-                System.Diagnostics.Debug.WriteLine("ConfigureRulesButton_Click: GameRulesWindow DataChanged received");
-                System.Diagnostics.Debug.WriteLine($"  PostGroupPhaseMode: {TournamentClass.GameRules.PostGroupPhaseMode}");
-                System.Diagnostics.Debug.WriteLine($"  QualifyingPlayersPerGroup: {TournamentClass.GameRules.QualifyingPlayersPerGroup}");
-                System.Diagnostics.Debug.WriteLine($"  KnockoutMode: {TournamentClass.GameRules.KnockoutMode}");
-                System.Diagnostics.Debug.WriteLine($"  IncludeGroupPhaseLosersBracket: {TournamentClass.GameRules.IncludeGroupPhaseLosersBracket}");
-                
-                // WICHTIG: Alle bestehenden Matches in allen Gruppen aktualisieren
-                foreach (var group in TournamentClass.Groups)
-                {
-                    if (group.MatchesGenerated && group.Matches.Count > 0)
-                    {
-                        group.UpdateMatchDisplaySettings(TournamentClass.GameRules);
-                    }
-                }
-                
-                // KRITISCH: UI-Updates in korrekter Reihenfolge ausführen
-                Dispatcher.BeginInvoke(() =>
-                {
-                    UpdatePhaseDisplay();  // Aktualisiert Tab-Sichtbarkeit basierend auf neuen GameRules
-                    UpdatePlayersView();   // Aktualisiert Player-Anzeige
-                    UpdateMatchesView();   // Aktualisiert Match-Anzeige
-                }, System.Windows.Threading.DispatcherPriority.DataBind);
-                
-                OnDataChanged();
-            };
-            
-            gameRulesWindow.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"Fehler beim Öffnen der Spielregeln: {ex.Message}", "Fehler", 
-                          MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    // Event-Handler für Auto-Save Timer
     private void RefreshUIButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("RefreshUIButton_Click: Refreshing UI manually");
+            _uiManager?.UpdateUI();
+            _uiManager?.UpdatePlayersView(SelectedGroup);
+            _uiManager?.UpdateMatchesView(SelectedGroup);
+            _uiManager?.UpdatePhaseDisplay();
             
-            // Update all views
-            UpdateUI();
-            UpdatePlayersView();
-            UpdateMatchesView();
-            UpdatePhaseDisplay();
-            
-            // Refresh knockout view if in knockout phase
             if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
-                RefreshKnockoutView();
+                _uiManager?.RefreshKnockoutView();
             }
             
-            // Show toast notification using helper
             var parentGrid = Window.GetWindow(this)?.Content as Grid;
             if (parentGrid != null)
             {
@@ -1102,13 +375,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 var title = _localizationService?.GetString("Information") ?? "Information";
                 TournamentUIHelper.ShowToastNotification(parentGrid, title, successMessage);
             }
-            
-            System.Diagnostics.Debug.WriteLine("RefreshUIButton_Click: UI refresh completed successfully");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"RefreshUIButton_Click: ERROR: {ex.Message}");
-        
             var errorMessage = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren:"} {ex.Message}";
             TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
         }
@@ -1120,27 +389,14 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (TournamentDialogHelper.ShowResetFinalsConfirmation(Window.GetWindow(this), _localizationService))
             {
-                // Reset to group phase using helper
                 TournamentKnockoutHelper.ResetToGroupPhase(TournamentClass);
+                _uiManager?.ClearKnockoutCanvases();
                 
-                // WICHTIG: Canvas-Elemente und DataGrids explizit leeren
-                ClearKnockoutCanvases();
+                _uiManager?.UpdateUI();
+                _uiManager?.UpdatePlayersView(SelectedGroup);
+                _uiManager?.UpdateMatchesView(SelectedGroup);
+                _uiManager?.UpdatePhaseDisplay();
                 
-                // ALLE UI-Komponenten aktualisieren
-                UpdateUI();
-                UpdatePlayersView();
-                UpdateMatchesView();
-                UpdatePhaseDisplay();
-                
-                // Finals-spezifische DataGrids explizit leeren
-                FinalsMatchesDataGrid.ItemsSource = null;
-                FinalsStandingsDataGrid.ItemsSource = null;
-                FinalistsListBox.ItemsSource = null;
-                
-                // Finals-Tab ausblenden
-                FinalsTabItem.Visibility = Visibility.Collapsed;
-                
-                // Automatisch zum Setup-Tab wechseln
                 if (MainTabControl != null && SetupTabItem != null)
                 {
                     MainTabControl.SelectedItem = SetupTabItem;
@@ -1149,8 +405,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 var successMessage = _localizationService?.GetString("ResetFinalsComplete") ?? "Die Finalrunde wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
                 
-                // Trigger data changed event
-                OnDataChanged();
+                DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         catch (Exception ex)
@@ -1166,29 +421,14 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (TournamentDialogHelper.ShowResetKnockoutConfirmation(Window.GetWindow(this), _localizationService))
             {
-                // Reset to group phase using helper
                 TournamentKnockoutHelper.ResetToGroupPhase(TournamentClass);
+                _uiManager?.ClearKnockoutCanvases();
                 
-                // WICHTIG: Canvas-Elemente explizit leeren
-                ClearKnockoutCanvases();
+                _uiManager?.UpdateUI();
+                _uiManager?.UpdatePlayersView(SelectedGroup);
+                _uiManager?.UpdateMatchesView(SelectedGroup);
+                _uiManager?.UpdatePhaseDisplay();
                 
-                // ALLE UI-Komponenten aktualisieren
-                UpdateUI();
-                UpdatePlayersView();
-                UpdateMatchesView();  // Leert KO-DataGrids
-                UpdatePhaseDisplay();
-                
-                // Knockout-spezifische DataGrids explizit leeren
-                KnockoutMatchesDataGrid.ItemsSource = null;
-                LoserBracketDataGrid.ItemsSource = null;
-                KnockoutParticipantsListBox.ItemsSource = null;
-                
-                // Knockout-Tabs ausblenden
-                KnockoutTabItem.Visibility = Visibility.Collapsed;
-                LoserBracketTab.Visibility = Visibility.Collapsed;
-                LoserBracketTreeTab.Visibility = Visibility.Collapsed;
-                
-                // Automatisch zum Setup-Tab wechseln
                 if (MainTabControl != null && SetupTabItem != null)
                 {
                     MainTabControl.SelectedItem = SetupTabItem;
@@ -1197,8 +437,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
                 
-                // Trigger data changed event
-                OnDataChanged();
+                DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
         catch (Exception ex)
@@ -1208,310 +447,63 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
     }
 
-    private async void FinalsMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (FinalsMatchesDataGrid.SelectedItem is Match selectedMatch && !selectedMatch.IsBye && _localizationService != null)
-        {
-            var resultWindow = new MatchResultWindow(selectedMatch, TournamentClass.GameRules, _localizationService);
-            resultWindow.Owner = Window.GetWindow(this);
-            
-            if (resultWindow.ShowDialog() == true)
-            {
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.ScoreDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
-                
-                // 🚨 NEU: Übertrage Finals-Match-Ergebnis an Tournament Hub
-                await SendMatchResultToHub(selectedMatch, TournamentClass, "Finals");
-                
-                RefreshFinalsView();
-                
-                // Auto-check finals completion using helper
-                var parentWindow = Window.GetWindow(this);
-                Task.Run(() => TournamentValidationHelper.CheckFinalsCompletion(TournamentClass, parentWindow, _localizationService));
-                
-                OnDataChanged();
-            }
-        }
-    }
-
-    private async void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
-        {
-            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
-            {
-                // 🚨 NEU: Übertrage Knockout-Match-Ergebnis an Tournament Hub (Winner Bracket)
-                await SendKnockoutMatchResultToHub(viewModel.Match, TournamentClass, "Winner Bracket");
-                
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private async void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel)
-        {
-            if (TournamentKnockoutHelper.OpenMatchResultWindow(viewModel.Match, TournamentClass.GameRules, Window.GetWindow(this), _localizationService))
-            {
-                // 🚨 NEU: Übertrage Knockout-Match-Ergebnis an Tournament Hub (Loser Bracket)
-                await SendKnockoutMatchResultToHub(viewModel.Match, TournamentClass, "Loser Bracket");
-                
-                RefreshKnockoutView();
-                OnDataChanged();
-            }
-        }
-    }
-
-    private async void MatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (MatchesDataGrid.SelectedItem is Match selectedMatch && !selectedMatch.IsBye && _localizationService != null)
-        {
-            var resultWindow = new MatchResultWindow(selectedMatch, TournamentClass.GameRules, _localizationService);
-            resultWindow.Owner = Window.GetWindow(this);
-            
-            if (resultWindow.ShowDialog() == true)
-            {
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.ScoreDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.StatusDisplay));
-                selectedMatch.ForcePropertyChanged(nameof(selectedMatch.WinnerDisplay));
-                
-                // 🚨 NEU: Übertrage Gruppenphasen-Match-Ergebnis an Tournament Hub
-                await SendMatchResultToHub(selectedMatch, TournamentClass, "Group");
-                
-                UpdateMatchesView();
-                
-                // Use validation helper for automatic group status checking
-                var parentWindow = Window.GetWindow(this);
-                Task.Run(() => TournamentValidationHelper.CheckAllGroupsCompletion(TournamentClass, parentWindow, _localizationService));
-                
-                OnDataChanged();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Leert alle Knockout-spezifischen Canvas-Elemente
-    /// </summary>
-    private void ClearKnockoutCanvases()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Clearing all knockout-related canvases");
-            
-            // Winner Bracket Canvas leeren
-            if (BracketCanvas != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"  - Clearing BracketCanvas with {BracketCanvas.Children.Count} children");
-                BracketCanvas.Children.Clear();
-                BracketCanvas.Background = System.Windows.Media.Brushes.White;
-            }
-            
-            // Loser Bracket Canvas leeren
-            if (LoserBracketCanvas != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"  - Clearing LoserBracketCanvas with {LoserBracketCanvas.Children.Count} children");
-                LoserBracketCanvas.Children.Clear();
-                LoserBracketCanvas.Background = System.Windows.Media.Brushes.White;
-            }
-            
-            System.Diagnostics.Debug.WriteLine("ClearKnockoutCanvases: Successfully cleared all canvases");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ClearKnockoutCanvases: ERROR: {ex.Message}");
-        }
-    }
-
-    // Missing Event Handlers
-
     private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: START");
-        
         if (e.Source == MainTabControl && MainTabControl.SelectedItem is TabItem selectedTab)
         {
-            System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Selected tab: {selectedTab.Name}");
-            
             try
             {
-                // Handle specific tab selections to ensure proper data loading
                 if (selectedTab.Name == "FinalsTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Finals view on tab selection");
-                    
-                    // WICHTIG: Finals View explizit refreshen wenn Tab besucht wird
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        RefreshFinalsView();
-                    }, DispatcherPriority.DataBind);
+                    Dispatcher.BeginInvoke(() => _uiManager?.RefreshFinalsView(), DispatcherPriority.DataBind);
                 }
                 else if (selectedTab.Name == "KnockoutTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Knockout view on tab selection");
-                    
-                    // WICHTIG: Knockout View explizit refreshen wenn Tab besucht wird
-                    Dispatcher.BeginInvoke(() =>
-                    {
-                        RefreshKnockoutView();
-                    }, DispatcherPriority.DataBind);
+                    Dispatcher.BeginInvoke(() => _uiManager?.RefreshKnockoutView(), DispatcherPriority.DataBind);
                 }
                 else if (selectedTab.Name == "GroupPhaseTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: Refreshing Group phase view on tab selection");
-                    
-                    // Gruppenphasen-spezifische Aktualisierung
-                    UpdateMatchesView();
+                    _uiManager?.UpdateMatchesView(SelectedGroup);
                 }
                 
-                // Allgemeine Phase Display Aktualisierung
-                UpdatePhaseDisplay();
+                _uiManager?.UpdatePhaseDisplay();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: ERROR: {ex.Message}");
             }
         }
-        
-        System.Diagnostics.Debug.WriteLine($"MainTabControl_SelectionChanged: END");
     }
 
     private void AdvanceToNextPhaseButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var validation = TournamentValidationHelper.ValidatePhaseAdvancement(TournamentClass, _localizationService);
-            if (!validation.CanAdvance)
-            {
-                TournamentDialogHelper.ShowWarning(validation.ErrorMessage!, null, _localizationService);
-                return;
-            }
+        => _eventHandlers?.AdvanceToNextPhaseButton_Click(sender, e, SwitchToTab);
 
-            TournamentClass.AdvanceToNextPhase();
-            UpdateUI();
-            UpdatePlayersView();
-            UpdateMatchesView();
-            
-            // Switch to appropriate tab
-            if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-            {
-                MainTabControl.SelectedItem = FinalsTabItem;
-            }
-            else if (TournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-            {
-                MainTabControl.SelectedItem = KnockoutTabItem;
-            }
-            
-            OnDataChanged();
-        }
-        catch (Exception ex)
+    private void SwitchToTab(TournamentPhaseType phaseType)
+    {
+        if (MainTabControl == null) return;
+        
+        switch (phaseType)
         {
-            var errorMessage = $"{_localizationService?.GetString("ErrorAdvancingPhase") ?? "Fehler beim Wechsel in die nächste Phase:"} {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
+            case TournamentPhaseType.RoundRobinFinals:
+                MainTabControl.SelectedItem = FinalsTabItem;
+                break;
+            case TournamentPhaseType.KnockoutPhase:
+                MainTabControl.SelectedItem = KnockoutTabItem;
+                break;
         }
     }
 
     private void ResetMatchesButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedGroup == null) return;
-
-        try
-        {
-            if (TournamentDialogHelper.ShowResetMatchesConfirmation(Window.GetWindow(this), SelectedGroup.Name, _localizationService))
-            {
-                SelectedGroup.ResetMatches();
-                UpdateMatchesView();
-                OnDataChanged();
-
-                var successMessage = _localizationService?.GetString("MatchesResetSuccess") ?? "Spiele wurden zurückgesetzt!";
-                TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Fehler beim Zurücksetzen der Spiele: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.ResetMatchesButton_Click(sender, e);
 
     private void ResetTournamentButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (TournamentDialogHelper.ShowResetTournamentConfirmation(Window.GetWindow(this), _localizationService))
-            {
-                TournamentKnockoutHelper.ResetToGroupPhase(TournamentClass);
-                
-                var successMessage = _localizationService?.GetString("TournamentResetComplete") ?? "Das Turnier wurde erfolgreich zurückgesetzt.";
-                TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"{_localizationService?.GetString("ErrorResettingTournament") ?? "Fehler beim Zurücksetzen des Turniers:"} {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.ResetTournamentButton_Click(sender, e);
 
     private void AddGroupButton_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var title = _localizationService?.GetString("NewGroup") ?? "Neue Gruppe";
-            var prompt = _localizationService?.GetString("GroupName") ?? "Geben Sie den Namen der neuen Gruppe ein:";
-            var defaultName = $"Group {_nextGroupId}";
-            
-            var name = TournamentDialogHelper.ShowInputDialog(Window.GetWindow(this), prompt, title, defaultName, _localizationService);
-            
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                var validation = TournamentValidationHelper.ValidateGroupInput(name, TournamentClass.Groups, _localizationService);
-                if (!validation.IsValid)
-                {
-                    TournamentDialogHelper.ShowWarning(validation.ErrorMessage!, null, _localizationService);
-                    return;
-                }
-
-                var group = new Group(_nextGroupId, name.Trim());
-                TournamentClass.Groups.Add(group);
-                
-                UpdateNextIds();
-                OnDataChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Fehler beim Hinzufügen der Gruppe: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.AddGroupButton_Click(sender, e);
 
     private void RemoveGroupButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (GroupsListBox.SelectedItem is not Group selectedGroup)
-        {
-            var message = _localizationService?.GetString("NoGroupSelected") ?? "Bitte wählen Sie eine Gruppe aus, die entfernt werden soll.";
-            TournamentDialogHelper.ShowInformation(message, null, _localizationService);
-            return;
-        }
-
-        try
-        {
-            if (TournamentDialogHelper.ShowRemoveGroupConfirmation(Window.GetWindow(this), selectedGroup.Name, _localizationService))
-            {
-                TournamentClass.Groups.Remove(selectedGroup);
-                SelectedGroup = null;
-                OnDataChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Fehler beim Entfernen der Gruppe: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.RemoveGroupButton_Click(sender, e, GroupsListBox);
 
     private void GroupsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -1523,113 +515,93 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         if (e.Key == Key.Enter && AddPlayerButton.IsEnabled)
         {
-            AddPlayerButton_Click(sender, new RoutedEventArgs());
+            _eventHandlers?.AddPlayerButton_Click(sender, new RoutedEventArgs());
         }
     }
 
     private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
-    {
-        var validation = TournamentValidationHelper.ValidatePlayerInput(NewPlayerName, SelectedGroup, _localizationService);
-        if (!validation.IsValid)
-        {
-            TournamentDialogHelper.ShowInformation(validation.ErrorMessage!, null, _localizationService);
-            return;
-        }
-
-        try
-        {
-            var player = new Player(_nextPlayerId, NewPlayerName.Trim());
-            SelectedGroup!.Players.Add(player);
-            
-            NewPlayerName = string.Empty;
-            UpdateNextIds();
-            UpdatePlayersView();
-            OnDataChanged();
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Fehler beim Hinzufügen des Spielers: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.AddPlayerButton_Click(sender, e);
 
     private void RemovePlayerButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedPlayer == null)
-        {
-            var message = _localizationService?.GetString("NoPlayerSelected") ?? "Bitte wählen Sie einen Spieler aus, der entfernt werden soll.";
-            TournamentDialogHelper.ShowInformation(message, null, _localizationService);
-            return;
-        }
-
-        try
-        {
-            if (TournamentDialogHelper.ShowRemovePlayerConfirmation(Window.GetWindow(this), SelectedPlayer.Name, _localizationService))
-            {
-                SelectedGroup?.Players.Remove(SelectedPlayer);
-                SelectedPlayer = null;
-                UpdatePlayersView();
-                OnDataChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Fehler beim Entfernen des Spielers: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.RemovePlayerButton_Click(sender, e);
 
     private void GenerateMatchesButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedGroup == null) return;
-
-        try
-        {
-            var validation = TournamentValidationHelper.ValidateMatchGeneration(SelectedGroup, _localizationService);
-            if (!validation.CanGenerate)
-            {
-                TournamentDialogHelper.ShowWarning(validation.ErrorMessage!, null, _localizationService);
-                return;
-            }
-
-            SelectedGroup.GenerateRoundRobinMatches();
-            UpdateMatchesView();
-            UpdatePlayersView();
-            OnDataChanged();
-
-            var successMessage = _localizationService?.GetString("MatchesGeneratedSuccess") ?? "Spiele wurden erfolgreich erstellt!";
-            TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"{_localizationService?.GetString("ErrorGeneratingMatches") ?? "Fehler beim Erstellen der Spiele:"} {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
-    }
+        => _eventHandlers?.GenerateMatchesButton_Click(sender, e);
 
     private void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        SelectedPlayer = PlayersListBox.SelectedItem as Player;
-    }
+        => SelectedPlayer = PlayersListBox.SelectedItem as Player;
 
     private void GroupPhaseGroupsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         SelectedGroup = GroupPhaseGroupsList.SelectedItem as Group;
-        UpdateMatchesView();
+        _uiManager?.UpdateMatchesView(SelectedGroup);
     }
 
+    private async void FinalsMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (FinalsMatchesDataGrid.SelectedItem is Match selectedMatch && _eventHandlers != null)
+        {
+            await _eventHandlers.HandleMatchDoubleClick(selectedMatch, "Finals");
+        }
+    }
+
+    private async void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && _eventHandlers != null)
+        {
+            await _eventHandlers.HandleKnockoutMatchDoubleClick(viewModel.Match, "Winner Bracket");
+        }
+    }
+
+    private async void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && _eventHandlers != null)
+        {
+            await _eventHandlers.HandleKnockoutMatchDoubleClick(viewModel.Match, "Loser Bracket");
+        }
+    }
+
+    private async void MatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (MatchesDataGrid.SelectedItem is Match selectedMatch && _eventHandlers != null)
+        {
+            await _eventHandlers.HandleMatchDoubleClick(selectedMatch, "Group");
+        }
+    }
+
+    private void EditMatchResult_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: Match match }) return;
+
+        try
+        {
+            var gameRules = TournamentClass?.GameRules ?? new GameRules();
+            var dialog = new MatchResultWindow(match, gameRules, _localizationService);
+            
+            if (dialog.ShowDialog() == true)
+            {
+                TournamentClass?.TriggerUIRefresh();
+                DataChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService?.GetString("Error");
+            var message = $"{_localizationService?.GetString("ErrorEditingMatchResult")}\n\n{ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // Knockout-specific event handlers
     private void KnockoutDataGrid_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        // Handle right-click context menu for knockout matches if needed
-        // This can be implemented later for additional functionality
-        // Currently just a placeholder to satisfy XAML bindings
+        // Placeholder for context menu functionality
     }
 
     private void GiveByeButton_Click(object sender, RoutedEventArgs e)
     {
         KnockoutMatch? match = null;
 
-        // Extract match from button tag
         if (sender is Button button)
         {
             if (button.Tag is KnockoutMatchViewModel viewModel)
@@ -1646,8 +618,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (TournamentKnockoutHelper.ProcessByeSelection(TournamentClass, match, Window.GetWindow(this), _localizationService))
             {
-                RefreshKnockoutView();
-                OnDataChanged();
+                _uiManager?.RefreshKnockoutView();
+                DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -1656,7 +628,6 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     {
         KnockoutMatch? match = null;
 
-        // Extract match from button tag
         if (sender is Button button)
         {
             if (button.Tag is KnockoutMatchViewModel viewModel)
@@ -1673,150 +644,16 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             if (TournamentKnockoutHelper.HandleUndoKnockoutBye(TournamentClass, match, _localizationService))
             {
-                RefreshKnockoutView();
-                OnDataChanged();
+                _uiManager?.RefreshKnockoutView();
+                DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
     }
 
-    /// <summary>
-    /// 🆕 NEW METHOD: Sends match result to Tournament Hub
-    /// </summary>
-    private async Task SendMatchResultToHub(Match match, TournamentClass tournamentClass, string matchType)
+    private void UpdateNextIds()
     {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Sending match result to Hub...");
-            System.Diagnostics.Debug.WriteLine($"   Match: {match.Id} ({match.Player1?.Name} vs {match.Player2?.Name})");
-            System.Diagnostics.Debug.WriteLine($"   Score: {match.Player1Sets}-{match.Player2Sets} Sets, {match.Player1Legs}-{match.Player2Legs} Legs");
-            System.Diagnostics.Debug.WriteLine($"   Class: {tournamentClass.Name} (ID: {tournamentClass.Id})");
-            System.Diagnostics.Debug.WriteLine($"   Type: {matchType}");
-
-            // Check if Hub Service is available
-            var hubService = App.ApiIntegrationService as ApiIntegrationService;
-            if (hubService == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB_SEND] API Integration Service not available");
-                return;
-            }
-
-            // Find group information for the match
-            string? groupName = null;
-            int? groupId = null;
-            
-            foreach (var group in tournamentClass.Groups)
-            {
-                if (group.Matches.Contains(match))
-                {
-                    groupName = group.Name;
-                    groupId = group.Id;
-                    break;
-                }
-            }
-
-            if (matchType == "Finals" && tournamentClass.CurrentPhase?.FinalsGroup != null)
-            {
-                groupName = "Finals";
-                groupId = tournamentClass.CurrentPhase.FinalsGroup.Id;
-            }
-
-            // Create match result data
-            var matchResultData = new
-            {
-                matchId = match.Id,
-                player1Sets = match.Player1Sets,
-                player2Sets = match.Player2Sets,
-                player1Legs = match.Player1Legs,
-                player2Legs = match.Player2Legs,
-                status = match.Status.ToString(),
-                notes = match.Notes ?? "",
-                submittedAt = DateTime.Now.ToString("o"),
-                player1Name = match.Player1?.Name ?? "Unknown",
-                player2Name = match.Player2?.Name ?? "Unknown",
-                // Tournament-specific data
-                classId = tournamentClass.Id,
-                className = tournamentClass.Name,
-                groupId = groupId,
-                groupName = groupName,
-                matchType = matchType
-            };
-
-            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Match result data prepared for Hub transmission");
-            
-            // TODO: Send to Hub through API Integration Service
-            // This would require implementing a method in ApiIntegrationService
-            // await hubService.SendMatchResultToHubAsync(matchResultData);
-            
-            System.Diagnostics.Debug.WriteLine($"✅ [HUB_SEND] Match result prepared for Hub transmission");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [HUB_SEND] Error in SendMatchResultToHub: {ex.Message}");
-            // Don't throw - this is a background operation
-        }
-    }
-
-    /// <summary>
-    /// 🆕 NEW METHOD: Sends knockout match result to Tournament Hub
-    /// </summary>
-    private async Task SendKnockoutMatchResultToHub(KnockoutMatch knockoutMatch, TournamentClass tournamentClass, string bracketType)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Sending knockout match result to Hub...");
-            System.Diagnostics.Debug.WriteLine($"   Match: {knockoutMatch.Id} ({knockoutMatch.Player1?.Name} vs {knockoutMatch.Player2?.Name})");
-            System.Diagnostics.Debug.WriteLine($"   Score: {knockoutMatch.Player1Sets}-{knockoutMatch.Player2Sets} Sets, {knockoutMatch.Player1Legs}-{knockoutMatch.Player2Legs} Legs");
-            System.Diagnostics.Debug.WriteLine($"   Winner: {knockoutMatch.Winner?.Name}");
-            System.Diagnostics.Debug.WriteLine($"   Class: {tournamentClass.Name} (ID: {tournamentClass.Id})");
-            System.Diagnostics.Debug.WriteLine($"   Bracket: {bracketType}");
-
-            // Check if API Integration Service is available
-            var hubService = App.ApiIntegrationService as ApiIntegrationService;
-            if (hubService == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB_SEND] API Integration Service not available");
-                return;
-            }
-
-            // Create knockout match result data
-            var knockoutResultData = new
-            {
-                matchId = knockoutMatch.Id,
-                player1Sets = knockoutMatch.Player1Sets,
-                player2Sets = knockoutMatch.Player2Sets,
-                player1Legs = knockoutMatch.Player1Legs,
-                player2Legs = knockoutMatch.Player2Legs,
-                status = knockoutMatch.Status.ToString(),
-                notes = knockoutMatch.Notes ?? "",
-                submittedAt = DateTime.Now.ToString("o"),
-                player1Name = knockoutMatch.Player1?.Name ?? "Unknown",
-                player2Name = knockoutMatch.Player2?.Name ?? "Unknown",
-                winner = knockoutMatch.Winner?.Name,
-                loser = knockoutMatch.Loser?.Name,
-                // Tournament-specific data
-                classId = tournamentClass.Id,
-                className = tournamentClass.Name,
-                groupName = bracketType,
-                matchType = bracketType,
-                // Knockout-specific data
-                round = knockoutMatch.Round.ToString(),
-                roundDisplay = knockoutMatch.RoundDisplay,
-                bracketType = knockoutMatch.BracketType.ToString(),
-                position = knockoutMatch.Position
-            };
-
-            System.Diagnostics.Debug.WriteLine($"🚀 [HUB_SEND] Knockout match result data prepared for Hub transmission");
-            
-            // TODO: Send to Hub through API Integration Service
-            // This would require implementing a method in ApiIntegrationService
-            // await hubService.SendKnockoutMatchResultToHubAsync(knockoutResultData);
-            
-            System.Diagnostics.Debug.WriteLine($"✅ [HUB_SEND] Knockout match result prepared for Hub transmission");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [HUB_SEND] Error in SendKnockoutMatchResultToHub: {ex.Message}");
-            // Don't throw - this is a background operation
-        }
+        // This method is kept for backward compatibility
+        // The actual logic is now handled by the EventHandlers class
+        // which calculates the next IDs dynamically
     }
 }
