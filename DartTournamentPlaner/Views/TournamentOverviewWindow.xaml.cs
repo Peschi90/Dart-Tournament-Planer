@@ -12,6 +12,7 @@ using System.Drawing.Imaging;
 using QRCoder;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Helpers;
 using WinColor = System.Windows.Media.Color;
 using WinBrushes = System.Windows.Media.Brushes;
 using DrawingColor = System.Drawing.Color;
@@ -22,23 +23,26 @@ public partial class TournamentOverviewWindow : Window
 {
     private readonly List<TournamentClass> _tournamentClasses;
     private readonly LocalizationService _localizationService;
-    private readonly DispatcherTimer _cycleTimer;
-    private readonly HubIntegrationService? _hubService; // ✅ NEU: Hub Service für QR-Codes
+    private readonly HubIntegrationService? _hubService;
+    
+    // Helper-Klassen für spezialisierte Funktionalitäten
+    private readonly TournamentOverviewDataGridHelper _dataGridHelper;
+    private readonly TournamentOverviewScrollManager _scrollManager;
+    private readonly TournamentOverviewCycleManager _cycleManager;
+    private readonly TournamentOverviewQRCodeHelper _qrCodeHelper;
+    private readonly TournamentOverviewTabHelper _tabHelper;
+    
     private int _currentClassIndex = 0;
     private int _currentSubTabIndex = 0;
-    private bool _isRunning = false;
     private List<TabItem> _activeTournamentTabs = new();
-    private DateTime _lastCycleTime = DateTime.Now;
     
     // Configuration values - stored internally
-    private int _classInterval = 10; // seconds
-    private int _subTabInterval = 5; // seconds
     private bool _showOnlyActiveClasses = true;
 
     public TournamentOverviewWindow(
         List<TournamentClass> tournamentClasses,
         LocalizationService localizationService,
-        HubIntegrationService? hubService = null) // ✅ NEU: Optional Hub Service Parameter
+        HubIntegrationService? hubService = null)
     {
         InitializeComponent();
         
@@ -46,11 +50,49 @@ public partial class TournamentOverviewWindow : Window
         _localizationService = localizationService;
         _hubService = hubService;
         
-        _cycleTimer = new DispatcherTimer();
-        _cycleTimer.Tick += CycleTimer_Tick;
+        // Initialisiere Helper-Klassen direkt im Konstruktor
+        _qrCodeHelper = new TournamentOverviewQRCodeHelper(_hubService, _localizationService, OnOpenMatchPageClick);
+        
+        _dataGridHelper = new TournamentOverviewDataGridHelper(
+            _localizationService, 
+            _hubService, 
+            () => _qrCodeHelper.CreateQRCodeCellTemplate());
+        
+        _tabHelper = new TournamentOverviewTabHelper(
+            _localizationService, 
+            _dataGridHelper, 
+            CreateTournamentTreeView);
+        
+        // Scroll Manager
+        _scrollManager = new TournamentOverviewScrollManager(
+            GetCurrentActiveDataGrid,
+            () => { }, // Kein Callback mehr nötig - Scrollen blockiert Tab-Wechsel nicht
+            UpdateStatus);
+        
+        // Cycle Manager
+        _cycleManager = new TournamentOverviewCycleManager(
+            _localizationService,
+            () => MainTabControl,
+            () => _activeTournamentTabs,
+            () => _currentClassIndex,
+            () => _currentSubTabIndex,
+            (index) => _currentClassIndex = index,
+            (index) => _currentSubTabIndex = index,
+            SetCurrentSubTab,
+            UpdateStatus,
+            () => _scrollManager.StartScrolling());
         
         InitializeOverview();
         UpdateTranslations();
+    }
+
+    /// <summary>
+    /// Diese Methode ist nicht mehr notwendig da die Initialisierung im Konstruktor erfolgt
+    /// </summary>
+    [Obsolete("Helper initialization moved to constructor")]
+    private void InitializeHelpers()
+    {
+        // Nicht mehr verwendet - Initialisierung erfolgt im Konstruktor
     }
 
     private void InitializeOverview()
@@ -68,7 +110,7 @@ public partial class TournamentOverviewWindow : Window
                 (tournamentClass.Groups == null || tournamentClass.Groups.Count == 0))
                 continue;
 
-            var tabItem = CreateTournamentClassTab(tournamentClass, i);
+            var tabItem = _tabHelper.CreateTournamentClassTab(tournamentClass, i);
             MainTabControl.Items.Add(tabItem);
             _activeTournamentTabs.Add(tabItem);
         }
@@ -86,465 +128,8 @@ public partial class TournamentOverviewWindow : Window
         UpdateStatus();
     }
 
-    private TabItem CreateTournamentClassTab(TournamentClass tournamentClass, int classIndex)
-    {
-        var tabItem = new TabItem();
-        
-        // Create header with color indicator and modern design like MainWindow
-        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
-        
-        // Modern border design like MainWindow
-        var colorBorder = new Border
-        {
-            Width = 16,
-            Height = 16,
-            CornerRadius = new CornerRadius(8),
-            Margin = new Thickness(0, 0, 10, 0),
-            Background = WinBrushes.White,
-            BorderBrush = new SolidColorBrush(WinColor.FromRgb(229, 231, 235)),
-            BorderThickness = new Thickness(2)
-        };
-
-        var colorEllipse = new System.Windows.Shapes.Ellipse
-        {
-            Margin = new Thickness(2)
-        };
-
-        // Set colors and effects exactly like MainWindow
-        switch (classIndex)
-        {
-            case 0: // Platinum - SeaShell
-                colorEllipse.Fill = new SolidColorBrush(Colors.SeaShell);
-                colorBorder.Effect = new DropShadowEffect
-                {
-                    Color = Colors.SeaShell,
-                    Direction = 0,
-                    ShadowDepth = 0,
-                    BlurRadius = 6,
-                    Opacity = 0.8
-                };
-                break;
-            case 1: // Gold - #FFC107
-                colorEllipse.Fill = new SolidColorBrush(WinColor.FromRgb(255, 193, 7));
-                colorBorder.Effect = new DropShadowEffect
-                {
-                    Color = WinColor.FromRgb(255, 152, 0),
-                    Direction = 0,
-                    ShadowDepth = 0,
-                    BlurRadius = 6,
-                    Opacity = 0.6
-                };
-                break;
-            case 2: // Silver - Silver
-                colorEllipse.Fill = new SolidColorBrush(Colors.Silver);
-                colorBorder.Effect = new DropShadowEffect
-                {
-                    Color = Colors.Silver,
-                    Direction = 0,
-                    ShadowDepth = 0,
-                    BlurRadius = 6,
-                    Opacity = 0.6
-                };
-                break;
-            case 3: // Bronze - #A1887F
-                colorEllipse.Fill = new SolidColorBrush(WinColor.FromRgb(161, 136, 127));
-                colorBorder.Effect = new DropShadowEffect
-                {
-                    Color = WinColor.FromRgb(141, 110, 99),
-                    Direction = 0,
-                    ShadowDepth = 0,
-                    BlurRadius = 6,
-                    Opacity = 0.6
-                };
-                break;
-        }
-
-        colorBorder.Child = colorEllipse;
-
-        var headerText = new TextBlock
-        {
-            Text = tournamentClass.Name,
-            FontWeight = FontWeights.SemiBold,
-            FontSize = 14
-        };
-
-        headerPanel.Children.Add(colorBorder);
-        headerPanel.Children.Add(headerText);
-        tabItem.Header = headerPanel;
-
-        // Create content area with sub-tabs based on current phase
-        var contentTabControl = CreateContentTabControl(tournamentClass);
-        tabItem.Content = contentTabControl;
-
-        return tabItem;
-    }
-
-    private TabControl CreateContentTabControl(TournamentClass tournamentClass)
-    {
-        var tabControl = new TabControl
-        {
-            Margin = new Thickness(10),
-            Background = System.Windows.Media.Brushes.Transparent
-        };
-
-        // Check current phase and create appropriate sub-tabs
-        var currentPhase = tournamentClass.CurrentPhase;
-        
-        if (currentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
-        {
-            // Create tabs for each group
-            foreach (var group in tournamentClass.Groups.Where(g => g.Players.Count > 0))
-            {
-                var groupTab = CreateGroupTab(group, tournamentClass);
-                tabControl.Items.Add(groupTab);
-            }
-        }
-        else if (currentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-            // Create tabs for knockout brackets - both matches and tree views
-            var winnerBracketMatchesTab = CreateKnockoutBracketTab(_localizationService.GetString("WinnerBracketMatches"), tournamentClass, false, false);
-            tabControl.Items.Add(winnerBracketMatchesTab);
-
-            var winnerBracketTreeTab = CreateKnockoutBracketTab(_localizationService.GetString("WinnerBracketTree"), tournamentClass, false, true);
-            tabControl.Items.Add(winnerBracketTreeTab);
-
-            // Add Loser Bracket if double elimination
-            if (tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
-            {
-                var loserBracketMatchesTab = CreateKnockoutBracketTab(_localizationService.GetString("LoserBracketMatches"), tournamentClass, true, false);
-                tabControl.Items.Add(loserBracketMatchesTab);
-
-                var loserBracketTreeTab = CreateKnockoutBracketTab(_localizationService.GetString("LoserBracketTree"), tournamentClass, true, true);
-                tabControl.Items.Add(loserBracketTreeTab);
-            }
-        }
-        else if (currentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
-        {
-            // Create finals tab
-            var finalsTab = CreateFinalsTab(tournamentClass);
-            tabControl.Items.Add(finalsTab);
-        }
-
-        if (tabControl.Items.Count > 0)
-        {
-            tabControl.SelectedIndex = 0;
-        }
-
-        return tabControl;
-    }
-
-    private TabItem CreateGroupTab(Group group, TournamentClass tournamentClass)
-    {
-        var tabItem = new TabItem
-        {
-            Header = group.Name
-        };
-
-        // Create a grid with matches and standings
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        // Matches DataGrid
-        var matchesGrid = CreateMatchesDataGrid(group);
-        Grid.SetColumn(matchesGrid, 0);
-        grid.Children.Add(matchesGrid);
-
-        // Standings DataGrid
-        var standingsGrid = CreateStandingsDataGrid(group);
-        Grid.SetColumn(standingsGrid, 2);
-        grid.Children.Add(standingsGrid);
-
-        tabItem.Content = grid;
-        return tabItem;
-    }
-
-    private TabItem CreateKnockoutBracketTab(string header, TournamentClass tournamentClass, bool isLoserBracket, bool isTreeView = false)
-    {
-        var tabItem = new TabItem { Header = header };
-
-        if (isTreeView)
-        {
-            // Create tournament tree view for better visual representation
-            var treeContent = CreateTournamentTreeView(tournamentClass, isLoserBracket);
-            tabItem.Content = treeContent;
-        }
-        else
-        {
-            // Create matches data grid for knockout (existing functionality)
-            var knockoutMatches = isLoserBracket 
-                ? tournamentClass.GetLoserBracketMatches()
-                : tournamentClass.GetWinnerBracketMatches();
-
-            var dataGrid = new DataGrid
-            {
-                ItemsSource = knockoutMatches,
-                AutoGenerateColumns = false,
-                IsReadOnly = true,
-                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                HorizontalGridLinesBrush = System.Windows.Media.Brushes.LightGray,
-                Margin = new Thickness(10)
-            };
-
-            dataGrid.Columns.Add(new DataGridTextColumn
-            {
-                Header = _localizationService.GetString("RoundColumn"),
-                Binding = new System.Windows.Data.Binding("RoundDisplay"),
-                Width = new DataGridLength(100)
-            });
-
-            dataGrid.Columns.Add(new DataGridTextColumn
-            {
-                Header = _localizationService.GetString("Match"),
-                Binding = new System.Windows.Data.Binding("DisplayName"),
-                Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-            });
-
-            dataGrid.Columns.Add(new DataGridTextColumn
-            {
-                Header = _localizationService.GetString("Result"),
-                Binding = new System.Windows.Data.Binding("ScoreDisplay"),
-                Width = new DataGridLength(100)
-            });
-
-            dataGrid.Columns.Add(new DataGridTextColumn
-            {
-                Header = _localizationService.GetString("Status"),
-                Binding = new System.Windows.Data.Binding("StatusDisplay"),
-                Width = new DataGridLength(100)
-            });
-
-            // ✅ NEU: QR-Code Spalte für Knockout Matches
-            if (_hubService != null && _hubService.IsRegisteredWithHub)
-            {
-                var qrColumn = new DataGridTemplateColumn
-                {
-                    Header = "📱",
-                    Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
-                    CellTemplate = CreateQRCodeCellTemplate()
-                };
-                dataGrid.Columns.Add(qrColumn);
-            }
-
-            tabItem.Content = dataGrid;
-        }
-
-        return tabItem;
-    }
-
-    private TabItem CreateFinalsTab(TournamentClass tournamentClass)
-    {
-        var tabItem = new TabItem { Header = _localizationService.GetString("FinalsTab") };
-
-        // Similar to knockout but for finals matches
-        var finalsMatches = tournamentClass.GetFinalsMatches();
-        var dataGrid = new DataGrid
-        {
-            ItemsSource = finalsMatches,
-            AutoGenerateColumns = false,
-            IsReadOnly = true,
-            GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-            HorizontalGridLinesBrush = System.Windows.Media.Brushes.LightGray,
-            Margin = new Thickness(10)
-        };
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Match"),
-            Binding = new System.Windows.Data.Binding("DisplayName"),
-            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Result"),
-            Binding = new System.Windows.Data.Binding("ScoreDisplay"),
-            Width = new DataGridLength(100)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Status"),
-            Binding = new System.Windows.Data.Binding("StatusDisplay"),
-            Width = new DataGridLength(100)
-        });
-
-        // ✅ NEU: QR-Code Spalte für Finals Matches
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
-        {
-            var qrColumn = new DataGridTemplateColumn
-            {
-                Header = "📱",
-                Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
-                CellTemplate = CreateQRCodeCellTemplate()
-            };
-            dataGrid.Columns.Add(qrColumn);
-        }
-
-        tabItem.Content = dataGrid;
-        return tabItem;
-    }
-
-    private DataGrid CreateMatchesDataGrid(Group group)
-    {
-        var dataGrid = new DataGrid
-        {
-            ItemsSource = group.Matches,
-            AutoGenerateColumns = false,
-            IsReadOnly = true,
-            GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-            HorizontalGridLinesBrush = System.Windows.Media.Brushes.LightGray,
-            Margin = new Thickness(10)
-        };
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Match"),
-            Binding = new System.Windows.Data.Binding("DisplayName"),
-            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Result"),
-            Binding = new System.Windows.Data.Binding("ScoreDisplay"),
-            Width = new DataGridLength(100)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Status"),
-            Binding = new System.Windows.Data.Binding("StatusDisplay"),
-            Width = new DataGridLength(100)
-        });
-
-        // ✅ NEU: QR-Code Spalte hinzufügen wenn Hub Service verfügbar
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
-        {
-            var qrColumn = new DataGridTemplateColumn
-            {
-                Header = "📱",
-                Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
-                CellTemplate = CreateQRCodeCellTemplate()
-            };
-            dataGrid.Columns.Add(qrColumn);
-        }
-
-        return dataGrid;
-    }
-
-    private DataGrid CreateStandingsDataGrid(Group group)
-    {
-        var standings = group.GetStandings();
-        var dataGrid = new DataGrid
-        {
-            ItemsSource = standings,
-            AutoGenerateColumns = false,
-            IsReadOnly = true,
-            GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-            HorizontalGridLinesBrush = System.Windows.Media.Brushes.LightGray,
-            Margin = new Thickness(10)
-        };
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("PositionShort"),
-            Binding = new System.Windows.Data.Binding("Position"),
-            Width = new DataGridLength(50)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Player"),
-            Binding = new System.Windows.Data.Binding("Player.Name"),
-            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("PointsShort"),
-            Binding = new System.Windows.Data.Binding("Points"),
-            Width = new DataGridLength(50)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("WinDrawLoss"),
-            Binding = new System.Windows.Data.Binding("RecordDisplay"),
-            Width = new DataGridLength(80)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Sets"),
-            Binding = new System.Windows.Data.Binding("SetRecordDisplay"),
-            Width = new DataGridLength(70)
-        });
-
-        dataGrid.Columns.Add(new DataGridTextColumn
-        {
-            Header = _localizationService.GetString("Legs"),
-            Binding = new System.Windows.Data.Binding("LegRecordDisplay"),
-            Width = new DataGridLength(70)
-        });
-
-        return dataGrid;
-    }
-
     /// <summary>
-    /// ✅ NEU: Erstellt DataTemplate für QR-Code Zellen in DataGrid
-    /// </summary>
-    private DataTemplate CreateQRCodeCellTemplate()
-    {
-        var template = new DataTemplate();
-        
-        var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
-        stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
-        stackPanelFactory.SetValue(StackPanel.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        stackPanelFactory.SetValue(StackPanel.VerticalAlignmentProperty, VerticalAlignment.Center);
-        
-        // ✅ VERGRÖSSERT: QR-Code Image - doppelt so groß
-        var imageFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Image));
-        imageFactory.SetValue(System.Windows.Controls.Image.WidthProperty, 64.0); // 32 -> 64
-        imageFactory.SetValue(System.Windows.Controls.Image.HeightProperty, 64.0); // 32 -> 64
-        imageFactory.SetValue(System.Windows.Controls.Image.StretchProperty, Stretch.Uniform);
-        imageFactory.SetValue(System.Windows.Controls.Image.MarginProperty, new Thickness(4)); // 2 -> 4
-        imageFactory.SetValue(System.Windows.Controls.Image.ToolTipProperty, "QR-Code zum Match scannen");
-        
-        // QR-Code generieren und als Source setzen
-        var binding = new System.Windows.Data.Binding(".");
-        var converter = new MatchToQRCodeConverter(_hubService, _localizationService);
-        binding.Converter = converter;
-        imageFactory.SetBinding(System.Windows.Controls.Image.SourceProperty, binding);
-        
-        // ✅ KONDITIONELL: Button nur wenn Hub registriert ist
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
-        {
-            // ✅ VERGRÖSSERT: Button für direktes Öffnen der Match-Page
-            var buttonFactory = new FrameworkElementFactory(typeof(Button));
-            buttonFactory.SetValue(Button.ContentProperty, "🌐");
-            buttonFactory.SetValue(Button.WidthProperty, 40.0); // 24 -> 40
-            buttonFactory.SetValue(Button.HeightProperty, 40.0); // 24 -> 40
-            buttonFactory.SetValue(Button.FontSizeProperty, 16.0); // 10 -> 16
-            buttonFactory.SetValue(Button.MarginProperty, new Thickness(8, 0, 0, 0)); // 2 -> 8
-            buttonFactory.SetValue(Button.ToolTipProperty, "Match-Page im Browser öffnen");
-            buttonFactory.SetValue(Button.CursorProperty, System.Windows.Input.Cursors.Hand);
-            
-            // Event für Button-Click
-            buttonFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler(OnOpenMatchPageClick));
-            
-            //stackPanelFactory.AppendChild(buttonFactory);
-        }
-        
-        stackPanelFactory.AppendChild(imageFactory);
-        
-        template.VisualTree = stackPanelFactory;
-        return template;
-    }
-
-    /// <summary>
-    /// ✅ NEU: Event Handler für "Match-Page öffnen" Button
+    /// Event Handler für "Match-Page öffnen" Button
     /// </summary>
     private void OnOpenMatchPageClick(object sender, RoutedEventArgs e)
     {
@@ -593,7 +178,7 @@ public partial class TournamentOverviewWindow : Window
 
     private void StartStop_Click(object sender, RoutedEventArgs e)
     {
-        if (_isRunning)
+        if (_cycleManager.IsRunning)
         {
             StopCycling();
         }
@@ -605,158 +190,68 @@ public partial class TournamentOverviewWindow : Window
 
     private void StartCycling()
     {
-        _isRunning = true;
-        _lastCycleTime = DateTime.Now;
+        // Start cycle manager - kein komplexes Scroll-Management mehr nötig
+        _cycleManager.StartCycling();
+        
         StartStopButton.Content = "⏸ " + _localizationService.GetString("StopCycling");
         StartStopButton.Style = (Style)FindResource("DangerButton");
 
-        // Set initial sub-tab
-        SetCurrentSubTab();
-
-        // Start with sub-tab cycling using the shorter interval
-        _cycleTimer.Interval = TimeSpan.FromSeconds(_subTabInterval);
-        _cycleTimer.Start();
-        
         UpdateStatus();
+        
+        System.Diagnostics.Debug.WriteLine("🎬 [TournamentOverview] Started automatic cycling");
     }
 
     private void StopCycling()
     {
-        _isRunning = false;
-        _cycleTimer.Stop();
+        _cycleManager.StopCycling();
+        _scrollManager.StopScrolling(); // Stoppe auch das Scrollen
+        
         StartStopButton.Content = "▶ " + _localizationService.GetString("StartCycling");
         StartStopButton.Style = (Style)FindResource("SuccessButton");
         
+        // Scrolle zurück zum Anfang
+        _scrollManager.ResetScrollPosition();
+        
         UpdateStatus();
-    }
-
-    private void CycleTimer_Tick(object? sender, EventArgs e)
-    {
-        if (!_isRunning) return;
-
-        _lastCycleTime = DateTime.Now;
-
-        // Get current class and sub-tab info
-        var currentClassTab = MainTabControl.SelectedItem as TabItem;
-        if (currentClassTab?.Content is TabControl subTabControl)
-        {
-            int maxSubTabs = subTabControl.Items.Count;
-            
-            if (maxSubTabs > 1)
-            {
-                // Multiple sub-tabs: Cycle through them
-                _currentSubTabIndex++;
-                
-                if (_currentSubTabIndex >= maxSubTabs)
-                {
-                    // Reached end of sub-tabs in current class
-                    _currentSubTabIndex = 0; // Reset to first sub-tab
-                    
-                    if (_activeTournamentTabs.Count > 1)
-                    {
-                        // Multiple classes: Move to next class
-                        _currentClassIndex++;
-                        
-                        if (_currentClassIndex >= _activeTournamentTabs.Count)
-                        {
-                            _currentClassIndex = 0; // Loop back to first class
-                        }
-                        
-                        MainTabControl.SelectedIndex = _currentClassIndex;
-                        SetCurrentSubTab(); // Set the sub-tab in the new class
-                        
-                        // WICHTIG: Reset timer to class interval when switching classes
-                        _cycleTimer.Stop();
-                        _cycleTimer.Interval = TimeSpan.FromSeconds(_classInterval);
-                        _cycleTimer.Start();
-                    }
-                    else
-                    {
-                        // Only one class: Keep cycling sub-tabs endlessly
-                        SetCurrentSubTab(); // Set sub-tab to first (index 0)
-                        
-                        // Keep sub-tab interval for continuous cycling
-                        _cycleTimer.Stop();
-                        _cycleTimer.Interval = TimeSpan.FromSeconds(_subTabInterval);
-                        _cycleTimer.Start();
-                    }
-                }
-                else
-                {
-                    // Still within sub-tabs: Just switch to next sub-tab
-                    SetCurrentSubTab();
-                }
-            }
-            else
-            {
-                // Only one or no sub-tabs: Move to next class
-                if (_activeTournamentTabs.Count > 1)
-                {
-                    _currentClassIndex++;
-                    _currentSubTabIndex = 0; // Reset sub-tab index
-                    
-                    if (_currentClassIndex >= _activeTournamentTabs.Count)
-                    {
-                        _currentClassIndex = 0; // Loop back to first class
-                    }
-                    
-                    MainTabControl.SelectedIndex = _currentClassIndex;
-                    SetCurrentSubTab(); // Set the sub-tab in the new class
-                }
-                else
-                {
-                    // Only one class with one sub-tab: Stay put but keep timer running for consistency
-                    // This allows manual navigation while keeping the timer active
-                }
-            }
-        }
-        else
-        {
-            // Fallback: No sub-tab control found, just cycle classes
-            if (_activeTournamentTabs.Count > 1)
-            {
-                _currentClassIndex++;
-                _currentSubTabIndex = 0;
-                
-                if (_currentClassIndex >= _activeTournamentTabs.Count)
-                {
-                    _currentClassIndex = 0;
-                }
-                
-                MainTabControl.SelectedIndex = _currentClassIndex;
-                SetCurrentSubTab();
-            }
-        }
-
-        UpdateStatus();
+        
+        System.Diagnostics.Debug.WriteLine("⏹️ [TournamentOverview] Stopped automatic cycling");
     }
 
     private void Configure_Click(object sender, RoutedEventArgs e)
     {
+        // Aktuelle Werte vom CycleManager holen
+        var currentSubTabInterval = _cycleManager?.GetCurrentSubTabInterval() ?? 5;
+        
         var dialog = new OverviewConfigDialog
         {
             Owner = this,
-            ClassInterval = _classInterval,
-            SubTabInterval = _subTabInterval,
+            ClassInterval = currentSubTabInterval, // Beide Werte gleich setzen für Benutzerfreundlichkeit
+            SubTabInterval = currentSubTabInterval,
             ShowOnlyActiveClasses = _showOnlyActiveClasses
         };
 
         if (dialog.ShowDialog() == true)
         {
-            _classInterval = dialog.ClassInterval;
-            _subTabInterval = dialog.SubTabInterval;
             _showOnlyActiveClasses = dialog.ShowOnlyActiveClasses;
             
+            // Update cycle manager configuration mit den neuen Werten
+            _cycleManager.UpdateConfiguration(dialog.ClassInterval, dialog.SubTabInterval);
+            
             // Reinitialize if the "show only active" setting changed
+            var wasRunning = _cycleManager.IsRunning;
+            if (wasRunning)
+            {
+                StopCycling();
+            }
+            
             InitializeOverview();
             
-            // If currently running, update the timer interval
-            if (_isRunning)
+            if (wasRunning)
             {
-                _cycleTimer.Stop();
-                _cycleTimer.Interval = TimeSpan.FromSeconds(_subTabInterval);
-                _cycleTimer.Start();
+                StartCycling();
             }
+            
+            System.Diagnostics.Debug.WriteLine($"⚙️ [TournamentOverview] Configuration updated - SubTab: {dialog.SubTabInterval}s, ShowOnlyActive: {dialog.ShowOnlyActiveClasses}");
         }
     }
 
@@ -783,6 +278,12 @@ public partial class TournamentOverviewWindow : Window
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         StopCycling();
+        
+        // Cleanup für Helper-Klassen
+        _scrollManager?.Dispose();
+        _cycleManager?.Dispose();
+        
+        System.Diagnostics.Debug.WriteLine("🔄 [TournamentOverview] Window closing - all timers stopped");
     }
 
     private void UpdateStatus()
@@ -794,7 +295,7 @@ public partial class TournamentOverviewWindow : Window
             var cycleInfo = "";
             var buttonText = "";
 
-            if (_isRunning)
+            if (_cycleManager.IsRunning)
             {
                 statusText = _localizationService.GetString("AutoCyclingActive");
                 buttonText = "⏸ " + _localizationService.GetString("StopCycling");
@@ -803,11 +304,18 @@ public partial class TournamentOverviewWindow : Window
                 {
                     var currentTab = _activeTournamentTabs[_currentClassIndex];
                     currentDisplay = _localizationService.GetString("Showing") + ": " + currentTab.Header?.ToString();
+                    
+                    // Zeige Scroll-Status an (aber blockiert nicht den Tab-Wechsel)
+                    if (_scrollManager.IsScrolling)
+                    {
+                        currentDisplay += " (📜 Scrolling...)";
+                    }
                 }
                 
-                var remainingTime = GetRemainingTime();
+                // Vereinfachte Timer-Anzeige
+                var remainingTime = _cycleManager.GetRemainingTime();
                 TimerTextBlock.Text = $"{remainingTime / 60:D2}:{remainingTime % 60:D2}";
-                cycleInfo = _localizationService.GetString("AutoCyclingActive");
+                cycleInfo = $"Auto-Cycling aktiv - {remainingTime}s verbleibend";
             }
             else
             {
@@ -857,9 +365,6 @@ public partial class TournamentOverviewWindow : Window
 
         var canvas = new Canvas
         {
-            //Background = new System.Windows.Media.LinearGradientBrush(
-                //System.Windows.Media.Colors.WhiteSmoke,
-                //System.Windows.Media.Colors.LightGray, 90),
             MinWidth = 1000,
             MinHeight = 700
         };
@@ -967,12 +472,12 @@ public partial class TournamentOverviewWindow : Window
                 Canvas.SetTop(matchControl, yPos);
                 canvas.Children.Add(matchControl);
 
-                // Draw connection lines to next round
-                if (roundIndex < matchesByRound.Count - 1)
-                {
-                    DrawConnectionLine(canvas, xPos + roundWidth - 20, yPos + matchHeight / 2, 
-                                     xPos + roundWidth + roundSpacing - 20, yPos + matchHeight / 2);
-                }
+                //// Draw connection lines to next round
+                //if (roundIndex < matchesByRound.Count - 1)
+                //{
+                //    DrawConnectionLine(canvas, xPos + roundWidth - 20, yPos + matchHeight / 2, 
+                //                     xPos + roundWidth + roundSpacing - 20, yPos + matchHeight / 2);
+                //}
             }
 
             // Add round label with background
@@ -1107,7 +612,7 @@ public partial class TournamentOverviewWindow : Window
         var matchIdText = new TextBlock
         {
             Text = $"#{match.Id}",
-            FontSize = 8,
+            FontSize = 10,
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = System.Windows.Media.Brushes.Gray,
@@ -1118,7 +623,7 @@ public partial class TournamentOverviewWindow : Window
         var player1Text = new TextBlock
         {
             Text = match.Player1?.Name ?? "TBD",
-            FontSize = 11,
+            FontSize = 13,
             FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Normal,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -1130,7 +635,7 @@ public partial class TournamentOverviewWindow : Window
         var vsText = new TextBlock
         {
             Text = "vs",
-            FontSize = 9,
+            FontSize = 10,
             HorizontalAlignment = HorizontalAlignment.Center,
             Margin = new Thickness(0, 2, 0, 2),
             FontStyle = FontStyles.Italic,
@@ -1140,7 +645,7 @@ public partial class TournamentOverviewWindow : Window
         var player2Text = new TextBlock
         {
             Text = match.Player2?.Name ?? "TBD",
-            FontSize = 11,
+            FontSize = 13,
             FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Normal,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -1153,7 +658,7 @@ public partial class TournamentOverviewWindow : Window
         var scoreText = new TextBlock
         {
             Text = match.Status == MatchStatus.NotStarted ? "--" : match.ScoreDisplay,
-            FontSize = 10,
+            FontSize = 14,
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
             Foreground = System.Windows.Media.Brushes.DarkBlue,
@@ -1168,71 +673,10 @@ public partial class TournamentOverviewWindow : Window
 
         mainGrid.Children.Add(stackPanel);
 
-        // ✅ NEU: QR-Code und Web-Button in der Ecke wenn Hub verfügbar
-        if (_hubService != null && _hubService.IsRegisteredWithHub && !string.IsNullOrEmpty(match.UniqueId))
+        // QR-Code und Web-Button in der Ecke wenn Hub verfügbar
+        var qrPanel = _qrCodeHelper.CreateTreeViewQRCodePanel(match);
+        if (qrPanel != null)
         {
-            var qrPanel = new StackPanel
-            {
-                Orientation = Orientation.Vertical,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 4, 4, 0) // 0,2,2,0 -> 0,4,4,0
-            };
-
-            // ✅ VERGRÖSSERT: Mini QR-Code im Tree View
-            var qrImage = new System.Windows.Controls.Image
-            {
-                Width = 60, // 20 -> 40
-                Height = 60, // 20 -> 40
-                Margin = new Thickness(0, 0, 0, 2) // 0,0,0,1 -> 0,0,0,2
-            };
-
-            var qrBinding = new System.Windows.Data.Binding(".")
-            {
-                Source = match,
-                Converter = new MatchToQRCodeConverter(_hubService, _localizationService)
-            };
-            qrImage.SetBinding(System.Windows.Controls.Image.SourceProperty, qrBinding);
-
-            // ✅ VERGRÖSSERT: Mini Web-Button im Tree View
-            var webButton = new Button
-            {
-                Content = "🌐",
-                Width = 40, // 20 -> 40
-                Height = 24, // 15 -> 24
-                FontSize = 12, // 8 -> 12
-                Padding = new Thickness(0),
-                Margin = new Thickness(0),
-                Background = System.Windows.Media.Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                ToolTip = "Match-Page öffnen"
-            };
-
-            webButton.Click += (s, e) =>
-            {
-                try
-                {
-                    var tournamentId = _hubService.GetCurrentTournamentId();
-                    if (!string.IsNullOrEmpty(tournamentId))
-                    {
-                        var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{match.UniqueId}?uuid=true";
-                        var processInfo = new ProcessStartInfo
-                        {
-                            FileName = matchPageUrl,
-                            UseShellExecute = true
-                        };
-                        Process.Start(processInfo);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ Error opening match page: {ex.Message}");
-                }
-            };
-
-            qrPanel.Children.Add(qrImage);
-            //qrPanel.Children.Add(webButton);
             mainGrid.Children.Add(qrPanel);
         }
 
@@ -1288,116 +732,99 @@ public partial class TournamentOverviewWindow : Window
         canvas.Children.Add(line);
     }
 
-    private int GetRemainingTime()
-    {
-        var elapsed = (DateTime.Now - _lastCycleTime).TotalSeconds;
-        var interval = _subTabInterval; // Default to sub-tab interval
-        
-        // Use class interval if we're about to switch classes
-        var currentClassTab = MainTabControl.SelectedItem as TabItem;
-        if (currentClassTab?.Content is TabControl subTabControl)
-        {
-            if (_currentSubTabIndex >= subTabControl.Items.Count - 1 && _activeTournamentTabs.Count > 1)
-            {
-                interval = _classInterval;
-            }
-        }
-        
-        var remaining = Math.Max(0, interval - (int)elapsed);
-        return remaining;
-    }
-}
-
-/// <summary>
-/// ✅ NEU: Converter für Match zu QR-Code Konvertierung
-/// </summary>
-public class MatchToQRCodeConverter : System.Windows.Data.IValueConverter
-{
-    private readonly HubIntegrationService? _hubService;
-    private readonly LocalizationService? _localizationService;
-
-    public MatchToQRCodeConverter(HubIntegrationService? hubService, LocalizationService? localizationService)
-    {
-        _hubService = hubService;
-        _localizationService = localizationService;
-    }
-
-    public object? Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    /// <summary>
+    /// Findet das aktuell aktive DataGrid
+    /// </summary>
+    private DataGrid? GetCurrentActiveDataGrid()
     {
         try
         {
-            string? matchUuid = null;
-            
-            if (value is Match match)
+            var currentClassTab = MainTabControl.SelectedItem as TabItem;
+            if (currentClassTab?.Content is not TabControl subTabControl) 
             {
-                matchUuid = match.UniqueId;
-            }
-            else if (value is KnockoutMatch knockoutMatch)
-            {
-                matchUuid = knockoutMatch.UniqueId;
+                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No sub-tab control found");
+                return null;
             }
 
-            if (string.IsNullOrEmpty(matchUuid) || 
-                _hubService == null || 
-                !_hubService.IsRegisteredWithHub ||
-                string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
+            var currentSubTab = subTabControl.SelectedItem as TabItem;
+            if (currentSubTab?.Content == null) 
             {
-                return null; // Kein QR-Code wenn Voraussetzungen nicht erfüllt
+                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No current sub-tab content");
+                return null;
             }
 
-            var tournamentId = _hubService.GetCurrentTournamentId();
-            var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{matchUuid}?uuid=true";
+            System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Current sub-tab header: {currentSubTab.Header}, Content type: {currentSubTab.Content.GetType().Name}");
 
-            return GenerateQRCodeImage(matchPageUrl);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Error: {ex.Message}");
-            return null;
-        }
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
-    {
-        throw new NotImplementedException();
-    }
-
-    private BitmapImage? GenerateQRCodeImage(string url)
-    {
-        try
-        {
-            using (var qrGenerator = new QRCodeGenerator())
+            // Für Group Tabs: Suche in der Grid-Struktur
+            if (currentSubTab.Content is Grid grid)
             {
-                var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.M);
-                
-                using (var qrCode = new QRCoder.QRCode(qrCodeData))
+                var dataGrid = grid.Children.OfType<DataGrid>().FirstOrDefault();
+                if (dataGrid != null)
                 {
-                    // ✅ VERGRÖSSERT: Höher aufgelöste QR Codes für DataGrid (6 -> 12)
-                    using (var qrCodeBitmap = qrCode.GetGraphic(12, DrawingColor.Black, DrawingColor.White, true))
-                    {
-                        // Konvertiere zu WPF BitmapImage
-                        var bitmapImage = new BitmapImage();
-                        using (var stream = new MemoryStream())
-                        {
-                            qrCodeBitmap.Save(stream, ImageFormat.Png);
-                            stream.Position = 0;
-                            
-                            bitmapImage.BeginInit();
-                            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                            bitmapImage.StreamSource = stream;
-                            bitmapImage.EndInit();
-                            bitmapImage.Freeze(); // Thread-Safety
-                        }
-                        
-                        return bitmapImage;
-                    }
+                    System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid in Grid - Items count: {dataGrid.Items.Count}");
+                    return dataGrid;
+                }
+                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] No DataGrid found in Grid - Children: {grid.Children.Count}");
+                foreach (var child in grid.Children)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - Child type: {child.GetType().Name}");
                 }
             }
+
+            // Für andere Tab-Typen: Direkte DataGrid-Suche
+            if (currentSubTab.Content is DataGrid directGrid)
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found direct DataGrid - Items count: {directGrid.Items.Count}");
+                return directGrid;
+            }
+
+            // Recursive search in complex layouts
+            var recursiveResult = FindDataGridRecursive(currentSubTab.Content);
+            if (recursiveResult != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid recursively - Items count: {recursiveResult.Items.Count}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No DataGrid found recursively");
+            }
+            
+            return recursiveResult;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [QR-Generator] Error generating QR code: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [AutoScroll] Error finding DataGrid: {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Rekursive Suche nach DataGrid in komplexen Layouts
+    /// </summary>
+    private DataGrid? FindDataGridRecursive(object content)
+    {
+        if (content is DataGrid dataGrid)
+            return dataGrid;
+
+        if (content is Panel panel)
+        {
+            // Convert UIElementCollection to IEnumerable for LINQ
+            var dataGridFromChildren = panel.Children.OfType<DataGrid>().FirstOrDefault();
+            if (dataGridFromChildren != null) return dataGridFromChildren;
+            
+            // Search recursively in child elements
+            foreach (UIElement child in panel.Children)
+            {
+                var result = FindDataGridRecursive(child);
+                if (result != null) return result;
+            }
+        }
+
+        if (content is ContentControl contentControl && contentControl.Content != null)
+        {
+            return FindDataGridRecursive(contentControl.Content);
+        }
+
+        return null;
     }
 }

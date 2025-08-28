@@ -120,22 +120,24 @@ public partial class OverviewConfigDialog : Window
 
         // Class Interval Section
         var classSection = CreateInputSection(
-            _localizationService.GetString("TimeBetweenClasses"),
-            out _classIntervalTextBox,
-            _localizationService.GetString("Seconds"),
-            "Zeit zwischen verschiedenen Turnierklassen"
+            "Zeit pro Tab:",
+            out _subTabIntervalTextBox,
+            _localizationService.GetString("Seconds") ?? "Sekunden",
+            "Wie lange jeder Tab angezeigt wird, bevor zum nächsten gewechselt wird"
         );
         Grid.SetRow(classSection, 2);
         Grid.SetColumnSpan(classSection, 2);
         grid.Children.Add(classSection);
 
-        // Sub-Tab Interval Section  
+        // Sub-Tab Interval Section (als Backup - wird intern gleich behandelt)
         var subSection = CreateInputSection(
-            _localizationService.GetString("TimeBetweenSubTabs"),
-            out _subTabIntervalTextBox, 
-            _localizationService.GetString("Seconds"),
-            "Zeit zwischen Unterreitern in derselben Klasse"
+            "Erweiterte Einstellung:",
+            out _classIntervalTextBox, 
+            _localizationService.GetString("Seconds") ?? "Sekunden",
+            "Backup-Einstellung für Kompatibilität (wird derzeit nicht verwendet)"
         );
+        // Verstecke die erweiterte Einstellung für Benutzerfreundlichkeit
+        subSection.Visibility = Visibility.Collapsed;
         Grid.SetRow(subSection, 3);
         Grid.SetColumnSpan(subSection, 2);
         grid.Children.Add(subSection);
@@ -169,13 +171,16 @@ public partial class OverviewConfigDialog : Window
         // Info Text
         var infoText = new TextBlock
         {
-            Text = _localizationService.GetString("OverviewInfoText"),
+            Text = "⚡ Vereinfachte Konfiguration:\n" +
+                   "• Jeder Tab wird für die angegebene Zeit angezeigt\n" +
+                   "• Nach allen Tabs einer Klasse wird zur nächsten Klasse gewechselt\n" +
+                   "• Scrollen läuft parallel und blockiert den Tab-Wechsel nicht\n" +
+                   "• Perfekt für Turnier-Präsentationen auf großen Bildschirmen",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 16, 0, 24),
-            Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)),
-            FontStyle = FontStyles.Italic,
+            Foreground = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
             FontSize = 13,
-            LineHeight = 18
+            LineHeight = 20
         };
         Grid.SetRow(infoText, 6);
         Grid.SetColumnSpan(infoText, 2);
@@ -199,14 +204,23 @@ public partial class OverviewConfigDialog : Window
         cancelButton.Click += (s, e) => { DialogResult = false; Close(); };
 
         var okButton = CreateModernButton(
-            _localizationService.GetString("OK"),
-            Color.FromRgb(59, 130, 246),
-            Color.FromRgb(37, 99, 235)
+            _localizationService.GetString("Save") ?? "Speichern",
+            Color.FromRgb(34, 197, 94),
+            Color.FromRgb(22, 163, 74)
         );
         okButton.IsDefault = true;
         okButton.Click += (s, e) => { SaveAndClose(); };
 
+        var applyButton = CreateModernButton(
+            _localizationService.GetString("Apply") ?? "Anwenden",
+            Color.FromRgb(59, 130, 246),
+            Color.FromRgb(37, 99, 235)
+        );
+        applyButton.Margin = new Thickness(0, 0, 12, 0);
+        applyButton.Click += (s, e) => { ApplySettings(); };
+
         buttonPanel.Children.Add(cancelButton);
+        buttonPanel.Children.Add(applyButton);
         buttonPanel.Children.Add(okButton);
 
         Grid.SetRow(buttonPanel, 7);
@@ -218,12 +232,13 @@ public partial class OverviewConfigDialog : Window
 
         Loaded += (s, e) =>
         {
-            _classIntervalTextBox.Text = ClassInterval.ToString();
+            // Vereinfacht: Beide Felder bekommen den gleichen Wert
             _subTabIntervalTextBox.Text = SubTabInterval.ToString();
+            _classIntervalTextBox.Text = SubTabInterval.ToString(); // Backup für Kompatibilität
             _showOnlyActiveCheckBox.IsChecked = ShowOnlyActiveClasses;
 
-            _classIntervalTextBox.Focus();
-            _classIntervalTextBox.SelectAll();
+            _subTabIntervalTextBox.Focus();
+            _subTabIntervalTextBox.SelectAll();
         };
     }
 
@@ -342,29 +357,31 @@ public partial class OverviewConfigDialog : Window
 
     private void SaveAndClose()
     {
-        if (!int.TryParse(_classIntervalTextBox.Text, out int classInterval) || classInterval < 1)
+        if (ApplySettings())
         {
-            MessageBox.Show(_localizationService.GetString("InvalidClassInterval"), _localizationService.GetString("Error"),
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            _classIntervalTextBox.Focus();
-            _classIntervalTextBox.SelectAll();
-            return;
+            DialogResult = true;
+            Close();
         }
+    }
 
-        if (!int.TryParse(_subTabIntervalTextBox.Text, out int subTabInterval) || subTabInterval < 1)
+    private bool ApplySettings()
+    {
+        if (!int.TryParse(_subTabIntervalTextBox.Text, out int tabInterval) || tabInterval < 1)
         {
-            MessageBox.Show(_localizationService.GetString("InvalidSubTabInterval"), _localizationService.GetString("Error"),
+            MessageBox.Show(
+                "Ungültiger Wert für Tab-Zeit. Bitte geben Sie eine Zahl ≥ 1 ein.",
+                _localizationService.GetString("Error") ?? "Fehler",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             _subTabIntervalTextBox.Focus();
             _subTabIntervalTextBox.SelectAll();
-            return;
+            return false;
         }
 
-        ClassInterval = classInterval;
-        SubTabInterval = subTabInterval;
+        // Vereinfacht: Beide Intervalle bekommen den gleichen Wert
+        ClassInterval = tabInterval;
+        SubTabInterval = tabInterval;
         ShowOnlyActiveClasses = _showOnlyActiveCheckBox.IsChecked == true;
 
-        DialogResult = true;
-        Close();
+        return true;
     }
 }
