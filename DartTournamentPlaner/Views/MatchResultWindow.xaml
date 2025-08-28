@@ -204,6 +204,11 @@
                                    HorizontalAlignment="Center" TextWrapping="Wrap"
                                    Foreground="#374151" Margin="0,0,0,8"/>
                         
+                        <!-- Match UUID Info (klein angezeigt für Debugging/Hub-Integration) -->
+                        <TextBlock Name="MatchUuidBlock" FontSize="10" FontFamily="Consolas"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="#9CA3AF" Margin="0,0,0,4"/>
+                        
                         <!-- Game Rules Info -->
                         <TextBlock Name="GameRulesBlock" FontSize="13" Foreground="#6B7280"
                                    HorizontalAlignment="Center" TextWrapping="Wrap"

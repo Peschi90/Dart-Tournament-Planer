@@ -1,10 +1,10 @@
-// REST API Routes Module
+﻿// REST API Routes Module
 // Handles all HTTP API endpoints
 
 const express = require('express');
 const router = express.Router();
 
-function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io) {
+function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io, websocketHandlers) {
     
     // Health check
     router.get('/health', (req, res) => {
@@ -240,7 +240,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
             
             const tournamentData = req.body;
             
-            // ERWEITERT: Detailliertes Logging f�r Game Rules
+            // ERWEITERT: Detailliertes Logging für Game Rules
             console.log(`?? [API] Tournament sync data for ${tournamentId}:`);
             console.log(`   ?? Classes: ${tournamentData.classes?.length || 0}`);
             console.log(`   ?? Game Rules: ${tournamentData.gameRules?.length || 0}`);
@@ -567,67 +567,78 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                 });
             }
             
-            const matches = tournament.matches || [];
-            
-            // ERWEITERT: Unterst�tzt sowohl UUID als auch numerische ID
-            const match = matches.find(m => 
-                // Priorisiere UniqueId (UUID)
-                (m.uniqueId && m.uniqueId === matchId) ||
-                // Fallback auf numerische IDs
-                (m.matchId || m.id || m.Id) == matchId
-            );
+            // UUID-aware match search
+            const match = findMatchByIdOrUUID(tournament.matches, matchId);
             
             if (!match) {
                 return res.status(404).json({
                     success: false,
-                    message: `Match not found: ${matchId} in tournament ${tournamentId}`
+                    message: `Match ${matchId} not found`,
+                    availableMatches: tournament.matches?.map(m => ({
+                        id: m.id || m.matchId,
+                        uniqueId: m.uniqueId,
+                        player1: m.player1,
+                        player2: m.player2
+                    })) || []
                 });
             }
             
-            // Find corresponding game rules
-            const gameRules = tournament.gameRules || [];
-            let matchGameRules = null;
-            
-            // Try to find game rules by various methods
-            if (match.gameRulesId || match.GameRulesId) {
-                matchGameRules = gameRules.find(gr => 
-                    (gr.id || gr.Id) == (match.gameRulesId || match.GameRulesId)
-                );
+            // Find game rules for this match
+            let gameRules = null;
+            if (match.gameRulesUsed) {
+                gameRules = match.gameRulesUsed;
+            } else if (tournament.gameRules) {
+                gameRules = tournament.gameRules.find(gr => 
+                    (gr.classId || gr.ClassId) === match.classId &&
+                    (gr.matchType || 'Group') === (match.matchType || 'Group')
+                ) || tournament.gameRules.find(gr => 
+                    (gr.classId || gr.ClassId) === match.classId
+                ) || tournament.gameRules[0];
             }
             
-            if (!matchGameRules && match.gameRulesUsed) {
-                matchGameRules = match.gameRulesUsed;
-            }
-            
-            if (!matchGameRules) {
-                // Fallback: find by class ID
-                const classId = match.classId || match.ClassId;
-                matchGameRules = gameRules.find(gr => 
-                    (gr.classId || gr.ClassId) == classId
-                );
-            }
-            
-            // Erweitere Match-Objekt um UUID-Informationen
-            const enrichedMatch = {
-                ...match,
-                // Priorisiere UniqueId, fallback auf numerische ID
-                id: match.uniqueId || match.matchId || match.id || match.Id,
-                uniqueId: match.uniqueId, // Explicit UUID
-                matchId: match.matchId || match.id || match.Id, // Legacy numerische ID
-                tournamentId: tournamentId,
-                // Match-Typ Identifikation
-                matchType: match.matchType || 'Unknown',
+            // Enhanced match response with UUID support
+            const responseMatch = {
+                // Primary identification (prefer UUID)
+                id: match.uniqueId || match.matchId || match.id,
+                matchId: match.matchId || match.id,
+                uniqueId: match.uniqueId || null,
+                
+                // Match data
+                player1: match.player1,
+                player2: match.player2,
+                player1Sets: match.player1Sets || 0,
+                player2Sets: match.player2Sets || 0,
+                player1Legs: match.player1Legs || 0,
+                player2Legs: match.player2Legs || 0,
+                status: match.status,
+                winner: match.winner,
+                notes: match.notes || '',
+                
+                // Classification
+                classId: match.classId,
+                className: match.className,
+                matchType: match.matchType || 'Group',
+                groupId: match.groupId,
+                groupName: match.groupName,
+                
+                // KO-specific (if applicable)
                 bracketType: match.bracketType || null,
                 round: match.round || null,
-                position: match.position || null
+                position: match.position || null,
+                
+                // Game rules integration
+                gameRulesId: match.gameRulesId,
+                gameRulesUsed: match.gameRulesUsed,
+                
+                // Timestamps
+                syncedAt: match.syncedAt,
+                tournamentId: tournamentId
             };
-            
-            console.log(`? [API] Found match ${matchId} (UUID: ${match.uniqueId || 'none'}) with ${matchGameRules ? 'game rules' : 'no specific game rules'}`);
             
             res.json({
                 success: true,
-                match: enrichedMatch,
-                gameRules: matchGameRules,
+                match: responseMatch,
+                gameRules: gameRules,
                 tournament: {
                     id: tournament.id,
                     name: tournament.name,
@@ -635,21 +646,21 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                 },
                 meta: {
                     requestedAt: new Date().toISOString(),
-                    server: 'dtp.i3ull3t.de:9443',
+                    server: `${req.hostname}:${process.env.PORT || 9443}`,
                     matchIdentification: {
                         requestedId: matchId,
                         uniqueId: match.uniqueId || null,
-                        numericId: match.matchId || match.id || match.Id
+                        numericId: match.matchId || match.id,
+                        accessMethod: matchId === match.uniqueId ? 'UUID' : 'numericId'
                     }
                 }
             });
             
         } catch (error) {
-            console.error(`? [API] Individual match data error:`, error);
+            console.error('?? [API] Get match data error:', error);
             res.status(500).json({
                 success: false,
-                message: 'Failed to retrieve match data',
-                error: error.message
+                message: 'Internal server error'
             });
         }
     });
@@ -747,8 +758,8 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
             const result = req.body;
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             
-            console.log(`?? [API] Match result submission: Tournament ${tournamentId}, Match ${matchId} from ${clientIP}`);
-            console.log(`?? [API] Result data:`, result);
+            console.log(`📤 [API] Match result submission: Tournament ${tournamentId}, Match ${matchId} from ${clientIP}`);
+            console.log(`📊 [API] Result data:`, result);
             
             // ERWEITERT: UUID-bewusste Match-Suche
             const tournament = tournamentRegistry.getTournament(tournamentId);
@@ -762,7 +773,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
             
             const matches = tournament.matches || [];
             
-            // Finde Match �ber UUID oder numerische ID
+            // Finde Match über UUID oder numerische ID
             const match = matches.find(m => 
                 // Priorisiere UniqueId (UUID)
                 (m.uniqueId && m.uniqueId === matchId) ||
@@ -792,7 +803,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                 className: result.className || match.className || 'Unknown Class'
             };
             
-            // Verwende UUID f�r Match Service wenn verf�gbar
+            // Verwende UUID für Match Service wenn verfügbar
             const submitMatchId = match.uniqueId || matchId;
             const success = await matchService.submitMatchResult(tournamentId, submitMatchId, enhancedResult);
             
@@ -815,9 +826,15 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                 // Broadcast to tournament interface
                 socketIOHandlers.broadcastTournamentUpdate(tournamentId, broadcastData);
                 
+                // 🚨 KORRIGIERT: Auch WebSocket-Direct Broadcasting aufrufen!
+                if (websocketHandlers) {
+                    console.log(`📡 [API] Triggering WebSocket-Direct broadcast for Tournament Planner`);
+                    websocketHandlers.broadcastMatchUpdate(tournamentId, submitMatchId, enhancedResult);
+                }
+                
                 // Broadcast to specific match room (beide ID-Typen)
                 if (io) {
-                    // UUID-basierte R�ume
+                    // UUID-basierte Räume
                     if (match.uniqueId) {
                         const uuidMatchRoom = `match_${tournamentId}_${match.uniqueId}`;
                         io.to(uuidMatchRoom).emit('match-updated', {
@@ -826,10 +843,10 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                             uniqueId: match.uniqueId,
                             updatedAt: new Date().toISOString()
                         });
-                        console.log(`?? [API] Match update broadcasted to UUID room: ${uuidMatchRoom}`);
+                        console.log(`📤 [API] Match update broadcasted to UUID room: ${uuidMatchRoom}`);
                     }
                     
-                    // Legacy numerische ID-R�ume
+                    // Legacy numerische ID-Räume
                     const numericMatchRoom = `match_${tournamentId}_${match.matchId || match.id || match.Id}`;
                     io.to(numericMatchRoom).emit('match-updated', {
                         success: true,
@@ -837,10 +854,10 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                         matchId: match.matchId || match.id || match.Id,
                         updatedAt: new Date().toISOString()
                     });
-                    console.log(`?? [API] Match update broadcasted to numeric room: ${numericMatchRoom}`);
+                    console.log(`📤 [API] Match update broadcasted to numeric room: ${numericMatchRoom}`);
                 }
                 
-                console.log(`? [API] Match result submitted and broadcasted: ${tournamentId}/${submitMatchId} (UUID: ${match.uniqueId || 'none'})`);
+                console.log(`✅ [API] Match result submitted and broadcasted: ${tournamentId}/${submitMatchId} (UUID: ${match.uniqueId || 'none'})`);
                 
                 res.json({
                     success: true,
@@ -863,7 +880,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
             }
             
         } catch (error) {
-            console.error(`? [API] Match result submission error:`, error);
+            console.error(`❌ [API] Match result submission error:`, error);
             res.status(500).json({
                 success: false,
                 message: 'Failed to submit match result',
@@ -889,51 +906,93 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io)
                 });
             }
             
-            const matches = tournament.matches || [];
+            // UUID-aware match search
+            const match = findMatchByIdOrUUID(tournament.matches, matchId);
             
-            // ERWEITERT: UUID-bewusste Match-Suche
-            const match = matches.find(m => 
-                // Priorisiere UniqueId (UUID)
-                (m.uniqueId && m.uniqueId === matchId) ||
-                // Fallback auf numerische IDs
-                (m.matchId || m.id || m.Id) == matchId
-            );
-            
-            const hasAccess = !!match;
-            
-            console.log(`${hasAccess ? '?' : '?'} [API] Match access ${hasAccess ? 'granted' : 'denied'}: ${tournamentId}/${matchId}`);
-            
-            if (hasAccess && match) {
-                console.log(`?? [API] Match found - UUID: ${match.uniqueId || 'none'}, Numeric ID: ${match.matchId || match.id || match.Id}`);
+            if (!match) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Match ${matchId} not found`,
+                    searchedFor: matchId,
+                    availableMatches: tournament.matches?.length || 0
+                });
             }
             
             res.json({
-                success: hasAccess,
-                message: hasAccess ? 'Access granted' : 'Match not found',
-                data: {
-                    tournamentId,
-                    requestedMatchId: matchId,
-                    hasAccess,
-                    matchInfo: hasAccess ? {
-                        uniqueId: match.uniqueId,
-                        numericId: match.matchId || match.id || match.Id,
-                        matchType: match.matchType || 'Unknown',
-                        bracketType: match.bracketType || null,
-                        className: match.className || 'Unknown Class'
-                    } : null,
-                    checkedAt: new Date().toISOString()
-                }
+                success: true,
+                hasAccess: true,
+                match: {
+                    id: match.uniqueId || match.matchId || match.id,
+                    uniqueId: match.uniqueId,
+                    numericId: match.matchId || match.id,
+                    tournamentId: tournamentId,
+                    accessedVia: matchId === match.uniqueId ? 'UUID' : 'numericId'
+                },
+                message: `Access granted to match ${matchId}`
             });
-            
         } catch (error) {
-            console.error(`? [API] Match access validation error:`, error);
+            console.error('?? [API] Match access error:', error);
             res.status(500).json({
                 success: false,
-                message: 'Failed to validate match access',
-                error: error.message
+                message: 'Internal server error during match access validation'
             });
         }
     });
+
+    /**
+     * UUID-aware match search function
+     * Searches for a match by UUID first, then by numeric ID
+     */
+    function findMatchByIdOrUUID(matches, searchId) {
+        if (!matches || !Array.isArray(matches)) {
+            return null;
+        }
+        
+        console.log(`?? [API] Searching for match with ID: ${searchId}`);
+        console.log(`?? [API] Available matches: ${matches.length}`);
+        
+        // Priority 1: Search by UUID (exact match)
+        const byUuid = matches.find(m => m.uniqueId === searchId);
+        if (byUuid) {
+            console.log(`? [API] Match found by UUID: ${searchId}`);
+            return byUuid;
+        }
+        
+        // Priority 2: Search by numeric ID (convert to number for comparison)
+        const searchNumeric = parseInt(searchId);
+        if (!isNaN(searchNumeric)) {
+            const byNumeric = matches.find(m => {
+                const mId = parseInt(m.matchId || m.id || m.Id);
+                return mId === searchNumeric;
+            });
+            
+            if (byNumeric) {
+                console.log(`? [API] Match found by numeric ID: ${searchId} -> ${byNumeric.matchId || byNumeric.id}`);
+                return byNumeric;
+            }
+        }
+        
+        // Priority 3: String-based ID search (fallback)
+        const byStringId = matches.find(m => {
+            const mId = String(m.matchId || m.id || m.Id);
+            return mId === String(searchId);
+        });
+        
+        if (byStringId) {
+            console.log(`? [API] Match found by string ID: ${searchId}`);
+            return byStringId;
+        }
+        
+        console.log(`? [API] Match not found for ID: ${searchId}`);
+        console.log('?? [API] Available match IDs:', matches.map(m => ({
+            numeric: m.matchId || m.id,
+            uuid: m.uniqueId,
+            player1: m.player1,
+            player2: m.player2
+        })));
+        
+        return null;
+    }
 
     return router;
 }

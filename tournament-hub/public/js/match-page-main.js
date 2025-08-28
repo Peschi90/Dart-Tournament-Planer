@@ -22,13 +22,14 @@ class MatchPageMain {
         try {
             console.log('🔄 [MATCH-MAIN] Starting match page initialization...');
 
-            // Check if all required modules are loaded
-            if (!this.checkDependencies()) {
-                throw new Error('Required modules not loaded');
+            // Check if all required modules are loaded (with retry)
+            const dependenciesReady = await this.waitForDependencies();
+            if (!dependenciesReady) {
+                throw new Error('Required modules not loaded after retries');
             }
 
             // Initialize core functionality
-            const coreInitialized = window.matchPageCore.initialize();
+            const coreInitialized = await window.matchPageCore.initialize();
             if (!coreInitialized) {
                 throw new Error('Core initialization failed');
             }
@@ -58,6 +59,29 @@ class MatchPageMain {
     }
 
     /**
+     * Wait for dependencies with retry logic
+     */
+    async waitForDependencies(maxRetries = 5, delayMs = 200) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            console.log(`🔍 [MATCH-MAIN] Checking dependencies (attempt ${attempt}/${maxRetries})`);
+            
+            if (this.checkDependencies()) {
+                console.log('✅ [MATCH-MAIN] All dependencies are ready');
+                return true;
+            }
+            
+            if (attempt < maxRetries) {
+                console.log(`⏳ [MATCH-MAIN] Dependencies not ready, waiting ${delayMs}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delayMs));
+                delayMs *= 1.5; // Exponential backoff
+            }
+        }
+        
+        console.error('❌ [MATCH-MAIN] Dependencies still not ready after all retries');
+        return false;
+    }
+
+    /**
      * Check if all required dependencies are available
      */
     checkDependencies() {
@@ -68,16 +92,31 @@ class MatchPageMain {
             'matchPageAPI'
         ];
 
+        console.log('🔍 [MATCH-MAIN] Checking dependencies...');
+        
+        // Log current state of all window objects
+        console.log('📋 [MATCH-MAIN] Current window objects:', {
+            matchPageCore: !!window.matchPageCore,
+            matchPageDisplay: !!window.matchPageDisplay,
+            matchPageScoring: !!window.matchPageScoring,
+            matchPageAPI: !!window.matchPageAPI
+        });
+
         const missingModules = [];
+        const availableModules = [];
 
         requiredModules.forEach(module => {
             if (!window[module]) {
                 missingModules.push(module);
+            } else {
+                availableModules.push(module);
+                console.log(`✅ [MATCH-MAIN] ${module} is available`);
             }
         });
 
         if (missingModules.length > 0) {
             console.error('🚫 [MATCH-MAIN] Missing required modules:', missingModules);
+            console.log('✅ [MATCH-MAIN] Available modules:', availableModules);
             return false;
         }
 
@@ -565,7 +604,12 @@ window.matchPageMain = new MatchPageMain();
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 [MATCH-MAIN] DOM ready - initializing match page');
-    window.matchPageMain.initialize();
+    
+    // Add delay to ensure all modules are loaded
+    setTimeout(() => {
+        console.log('⏰ [MATCH-MAIN] Starting delayed initialization to ensure all modules are loaded');
+        window.matchPageMain.initialize();
+    }, 100); // Short delay to let all scripts finish loading
 });
 
 // Expose global debug function for development

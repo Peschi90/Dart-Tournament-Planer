@@ -14,24 +14,36 @@ public class DataService
         {
             if (File.Exists(_dataPath))
             {
+                Console.WriteLine("?? [DATA-SERVICE] Loading tournament data from JSON...");
+                
                 var json = await File.ReadAllTextAsync(_dataPath);
                 var data = JsonConvert.DeserializeObject<TournamentData>(json);
                 
                 if (data != null)
                 {
+                    Console.WriteLine($"? [DATA-SERVICE] Tournament data loaded with {data.TournamentClasses.Count} classes");
+                    
                     // WICHTIG: Nach dem Laden die Daten bereinigen und validieren
                     foreach (var tournamentClass in data.TournamentClasses)
                     {
                         CleanupDuplicatePhases(tournamentClass);
                     }
+                    
+                    // ?? UUID-SYSTEM: Validiere und repariere UUIDs nach dem Laden
+                    await ValidateAndRepairUuidsAfterLoading(data);
                 }
                 
                 return data ?? new TournamentData();
             }
+            else
+            {
+                Console.WriteLine("?? [DATA-SERVICE] No existing data file found, creating new tournament data");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading tournament data: {ex.Message}");
+            Console.WriteLine($"? [DATA-SERVICE] Error loading tournament data: {ex.Message}");
+            Console.WriteLine($"?? [DATA-SERVICE] Stack trace: {ex.StackTrace}");
         }
         
         return new TournamentData();
@@ -42,12 +54,118 @@ public class DataService
         try
         {
             data.LastModified = DateTime.Now;
-            var json = JsonConvert.SerializeObject(data, Formatting.Indented);
+            
+            // ?? UUID-SYSTEM: Stelle sicher, dass alle Matches gültige UUIDs haben vor dem Speichern
+            Console.WriteLine("?? [DATA-SERVICE] Ensuring all matches have valid UUIDs before saving...");
+            
+            int totalMatches = 0;
+            int generatedUuids = 0;
+            
+            foreach (var tournamentClass in data.TournamentClasses)
+            {
+                Console.WriteLine($"?? [DATA-SERVICE] Processing {tournamentClass.Name}...");
+                
+                // 1. Gruppen-Matches
+                foreach (var group in tournamentClass.Groups)
+                {
+                    foreach (var match in group.Matches)
+                    {
+                        totalMatches++;
+                        if (!match.HasValidUniqueId())
+                        {
+                            match.EnsureUniqueId();
+                            generatedUuids++;
+                            Console.WriteLine($"   ?? Generated UUID for Group Match {match.Id}: {match.UniqueId}");
+                        }
+                    }
+                }
+                
+                // 2. Finals-Matches
+                var finalsPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals);
+                if (finalsPhase?.FinalsGroup?.Matches != null)
+                {
+                    foreach (var match in finalsPhase.FinalsGroup.Matches)
+                    {
+                        totalMatches++;
+                        if (!match.HasValidUniqueId())
+                        {
+                            match.EnsureUniqueId();
+                            generatedUuids++;
+                            Console.WriteLine($"   ?? Generated UUID for Finals Match {match.Id}: {match.UniqueId}");
+                        }
+                    }
+                }
+                
+                // 3. K.O.-Matches (Winner & Loser Bracket)
+                var koPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
+                if (koPhase != null)
+                {
+                    // Winner Bracket
+                    if (koPhase.WinnerBracket != null)
+                    {
+                        foreach (var match in koPhase.WinnerBracket)
+                        {
+                            totalMatches++;
+                            if (!match.HasValidUniqueId())
+                            {
+                                match.EnsureUniqueId();
+                                generatedUuids++;
+                                Console.WriteLine($"   ? Generated UUID for Winner Bracket Match {match.Id}: {match.UniqueId}");
+                            }
+                        }
+                    }
+                    
+                    // Loser Bracket
+                    if (koPhase.LoserBracket != null)
+                    {
+                        foreach (var match in koPhase.LoserBracket)
+                        {
+                            totalMatches++;
+                            if (!match.HasValidUniqueId())
+                            {
+                                match.EnsureUniqueId();
+                                generatedUuids++;
+                                Console.WriteLine($"   ?? Generated UUID for Loser Bracket Match {match.Id}: {match.UniqueId}");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Console.WriteLine($"? [DATA-SERVICE] UUID validation complete:");
+            Console.WriteLine($"   ?? Total matches: {totalMatches}");
+            Console.WriteLine($"   ?? Generated UUIDs: {generatedUuids}");
+            Console.WriteLine($"   ? Matches already with UUID: {totalMatches - generatedUuids}");
+            
+            // ?? ERWEITERTE JSON-SERIALISIERUNG: Konfiguriere für UUID-System
+            var jsonSettings = new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented,
+                NullValueHandling = NullValueHandling.Include, // UUIDs könnten null sein
+                DefaultValueHandling = DefaultValueHandling.Include, // Alle Werte speichern
+                DateFormatHandling = DateFormatHandling.IsoDateFormat,
+                DateTimeZoneHandling = DateTimeZoneHandling.Local,
+                // Metadaten für UUID-System
+                MetadataPropertyHandling = MetadataPropertyHandling.Default
+            };
+            
+            var json = JsonConvert.SerializeObject(data, jsonSettings);
+            
+            // Validiere JSON vor dem Speichern
+            if (string.IsNullOrWhiteSpace(json) || json.Length < 100)
+            {
+                throw new InvalidOperationException("Generated JSON appears to be invalid or too small");
+            }
+            
             await File.WriteAllTextAsync(_dataPath, json);
+            
+            Console.WriteLine($"?? [DATA-SERVICE] Tournament data saved successfully with {totalMatches} matches and UUIDs");
+            
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error saving tournament data: {ex.Message}");
+            Console.WriteLine($"? [DATA-SERVICE] Error saving tournament data: {ex.Message}");
+            Console.WriteLine($"?? [DATA-SERVICE] Stack trace: {ex.StackTrace}");
             throw;
         }
     }
@@ -172,6 +290,195 @@ public class DataService
         catch (Exception ex)
         {
             Console.WriteLine($"DataService: Error during cleanup for {tournamentClass.Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ?? NEUE METHODE: Validiert und repariert UUIDs nach dem Laden aus JSON
+    /// </summary>
+    private async Task ValidateAndRepairUuidsAfterLoading(TournamentData data)
+    {
+        try
+        {
+            Console.WriteLine("?? [DATA-SERVICE] Validating UUIDs after loading from JSON...");
+            
+            int totalMatches = 0;
+            int validUuids = 0;
+            int repairedUuids = 0;
+            int duplicateUuids = 0;
+            
+            var seenUuids = new HashSet<string>();
+            
+            foreach (var tournamentClass in data.TournamentClasses)
+            {
+                Console.WriteLine($"?? [DATA-SERVICE] Checking {tournamentClass.Name}...");
+                
+                // 1. Gruppen-Matches validieren
+                foreach (var group in tournamentClass.Groups)
+                {
+                    foreach (var match in group.Matches)
+                    {
+                        totalMatches++;
+                        
+                        if (match.HasValidUniqueId())
+                        {
+                            if (seenUuids.Contains(match.UniqueId))
+                            {
+                                // Duplikat gefunden - neue UUID generieren
+                                var oldUuid = match.UniqueId;
+                                match.GenerateNewUniqueId();
+                                duplicateUuids++;
+                                Console.WriteLine($"   ?? Repaired duplicate UUID for Group Match {match.Id}: {oldUuid} -> {match.UniqueId}");
+                            }
+                            else
+                            {
+                                seenUuids.Add(match.UniqueId);
+                                validUuids++;
+                            }
+                        }
+                        else
+                        {
+                            match.EnsureUniqueId();
+                            if (!string.IsNullOrEmpty(match.UniqueId))
+                            {
+                                seenUuids.Add(match.UniqueId);
+                            }
+                            repairedUuids++;
+                            Console.WriteLine($"   ?? Repaired missing UUID for Group Match {match.Id}: {match.UniqueId}");
+                        }
+                    }
+                }
+                
+                // 2. Finals-Matches validieren
+                var finalsPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals);
+                if (finalsPhase?.FinalsGroup?.Matches != null)
+                {
+                    foreach (var match in finalsPhase.FinalsGroup.Matches)
+                    {
+                        totalMatches++;
+                        
+                        if (match.HasValidUniqueId())
+                        {
+                            if (seenUuids.Contains(match.UniqueId))
+                            {
+                                var oldUuid = match.UniqueId;
+                                match.GenerateNewUniqueId();
+                                duplicateUuids++;
+                                Console.WriteLine($"   ?? Repaired duplicate UUID for Finals Match {match.Id}: {oldUuid} -> {match.UniqueId}");
+                            }
+                            else
+                            {
+                                seenUuids.Add(match.UniqueId);
+                                validUuids++;
+                            }
+                        }
+                        else
+                        {
+                            match.EnsureUniqueId();
+                            if (!string.IsNullOrEmpty(match.UniqueId))
+                            {
+                                seenUuids.Add(match.UniqueId);
+                            }
+                            repairedUuids++;
+                            Console.WriteLine($"   ?? Repaired missing UUID for Finals Match {match.Id}: {match.UniqueId}");
+                        }
+                    }
+                }
+                
+                // 3. K.O.-Matches validieren
+                var koPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
+                if (koPhase != null)
+                {
+                    // Winner Bracket
+                    if (koPhase.WinnerBracket != null)
+                    {
+                        foreach (var match in koPhase.WinnerBracket)
+                        {
+                            totalMatches++;
+                            
+                            if (match.HasValidUniqueId())
+                            {
+                                if (seenUuids.Contains(match.UniqueId))
+                                {
+                                    var oldUuid = match.UniqueId;
+                                    match.GenerateNewUniqueId();
+                                    duplicateUuids++;
+                                    Console.WriteLine($"   ?? Repaired duplicate UUID for WB Match {match.Id}: {oldUuid} -> {match.UniqueId}");
+                                }
+                                else
+                                {
+                                    seenUuids.Add(match.UniqueId);
+                                    validUuids++;
+                                }
+                            }
+                            else
+                            {
+                                match.EnsureUniqueId();
+                                if (!string.IsNullOrEmpty(match.UniqueId))
+                                {
+                                    seenUuids.Add(match.UniqueId);
+                                }
+                                repairedUuids++;
+                                Console.WriteLine($"   ? Repaired missing UUID for WB Match {match.Id}: {match.UniqueId}");
+                            }
+                        }
+                    }
+                    
+                    // Loser Bracket
+                    if (koPhase.LoserBracket != null)
+                    {
+                        foreach (var match in koPhase.LoserBracket)
+                        {
+                            totalMatches++;
+                            
+                            if (match.HasValidUniqueId())
+                            {
+                                if (seenUuids.Contains(match.UniqueId))
+                                {
+                                    var oldUuid = match.UniqueId;
+                                    match.GenerateNewUniqueId();
+                                    duplicateUuids++;
+                                    Console.WriteLine($"   ?? Repaired duplicate UUID for LB Match {match.Id}: {oldUuid} -> {match.UniqueId}");
+                                }
+                                else
+                                {
+                                    seenUuids.Add(match.UniqueId);
+                                    validUuids++;
+                                }
+                            }
+                            else
+                            {
+                                match.EnsureUniqueId();
+                                if (!string.IsNullOrEmpty(match.UniqueId))
+                                {
+                                    seenUuids.Add(match.UniqueId);
+                                }
+                                repairedUuids++;
+                                Console.WriteLine($"   ?? Repaired missing UUID for LB Match {match.Id}: {match.UniqueId}");
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Console.WriteLine($"? [DATA-SERVICE] UUID validation complete:");
+            Console.WriteLine($"   ?? Total matches: {totalMatches}");
+            Console.WriteLine($"   ? Valid UUIDs: {validUuids}");
+            Console.WriteLine($"   ?? Repaired UUIDs: {repairedUuids}");
+            Console.WriteLine($"   ?? Fixed duplicates: {duplicateUuids}");
+            
+            // Speichere automatisch wenn Reparaturen durchgeführt wurden
+            if (repairedUuids > 0 || duplicateUuids > 0)
+            {
+                Console.WriteLine($"?? [DATA-SERVICE] Auto-saving data after UUID repairs...");
+                await SaveTournamentDataAsync(data);
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"? [DATA-SERVICE] Error validating UUIDs after loading: {ex.Message}");
+            Console.WriteLine($"?? [DATA-SERVICE] Stack trace: {ex.StackTrace}");
         }
     }
 }

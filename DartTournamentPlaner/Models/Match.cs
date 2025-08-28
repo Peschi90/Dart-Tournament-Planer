@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using DartTournamentPlaner.Services;
+using System;
 
 namespace DartTournamentPlaner.Models;
 
@@ -39,6 +40,10 @@ public class Match : INotifyPropertyChanged
     private DateTime? _endTime;             // Endzeit des Matches
     private string _notes = string.Empty;   // Zusätzliche Notizen
     private bool _usesSets = false;         // Verwendet dieses Match Sets oder nur Legs?
+    
+    // UUID-System Eigenschaften
+    private DateTime _createdAt = DateTime.Now;  // Erstellungszeit des Matches
+    private DateTime? _finishedAt;               // Abschlusszeit des Matches
 
     // Statische Referenz zum Lokalisierungsservice (wird von App.xaml.cs gesetzt)
     public static LocalizationService? LocalizationService { get; set; }
@@ -272,6 +277,68 @@ public class Match : INotifyPropertyChanged
             _usesSets = value;
             OnPropertyChanged(); // Benachrichtigt UI über Änderung
             OnPropertyChanged(nameof(ScoreDisplay)); // Aktualisiert Ergebnis-Anzeige
+        }
+    }
+
+    /// <summary>
+    /// Zeitpunkt der Match-Erstellung
+    /// </summary>
+    public DateTime CreatedAt
+    {
+        get => _createdAt;
+        set
+        {
+            _createdAt = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Zeitpunkt des Match-Abschlusses
+    /// </summary>
+    public DateTime? FinishedAt
+    {
+        get => _finishedAt;
+        set
+        {
+            _finishedAt = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Eindeutige Identifikation für Hub-Synchronisation
+    /// Kombiniert Tournament-Context mit Match-UUID
+    /// </summary>
+    public string GetHubIdentifier(string tournamentId)
+    {
+        return $"{tournamentId}_{UniqueId}";
+    }
+    
+    /// <summary>
+    /// Erstellt eine neue UUID für dieses Match
+    /// </summary>
+    public void GenerateNewUniqueId()
+    {
+        UniqueId = Guid.NewGuid().ToString();
+    }
+    
+    /// <summary>
+    /// Prüft ob das Match eine gültige UUID hat
+    /// </summary>
+    public bool HasValidUniqueId()
+    {
+        return !string.IsNullOrEmpty(UniqueId) && Guid.TryParse(UniqueId, out _);
+    }
+    
+    /// <summary>
+    /// Stellt sicher, dass das Match eine UUID hat
+    /// </summary>
+    public void EnsureUniqueId()
+    {
+        if (!HasValidUniqueId())
+        {
+            GenerateNewUniqueId();
         }
     }
 

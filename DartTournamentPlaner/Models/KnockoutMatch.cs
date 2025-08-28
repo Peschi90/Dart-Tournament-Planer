@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using DartTournamentPlaner.Services;
@@ -73,6 +74,11 @@ public class KnockoutMatch : INotifyPropertyChanged
     private bool _usesSets = false;         // Verwendet dieses Match Sets oder nur Legs
     private bool _player1FromWinner = false;  // Kommt Player 1 vom Winner Bracket
     private bool _player2FromWinner = false;  // Kommt Player 2 vom Winner Bracket
+    
+    // UUID-System Eigenschaften
+    private DateTime _createdAt = DateTime.Now;  // Erstellungszeit des Matches
+    private DateTime? _finishedAt;               // Abschlusszeit des Matches
+    private DateTime? _startedAt;                // Startzeit des Matches
 
     // Statische Referenz zum Lokalisierungsservice für Übersetzungen
     public static LocalizationService? LocalizationService { get; set; }
@@ -403,6 +409,90 @@ public class KnockoutMatch : INotifyPropertyChanged
         }
     }
 
+    /// <summary>
+    /// Zeitpunkt der Match-Erstellung
+    /// </summary>
+    public DateTime CreatedAt
+    {
+        get => _createdAt;
+        set
+        {
+            _createdAt = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Zeitpunkt des Match-Abschlusses
+    /// </summary>
+    public DateTime? FinishedAt
+    {
+        get => _finishedAt;
+        set
+        {
+            _finishedAt = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    /// <summary>
+    /// Zeitpunkt des Match-Starts
+    /// </summary>
+    public DateTime? StartedAt
+    {
+        get => _startedAt;
+        set
+        {
+            _startedAt = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Eindeutige Identifikation für Hub-Synchronisation
+    /// Kombiniert Tournament-Context mit KO-Match-UUID
+    /// </summary>
+    public string GetHubIdentifier(string tournamentId)
+    {
+        return $"{tournamentId}_KO_{UniqueId}";
+    }
+    
+    /// <summary>
+    /// Erstellt eine neue UUID für dieses KO-Match
+    /// </summary>
+    public void GenerateNewUniqueId()
+    {
+        UniqueId = Guid.NewGuid().ToString();
+    }
+    
+    /// <summary>
+    /// Prüft ob das KO-Match eine gültige UUID hat
+    /// </summary>
+    public bool HasValidUniqueId()
+    {
+        return !string.IsNullOrEmpty(UniqueId) && Guid.TryParse(UniqueId, out _);
+    }
+    
+    /// <summary>
+    /// Stellt sicher, dass das KO-Match eine UUID hat
+    /// </summary>
+    public void EnsureUniqueId()
+    {
+        if (!HasValidUniqueId())
+        {
+            GenerateNewUniqueId();
+        }
+    }
+    
+    /// <summary>
+    /// Liefert Match-Type basierend auf Bracket und Round
+    /// </summary>
+    public string GetMatchType()
+    {
+        var bracketPrefix = BracketType == BracketType.Winner ? "WB" : "LB";
+        return $"Knockout-{bracketPrefix}-{Round}";
+    }
+
     // Display Properties - Berechnete Eigenschaften für die UI-Anzeige
 
     /// <summary>
@@ -720,7 +810,7 @@ public class KnockoutMatch : INotifyPropertyChanged
 
     /// <summary>
     /// Löst PropertyChanged Event aus für UI-Aktualisierung
-    /// CallerMemberName Attribut sorgt für automatische Eigenschaftserkennung
+    /// CallerMemberName Attribut sorgt für automatischeEigenschaftserkennung
     /// </summary>
     /// <param name="propertyName">Name der geänderten Eigenschaft (automatisch erkannt)</param>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

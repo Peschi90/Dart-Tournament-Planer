@@ -126,6 +126,22 @@
         <div id="socket-results" class="result-box"></div>
     </div>
 
+    <!-- Match-Page Tests -->
+    <div class="test-section">
+        <h2>📄 Match-Page Tests</h2>
+        <div>
+            <label>Tournament ID:</label><br>
+            <input type="text" id="page-tournament-id" class="match-id-input" placeholder="Tournament ID" value="TOURNAMENT_20250827_145208"><br><br>
+            
+            <label>Match ID:</label><br>
+            <input type="text" id="page-match-id" class="match-id-input" placeholder="Match ID (UUID or Numeric)" value="1"><br><br>
+            
+            <button class="test-button" onclick="testMatchPageOpen()">Open Match Page</button>
+            <button class="test-button" onclick="testMatchPageModules()">Test Page Modules</button>
+            <button class="test-button" onclick="testMatchPageAPI()">Test Page APIs</button>
+        </div>
+        <div id="match-page-results" class="result-box"></div>
+    </div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
         let socket = null;
@@ -306,9 +322,109 @@
             }
         }
 
+        function testMatchPageOpen() {
+            const tournamentId = document.getElementById('page-tournament-id').value;
+            const matchId = document.getElementById('page-match-id').value;
+            
+            log('match-page-results', `📄 Opening Match Page: ${tournamentId}/${matchId}...`, 'info');
+            
+            if (!tournamentId || !matchId) {
+                log('match-page-results', '❌ Tournament ID und Match ID sind erforderlich', 'error');
+                return;
+            }
+            
+            const matchPageUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}`;
+            log('match-page-results', `🔗 URL: ${matchPageUrl}`, 'info');
+            
+            try {
+                const newWindow = window.open(matchPageUrl, '_blank', 'width=1200,height=800');
+                if (newWindow) {
+                    log('match-page-results', '✅ Match-Page in neuem Tab geöffnet', 'success');
+                    log('match-page-results', '🔍 Überprüfen Sie die Browser-Konsole der neuen Seite auf Module-Loading', 'info');
+                } else {
+                    log('match-page-results', '⚠️ Popup wurde blockiert', 'warning');
+                    window.location.href = matchPageUrl;
+                }
+            } catch (error) {
+                log('match-page-results', `❌ Fehler beim Öffnen: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMatchPageModules() {
+            log('match-page-results', '🔍 Testing Match-Page Module URLs...', 'info');
+            
+            const modules = [
+                '/js/match-page-core.js',
+                '/js/match-page-display.js', 
+                '/js/match-page-scoring.js',
+                '/js/match-page-api.js',
+                '/js/match-page-main.js'
+            ];
+            
+            for (const module of modules) {
+                try {
+                    const response = await fetch(module, { method: 'HEAD' });
+                    if (response.ok) {
+                        log('match-page-results', `✅ ${module} - erreichbar`, 'success');
+                    } else {
+                        log('match-page-results', `❌ ${module} - HTTP ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    log('match-page-results', `❌ ${module} - ${error.message}`, 'error');
+                }
+            }
+            
+            // Test match-page.html
+            try {
+                const response = await fetch('/match-page.html', { method: 'HEAD' });
+                if (response.ok) {
+                    log('match-page-results', '✅ match-page.html - erreichbar', 'success');
+                } else {
+                    log('match-page-results', `❌ match-page.html - HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log('match-page-results', `❌ match-page.html - ${error.message}`, 'error');
+            }
+        }
+
+        async function testMatchPageAPI() {
+            const tournamentId = document.getElementById('page-tournament-id').value;
+            const matchId = document.getElementById('page-match-id').value;
+            
+            log('match-page-results', `📡 Testing Match-Page APIs: ${tournamentId}/${matchId}...`, 'info');
+            
+            // Test 1: Match Access
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/matches/${matchId}/access`);
+                const data = await response.json();
+                log('match-page-results', `✅ Match Access API: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log('match-page-results', `❌ Match Access API Error: ${error.message}`, 'error');
+            }
+            
+            // Test 2: Match Data
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/matches/${matchId}`);
+                const data = await response.json();
+                log('match-page-results', `✅ Match Data API: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log('match-page-results', `❌ Match Data API Error: ${error.message}`, 'error');
+            }
+            
+            // Test 3: Game Rules
+            try {
+                const response = await fetch(`/api/tournaments/${tournamentId}/matches/${matchId}/rules`);
+                const data = await response.json();
+                log('match-page-results', `✅ Game Rules API: ${JSON.stringify(data, null, 2)}`, 'success');
+            } catch (error) {
+                log('match-page-results', `❌ Game Rules API Error: ${error.message}`, 'error');
+            }
+        }
+
         // Auto-connect and run initial tests on page load
         window.addEventListener('load', () => {
-            log('api-results', '🚀 UUID System Test Interface loaded', 'info');
+            log('api-results', '🚀 Enhanced UUID System Test Interface loaded', 'info');
+            log('api-results', '✨ Features: Match-Page öffnen + Auto-Refresh nach Result-Submit', 'info');
             
             // Auto-run basic API tests
             setTimeout(async () => {
@@ -322,7 +438,11 @@
                 
                 await testWebSocketInfo();
                 
-                log('api-results', '✅ Initial tests complete! System ready for UUID testing.', 'success');
+                log('api-results', '✅ Initial tests complete! Enhanced system ready for testing.', 'success');
+                log('api-results', '🎯 Neue Features:', 'info');
+                log('api-results', '  📄 Match-Seiten öffnen aus Match-Cards', 'info');
+                log('api-results', '  🔄 Auto-Refresh nach erfolgreichem Match-Result-Submit', 'info');
+                log('api-results', '  🆔 UUID + Numerische ID Unterstützung', 'info');
             }, 1000);
         });
     </script>

@@ -64,10 +64,26 @@ class MatchPageDisplay {
         const mainArea = document.getElementById('mainMatchArea');
         if (!mainArea || !this.currentMatch) return;
 
-        const isFinished = this.currentMatch.status === 'finished';
-        const hasResult = this.currentMatch.result && 
-                         (this.currentMatch.result.sets1 !== null || 
-                          this.currentMatch.result.legs1 !== null);
+        // ✅ KORRIGIERT: Strengere Status-Erkennung - nur bei echten Results als finished markieren
+        const hasValidResult = this.hasValidMatchResult();
+        const isExplicitlyFinished = this.currentMatch.status === 'finished' || 
+                                   this.currentMatch.status === 'Finished' ||
+                                   this.currentMatch.status === 'completed' ||
+                                   this.currentMatch.status === 'Completed';
+
+        // ✅ WICHTIG: Match ist nur dann finished wenn BEIDE Bedingungen erfüllt sind
+        const isFinished = isExplicitlyFinished && hasValidResult;
+
+        console.log('🔄 [MATCH-DISPLAY] Main area update:', {
+            status: this.currentMatch.status,
+            isExplicitlyFinished,
+            hasValidResult,
+            isFinished,
+            player1Sets: this.currentMatch.player1Sets,
+            player2Sets: this.currentMatch.player2Sets,
+            player1Legs: this.currentMatch.player1Legs,
+            player2Legs: this.currentMatch.player2Legs
+        });
 
         let html = `
             <div class="match-header">
@@ -78,9 +94,9 @@ class MatchPageDisplay {
             </div>
 
             <div class="players-section">
-                ${this.renderPlayerScoreCard(this.currentMatch.player1, this.currentMatch.result?.sets1, this.currentMatch.result?.legs1, '1')}
+                ${this.renderPlayerScoreCard(this.currentMatch.player1, this.getPlayerSets(1), this.getPlayerLegs(1), '1')}
                 <div class="vs-divider">VS</div>
-                ${this.renderPlayerScoreCard(this.currentMatch.player2, this.currentMatch.result?.sets2, this.currentMatch.result?.legs2, '2')}
+                ${this.renderPlayerScoreCard(this.currentMatch.player2, this.getPlayerSets(2), this.getPlayerLegs(2), '2')}
             </div>
 
             ${isFinished ? this.renderMatchResult() : this.renderResultForm()}
@@ -88,10 +104,113 @@ class MatchPageDisplay {
 
         mainArea.innerHTML = html;
 
-        // Add event listeners for the result form if it exists
+        // Add event listeners for the result form if it exists and match is not finished
         if (!isFinished) {
             this.setupResultFormHandlers();
         }
+    }
+
+    /**
+     * ✅ KORRIGIERT: Strengere Validierung für echte Match-Results
+     */
+    hasValidMatchResult() {
+        // Check für sinnvolle Ergebnis-Daten (nicht nur 0-0)
+        const player1Sets = this.getPlayerSets(1) || 0;
+        const player2Sets = this.getPlayerSets(2) || 0;
+        const player1Legs = this.getPlayerLegs(1) || 0;
+        const player2Legs = this.getPlayerLegs(2) || 0;
+
+        const playWithSets = this.currentGameRules?.playWithSets || false;
+
+        // Bei Sets-Spiel: Mindestens ein Spieler muss Sets > 0 haben
+        if (playWithSets) {
+            const hasSetsResult = player1Sets > 0 || player2Sets > 0;
+            const hasLegsResult = player1Legs > 0 || player2Legs > 0;
+            
+            console.log('🔍 [MATCH-DISPLAY] Sets validation:', {
+                playWithSets, hasSetsResult, hasLegsResult,
+                sets: `${player1Sets}-${player2Sets}`, legs: `${player1Legs}-${player2Legs}`
+            });
+            
+            return hasSetsResult && hasLegsResult; // Beide müssen vorhanden sein
+        } 
+        // Bei Legs-Only: Mindestens ein Spieler muss Legs > 0 haben
+        else {
+            const hasLegsResult = player1Legs > 0 || player2Legs > 0;
+            
+            console.log('🔍 [MATCH-DISPLAY] Legs validation:', {
+                playWithSets, hasLegsResult,
+                legs: `${player1Legs}-${player2Legs}`
+            });
+            
+            return hasLegsResult;
+        }
+    }
+
+    /**
+     * ✅ DEPRECATED: Alte hasMatchResult Methode - ersetzt durch hasValidMatchResult
+     * Wird nur noch für Legacy-Kompatibilität behalten
+     */
+    hasMatchResult() {
+        return this.hasValidMatchResult();
+    }
+
+    /**
+     * Get player sets from various data sources
+     */
+    getPlayerSets(playerNumber) {
+        const playerField = `player${playerNumber}Sets`;
+        
+        // Priorität 1: Direkte Player-Felder im Match
+        if (this.currentMatch[playerField] !== undefined && this.currentMatch[playerField] !== null) {
+            return this.currentMatch[playerField];
+        }
+        
+        // Priorität 2: Result-Objekt (Legacy-Format)
+        if (this.currentMatch.result) {
+            const resultField = playerNumber === 1 ? 'sets1' : 'sets2';
+            if (this.currentMatch.result[resultField] !== undefined && this.currentMatch.result[resultField] !== null) {
+                return this.currentMatch.result[resultField];
+            }
+            
+            // Alternative result field names
+            const playerResultField = `player${playerNumber}Sets`;
+            if (this.currentMatch.result[playerResultField] !== undefined && this.currentMatch.result[playerResultField] !== null) {
+                return this.currentMatch.result[playerResultField];
+            }
+        }
+        
+        // ✅ KORRIGIERT: Nur null zurückgeben wenn kein gültiges Result vorhanden
+        return null;
+    }
+
+    /**
+     * Get player legs from various data sources
+     */
+    getPlayerLegs(playerNumber) {
+        const playerField = `player${playerNumber}Legs`;
+        
+        // Priorität 1: Direkte Player-Felder im Match
+        if (this.currentMatch[playerField] !== undefined && this.currentMatch[playerField] !== null) {
+            return this.currentMatch[playerField];
+        }
+        
+        // Priorität 2: Result-Objekt (Legacy-Format)
+        if (this.currentMatch.result) {
+            const resultField = playerNumber === 1 ? 'legs1' : 'legs2';
+            if (this.currentMatch.result[resultField] !== undefined && this.currentMatch.result[resultField] !== null) {
+                return this.currentMatch.result[resultField];
+            }
+            
+            // Alternative result field names
+            const playerResultField = `player${playerNumber}Legs`;
+            if (this.currentMatch.result[playerResultField] !== undefined && this.currentMatch.result[playerResultField] !== null) {
+                return this.currentMatch.result[playerResultField];
+            }
+        }
+        
+        // ✅ KORRIGIERT: Nur null zurückgeben wenn kein gültiges Result vorhanden
+        return null;
     }
 
     /**
@@ -99,17 +218,34 @@ class MatchPageDisplay {
      */
     renderPlayerScoreCard(playerName, sets, legs, playerNumber) {
         const displayName = playerName || `Spieler ${playerNumber}`;
-        const displaySets = sets !== null && sets !== undefined ? sets : '-';
-        const displayLegs = legs !== null && legs !== undefined ? legs : '-';
+        
+        // ✅ KORRIGIERT: Bessere Anzeige-Logik für Sets und Legs
+        const playWithSets = this.currentGameRules?.playWithSets || false;
+        
+        // Zeige nur Werte an, wenn sie wirklich existieren (nicht null)
+        const displaySets = (sets !== null && sets !== undefined) ? sets : '-';
+        const displayLegs = (legs !== null && legs !== undefined) ? legs : '-' ;
+
+        // ✅ ERWEITERT: Debugging-Info für Score-Cards
+        console.log(`🃏 [MATCH-DISPLAY] Rendering player ${playerNumber} card:`, {
+            playerName: displayName,
+            sets: sets,
+            legs: legs,
+            displaySets: displaySets,
+            displayLegs: displayLegs,
+            playWithSets: playWithSets
+        });
 
         return `
             <div class="player-card player-${playerNumber}">
                 <div class="player-name">${displayName}</div>
                 <div class="player-scores">
-                    <div class="score-item">
-                        <span class="score-label">Sets</span>
-                        <span class="score-value">${displaySets}</span>
-                    </div>
+                    ${playWithSets ? `
+                        <div class="score-item">
+                            <span class="score-label">Sets</span>
+                            <span class="score-value">${displaySets}</span>
+                        </div>
+                    ` : ''}
                     <div class="score-item">
                         <span class="score-label">Legs</span>
                         <span class="score-value">${displayLegs}</span>
@@ -123,54 +259,132 @@ class MatchPageDisplay {
      * Render match result (for finished matches)
      */
     renderMatchResult() {
-        const result = this.currentMatch.result;
-        const winner = this.currentMatch.winner;
+        // ✅ KORRIGIERT: Verwende die verbesserten Getter-Methoden für Sets und Legs
+        const player1Sets = this.getPlayerSets(1);
+        const player2Sets = this.getPlayerSets(2);
+        const player1Legs = this.getPlayerLegs(1);
+        const player2Legs = this.getPlayerLegs(2);
+        
+        const winner = this.currentMatch.winner || this.determineWinner(player1Sets, player2Sets, player1Legs, player2Legs);
+        const playWithSets = this.currentGameRules?.playWithSets || false;
+        
+        // ✅ ERWEITERT: Detailliertes Logging für Debugging
+        console.log('🏆 [MATCH-DISPLAY] Rendering match result:', {
+            player1Sets, player2Sets, player1Legs, player2Legs,
+            winner, playWithSets,
+            matchStatus: this.currentMatch.status,
+            hasResult: this.hasMatchResult()
+        });
         
         return `
             <div class="match-result-section">
                 <h3>🏆 Endergebnis</h3>
                 <div class="final-result">
                     <div class="result-display">
-                        Sets: ${result?.sets1 || 0} - ${result?.sets2 || 0}<br>
-                        Legs: ${result?.legs1 || 0} - ${result?.legs2 || 0}
+                        ${playWithSets ? `Sets: ${player1Sets || 0} - ${player2Sets || 0}<br>` : ''}
+
+                        Legs: ${player1Legs || 0} - ${player2Legs || 0}
                     </div>
                     ${winner ? `<div class="winner-announcement">🎉 Gewinner: ${winner}</div>` : ''}
+
                 </div>
-                ${result?.notes ? `<div class="match-notes"><strong>Notizen:</strong> ${result.notes}</div>` : ''}
+                ${this.currentMatch.notes || this.currentMatch.result?.notes ? `
+                    <div class="match-notes">
+                        <strong>Notizen:</strong> ${this.currentMatch.notes || this.currentMatch.result?.notes}
+                    </div>
+                ` : '' }
                 <div class="match-completed-badge">
                     ✅ Match abgeschlossen
+                </div>
+                <div class="match-result-actions">
+                    <button onclick="window.history.back()" class="secondary-button">
+                        ← Zurück zur Übersicht
+                    </button>
                 </div>
             </div>
         `;
     }
 
     /**
-     * Render result submission form
+     * Determine winner based on scores
+     */
+    determineWinner(player1Sets, player2Sets, player1Legs, player2Legs) {
+        const playWithSets = this.currentGameRules?.playWithSets || false;
+        
+        if (playWithSets) {
+            // Bei Sets: Wer mehr Sets hat, gewinnt
+            if (player1Sets > player2Sets) {
+                return this.currentMatch.player1;
+            } else if (player2Sets > player1Sets) {
+                return this.currentMatch.player2;
+            }
+        } else {
+            // Bei Legs Only: Wer mehr Legs hat, gewinnt
+            if (player1Legs > player2Legs) {
+                return this.currentMatch.player1;
+            } else if (player2Legs > player1Legs) {
+                return this.currentMatch.player2;
+            }
+        }
+        
+        return null; // Unentschieden oder nicht bestimmbar
+    }
+
+    /**
+     * Render result submission form based on game rules
      */
     renderResultForm() {
+        // ✅ KORRIGIERT: Form basiert jetzt auf Game Rules
+        const playWithSets = this.currentGameRules?.playWithSets || false;
+        const setsToWin = this.currentGameRules?.setsToWin || 3;
+        const legsToWin = this.currentGameRules?.legsToWin || 3;
+        
+        console.log('🎮 [MATCH-DISPLAY] Rendering form with game rules:', {
+            playWithSets,
+            setsToWin,
+            legsToWin
+        });
+        
         return `
             <div class="result-form-section">
                 <h3>📊 Ergebnis eingeben</h3>
-                <form id="matchResultForm" class="result-form">
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label for="sets1">${this.currentMatch.player1 || 'Spieler 1'} - Sets:</label>
-                            <input type="number" id="sets1" name="sets1" min="0" max="99" required>
-                        </div>
-                        <div class="input-group">
-                            <label for="sets2">${this.currentMatch.player2 || 'Spieler 2'} - Sets:</label>
-                            <input type="number" id="sets2" name="sets2" min="0" max="99" required>
-                        </div>
+                ${playWithSets ? `
+                    <div class="game-rules-info">
+                        <span class="rules-hint">📋 Spiel-Modus: Sets (Best of ${setsToWin}, Legs pro Set: ${legsToWin})</span>
                     </div>
-                    
-                    <div class="form-row">
-                        <div class="input-group">
-                            <label for="legs1">${this.currentMatch.player1 || 'Spieler 1'} - Legs:</label>
-                            <input type="number" id="legs1" name="legs1" min="0" max="99" required>
+                ` : `
+                    <div class="game-rules-info">
+                        <span class="rules-hint">📋 Spiel-Modus: Legs Only (Best of ${legsToWin})</span>
+                    </div>
+                `}
+                <form id="matchResultForm" class="result-form">
+                    ${playWithSets ? `
+                        <div class="form-section">
+                            <h4>Sets</h4>
+                            <div class="form-row">
+                                <div class="input-group">
+                                    <label for="sets1">${this.currentMatch.player1 || 'Spieler 1'} - Sets:</label>
+                                    <input type="number" id="sets1" name="sets1" min="0" max="${setsToWin}" value="0" required>
+                                </div>
+                                <div class="input-group">
+                                    <label for="sets2">${this.currentMatch.player2 || 'Spieler 2'} - Sets:</label>
+                                    <input type="number" id="sets2" name="sets2" min="0" max="${setsToWin}" value="0" required>
+                                </div>
+                            </div>
                         </div>
-                        <div class="input-group">
-                            <label for="legs2">${this.currentMatch.player2 || 'Spieler 2'} - Legs:</label>
-                            <input type="number" id="legs2" name="legs2" min="0" max="99" required>
+                    ` : ''}
+                    
+                    <div class="form-section">
+                        <h4>${playWithSets ? 'Legs (Gesamt)' : 'Legs'}</h4>
+                        <div class="form-row">
+                            <div class="input-group">
+                                <label for="legs1">${this.currentMatch.player1 || 'Spieler 1'} - Legs:</label>
+                                <input type="number" id="legs1" name="legs1" min="0" max="99" value="0" required>
+                            </div>
+                            <div class="input-group">
+                                <label for="legs2">${this.currentMatch.player2 || 'Spieler 2'} - Legs:</label>
+                                <input type="number" id="legs2" name="legs2" min="0" max="99" value="0" required>
+                            </div>
                         </div>
                     </div>
                     
@@ -224,20 +438,35 @@ class MatchPageDisplay {
                 submitBtn.innerHTML = '<div class="loading-spinner"></div> Übertrage...';
             }
 
+            // ✅ KORRIGIERT: Berücksichtige playWithSets bei der Datensammlung
+            const playWithSets = this.currentGameRules?.playWithSets || false;
+            
             // Collect form data
             const formData = new FormData(form);
-            const resultData = {
-                sets1: parseInt(formData.get('sets1')) || 0,
-                sets2: parseInt(formData.get('sets2')) || 0,
-                legs1: parseInt(formData.get('legs1')) || 0,
-                legs2: parseInt(formData.get('legs2')) || 0,
+            let resultData = {
+                player1Legs: parseInt(formData.get('legs1')) || 0,
+                player2Legs: parseInt(formData.get('legs2')) || 0,
                 notes: formData.get('notes') || ''
             };
+            
+            // Sets nur hinzufügen wenn playWithSets = true
+            if (playWithSets) {
+                resultData.player1Sets = parseInt(formData.get('sets1')) || 0;
+                resultData.player2Sets = parseInt(formData.get('sets2')) || 0;
+            } else {
+                // Sets auf 0 setzen wenn nicht mit Sets gespielt wird
+                resultData.player1Sets = 0;
+                resultData.player2Sets = 0;
+            }
 
             console.log('📤 [MATCH-DISPLAY] Submitting result:', resultData);
+            console.log('🎮 [MATCH-DISPLAY] Game rules context:', {
+                playWithSets,
+                setsRequired: playWithSets
+            });
 
-            // Validate data
-            const validation = this.validateResultData(resultData);
+            // Validate data based on game rules
+            const validation = this.validateResultData(resultData, playWithSets);
             if (!validation.valid) {
                 throw new Error(validation.message);
             }
@@ -266,23 +495,71 @@ class MatchPageDisplay {
     }
 
     /**
-     * Validate result data
+     * Validate result data based on game rules
      */
-    validateResultData(data) {
-        if (data.sets1 < 0 || data.sets2 < 0 || data.legs1 < 0 || data.legs2 < 0) {
-            return { valid: false, message: 'Negative Werte sind nicht erlaubt' };
-        }
-
-        if (data.sets1 === 0 && data.sets2 === 0 && data.legs1 === 0 && data.legs2 === 0) {
-            return { valid: false, message: 'Ein gültiges Ergebnis ist erforderlich' };
-        }
-
-        // Check if both players have won (both have more than 0)
-        const player1Won = data.sets1 > data.sets2 || (data.sets1 === data.sets2 && data.legs1 > data.legs2);
-        const player2Won = data.sets2 > data.sets1 || (data.sets2 === data.sets1 && data.legs2 > data.legs1);
+    validateResultData(data, playWithSets = false) {
+        console.log('🔍 [MATCH-DISPLAY] Validating result data:', { data, playWithSets });
         
-        if (!player1Won && !player2Won && (data.sets1 !== data.sets2 || data.legs1 !== data.legs2)) {
-            return { valid: false, message: 'Unentschieden sind nur bei gleichen Sets und Legs möglich' };
+        // Negative Werte prüfen
+        if (data.player1Legs < 0 || data.player2Legs < 0) {
+            return { valid: false, message: 'Negative Leg-Werte sind nicht erlaubt' };
+        }
+        
+        if (playWithSets && (data.player1Sets < 0 || data.player2Sets < 0)) {
+            return { valid: false, message: 'Negative Set-Werte sind nicht erlaubt' };
+        }
+
+        // Mindestens ein gültiges Ergebnis erforderlich
+        if (playWithSets) {
+            // Bei Sets: Mindestens ein Set muss gespielt worden sein
+            if (data.player1Sets === 0 && data.player2Sets === 0) {
+                return { valid: false, message: 'Mindestens ein Set muss gespielt worden sein' };
+            }
+            
+            // Sets-Winner Validation
+            if (data.player1Sets === data.player2Sets && data.player1Sets > 0) {
+                return { valid: false, message: 'Unentschieden bei Sets ist nicht erlaubt' };
+            }
+        } else {
+            // Bei Legs Only: Mindestens ein Leg muss gespielt worden sein
+            if (data.player1Legs === 0 && data.player2Legs === 0) {
+                return { valid: false, message: 'Mindestens ein Leg muss gespielt worden sein' };
+            }
+            
+            // Legs Winner Validation (nur bei Legs-only)
+            if (data.player1Legs === data.player2Legs && data.player1Legs > 0) {
+                return { valid: false, message: 'Unentschieden bei Legs ist nicht erlaubt' };
+            }
+        }
+
+        // Game Rules Validierung
+        const setsToWin = this.currentGameRules?.setsToWin || 3;
+        const legsToWin = this.currentGameRules?.legsToWin || 3;
+        
+        if (playWithSets) {
+            // Bei Sets: Ein Spieler muss die erforderliche Anzahl Sets erreicht haben
+            if (data.player1Sets < setsToWin && data.player2Sets < setsToWin) {
+                return { 
+                    valid: false, 
+                    message: `Mindestens ein Spieler muss ${setsToWin} Sets erreichen` 
+                };
+            }
+            
+            // Maximale Sets prüfen
+            if (data.player1Sets > setsToWin || data.player2Sets > setsToWin) {
+                return { 
+                    valid: false, 
+                    message: `Maximum ${setsToWin} Sets erlaubt` 
+                };
+            }
+        } else {
+            // Bei Legs Only: Ein Spieler muss die erforderliche Anzahl Legs erreicht haben
+            if (data.player1Legs < legsToWin && data.player2Legs < legsToWin) {
+                return { 
+                    valid: false, 
+                    message: `Mindestens ein Spieler muss ${legsToWin} Legs erreichen` 
+                };
+            }
         }
 
         return { valid: true };
@@ -310,33 +587,90 @@ class MatchPageDisplay {
 
         const rules = this.currentGameRules || {};
         
+        // ✅ ERWEITERT: Verbesserte Game Rules Anzeige mit mehr Details
+        const gamePoints = rules.gamePoints || 501;
+        const gameMode = rules.gameMode || 'Standard';
+        const finishMode = this.formatFinishMode(rules.finishMode || 'DoubleOut');
+        const legsToWin = rules.legsToWin || 'Standard';
+        const setsToWin = rules.setsToWin || 'Standard';
+        const legsPerSet = rules.legsPerSet || 'Standard';
+        
         section.innerHTML = `
             <h3>📋 Spielregeln</h3>
             <div class="rules-grid">
                 <div class="rule-item">
+                    <span class="rule-label">Spiel-Punkte:</span>
+                    <span class="rule-value">${gamePoints}</span>
+                </div>
+                <div class="rule-item">
                     <span class="rule-label">Spielmodus:</span>
-                    <span class="rule-value">${rules.gameMode || 'Standard'}</span>
+                    <span class="rule-value">${gameMode}</span>
                 </div>
                 <div class="rule-item">
                     <span class="rule-label">Finish-Modus:</span>
-                    <span class="rule-value">${rules.finishMode || 'Single Out'}</span>
+                    <span class="rule-value">${finishMode}</span>
                 </div>
                 <div class="rule-item">
                     <span class="rule-label">Legs zum Sieg:</span>
-                    <span class="rule-value">${rules.legsToWin || 'Standard'}</span>
+                    <span class="rule-value">${legsToWin}</span>
                 </div>
                 ${rules.playWithSets ? `
                     <div class="rule-item">
                         <span class="rule-label">Sets zum Sieg:</span>
-                        <span class="rule-value">${rules.setsToWin || 'Standard'}</span>
+                        <span class="rule-value">${setsToWin}</span>
                     </div>
                     <div class="rule-item">
                         <span class="rule-label">Legs pro Set:</span>
-                        <span class="rule-value">${rules.legsPerSet || 'Standard'}</span>
+                        <span class="rule-value">${legsPerSet}</span>
+                    </div>
+                ` : ''}
+                ${rules.maxThrowsPerLeg ? `
+                    <div class="rule-item">
+                        <span class="rule-label">Max. Würfe:</span>
+                        <span class="rule-value">${rules.maxThrowsPerLeg}</span>
+                    </div>
+                ` : ''}
+                ${rules.checkoutMode && rules.checkoutMode !== 'Any' ? `
+                    <div class="rule-item">
+                        <span class="rule-label">Checkout-Modus:</span>
+                        <span class="rule-value">${this.formatCheckoutMode(rules.checkoutMode)}</span>
                     </div>
                 ` : ''}
             </div>
+            ${rules.description ? `
+                <div class="rules-description">
+                    <strong>Beschreibung:</strong><br>
+                    ${rules.description}
+                </div>
+            ` : ''}
         `;
+    }
+
+    /**
+     * Format finish mode for display
+     */
+    formatFinishMode(finishMode) {
+        const modes = {
+            'DoubleOut': 'Double Out',
+            'SingleOut': 'Single Out',
+            'MasterOut': 'Master Out',
+            'StraightOut': 'Straight Out'
+        };
+        return modes[finishMode] || finishMode;
+    }
+
+    /**
+     * Format checkout mode for display
+     */
+    formatCheckoutMode(checkoutMode) {
+        const modes = {
+            'Any': 'Beliebig',
+            'Double': 'Double',
+            'Triple': 'Triple',
+            'Bull': 'Bull',
+            'DoubleOrBull': 'Double oder Bull'
+        };
+        return modes[checkoutMode] || checkoutMode;
     }
 
     /**
@@ -349,7 +683,7 @@ class MatchPageDisplay {
         const startTime = this.currentMatch.startTime ? 
             new Date(this.currentMatch.startTime).toLocaleString('de-DE') : 'Nicht gestartet';
         const endTime = this.currentMatch.endTime ? 
-            new Date(this.currentMatch.endTime).toLocaleString('de-DE') : '-';
+            new Date(this.currentMatch.endTime).toLocaleString('de-DE') : '-' ;
 
         section.innerHTML = `
             <h3>ℹ️ Match-Info</h3>
@@ -401,6 +735,42 @@ class MatchPageDisplay {
      */
     handleGameRulesUpdate(gameRules) {
         console.log('📋 [MATCH-DISPLAY] Handling game rules update');
+        this.currentGameRules = gameRules;
+        this.updateGameRulesSection();
+    }
+
+    /**
+     * Update match display specifically (alias for updateDisplay)
+     * This function is called from match-page-core.js
+     */
+    updateMatchDisplay(matchData) {
+        console.log('🎨 [MATCH-DISPLAY] Updating match display specifically');
+        this.updateDisplay(matchData, this.currentGameRules);
+    }
+
+    /**
+     * Update tournament display
+     */
+    updateTournamentDisplay(tournamentData) {
+        console.log('🏆 [MATCH-DISPLAY] Updating tournament display');
+        
+        // Update page title and meta information
+        const titleElement = document.getElementById('matchTitle');
+        const metaElement = document.getElementById('matchMeta');
+        
+        if (titleElement && tournamentData && tournamentData.name) {
+            const currentTitle = titleElement.textContent;
+            if (currentTitle.includes('Lade Match')) {
+                titleElement.textContent = `🎯 ${tournamentData.name} - Match`;
+            }
+        }
+    }
+
+    /**
+     * Update game rules display specifically
+     */
+    updateGameRulesDisplay(gameRules) {
+        console.log('📋 [MATCH-DISPLAY] Updating game rules display speziell');
         this.currentGameRules = gameRules;
         this.updateGameRulesSection();
     }
@@ -545,6 +915,32 @@ const additionalStyles = `
             color: #2d3748;
         }
 
+        .game-rules-info {
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+        }
+
+        .rules-hint {
+            color: #234e52;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section h4 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -687,6 +1083,42 @@ const additionalStyles = `
             text-align: center;
             font-weight: bold;
             margin-top: 15px;
+        }
+
+        .match-result-actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .secondary-button {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .secondary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+        }
+
+        .rules-description {
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            line-height: 1.4;
+            color: #4a5568;
+        }
+
+        .rules-description strong {
+            color: #2d3748;
         }
 
         @media (max-width: 768px) {

@@ -3,9 +3,19 @@
 function createMatchCard(match) {
     const canSubmitResult = match.status !== 'Finished' && match.status !== 'finished';
     
-    // Robuste Extraktion aller Match-spezifischen Daten
+    // 🔑 ERWEITERTE Match-ID Extraktion mit UUID-Support
+    const matchId = match.matchId || match.id || match.Id || 'Unknown';
+    const matchUuid = match.uniqueId || match.UniqueId || null;
+    const hasValidUuid = !!(matchUuid && matchUuid.length > 0);
+    
+    // Verwende UUID als primäre ID wenn verfügbar, sonst numerische ID
+    const primaryMatchId = hasValidUuid ? matchUuid : matchId;
+    
     console.log(`🎯 [CREATE_CARD] Creating match card for:`, {
-        matchId: match.matchId || match.id || match.Id,
+        matchId: matchId,
+        uniqueId: matchUuid,
+        primaryId: primaryMatchId,
+        hasValidUuid: hasValidUuid,
         classId: match.classId || match.ClassId,
         className: match.className || match.ClassName,
         groupName: match.groupName || match.GroupName,
@@ -50,7 +60,6 @@ function createMatchCard(match) {
         }
     }
     
-    const matchId = match.matchId || match.id || match.Id || 'Unknown';
     const p1Sets = match.player1Sets || match.Player1Sets || 0;
     const p2Sets = match.player2Sets || match.Player2Sets || 0;
     const p1Legs = match.player1Legs || match.Player1Legs || 0;
@@ -83,7 +92,7 @@ function createMatchCard(match) {
     const gameMode = gameRule.gameMode || 'Standard';
     const finishMode = gameRule.finishMode || 'DoubleOut';
     
-    console.log(`🎮 [CREATE_CARD] Match ${matchId} Game Rules:`, {
+    console.log(`🎮 [CREATE_CARD] Match ${primaryMatchId} Game Rules:`, {
         name: gameRule.name,
         matchType,
         playWithSets,
@@ -93,8 +102,10 @@ function createMatchCard(match) {
         finishMode
     });
     
-    // Eindeutige ID für Match-Card
-    const uniqueCardId = `match_${matchId}_class_${classId}_type_${matchType.replace(/[^a-zA-Z0-9]/g, '')}_group_${groupId || 'none'}_${player1Name.replace(/\s+/g, '')}_${player2Name.replace(/\s+/g, '')}`;
+    // 🔑 ERWEITERTE Card ID mit UUID-Support
+    const uniqueCardId = hasValidUuid ? 
+        `match_uuid_${matchUuid.replace(/-/g, '_')}_class_${classId}_type_${matchType.replace(/[^a-zA-Z0-9]/g, '')}` :
+        `match_${matchId}_class_${classId}_type_${matchType.replace(/[^a-zA-Z0-9]/g, '')}_group_${groupId || 'none'}_${player1Name.replace(/\s+/g, '')}_${player2Name.replace(/\s+/g, '')}`;
     
     // Match-Type Display
     const getMatchTypeDisplay = (type) => {
@@ -149,10 +160,18 @@ function createMatchCard(match) {
     // 🎯 ERWEITERTE GAME RULES ANZEIGE MIT MATCH-TYPE SPEZIFISCHEN INFORMATIONEN
     const gameRulesDisplay = createGameRulesDisplay(gameRule, matchType, className);
 
+    // 🔑 ERWEITERTE Match-Header mit UUID-Anzeige
+    const matchHeaderDisplay = hasValidUuid ? 
+        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🆔 UUID</span>` : 
+        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🔢 ID</span>`;
+
     return `
         <div class="match-card" 
              id="${uniqueCardId}"
              data-match-id="${matchId}" 
+             data-match-uuid="${matchUuid || ''}"
+             data-primary-match-id="${primaryMatchId}"
+             data-has-uuid="${hasValidUuid}"
              data-class-id="${classId}" 
              data-class-name="${className}" 
              data-group-name="${groupName || ''}" 
@@ -163,7 +182,7 @@ function createMatchCard(match) {
              data-unique-card-id="${uniqueCardId}"
              data-game-rules='${JSON.stringify(gameRule).replace(/'/g, "&apos;")}'>
             <div class="match-header">
-                <div class="match-id">Match ${matchId}</div>
+                <div class="match-id">${matchHeaderDisplay}</div>
                 <div class="match-status status-${status.toLowerCase()}">
                     ${getStatusText(status)}
                 </div>
@@ -177,6 +196,7 @@ function createMatchCard(match) {
                         ${getMatchTypeDisplay(matchType)}
                     </div>
                     ${groupName ? `<div style="font-size: 0.8em; margin-top: 2px; opacity: 0.9;">📋 ${groupName}</div>` : ''}
+                    ${hasValidUuid ? `<div style="font-size: 0.75em; margin-top: 4px; opacity: 0.8; background: rgba(0,255,0,0.2); padding: 2px 6px; border-radius: 4px;">🆔 UUID-kompatibel</div>` : ''}
                 </div>
             </div>
             
@@ -268,9 +288,10 @@ function createMatchCard(match) {
                         🎯 Ergebnis übertragen (${gameRule.name})
                     </button>
 
-                    <button class="match-page-button" onclick="openMatchPage('${matchId}')" 
-                            title="Zur Einzel-Match-Seite wechseln">
-                        📄 Match-Seite öffnen
+                    <button class="match-page-button" onclick="openMatchPage('${primaryMatchId}')" 
+                            title="Zur Einzel-Match-Seite wechseln (${hasValidUuid ? 'UUID' : 'numerische ID'})"
+                            style="position: relative;">
+                        📄 Match-Seite öffnen ${hasValidUuid ? '🆔' : '🔢'}
                     </button>
 
                     <div class="message" id="message_${uniqueCardId}"></div>
@@ -282,6 +303,12 @@ function createMatchCard(match) {
                         Regeln: ${gameRule.name} • Klasse: ${className}
                     </div>
                     ${notes ? `<p style="margin-top: 12px; font-size: 0.9em; color: #666; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px;">"${notes}"</p>` : '' }
+                    
+                    <button class="match-page-button" onclick="openMatchPage('${primaryMatchId}')" 
+                            style="margin-top: 12px;"
+                            title="Zur Einzel-Match-Seite wechseln (${hasValidUuid ? 'UUID' : 'numerische ID'})">
+                        📄 Match-Seite öffnen ${hasValidUuid ? '🆔' : '🔢'}
+                    </button>
                 </div>
             `}
         </div>
@@ -763,4 +790,209 @@ function createGameRulesDisplay(gameRule, matchType, className) {
             ${matchType.startsWith('Knockout-') ? `<div style="font-size: 0.8em; margin-top: 6px; opacity: 0.8;">⚔️ Knockout-Spezial-Regeln</div>` : '' }
         </div>
     `;
+}
+
+// 🎯 NEUE FUNKTION: Match-Seite öffnen
+function openMatchPage(matchId) {
+    try {
+        console.log(`📄 [MATCH_PAGE] Opening match page for match: ${matchId}`);
+        
+        // 🔑 SCHRITT 1: Finde das Match und extrahiere UUID falls verfügbar
+        const match = findMatchByIdOrUuid(matchId);
+        let finalMatchId = matchId;
+        let useUuid = false;
+        
+        if (match) {
+            console.log(`🔍 [MATCH_PAGE] Found match data:`, {
+                numericId: match.matchId || match.id || match.Id,
+                uuid: match.uniqueId || match.UniqueId,
+                hasValidUuid: !!(match.uniqueId || match.UniqueId)
+            });
+            
+            // Bevorzuge UUID wenn verfügbar
+            if (match.uniqueId || match.UniqueId) {
+                finalMatchId = match.uniqueId || match.UniqueId;
+                useUuid = true;
+                console.log(`🆔 [MATCH_PAGE] Using UUID: ${finalMatchId}`);
+            } else {
+                console.log(`🔢 [MATCH_PAGE] Using numeric ID: ${finalMatchId} (UUID not available)`);
+            }
+        } else {
+            console.warn(`⚠️ [MATCH_PAGE] Match not found locally, using provided ID: ${matchId}`);
+        }
+        
+        // 🏆 SCHRITT 2: Aktuelle Tournament ID ermitteln
+        let tournamentId = window.currentTournamentId;
+        
+        // Fallback: Tournament ID aus globalen Variablen
+        if (!tournamentId && window.tournamentId) {
+            tournamentId = window.tournamentId;
+        }
+        
+        // Fallback: Tournament ID aus URL extrahieren
+        if (!tournamentId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            tournamentId = urlParams.get('tournament') || urlParams.get('tournamentId');
+        }
+        
+        // Weitere Fallback: Tournament ID aus aktuellem Tournament ermitteln
+        if (!tournamentId && window.currentTournament) {
+            tournamentId = window.currentTournament.id;
+        }
+        
+        // Fallback: Tournament ID aus URL-Path extrahieren (für /tournament/ID URLs)
+        if (!tournamentId) {
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
+                tournamentId = pathParts[2];
+            }
+        }
+        
+        if (!tournamentId) {
+            console.error('❌ [MATCH_PAGE] Tournament ID not found - cannot open match page');
+            alert('Fehler: Tournament ID konnte nicht ermittelt werden.');
+            return;
+        }
+        
+        if (!finalMatchId) {
+            console.error('❌ [MATCH_PAGE] Match ID not provided - cannot open match page');
+            alert('Fehler: Match ID fehlt.');
+            return;
+        }
+        
+        // 🔗 SCHRITT 3: Enhanced URL mit UUID-Unterstützung und Match-Kontext
+        const matchPageUrl = `/match-page.html?tournament=${encodeURIComponent(tournamentId)}&match=${encodeURIComponent(finalMatchId)}${useUuid ? '&uuid=true' : ''}`;
+        
+        console.log(`🔗 [MATCH_PAGE] Opening enhanced URL: ${matchPageUrl}`);
+        console.log(`🔗 [MATCH_PAGE] Match identification:`, {
+            originalId: matchId,
+            finalId: finalMatchId,
+            usingUuid: useUuid,
+            tournamentId: tournamentId
+        });
+        
+        // 🎯 SCHRITT 4: Enhanced User Experience mit Match-Info
+        let matchInfo = `Match ${finalMatchId}`;
+        if (match) {
+            const player1 = getPlayerName(match.player1 || match.Player1);
+            const player2 = getPlayerName(match.player2 || match.Player2);
+            if (player1 && player2) {
+                matchInfo = `Match ${finalMatchId}: ${player1} vs ${player2}`;
+            }
+            
+            // Match-Type anzeigen wenn verfügbar
+            const matchType = match.matchType || match.MatchType;
+            if (matchType && matchType !== 'Group') {
+                const classId = match.classId || match.ClassId || 1;
+                const className = match.className || match.ClassName || window.tournamentClasses?.find(c => c.id == classId)?.name || `Klasse ${classId}`;
+                matchInfo += `\n🏆 ${className} - ${getMatchTypeDescription(matchType)}`;
+            }
+        }
+        
+        // Frage Benutzer nach Öffnungsmethode mit Enhanced Info
+        const openInNewTab = confirm(
+            `Match-Seite öffnen:\n${matchInfo}\n\n` +
+            `🆔 Identifikation: ${useUuid ? 'UUID' : 'Numerische ID'}\n` +
+            `🏆 Tournament: ${tournamentId}\n\n` +
+            '✅ OK = In neuem Tab öffnen\n' +
+            '❌ Abbrechen = In aktuellem Tab öffnen'
+        );
+        
+        if (openInNewTab) {
+            // In neuem Tab öffnen
+            const newWindow = window.open(matchPageUrl, '_blank', 'noopener,noreferrer');
+            
+            if (!newWindow) {
+                console.warn('⚠️ [MATCH_PAGE] Popup blocked - trying alternative method');
+                // Alternative: Benutzer fragen ob in aktuellem Fenster öffnen
+                if (confirm('Die Match-Seite konnte nicht in einem neuen Tab geöffnet werden (Popup-Blocker). In diesem Fenster öffnen?')) {
+                    window.location.href = matchPageUrl;
+                }
+            } else {
+                console.log('✅ [MATCH_PAGE] Match page opened in new tab successfully');
+                
+                // Optional: Status-Feedback im UI
+                showNotification(`✅ Match-Seite für ${matchInfo} geöffnet`, 'success');
+            }
+        } else {
+            // In aktuellem Tab öffnen
+            console.log('🔄 [MATCH_PAGE] Opening match page in current tab');
+            window.location.href = matchPageUrl;
+        }
+        
+    } catch (error) {
+        console.error('❌ [MATCH_PAGE] Error opening match page:', error);
+        alert(`Fehler beim Öffnen der Match-Seite: ${error.message}`);
+    }
+}
+
+// 🔍 NEUE HILFSFUNKTION: Match anhand ID oder UUID finden
+function findMatchByIdOrUuid(searchId) {
+    if (!window.matches || !Array.isArray(window.matches)) {
+        console.warn('⚠️ [FIND_MATCH] No matches array available');
+        return null;
+    }
+    
+    // 1. Suche nach UUID (primär)
+    const byUuid = window.matches.find(match => {
+        const matchUuid = match.uniqueId || match.UniqueId;
+        return matchUuid && matchUuid === searchId;
+    });
+    
+    if (byUuid) {
+        console.log(`✅ [FIND_MATCH] Found by UUID: ${searchId}`);
+        return byUuid;
+    }
+    
+    // 2. Suche nach numerischer ID (fallback)
+    const searchNumeric = parseInt(searchId);
+    if (!isNaN(searchNumeric)) {
+        const byNumericId = window.matches.find(match => {
+            const matchId = parseInt(match.matchId || match.id || match.Id);
+            return matchId === searchNumeric;
+        });
+        
+        if (byNumericId) {
+            console.log(`✅ [FIND_MATCH] Found by numeric ID: ${searchId}`);
+            return byNumericId;
+        }
+    }
+    
+    console.warn(`⚠️ [FIND_MATCH] Match not found: ${searchId}`);
+    return null;
+}
+
+// 🎭 HILFSFUNKTION: Spielername sicher extrahieren
+function getPlayerName(player) {
+    if (!player) return null;
+    
+    if (typeof player === 'string') {
+        return player;
+    }
+    
+    return player.name || player.Name || null;
+}
+
+// 🎯 HILFSFUNKTION: Match-Type Beschreibung (bereits vorhanden, hier zur Sicherheit)
+function getMatchTypeDescription(matchType) {
+    const descriptions = {
+        'Group': 'Gruppen',
+        'Finals': 'Finalrunden',
+        'Knockout-WB-Best64': 'Winner Bracket Beste 64',
+        'Knockout-WB-Best32': 'Winner Bracket Beste 32',
+        'Knockout-WB-Best16': 'Winner Bracket Beste 16',
+        'Knockout-WB-Quarterfinal': 'Winner Bracket Viertelfinale',
+        'Knockout-WB-Semifinal': 'Winner Bracket Halbfinale',
+        'Knockout-WB-Final': 'Winner Bracket Finale',
+        'Knockout-WB-GrandFinal': 'Winner Bracket Grand Final',
+        'Knockout-LB-LoserRound1': 'Loser Bracket Runde 1',
+        'Knockout-LB-LoserRound2': 'Loser Bracket Runde 2',
+        'Knockout-LB-LoserRound3': 'Loser Bracket Runde 3',
+        'Knockout-LB-LoserRound4': 'Loser Bracket Runde 4',
+        'Knockout-LB-LoserRound5': 'Loser Bracket Runde 5',
+        'Knockout-LB-LoserRound6': 'Loser Bracket Runde 6',
+        'Knockout-LB-LoserFinal': 'Loser Bracket Final'
+    };
+    
+    return descriptions[matchType] || matchType.replace('Knockout-', 'K.O. ').replace('WB', 'Winner').replace('LB', 'Loser');
 }

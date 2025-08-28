@@ -47,10 +47,40 @@ function updateMatchDeliveryStatus(matchId, status) {
                 statusElement.innerHTML = '✅ Übertragen';
                 statusElement.className = 'match-status status-delivered';
                 
+                // ERWEITERT: Aktualisiere UI nach erfolgreichem Submit
                 setTimeout(() => {
                     statusElement.innerHTML = getStatusText('Finished');
                     statusElement.className = 'match-status status-finished';
+                    
+                    // Verstecke Result-Form und zeige "Abgeschlossen"
+                    const resultForm = card.querySelector('.result-form');
+                    if (resultForm) {
+                        resultForm.style.display = 'none';
+                        
+                        // Erstelle und zeige "Match abgeschlossen" Anzeige
+                        const completedDiv = document.createElement('div');
+                        completedDiv.innerHTML = `
+                            <div style="text-align: center; padding: 20px; background: #f0f8ff; border-radius: 10px; margin-top: 15px; border: 2px solid #e6f3ff;">
+                                <strong style="color: #2b6cb0; font-size: 1.1em;">✅ Match abgeschlossen</strong>
+                                <div style="margin-top: 8px; color: #4a90b8; font-size: 0.9em;">
+                                    Ergebnis erfolgreich übertragen
+                                </div>
+                                <button class="match-page-button" onclick="openMatchPage('${matchId}')" 
+                                        style="margin-top: 10px;" title="Zur Einzel-Match-Seite wechseln">
+                                    📄 Match-Seite öffnen
+                                </button>
+                            </div>
+                        `;
+                        resultForm.parentNode.insertBefore(completedDiv, resultForm.nextSibling);
+                    }
+                }, 2000);
+                
+                // HINZUGEFÜGT: Automatisches Laden aktueller Daten nach Erfolg
+                setTimeout(() => {
+                    console.log('🔄 [UPDATE] Auto-refreshing match data after successful submission');
+                    refreshTournamentData();
                 }, 3000);
+                
             } else if (status === 'error') {
                 statusElement.innerHTML = '❌ Fehler';
                 statusElement.className = 'match-status status-error';
@@ -64,7 +94,79 @@ function updateMatchDeliveryStatus(matchId, status) {
     });
 }
 
-// Fallback API submission
+// NEUE FUNKTION: Tournament-Daten nach Match-Update refreshen
+async function refreshTournamentData() {
+    try {
+        console.log('🔄 [REFRESH] Refreshing tournament data after match update...');
+        
+        if (!window.tournamentId) {
+            console.warn('⚠️ [REFRESH] No tournament ID available for refresh');
+            return;
+        }
+        
+        // Zeige Loading-Indicator
+        showRefreshIndicator(true);
+        
+        // Hole aktuelle Tournament-Daten
+        await loadTournamentData();
+        
+        // Hole aktuelle Match-Daten
+        await loadMatches();
+        
+        // Aktualisiere Display
+        if (typeof window.tournamentInterfaceDisplay !== 'undefined') {
+            window.tournamentInterfaceDisplay.updateTournamentDisplay(window.currentTournament);
+            window.tournamentInterfaceDisplay.displayMatches(window.currentMatches);
+        }
+        
+        console.log('✅ [REFRESH] Tournament data refreshed successfully');
+        showNotification('✅ Tournament-Daten aktualisiert', 'success');
+        
+    } catch (error) {
+        console.error('❌ [REFRESH] Error refreshing tournament data:', error);
+        showNotification('⚠️ Fehler beim Aktualisieren der Daten', 'warning');
+    } finally {
+        showRefreshIndicator(false);
+    }
+}
+
+// NEUE FUNKTION: Refresh-Indicator anzeigen
+function showRefreshIndicator(show) {
+    let indicator = document.getElementById('refresh-indicator');
+    
+    if (show) {
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'refresh-indicator';
+            indicator.innerHTML = `
+                <div style="position: fixed; top: 20px; right: 20px; z-index: 9999; background: rgba(255,255,255,0.95); border: 2px solid #4299e1; border-radius: 10px; padding: 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 20px; height: 20px; border: 2px solid #4299e1; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <span style="color: #4299e1; font-weight: bold;">Aktualisiere...</span>
+                </div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+            document.body.appendChild(indicator);
+        }
+        indicator.style.display = 'block';
+    } else {
+        if (indicator) {
+            indicator.style.display = 'none';
+            // Entferne nach kurzer Verzögerung
+            setTimeout(() => {
+                if (indicator && indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 500);
+        }
+    }
+}
+
+// ERWEITERT: Fallback API submission mit Auto-Refresh
 async function submitResultViaAPI(matchId, result) {
     try {
         console.log('📡 Submitting result via REST API...');
@@ -83,8 +185,14 @@ async function submitResultViaAPI(matchId, result) {
             updateMatchDeliveryStatus(matchId, 'success');
             showNotification(`✅ Match ${matchId} Ergebnis erfolgreich übertragen!`, 'success');
             
-            setTimeout(() => {
-                loadMatches();
+            // ERWEITERT: Intelligentes Refresh mit Retry-Logic
+            setTimeout(async () => {
+                try {
+                    await refreshTournamentData();
+                } catch (refreshError) {
+                    console.warn('⚠️ [API] Refresh after API submission failed, retrying...', refreshError);
+                    setTimeout(() => refreshTournamentData(), 2000);
+                }
             }, 1000);
         } else {
             console.error('❌ API submission failed:', response.statusText);

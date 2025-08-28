@@ -142,7 +142,7 @@ const socketIOHandlers = new SocketIOHandlers(io, tournamentRegistry, matchServi
 const websocketServer = new WebSocketServer(HTTPS_ENABLED, SSL_KEY_PATH, SSL_CERT_PATH, HOST, websocketHandlers);
 
 // Setup API routes
-const apiRoutes = createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io);
+const apiRoutes = createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io, websocketHandlers);
 app.use('/api', apiRoutes);
 
 // Static routes

@@ -106,19 +106,82 @@ public class HubMatchProcessingService
         var searchedAreas = new List<string>();
 
         debugWindow?.AddDebugMessage("🔍 Starting match search...", "SEARCH");
+        debugWindow?.AddDebugMessage($"🆔 Match identifiers:", "SEARCH");
+        debugWindow?.AddDebugMessage($"   Numeric ID: {e.MatchId}", "SEARCH");
+        debugWindow?.AddDebugMessage($"   UUID: {e.MatchUuid ?? "none"}", "SEARCH");
+        debugWindow?.AddDebugMessage($"   Original String: {e.OriginalMatchIdString ?? "none"}", "SEARCH");
+
+        // Helper function für UUID-aware Match-Suche
+        Func<IEnumerable<Match>, Match?> FindMatchInCollection = (matches) =>
+        {
+            // Priorität 1: Suche über UUID (wenn verfügbar)
+            if (!string.IsNullOrEmpty(e.MatchUuid))
+            {
+                var uuidMatch = matches.FirstOrDefault(m => m.UniqueId == e.MatchUuid);
+                if (uuidMatch != null)
+                {
+                    debugWindow?.AddDebugMessage($"✅ Match found via UUID: {e.MatchUuid}", "SUCCESS");
+                    return uuidMatch;
+                }
+            }
+            
+            // Priorität 2: Suche über numerische ID (wenn != 0)
+            if (e.MatchId != 0)
+            {
+                var numericMatch = matches.FirstOrDefault(m => m.Id == e.MatchId);
+                if (numericMatch != null)
+                {
+                    debugWindow?.AddDebugMessage($"✅ Match found via numeric ID: {e.MatchId}", "SUCCESS");
+                    return numericMatch;
+                }
+            }
+            
+            return null;
+        };
+
+        // Helper function für UUID-aware KnockoutMatch-Suche
+        Func<IEnumerable<KnockoutMatch>, KnockoutMatch?> FindKnockoutMatchInCollection = (knockoutMatches) =>
+        {
+            // Priorität 1: Suche über UUID (wenn verfügbar)
+            if (!string.IsNullOrEmpty(e.MatchUuid))
+            {
+                var uuidKoMatch = knockoutMatches.FirstOrDefault(km => km.UniqueId == e.MatchUuid);
+                if (uuidKoMatch != null)
+                {
+                    debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via UUID: {e.MatchUuid}", "SUCCESS");
+                    return uuidKoMatch;
+                }
+            }
+            
+            // Priorität 2: Suche über numerische ID (wenn != 0)
+            if (e.MatchId != 0)
+            {
+                var numericKoMatch = knockoutMatches.FirstOrDefault(km => km.Id == e.MatchId);
+                if (numericKoMatch != null)
+                {
+                    debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via numeric ID: {e.MatchId}", "SUCCESS");
+                    return numericKoMatch;
+                }
+            }
+            
+            return null;
+        };
 
         // 1. Winner Bracket Suche
         if (!string.IsNullOrEmpty(e.GroupName) && e.GroupName.Contains("Winner Bracket"))
         {
-            debugWindow?.AddDebugMessage($"🏆 Searching in Winner Bracket for Match {e.MatchId}", "SEARCH");
+            debugWindow?.AddDebugMessage($"🏆 Searching in Winner Bracket", "SEARCH");
             searchedAreas.Add("Winner Bracket");
             
-            result.KnockoutMatch = tournamentClass.CurrentPhase?.WinnerBracket?.FirstOrDefault(km => km.Id == e.MatchId);
-            if (result.KnockoutMatch != null)
+            if (tournamentClass.CurrentPhase?.WinnerBracket != null)
             {
-                result.Location = $"Winner Bracket";
-                debugWindow?.AddDebugMessage($"✅ Match found in Winner Bracket", "SUCCESS");
-                return result;
+                result.KnockoutMatch = FindKnockoutMatchInCollection(tournamentClass.CurrentPhase.WinnerBracket);
+                if (result.KnockoutMatch != null)
+                {
+                    result.Location = $"Winner Bracket";
+                    debugWindow?.AddDebugMessage($"✅ Match found in Winner Bracket", "SUCCESS");
+                    return result;
+                }
             }
             debugWindow?.AddDebugMessage($"❌ Match not found in Winner Bracket", "WARNING");
         }
@@ -126,15 +189,18 @@ public class HubMatchProcessingService
         // 2. Loser Bracket Suche  
         if (!string.IsNullOrEmpty(e.GroupName) && e.GroupName.Contains("Loser Bracket"))
         {
-            debugWindow?.AddDebugMessage($"🥈 Searching in Loser Bracket for Match {e.MatchId}", "SEARCH");
+            debugWindow?.AddDebugMessage($"🥈 Searching in Loser Bracket", "SEARCH");
             searchedAreas.Add("Loser Bracket");
             
-            result.KnockoutMatch = tournamentClass.CurrentPhase?.LoserBracket?.FirstOrDefault(km => km.Id == e.MatchId);
-            if (result.KnockoutMatch != null)
+            if (tournamentClass.CurrentPhase?.LoserBracket != null)
             {
-                result.Location = $"Loser Bracket";
-                debugWindow?.AddDebugMessage($"✅ Match found in Loser Bracket", "SUCCESS");
-                return result;
+                result.KnockoutMatch = FindKnockoutMatchInCollection(tournamentClass.CurrentPhase.LoserBracket);
+                if (result.KnockoutMatch != null)
+                {
+                    result.Location = $"Loser Bracket";
+                    debugWindow?.AddDebugMessage($"✅ Match found in Loser Bracket", "SUCCESS");
+                    return result;
+                }
             }
             debugWindow?.AddDebugMessage($"❌ Match not found in Loser Bracket", "WARNING");
         }
@@ -151,7 +217,7 @@ public class HubMatchProcessingService
             if (targetGroup != null)
             {
                 debugWindow?.AddDebugMessage($"📋 Target group found: {targetGroup.Name}", "SUCCESS");
-                result.Match = targetGroup.Matches.FirstOrDefault(m => m.Id == e.MatchId);
+                result.Match = FindMatchInCollection(targetGroup.Matches);
                 if (result.Match != null)
                 {
                     result.Group = targetGroup;
@@ -170,43 +236,53 @@ public class HubMatchProcessingService
         // 4. Finals Suche
         if (!string.IsNullOrEmpty(e.GroupName) && e.GroupName.Contains("Finals"))
         {
-            debugWindow?.AddDebugMessage($"🏆 Searching in Finals for Match {e.MatchId}", "SEARCH");
+            debugWindow?.AddDebugMessage($"🏆 Searching in Finals", "SEARCH");
             searchedAreas.Add("Finals");
             
-            result.Match = tournamentClass.CurrentPhase?.FinalsGroup?.Matches.FirstOrDefault(m => m.Id == e.MatchId);
-            if (result.Match != null)
+            if (tournamentClass.CurrentPhase?.FinalsGroup != null)
             {
-                result.Group = tournamentClass.CurrentPhase.FinalsGroup;
-                result.Location = "Finals";
-                debugWindow?.AddDebugMessage($"✅ Match found in Finals", "SUCCESS");
-                return result;
+                result.Match = FindMatchInCollection(tournamentClass.CurrentPhase.FinalsGroup.Matches);
+                if (result.Match != null)
+                {
+                    result.Group = tournamentClass.CurrentPhase.FinalsGroup;
+                    result.Location = "Finals";
+                    debugWindow?.AddDebugMessage($"✅ Match found in Finals", "SUCCESS");
+                    return result;
+                }
             }
             debugWindow?.AddDebugMessage($"❌ Match not found in Finals", "WARNING");
         }
 
         // 5. Fallback: Suche in allen Bereichen
         debugWindow?.AddDebugMessage($"🔍 Starting fallback search in all areas", "SEARCH");
-        return FallbackSearch(tournamentClass, e.MatchId, searchedAreas);
+        return FallbackSearch(tournamentClass, e, searchedAreas, FindMatchInCollection, FindKnockoutMatchInCollection);
     }
 
-    private MatchSearchResult FallbackSearch(TournamentClass tournamentClass, int matchId, List<string> searchedAreas)
+    private MatchSearchResult FallbackSearch(
+        TournamentClass tournamentClass, 
+        HubMatchUpdateEventArgs e, 
+        List<string> searchedAreas,
+        Func<IEnumerable<Match>, Match?> findMatchFunc,
+        Func<IEnumerable<KnockoutMatch>, KnockoutMatch?> findKnockoutMatchFunc)
     {
         var result = new MatchSearchResult();
         var debugWindow = HubIntegrationService.GlobalDebugWindow;
 
-        debugWindow?.AddDebugMessage($"🔄 Fallback search for Match {matchId}", "SEARCH");
+        debugWindow?.AddDebugMessage($"🔄 Fallback search with UUID support", "SEARCH");
+        debugWindow?.AddDebugMessage($"🆔 Looking for: UUID={e.MatchUuid ?? "none"}, NumericID={e.MatchId}", "SEARCH");
 
         // Suche in allen Gruppen
         foreach (var group in tournamentClass.Groups)
         {
             if (!searchedAreas.Contains($"Group '{group.Name}'"))
             {
-                result.Match = group.Matches.FirstOrDefault(m => m.Id == matchId);
+                result.Match = findMatchFunc(group.Matches);
                 if (result.Match != null)
                 {
                     result.Group = group;
                     result.Location = $"Group '{group.Name}' (Fallback)";
                     debugWindow?.AddDebugMessage($"✅ Match found in fallback search: {group.Name}", "SUCCESS");
+                    debugWindow?.AddDebugMessage($"🆔 Match identification: UUID={result.Match.UniqueId}, NumericID={result.Match.Id}", "SUCCESS");
                     return result;
                 }
             }
@@ -215,12 +291,13 @@ public class HubMatchProcessingService
         // Suche in Finals (falls noch nicht gesucht)
         if (!searchedAreas.Contains("Finals") && tournamentClass.CurrentPhase?.FinalsGroup != null)
         {
-            result.Match = tournamentClass.CurrentPhase.FinalsGroup.Matches.FirstOrDefault(m => m.Id == matchId);
+            result.Match = findMatchFunc(tournamentClass.CurrentPhase.FinalsGroup.Matches);
             if (result.Match != null)
             {
                 result.Group = tournamentClass.CurrentPhase.FinalsGroup;
                 result.Location = "Finals (Fallback)";
                 debugWindow?.AddDebugMessage($"✅ Match found in Finals fallback search", "SUCCESS");
+                debugWindow?.AddDebugMessage($"🆔 Match identification: UUID={result.Match.UniqueId}, NumericID={result.Match.Id}", "SUCCESS");
                 return result;
             }
         }
@@ -228,11 +305,12 @@ public class HubMatchProcessingService
         // Suche in Winner Bracket (falls noch nicht gesucht)
         if (!searchedAreas.Contains("Winner Bracket") && tournamentClass.CurrentPhase?.WinnerBracket != null)
         {
-            result.KnockoutMatch = tournamentClass.CurrentPhase.WinnerBracket.FirstOrDefault(km => km.Id == matchId);
+            result.KnockoutMatch = findKnockoutMatchFunc(tournamentClass.CurrentPhase.WinnerBracket);
             if (result.KnockoutMatch != null)
             {
                 result.Location = "Winner Bracket (Fallback)";
-                debugWindow?.AddDebugMessage($"✅ Match found in Winner Bracket fallback search", "SUCCESS");
+                debugWindow?.AddDebugMessage($"✅ KnockoutMatch found in Winner Bracket fallback search", "SUCCESS");
+                debugWindow?.AddDebugMessage($"🆔 KnockoutMatch identification: UUID={result.KnockoutMatch.UniqueId}, NumericID={result.KnockoutMatch.Id}", "SUCCESS");
                 return result;
             }
         }
@@ -240,18 +318,19 @@ public class HubMatchProcessingService
         // Suche in Loser Bracket (falls noch nicht gesucht)
         if (!searchedAreas.Contains("Loser Bracket") && tournamentClass.CurrentPhase?.LoserBracket != null)
         {
-            result.KnockoutMatch = tournamentClass.CurrentPhase.LoserBracket.FirstOrDefault(km => km.Id == matchId);
+            result.KnockoutMatch = findKnockoutMatchFunc(tournamentClass.CurrentPhase.LoserBracket);
             if (result.KnockoutMatch != null)
             {
                 result.Location = "Loser Bracket (Fallback)";
-                debugWindow?.AddDebugMessage($"✅ Match found in Loser Bracket fallback search", "SUCCESS");
+                debugWindow?.AddDebugMessage($"✅ KnockoutMatch found in Loser Bracket fallback search", "SUCCESS");
+                debugWindow?.AddDebugMessage($"🆔 KnockoutMatch identification: UUID={result.KnockoutMatch.UniqueId}, NumericID={result.KnockoutMatch.Id}", "SUCCESS");
                 return result;
             }
         }
 
         searchedAreas.AddRange(new[] { "All Groups", "Finals", "Winner Bracket", "Loser Bracket" });
         result.SearchedAreas = string.Join(", ", searchedAreas);
-        debugWindow?.AddDebugMessage($"❌ Match {matchId} not found anywhere. Searched: {result.SearchedAreas}", "ERROR");
+        debugWindow?.AddDebugMessage($"❌ Match not found anywhere with UUID={e.MatchUuid ?? "none"}, NumericID={e.MatchId}. Searched: {result.SearchedAreas}", "ERROR");
         
         return result;
     }

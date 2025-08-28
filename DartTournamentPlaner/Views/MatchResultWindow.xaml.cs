@@ -38,6 +38,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         _match = new Match
         {
             Id = knockoutMatch.Id,
+            UniqueId = knockoutMatch.UniqueId, // WICHTIG: UUID übertragen
             Player1 = knockoutMatch.Player1,
             Player2 = knockoutMatch.Player2,
             Player1Sets = knockoutMatch.Player1Sets,
@@ -46,7 +47,9 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             Player2Legs = knockoutMatch.Player2Legs,
             Winner = knockoutMatch.Winner,
             Status = knockoutMatch.Status,
-            Notes = knockoutMatch.Notes
+            Notes = knockoutMatch.Notes,
+            CreatedAt = knockoutMatch.CreatedAt,
+            FinishedAt = knockoutMatch.FinishedAt
         };
 
         // Create temporary GameRules with round-specific settings
@@ -72,6 +75,9 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     {
         // Set initial values
         MatchInfoBlock.Text = $"{_match.Player1?.Name ?? "Player 1"} vs {_match.Player2?.Name ?? "Player 2"}";
+        
+        // HINZUGEFÜGT: UUID-Anzeige für Debugging/Hub-Integration
+        MatchUuidBlock.Text = $"UUID: {_match.UniqueId}";
         
         // Display game rules info
         var setsToWin = _gameRules.SetsToWin;
@@ -127,6 +133,9 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         CancelButton.Content = _localizationService.GetString("Cancel");
         NotesLabel.Text = _localizationService.GetString("Notes") + ":";
         LegsHeaderText.Text = _localizationService.GetString("Legs").ToUpper();
+        
+        // HINZUGEFÜGT: UUID-Anzeige lokalisiert
+        MatchUuidBlock.Text = $"UUID: {_match.UniqueId}";
         
         // Update header title dynamically
         if (FindName("HeaderTitle") is TextBlock headerTitle)

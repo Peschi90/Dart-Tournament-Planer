@@ -15,7 +15,8 @@ class MatchPageAPI {
      */
     async getMatchData(tournamentId, matchId) {
         try {
-            console.log(`📡 [MATCH-API] Fetching match data: ${tournamentId}/${matchId}`);
+            console.log(`📡 [MATCH-API] Fetching match data with UUID support: ${tournamentId}/${matchId}`);
+            console.log('🔍 [MATCH-API] Match ID type:', typeof matchId, 'value:', matchId);
             
             const response = await this.makeRequest(
                 `${this.apiBaseUrl}/tournaments/${tournamentId}/matches/${matchId}`,
@@ -24,12 +25,40 @@ class MatchPageAPI {
             
             if (response.success) {
                 console.log('✅ [MATCH-API] Match data fetched successfully');
+                
+                // 🎯 ERWEITERT: Log UUID information from server response
+                if (response.match) {
+                    console.log('🔍 [MATCH-API] Server match identification:');
+                    console.log('   Primary ID (returned as id):', response.match.id);
+                    console.log('   UUID:', response.match.uniqueId || 'none');
+                    console.log('   Numeric ID:', response.match.matchId || 'none');
+                    console.log('   Hub Identifier:', response.match.hubIdentifier || 'none');
+                    
+                    // Validate match identification
+                    if (response.meta && response.meta.matchIdentification) {
+                        console.log('🔍 [MATCH-API] Server meta identification:');
+                        console.log('   Requested ID:', response.meta.matchIdentification.requestedId);
+                        console.log('   Found UUID:', response.meta.matchIdentification.uniqueId || 'none');
+                        console.log('   Found Numeric:', response.meta.matchIdentification.numericId || 'none');
+                        console.log('   Access Method:', response.meta.matchIdentification.accessMethod);
+                    }
+                }
+                
                 return response;
             } else {
                 throw new Error(response.message || 'Failed to fetch match data');
             }
         } catch (error) {
             console.error('🚫 [MATCH-API] Error fetching match data:', error);
+            
+            // 🎯 ERWEITERT: Enhanced error handling for UUID-related issues
+            if (error.message.includes('404') || error.message.includes('not found')) {
+                console.error('❌ [MATCH-API] Match not found - possible ID format issue:');
+                console.error('   Requested Match ID:', matchId);
+                console.error('   ID Type:', typeof matchId);
+                console.error('   Tournament ID:', tournamentId);
+            }
+            
             throw error;
         }
     }
@@ -65,9 +94,9 @@ class MatchPageAPI {
         try {
             console.log(`📡 [MATCH-API] Fetching game rules: ${tournamentId}${matchId ? '/' + matchId : ''}`);
             
-            const endpoint = matchId ? 
-                `${this.apiBaseUrl}/tournaments/${tournamentId}/matches/${matchId}/rules` :
-                `${this.apiBaseUrl}/tournaments/${tournamentId}/rules`;
+            // ✅ KORRIGIERT: Verwende Tournament-Level Game Rules Route (nicht Match-spezifisch)
+            // Die Match-spezifische Route existiert nicht, daher verwenden wir Tournament-Level Rules
+            const endpoint = `${this.apiBaseUrl}/tournaments/${tournamentId}/gamerules`;
             
             const response = await this.makeRequest(endpoint, 'GET');
             
@@ -79,6 +108,17 @@ class MatchPageAPI {
             }
         } catch (error) {
             console.error('🚫 [MATCH-API] Error fetching game rules:', error);
+            
+            // ✅ ERWEITERT: Graceful fallback for missing game rules
+            if (error.message.includes('404') || error.message.includes('not found')) {
+                console.log('ℹ️ [MATCH-API] Game rules not found at tournament level, using fallback');
+                return {
+                    success: true,
+                    data: null, // Signal that no specific rules were found
+                    message: 'No tournament-specific game rules found'
+                };
+            }
+            
             throw error;
         }
     }
@@ -88,22 +128,74 @@ class MatchPageAPI {
      */
     async submitMatchResult(tournamentId, matchId, resultData) {
         try {
-            console.log(`📤 [MATCH-API] Submitting match result: ${tournamentId}/${matchId}`);
+            console.log(`📤 [MATCH-API] Submitting match result with UUID support: ${tournamentId}/${matchId}`);
+            console.log('🔍 [MATCH-API] Original match ID type:', typeof matchId, 'value:', matchId);
+            
+            // 🎯 ERWEITERT: Log UUID system information
+            if (resultData.uuidSystem) {
+                console.log('🆔 [MATCH-API] UUID System Info:');
+                console.log('   Version:', resultData.uuidSystem.version);
+                console.log('   Submission Method:', resultData.uuidSystem.submissionMethod);
+                console.log('   Preferred ID:', resultData.uuidSystem.preferredId);
+                console.log('   All Known IDs:', resultData.uuidSystem.allKnownIds);
+            }
+            
+            // 🎯 WICHTIG: Enhanced result data with all identification methods
+            const enhancedResultData = {
+                ...resultData,
+                // Server-side match identification help
+                matchIdentificationContext: {
+                    originalRequestId: matchId,
+                    uuidProvided: resultData.uniqueId ? true : false,
+                    numericIdProvided: resultData.matchIdentification?.numericId ? true : false,
+                    submissionTimestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    source: 'match-page-web-interface'
+                }
+            };
             
             const response = await this.makeRequest(
                 `${this.apiBaseUrl}/tournaments/${tournamentId}/matches/${matchId}/result`,
                 'POST',
-                resultData
+                enhancedResultData
             );
             
             if (response.success) {
                 console.log('✅ [MATCH-API] Match result submitted successfully');
+                
+                // 🎯 ERWEITERT: Log server's match identification response
+                if (response.data) {
+                    console.log('🔍 [MATCH-API] Server identification response:');
+                    console.log('   Match ID used:', response.data.matchId || 'not provided');
+                    console.log('   UUID confirmed:', response.data.uniqueId || 'not provided');
+                    console.log('   Numeric ID confirmed:', response.data.numericMatchId || 'not provided');
+                    console.log('   Hub Identifier:', response.data.hubIdentifier || 'not provided');
+                    console.log('   Access Method:', response.data.accessMethod || 'unknown');
+                    
+                    // Validate that server found the correct match
+                    if (resultData.uniqueId && response.data.uniqueId && 
+                        resultData.uniqueId !== response.data.uniqueId) {
+                        console.warn('⚠️ [MATCH-API] UUID mismatch between request and response!');
+                        console.warn('   Sent UUID:', resultData.uniqueId);
+                        console.warn('   Server UUID:', response.data.uniqueId);
+                    }
+                }
+                
                 return response;
             } else {
                 throw new Error(response.message || 'Failed to submit match result');
             }
         } catch (error) {
             console.error('🚫 [MATCH-API] Error submitting match result:', error);
+            
+            // 🎯 ERWEITERT: Enhanced error logging for UUID-related issues
+            if (error.message.includes('not found')) {
+                console.error('❌ [MATCH-API] Match not found - possible UUID/ID mismatch:');
+                console.error('   Submitted Match ID:', matchId);
+                console.error('   UUID in data:', resultData.uniqueId || 'none');
+                console.error('   Numeric ID in data:', resultData.matchIdentification?.numericId || 'none');
+            }
+            
             throw error;
         }
     }
@@ -211,14 +303,29 @@ class MatchPageAPI {
      */
     async validateMatchAccess(tournamentId, matchId) {
         try {
-            console.log(`🔐 [MATCH-API] Validating match access: ${tournamentId}/${matchId}`);
+            console.log(`🔐 [MATCH-API] Validating match access with UUID support: ${tournamentId}/${matchId}`);
             
             const response = await this.makeRequest(
                 `${this.apiBaseUrl}/tournaments/${tournamentId}/matches/${matchId}/access`,
                 'GET'
             );
             
-            return response.success === true;
+            if (response.success && response.hasAccess) {
+                console.log('✅ [MATCH-API] Match access validated');
+                
+                // 🎯 ERWEITERT: Log match identification from access validation
+                if (response.match) {
+                    console.log('🔍 [MATCH-API] Access validation match info:');
+                    console.log('   Validated ID:', response.match.id);
+                    console.log('   UUID:', response.match.uniqueId || 'none');
+                    console.log('   Numeric ID:', response.match.numericId || 'none');
+                    console.log('   Access Method:', response.match.accessedVia);
+                }
+                
+                return true;
+            }
+            
+            return false;
         } catch (error) {
             console.error('🚫 [MATCH-API] Error validating match access:', error);
             return false;

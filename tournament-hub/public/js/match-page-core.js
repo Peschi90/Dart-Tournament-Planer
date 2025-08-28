@@ -17,75 +17,112 @@ class MatchPageCore {
     }
 
     /**
-     * Initialize the match page with tournament and match IDs
+     * Extract URL parameters from query string or path with UUID support
      */
-    initialize() {
-        try {
-            // Extract tournament and match IDs from URL
-            const pathParts = window.location.pathname.split('/');
-            this.tournamentId = pathParts[2];
-            this.matchId = pathParts[3];
-
-            if (!this.tournamentId || !this.matchId) {
-                this.showError('Ungültige Match-URL');
-                return false;
-            }
-
-            console.log(`🎯 [MATCH-CORE] Initializing match page for tournament ${this.tournamentId}, match ${this.matchId}`);
+    extractUrlParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const pathParts = window.location.pathname.split('/');
+        
+        // 🔑 ERWEITERT: UUID-Unterstützung bei Parameter-Extraktion
+        
+        // Priorität 1: Query-Parameter (?tournament=ID&match=ID)
+        const queryTournamentId = urlParams.get('tournament') || urlParams.get('tournamentId');
+        const queryMatchId = urlParams.get('match') || urlParams.get('matchId');
+        const uuidHint = urlParams.get('uuid') === 'true';
+        
+        if (queryTournamentId && queryMatchId) {
+            console.log('🔍 [MATCH-CORE] Using query parameters');
+            console.log('🆔 [MATCH-CORE] UUID hint from URL:', uuidHint);
+            console.log('🔍 [MATCH-CORE] Match ID format:', typeof queryMatchId, 'length:', queryMatchId.length, 'contains hyphens:', queryMatchId.includes('-'));
             
-            // Setup back button
-            this.setupBackButton();
+            // Erkenne UUID-Format (typisch: 8-4-4-4-12 Zeichen mit Bindestrichen)
+            const isLikelyUuid = queryMatchId.length >= 32 && queryMatchId.includes('-');
             
-            // Initialize socket connection
-            this.initializeSocket();
+            console.log('🆔 [MATCH-CORE] Match ID analysis:', {
+                value: queryMatchId,
+                likelyUuid: isLikelyUuid,
+                uuidHint: uuidHint,
+                finalAssessment: isLikelyUuid || uuidHint
+            });
             
-            return true;
-        } catch (error) {
-            console.error('🚫 [MATCH-CORE] Error during initialization:', error);
-            this.showError('Fehler beim Initialisieren der Match-Seite');
-            return false;
+            return {
+                tournamentId: queryTournamentId,
+                matchId: queryMatchId,
+                isUuid: isLikelyUuid || uuidHint
+            };
         }
+        
+        // Priorität 2: Path-Parameter (/match/tournamentId/matchId)
+        if (pathParts.length >= 4 && pathParts[1] === 'match') {
+            console.log('🔍 [MATCH-CORE] Using path parameters');
+            const pathMatchId = pathParts[3];
+            const isLikelyUuid = pathMatchId.length >= 32 && pathMatchId.includes('-');
+            
+            console.log('🆔 [MATCH-CORE] Path match ID analysis:', {
+                value: pathMatchId,
+                likelyUuid: isLikelyUuid
+            });
+            
+            return {
+                tournamentId: pathParts[2],
+                matchId: pathMatchId,
+                isUuid: isLikelyUuid
+            };
+        }
+        
+        // Priorität 3: Legacy path format (/tournament/tournamentId -> dann Query-Parameter)
+        if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
+            const legacyTournamentId = pathParts[2];
+            const legacyMatchId = urlParams.get('match') || urlParams.get('matchId');
+            
+            if (legacyTournamentId && legacyMatchId) {
+                console.log('🔍 [MATCH-CORE] Using legacy format');
+                const isLikelyUuid = legacyMatchId.length >= 32 && legacyMatchId.includes('-');
+                
+                return {
+                    tournamentId: legacyTournamentId,
+                    matchId: legacyMatchId,
+                    isUuid: isLikelyUuid || uuidHint
+                };
+            }
+        }
+        
+        console.warn('⚠️ [MATCH-CORE] No valid URL parameters found');
+        return {};
     }
 
     /**
-     * Initialize match page with URL parameters
+     * Initialize the match page with tournament and match IDs with UUID support
      */
-    async initializeMatchPage() {
+    async initialize() {
         try {
-            console.log('🚀 [MATCH-CORE] Starting match page initialization...');
+            console.log('🚀 [MATCH-CORE] Initializing match page with UUID support...');
             
-            // Extract tournament and match ID from URL
+            // Extract URL parameters (enhanced with UUID detection)
             const urlParams = this.extractUrlParameters();
             console.log('📋 [MATCH-CORE] URL Parameters:', urlParams);
             
             if (!urlParams.tournamentId || !urlParams.matchId) {
-                throw new Error('Tournament ID oder Match ID fehlen in der URL');
+                throw new Error('Ungültige Match-URL: Tournament ID oder Match ID fehlen');
             }
 
-            // Store the IDs (matchId kann UUID oder numerische ID sein)
             this.tournamentId = urlParams.tournamentId;
-            this.matchId = urlParams.matchId; // UUID oder numerische ID
-            this.matchUniqueId = null; // Wird später gesetzt wenn UUID verfügbar
-            this.matchNumericId = null; // Wird später gesetzt
-            
-            console.log(`🎯 [MATCH-CORE] Tournament: ${this.tournamentId}, Match: ${this.matchId}`);
+            this.matchId = urlParams.matchId;
+            this.urlIndicatesUuid = urlParams.isUuid || false;
 
+            console.log(`🎯 [MATCH-CORE] Tournament: ${this.tournamentId}, Match: ${this.matchId}`);
+            console.log(`🆔 [MATCH-CORE] URL indicates UUID: ${this.urlIndicatesUuid}`);
+            
             // Update page title
             document.title = `Match ${this.matchId} - Tournament Hub`;
+            
+            // Setup back button
+            this.setupBackButton();
+            
+            // Initialize socket connection first (non-blocking)
+            this.initializeSocket();
 
-            // Validate access first
-            const hasAccess = await window.matchPageAPI.validateMatchAccess(
-                this.tournamentId, 
-                this.matchId
-            );
-
-            if (!hasAccess) {
-                throw new Error('Zugriff auf dieses Match nicht möglich');
-            }
-
-            console.log('✅ [MATCH-CORE] Match access validated');
-
-            // Load match data first to get complete match information including UUID
+            // 🔑 ERWEITERT: Load match data first to get complete match information including UUID
             await this.loadMatchData();
             
             // Load tournament info
@@ -93,15 +130,6 @@ class MatchPageCore {
             
             // Load game rules
             await this.loadGameRules();
-            
-            // Initialize Socket.IO connection
-            if (typeof window.matchPageWebSocket !== 'undefined') {
-                await window.matchPageWebSocket.initializeConnection(
-                    this.tournamentId,
-                    this.getPreferredMatchId(), // Verwende UUID wenn verfügbar
-                    'match-page'
-                );
-            }
             
             // Initialize form handlers
             this.initializeFormHandlers();
@@ -112,10 +140,21 @@ class MatchPageCore {
             console.log('🎉 [MATCH-CORE] Match page initialization complete!');
             this.showInfo('Match-Seite erfolgreich geladen', 'success');
             
+            // 🆔 ERWEITERT: Zeige UUID-Status in der UI
+            if (this.matchUniqueId) {
+                console.log('✅ [MATCH-CORE] Match page running with UUID support');
+                this.showInfo(`✅ UUID-System aktiv (${this.matchUniqueId.substring(0, 8)}...)`, 'success');
+            } else if (this.urlIndicatesUuid) {
+                console.warn('⚠️ [MATCH-CORE] URL indicated UUID but none found in match data');
+                this.showInfo('⚠️ UUID erwartet aber nicht gefunden', 'warning');
+            }
+            
+            return true;
+            
         } catch (error) {
             console.error('🚫 [MATCH-CORE] Initialization error:', error);
             this.showError(`Initialisierungsfehler: ${error.message}`);
-            throw error;
+            return false;
         }
     }
 
@@ -384,27 +423,54 @@ class MatchPageCore {
             console.log('📤 [MATCH-CORE] Submitting match result...');
             console.log('📊 [MATCH-CORE] Result data:', resultData);
             
-            // Add match identification information to result
+            // ✅ ERWEITERT: Add comprehensive match identification to result
             const enhancedResultData = {
                 ...resultData,
-                // Match identification
-                matchIdentification: this.getMatchIdentification(),
-                // Enhanced metadata
-                submittedVia: 'Match-Page',
+                // ✅ KORRIGIERT: Setze explizit den Status auf "Finished"
+                status: 'Finished',
+                // 🔑 PRIMÄRE UUID-IDENTIFIKATION (preferred for all operations)
+                uniqueId: this.matchUniqueId,                           // UUID (primary)
+                matchIdentification: this.getMatchIdentification(),     // All ID types
+                hubIdentifier: this.matchData?.hubIdentifier,           // Hub-specific ID
+                
+                // Enhanced metadata for Hub/Planner integration
+                submittedVia: 'Match-Page-Web-Interface',
                 submittedAt: new Date().toISOString(),
                 matchType: this.matchData?.matchType || 'Unknown',
                 bracketType: this.matchData?.bracketType || null,
+                round: this.matchData?.round || null,
+                position: this.matchData?.position || null,
+                
                 // Class information
                 classId: this.matchData?.classId || 1,
-                className: this.matchData?.className || 'Unknown Class'
+                className: this.matchData?.className || 'Unknown Class',
+                
+                // Group information (for proper identification)
+                groupId: this.matchData?.groupId || null,
+                groupName: this.matchData?.groupName || null,
+                
+                // 🎯 UUID-System Metadata
+                uuidSystem: {
+                    enabled: true,
+                    version: "2.0",
+                    submissionMethod: this.matchUniqueId ? "uuid" : "numericId",
+                    preferredId: this.getPreferredMatchId(),
+                    allKnownIds: {
+                        uuid: this.matchUniqueId || null,
+                        numericId: this.matchNumericId || null,
+                        requestedId: this.matchId,
+                        hubIdentifier: this.matchData?.hubIdentifier || null
+                    }
+                }
             };
 
-            console.log('🔍 [MATCH-CORE] Enhanced result data:', enhancedResultData);
+            console.log('🔍 [MATCH-CORE] Enhanced result data with UUID system:', enhancedResultData);
             
-            // Use preferred match ID (UUID if available)
+            // 🎯 WICHTIG: Use preferred match ID (UUID if available)
             const submitMatchId = this.getPreferredMatchId();
-            console.log(`📤 [MATCH-CORE] Submitting to match ID: ${submitMatchId} (preferred)`);
+            console.log(`📤 [MATCH-CORE] Submitting to match ID: ${submitMatchId} (preferred method: ${enhancedResultData.uuidSystem.submissionMethod})`);
 
+            // Submit using preferred identification method
             const response = await window.matchPageAPI.submitMatchResult(
                 this.tournamentId,
                 submitMatchId,
@@ -418,21 +484,49 @@ class MatchPageCore {
             console.log('✅ [MATCH-CORE] Match result submitted successfully');
             console.log('📋 [MATCH-CORE] Server response:', response);
 
-            // Log match identification confirmation from server
+            // 🎯 ERWEITERT: Log match identification confirmation from server
             if (response.data) {
                 console.log('🔍 [MATCH-CORE] Server confirmed match identification:');
                 console.log(`   UUID: ${response.data.uniqueId || 'none'}`);
                 console.log(`   Numeric ID: ${response.data.numericMatchId || 'none'}`);
+                console.log(`   Hub Identifier: ${response.data.hubIdentifier || 'none'}`);
                 console.log(`   Submitted to: ${response.data.matchId}`);
+                console.log(`   Access method: ${response.data.accessMethod || 'unknown'}`);
             }
 
-            // Show success message
-            this.showInfo('Match-Ergebnis erfolgreich übertragen!', 'success');
+            // Show enhanced success message
+            this.showInfo(`Match-Ergebnis erfolgreich übertragen! (ID: ${submitMatchId})`, 'success');
             
-            // Trigger reload of match data to show updated state
-            setTimeout(() => {
-                this.loadMatchData();
-            }, 1000);
+            // ✅ KORRIGIERT: Aktualisiere Match Data sofort mit submitted Result
+            console.log('🔄 [MATCH-CORE] Updating local match data with submitted result...');
+            
+            // Update local match data immediately for instant UI feedback
+            if (this.matchData) {
+                this.matchData.status = 'Finished';
+                this.matchData.player1Sets = enhancedResultData.player1Sets || 0;
+                this.matchData.player2Sets = enhancedResultData.player2Sets || 0;
+                this.matchData.player1Legs = enhancedResultData.player1Legs || 0;
+                this.matchData.player2Legs = enhancedResultData.player2Legs || 0;
+                this.matchData.notes = enhancedResultData.notes || '';
+                this.matchData.endTime = new Date().toISOString();
+                this.matchData.lastUpdated = new Date().toISOString();
+                
+                // Update display immediately
+                if (window.matchPageDisplay) {
+                    console.log('🎨 [MATCH-CORE] Triggering immediate display update...');
+                    window.matchPageDisplay.updateDisplay(this.matchData, this.gameRules);
+                }
+            }
+            
+            // Also reload from server for confirmation (async)
+            setTimeout(async () => {
+                try {
+                    console.log('🔄 [MATCH-CORE] Reloading match data from server for confirmation...');
+                    await this.loadMatchData();
+                } catch (error) {
+                    console.warn('⚠️ [MATCH-CORE] Failed to reload match data (non-fatal):', error);
+                }
+            }, 2000);
 
             return response;
 
@@ -481,6 +575,7 @@ class MatchPageCore {
     async loadMatchData() {
         try {
             console.log('📡 [MATCH-CORE] Loading match data...');
+            console.log(`🔍 [MATCH-CORE] Tournament: ${this.tournamentId}, Match: ${this.matchId}`);
             
             const response = await window.matchPageAPI.getMatchData(
                 this.tournamentId,
@@ -506,6 +601,15 @@ class MatchPageCore {
                 console.log(`   Numeric ID: ${this.matchNumericId || 'none'}`);
                 console.log(`   Match Type: ${response.match.matchType || 'Unknown'}`);
                 console.log(`   Bracket Type: ${response.match.bracketType || 'none'}`);
+                
+                // HINZUGEFÜGT: Logge welche ID verwendet wurde für die Anfrage
+                if (this.matchId === this.matchUniqueId) {
+                    console.log('✅ [MATCH-CORE] Match was accessed via UUID');
+                } else if (this.matchId == this.matchNumericId) {
+                    console.log('✅ [MATCH-CORE] Match was accessed via numeric ID');
+                } else {
+                    console.log('⚠️ [MATCH-CORE] Match ID format unknown or converted');
+                }
             }
 
             // Extract meta information for debugging
@@ -516,11 +620,12 @@ class MatchPageCore {
 
             console.log('✅ [MATCH-CORE] Match data loaded successfully');
             console.log('🎮 [MATCH-CORE] Match details:', {
-                id: this.getPreferredMatchId(),
+                preferredId: this.getPreferredMatchId(),
                 player1: this.matchData.player1,
                 player2: this.matchData.player2,
                 status: this.matchData.status,
-                className: this.matchData.className || 'Unknown'
+                className: this.matchData.className || 'Unknown',
+                matchType: this.matchData.matchType || 'Unknown'
             });
 
             // Update display
@@ -535,6 +640,303 @@ class MatchPageCore {
             this.showError(`Fehler beim Laden der Match-Daten: ${error.message}`);
             throw error;
         }
+    }
+
+    /**
+     * Load tournament information
+     */
+    async loadTournamentInfo() {
+        try {
+            console.log('🏆 [MATCH-CORE] Loading tournament information...');
+            
+            const response = await window.matchPageAPI.getTournamentInfo(this.tournamentId);
+            
+            if (response.success && response.data && response.data.tournament) {
+                this.tournamentData = response.data.tournament;
+                console.log('✅ [MATCH-CORE] Tournament info loaded:', this.tournamentData.name);
+                
+                // Update page title with tournament name
+                if (this.tournamentData.name) {
+                    document.title = `Match ${this.matchId} - ${this.tournamentData.name}`;
+                }
+                
+                // Update display
+                if (typeof window.matchPageDisplay !== 'undefined') {
+                    window.matchPageDisplay.updateTournamentDisplay(this.tournamentData);
+                }
+            } else {
+                console.warn('⚠️ [MATCH-CORE] Tournament info not available or invalid response');
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ [MATCH-CORE] Error loading tournament info (non-fatal):', error);
+        }
+    }
+
+    /**
+     * Load game rules for this match
+     */
+    async loadGameRules() {
+        try {
+            console.log('🎮 [MATCH-CORE] Loading game rules...');
+            
+            // ✅ KORRIGIERT: Prüfe zuerst, ob Game Rules bereits aus Match-Data vorhanden sind
+            if (this.gameRules) {
+                console.log('✅ [MATCH-CORE] Game rules already loaded from match data:', this.gameRules.name || 'Default');
+                
+                // Update display mit bereits geladenen Rules
+                if (typeof window.matchPageDisplay !== 'undefined') {
+                    window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
+                }
+                return;
+            }
+            
+            // Fallback: Versuche Game Rules von API zu laden (nur wenn nicht bereits vorhanden)
+            console.log('🔍 [MATCH-CORE] Game rules not in match data, trying to load from tournament...');
+            
+            try {
+                // Verwende Tournament-Level Game Rules als Fallback
+                const response = await window.matchPageAPI.getGameRules(this.tournamentId, null);
+                
+                if (response.success && response.data) {
+                    // Finde passende Game Rules für diesen Match
+                    const tournamentGameRules = Array.isArray(response.data) ? response.data : [response.data];
+                    
+                    // Versuche Match-spezifische Rules zu finden
+                    let matchGameRules = tournamentGameRules.find(gr => 
+                        (gr.classId || gr.ClassId) === this.matchData?.classId &&
+                        (gr.matchType || 'Group') === (this.matchData?.matchType || 'Group')
+                    );
+                    
+                    // Fallback: Class-basierte Rules
+                    if (!matchGameRules) {
+                        matchGameRules = tournamentGameRules.find(gr => 
+                            (gr.classId || gr.ClassId) === this.matchData?.classId
+                        );
+                    }
+                    
+                    // Final fallback: Erste verfügbare Rules
+                    if (!matchGameRules && tournamentGameRules.length > 0) {
+                        matchGameRules = tournamentGameRules[0];
+                    }
+                    
+                    if (matchGameRules) {
+                        this.gameRules = matchGameRules;
+                        console.log('✅ [MATCH-CORE] Game rules loaded from tournament:', this.gameRules.name || 'Default');
+                    }
+                } else {
+                    console.log('ℹ️ [MATCH-CORE] No tournament-level game rules found');
+                }
+            } catch (apiError) {
+                console.warn('⚠️ [MATCH-CORE] Could not load tournament game rules:', apiError.message);
+            }
+            
+            // Erstelle Default Game Rules wenn immer noch keine vorhanden
+            if (!this.gameRules) {
+                console.log('🔧 [MATCH-CORE] Creating default game rules');
+                this.gameRules = this.createDefaultGameRules();
+            }
+            
+            // Update display
+            if (typeof window.matchPageDisplay !== 'undefined') {
+                window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
+            }
+            
+            console.log('✅ [MATCH-CORE] Game rules finalized:', {
+                name: this.gameRules.name || 'Default',
+                gameMode: this.gameRules.gameMode || 'Standard',
+                gamePoints: this.gameRules.gamePoints || 501,
+                finishMode: this.gameRules.finishMode || 'DoubleOut',
+                playWithSets: this.gameRules.playWithSets || false
+            });
+            
+        } catch (error) {
+            console.warn('⚠️ [MATCH-CORE] Error loading game rules (non-fatal), using defaults:', error);
+            
+            // Erstelle Default Game Rules als finaler Fallback
+            if (!this.gameRules) {
+                this.gameRules = this.createDefaultGameRules();
+                console.log('🔧 [MATCH-CORE] Using default game rules after error');
+                
+                // Update display mit Default Rules
+                if (typeof window.matchPageDisplay !== 'undefined') {
+                    window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
+                }
+            }
+        }
+    }
+
+    /**
+     * Create default game rules when none are available
+     */
+    createDefaultGameRules() {
+        return {
+            id: 'default',
+            name: 'Standard Dart Regeln',
+            gamePoints: 501,
+            gameMode: 'Standard',
+            finishMode: 'DoubleOut',
+            playWithSets: true,
+            setsToWin: 3,
+            legsToWin: 3,
+            legsPerSet: 5,
+            maxThrowsPerLeg: null,
+            checkoutMode: 'Any',
+            allowBigFinish: true,
+            description: 'Standard 501 Double-Out Regeln'
+        };
+    }
+
+    /**
+     * Initialize form handlers for result submission
+     */
+    initializeFormHandlers() {
+        console.log('📝 [MATCH-CORE] Initializing form handlers...');
+        
+        // Match result form submission
+        const resultForm = document.getElementById('matchResultForm');
+        if (resultForm) {
+            resultForm.addEventListener('submit', this.handleResultSubmission.bind(this));
+        }
+        
+        // Real-time validation on input changes
+        const inputs = resultForm?.querySelectorAll('input[type="number"]');
+        inputs?.forEach(input => {
+            input.addEventListener('input', this.validateForm.bind(this));
+        });
+        
+        console.log('✅ [MATCH-CORE] Form handlers initialized');
+    }
+
+    /**
+     * Handle result form submission
+     */
+    async handleResultSubmission(event) {
+        event.preventDefault();
+        
+        try {
+            console.log('📤 [MATCH-CORE] Handling result submission...');
+            
+            // ✅ KORRIGIERT: Verwende die korrekten Feldnamen für die API
+            const formData = new FormData(event.target);
+            const resultData = {
+                // 🎯 KORRIGIERT: Verwende die gleichen Feldnamen wie Tournament-Interface
+                player1Sets: parseInt(formData.get('sets1')) || 0,
+                player2Sets: parseInt(formData.get('sets2')) || 0,
+                player1Legs: parseInt(formData.get('legs1')) || 0,
+                player2Legs: parseInt(formData.get('legs2')) || 0,
+                notes: formData.get('notes') || '',
+                status: 'Finished',
+                // UUID-Informationen hinzufügen
+                matchIdentification: this.getMatchIdentification(),
+                matchType: this.matchData?.matchType || 'Unknown',
+                className: this.matchData?.className || 'Unknown'
+            };
+            
+            console.log('📊 [MATCH-CORE] Submitting result:', resultData);
+            
+            // Disable submit button
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Übertrage...';
+            }
+            
+            await this.submitMatchResult(resultData);
+            
+            // Show success message
+            this.showInfo('Ergebnis erfolgreich übertragen!', 'success');
+            
+        } catch (error) {
+            console.error('❌ [MATCH-CORE] Error submitting result:', error);
+            this.showError(`Fehler: ${error.message}`);
+        } finally {
+            // Re-enable submit button
+            const submitButton = document.querySelector('button[type="submit"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Ergebnis übertragen';
+            }
+        }
+    }
+
+    /**
+     * Validate form inputs
+     */
+    validateForm() {
+        // Basic validation logic
+        console.log('🔍 [MATCH-CORE] Validating form...');
+        // Implementation can be added based on game rules
+    }
+
+    /**
+     * Start periodic updates to keep match data fresh
+     */
+    startPeriodicUpdates() {
+        console.log('🔄 [MATCH-CORE] Starting periodic updates...');
+        
+        // Update every 30 seconds
+        this.updateInterval = setInterval(() => {
+            if (this.isSocketConnected()) {
+                this.requestMatchData();
+            } else {
+                // Fallback: reload via API
+                this.loadMatchData().catch(err => {
+                    console.warn('⚠️ [MATCH-CORE] Periodic update failed:', err);
+                });
+            }
+        }, 30000);
+    }
+
+    /**
+     * Show info message
+     */
+    showInfo(message, type = 'info') {
+        console.log(`ℹ️ [MATCH-CORE] Info: ${message}`);
+        
+        // Create or update info display
+        let infoDisplay = document.getElementById('infoDisplay');
+        if (!infoDisplay) {
+            infoDisplay = document.createElement('div');
+            infoDisplay.id = 'infoDisplay';
+            infoDisplay.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                padding: 15px;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            document.body.appendChild(infoDisplay);
+        }
+        
+        // Set message and styling based on type
+        infoDisplay.textContent = message;
+        switch (type) {
+            case 'success':
+                infoDisplay.style.backgroundColor = '#28a745';
+                break;
+            case 'error':
+                infoDisplay.style.backgroundColor = '#dc3545';
+                break;
+            case 'warning':
+                infoDisplay.style.backgroundColor = '#ffc107';
+                infoDisplay.style.color = '#000';
+                break;
+            default:
+                infoDisplay.style.backgroundColor = '#17a2b8';
+        }
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (infoDisplay && infoDisplay.parentNode) {
+                infoDisplay.parentNode.removeChild(infoDisplay);
+            }
+        }, 5000);
     }
 }
 
@@ -552,13 +954,25 @@ function openMatchPage(matchId) {
         console.log(`📄 [GLOBAL] Opening match page for match ${matchId}`);
         
         // Get tournament ID from current URL or global variable
-        const pathParts = window.location.pathname.split('/');
-        let tournamentId = null;
+        let tournamentId = window.currentTournamentId;
         
-        if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
-            tournamentId = pathParts[2];
-        } else if (window.currentTournamentId) {
-            tournamentId = window.currentTournamentId;
+        // Fallback: Tournament ID aus URL extrahieren
+        if (!tournamentId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            tournamentId = urlParams.get('tournament') || urlParams.get('tournamentId');
+        }
+        
+        // Weitere Fallback: Tournament ID aus URL-Path extrahieren
+        if (!tournamentId) {
+            const pathParts = window.location.pathname.split('/');
+            if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
+                tournamentId = pathParts[2];
+            }
+        }
+        
+        // Fallback: Tournament ID aus aktuellem Tournament ermitteln
+        if (!tournamentId && window.currentTournament) {
+            tournamentId = window.currentTournament.id;
         }
         
         if (!tournamentId) {
@@ -573,25 +987,29 @@ function openMatchPage(matchId) {
             return;
         }
         
-        // Construct match page URL
-        const matchPageUrl = `/match/${tournamentId}/${matchId}`;
+        // KORRIGIERT: Verwende Query-Parameter Format für match-page.html (nicht /match/ path)
+        const matchPageUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}`;
         
-        // Ask user if they want to open in new tab or same tab
+        console.log(`🔗 [GLOBAL] Preparing to open: ${matchPageUrl}`);
+        
+        // Frage Benutzer nach Öffnungsmethode
         const openInNewTab = confirm(
-            'Match-Seite öffnen:\n\n' +
+            `Match-Seite für Match ${matchId} öffnen:\n\n` +
             '✅ OK = In neuem Tab öffnen\n' +
             '❌ Abbrechen = In aktuellem Tab öffnen'
         );
         
         if (openInNewTab) {
             // Open in new tab
-            const newWindow = window.open(matchPageUrl, '_blank');
+            const newWindow = window.open(matchPageUrl, '_blank', 'width=1200,height=800');
             if (newWindow) {
                 console.log(`🔗 [GLOBAL] Opened match page in new tab: ${matchPageUrl}`);
             } else {
                 // Fallback if popup blocked
-                console.warn('⚠️ [GLOBAL] Popup blocked, using current tab');
-                window.location.href = matchPageUrl;
+                console.warn('⚠️ [GLOBAL] Popup blocked, asking user for permission');
+                if (confirm('Popup wurde blockiert. In aktuellem Tab öffnen?')) {
+                    window.location.href = matchPageUrl;
+                }
             }
         } else {
             // Open in current tab

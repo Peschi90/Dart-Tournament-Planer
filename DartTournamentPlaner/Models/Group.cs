@@ -83,13 +83,18 @@ public class Group : INotifyPropertyChanged
                 var match = new Match
                 {
                     Id = matchId++,
+                    // WICHTIG: UUID wird automatisch im Match-Konstruktor erstellt
                     Player1 = playerList[i],
                     Player2 = playerList[j],
                     Status = MatchStatus.NotStarted,
-                    UsesSets = usesSets // WICHTIG: Setze UsesSets basierend auf GameRules
+                    UsesSets = usesSets, // WICHTIG: Setze UsesSets basierend auf GameRules
+                    CreatedAt = DateTime.Now // Setze Erstellungszeit
                 };
                 
-                System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1.Name} vs {match.Player2.Name}, UsesSets = {match.UsesSets}");
+                // Stelle sicher, dass UUID gültig ist
+                match.EnsureUniqueId();
+                
+                System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1.Name} vs {match.Player2.Name}, UsesSets = {match.UsesSets}, UUID = {match.UniqueId}");
                 Matches.Add(match);
             }
         }
@@ -98,11 +103,87 @@ public class Group : INotifyPropertyChanged
         // Bei Round Robin spielt jeder gegen jeden, daher sind keine Freilose erforderlich.
 
         MatchesGenerated = true;
-        System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: Generated {Matches.Count} matches with UsesSets = {usesSets}");
+        System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: Generated {Matches.Count} matches with UsesSets = {usesSets}, all with UUIDs");
         
         // WICHTIG: Benachrichtige über Änderungen in der Matches-Collection
         // Dies ist wichtig für die UI-Aktualisierung
         OnPropertyChanged(nameof(Matches));
+    }
+
+    public void GenerateMatches()
+    {
+        if (Players.Count < 2)
+        {
+            throw new InvalidOperationException("Mindestens 2 Spieler erforderlich für Match-Generierung");
+        }
+
+        Matches.Clear();
+        int matchId = 1;
+
+        System.Diagnostics.Debug.WriteLine($"GenerateMatches: Starting match generation for group '{Name}' with {Players.Count} players");
+
+        // Round-Robin: Jeder gegen jeden
+        for (int i = 0; i < Players.Count; i++)
+        {
+            for (int j = i + 1; j < Players.Count; j++)
+            {
+                var match = new Match
+                {
+                    Id = matchId++,
+                    // WICHTIG: UUID wird automatisch im Match-Konstruktor erstellt
+                    Player1 = Players[i],
+                    Player2 = Players[j],
+                    Status = MatchStatus.NotStarted,
+                    CreatedAt = DateTime.Now
+                };
+                
+                // Stelle sicher, dass die UUID gültig ist
+                match.EnsureUniqueId();
+                
+                System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name} (UUID: {match.UniqueId})");
+                Matches.Add(match);
+            }
+        }
+
+        // Bei ungerader Spielerzahl: Bye-Matches erstellen
+        if (Players.Count % 2 == 1)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateMatches: Creating bye matches for odd number of players ({Players.Count})");
+            
+            foreach (var player in Players)
+            {
+                var byeMatch = new Match
+                {
+                    Id = matchId++,
+                    // WICHTIG: UUID wird automatisch im Match-Konstruktor erstellt
+                    Player1 = player,
+                    Player2 = null, // BYE
+                    Status = MatchStatus.Bye,
+                    Winner = player,
+                    Player1Sets = 1,
+                    Player2Sets = 0,
+                    Player1Legs = 1,
+                    Player2Legs = 0,
+                    CreatedAt = DateTime.Now,
+                    FinishedAt = DateTime.Now,
+                    Notes = "Automatisches Freilos"
+                };
+                
+                // Stelle sicher, dass die UUID gültig ist
+                byeMatch.EnsureUniqueId();
+                
+                System.Diagnostics.Debug.WriteLine($"  Created bye match {byeMatch.Id}: {byeMatch.Player1?.Name} (bye) (UUID: {byeMatch.UniqueId})");
+                Matches.Add(byeMatch);
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"? Generated {Matches.Count} matches for group '{Name}' - all with valid UUIDs");
+        
+        // Log alle Match-UUIDs für Debugging
+        foreach (var match in Matches)
+        {
+            System.Diagnostics.Debug.WriteLine($"   Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name ?? "BYE"} (UUID: {match.UniqueId})");
+        }
     }
 
     public void UpdateMatchDisplaySettings(GameRules gameRules)

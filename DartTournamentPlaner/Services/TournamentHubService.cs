@@ -31,6 +31,27 @@ public class HubMatchUpdateEventArgs : EventArgs
     public int? GroupId { get; set; }
     public string? GroupName { get; set; }
     public string? MatchType { get; set; }
+    
+    // ✅ NEUE: UUID-Support für erweiterte Match-Identifikation
+    public string? MatchUuid { get; set; }
+    public string? OriginalMatchIdString { get; set; }
+    
+    /// <summary>
+    /// Gibt zurück, ob eine UUID verfügbar ist
+    /// </summary>
+    public bool HasUuid => !string.IsNullOrEmpty(MatchUuid);
+    
+    /// <summary>
+    /// Gibt die bevorzugte Match-Identifikation zurück (UUID wenn verfügbar, sonst numerische ID)
+    /// </summary>
+    public string GetPreferredIdentifier() => HasUuid ? MatchUuid! : MatchId.ToString();
+    
+    /// <summary>
+    /// Gibt eine vollständige Match-Identifikation zurück
+    /// </summary>
+    public string GetMatchIdentificationSummary() => 
+        $"Match {(HasUuid ? $"UUID: {MatchUuid}" : $"ID: {MatchId}")} " +
+        $"({MatchType ?? "Unknown"}, Class: {ClassId}, Group: {GroupName ?? GroupId?.ToString() ?? "None"})";
 }
 
 /// <summary>
@@ -510,23 +531,83 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             
             if (hasMatchUpdate)
             {
-                // ROBUSTE Match-ID Extraktion mit String-Support
-                var matchId = 0;
+                // ✅ KORRIGIERT: UUID-aware Match-ID Verarbeitung
+                string matchIdString = null;
+                string matchUuid = null;
+                int numericMatchId = 0;
+
+                // 1. Versuche Match ID zu extrahieren (mit String/UUID-Support)
                 if (matchUpdateElement.TryGetProperty("matchId", out var matchIdEl))
                 {
-                    var extractedMatchId = ExtractIntValue(JsonDocument.Parse($"{{\"matchId\":{JsonSerializer.Serialize(matchIdEl)}}}").RootElement, "matchId");
-                    matchId = extractedMatchId ?? 0;
+                    matchIdString = matchIdEl.GetString() ?? matchIdEl.ToString();
                 }
                 else if (message.TryGetProperty("matchId", out var rootMatchIdEl))
                 {
-                    var extractedMatchId = ExtractIntValue(JsonDocument.Parse($"{{\"matchId\":{JsonSerializer.Serialize(rootMatchIdEl)}}}").RootElement, "matchId");
-                    matchId = extractedMatchId ?? 0;
+                    matchIdString = rootMatchIdEl.GetString() ?? rootMatchIdEl.ToString();
                 }
-                
-                DebugLog($"🎯 [PLANNER-WS] Processing Match ID: {matchId}", "MATCH_RESULT");
+
+                // 2. Versuche UUID separat zu extrahieren
+                if (matchUpdateElement.TryGetProperty("uniqueId", out var uuidEl))
+                {
+                    matchUuid = uuidEl.GetString();
+                }
+                else if (matchUpdateElement.TryGetProperty("result", out var resultEl) && 
+                         resultEl.TryGetProperty("uniqueId", out var resultUuidEl))
+                {
+                    matchUuid = resultUuidEl.GetString();
+                }
+
+                // 3. Versuche numerische ID zu extrahieren
+                if (matchUpdateElement.TryGetProperty("numericMatchId", out var numericIdEl) && 
+                    numericIdEl.TryGetInt32(out var numericId))
+                {
+                    numericMatchId = numericId;
+                }
+                else if (matchUpdateElement.TryGetProperty("result", out var resultElement) && 
+                         resultElement.TryGetProperty("numericMatchId", out var resultNumericIdEl))
+                {
+                    if (resultNumericIdEl.ValueKind == JsonValueKind.Number && 
+                        resultNumericIdEl.TryGetInt32(out var resultNumericId))
+                    {
+                        numericMatchId = resultNumericId;
+                    }
+                    else if (resultNumericIdEl.ValueKind == JsonValueKind.String)
+                    {
+                        var numericString = resultNumericIdEl.GetString();
+                        if (int.TryParse(numericString, out var parsedId))
+                        {
+                            numericMatchId = parsedId;
+                        }
+                    }
+                }
+
+                // 4. Fallback: Versuche Match ID als Numeric zu parsen (nur wenn es nicht UUID ist)
+                if (numericMatchId == 0 && matchIdString != null)
+                {
+                    if (int.TryParse(matchIdString, out var parsedMatchId))
+                    {
+                        numericMatchId = parsedMatchId;
+                        DebugLog($"✅ [PLANNER-WS] Parsed match ID as numeric: {numericMatchId}", "MATCH_RESULT");
+                    }
+                    else if (matchIdString.Contains("-") && matchIdString.Length > 30)
+                    {
+                        // Das ist wahrscheinlich eine UUID
+                        matchUuid = matchIdString;
+                        DebugLog($"✅ [PLANNER-WS] Detected match ID as UUID: {matchUuid}", "MATCH_RESULT");
+                    }
+                    else
+                    {
+                        DebugLog($"⚠️ [PLANNER-WS] Could not parse match ID: '{matchIdString}'", "WARNING");
+                    }
+                }
+
+                DebugLog($"🔍 [PLANNER-WS] Match identification extracted:", "MATCH_RESULT");
+                DebugLog($"   Original Match ID String: {matchIdString}", "MATCH_RESULT");
+                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
+                DebugLog($"   Numeric ID: {numericMatchId}", "MATCH_RESULT");
                 
                 // Erweiterte Result-Extraktion
-                var result = matchUpdateElement.TryGetProperty("result", out var resultEl) ? resultEl : matchUpdateElement;
+                var result = matchUpdateElement.TryGetProperty("result", out var resultEl2) ? resultEl2 : matchUpdateElement;
                 
                 // Detaillierte Score-Extraktion mit Debugging
                 var player1Sets = ExtractIntValue(result, "player1Sets", "Player1Sets") ?? 0;
@@ -537,7 +618,8 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 var status = ExtractStringValue(result, "status", "Status") ?? "Finished";
                 
                 DebugLog($"📊 [PLANNER-WS] Extracted Match Data:", "MATCH_RESULT");
-                DebugLog($"   Match ID: {matchId}", "MATCH_RESULT");
+                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
+                DebugLog($"   Numeric ID: {numericMatchId}", "MATCH_RESULT");
                 DebugLog($"   Player 1: {player1Sets} Sets, {player1Legs} Legs", "MATCH_RESULT");
                 DebugLog($"   Player 2: {player2Sets} Sets, {player2Legs} Legs", "MATCH_RESULT");
                 DebugLog($"   Status: {status}", "MATCH_RESULT");
@@ -580,9 +662,11 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 DebugLog($"   Round: {round ?? "None"}", "MATCH_RESULT");
                 DebugLog($"   Position: {position?.ToString() ?? "None"}", "MATCH_RESULT");
                 
+                // ✅ KORRIGIERT: Erstelle HubMatchUpdateEventArgs mit UUID-Unterstützung
                 var matchUpdate = new HubMatchUpdateEventArgs
                 {
-                    MatchId = matchId,
+                    // Verwende numeric ID für interne Verarbeitung (0 wenn keine vorhanden)
+                    MatchId = numericMatchId,
                     ClassId = classId,
                     Player1Sets = player1Sets,
                     Player2Sets = player2Sets,
@@ -595,11 +679,18 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     // 🚨 ERWEITERT: Verbesserte Match-Identifikation
                     GroupId = groupId,
                     GroupName = groupName,
-                    MatchType = matchType
+                    MatchType = matchType,
+                    // ✅ NEUE: UUID-Informationen hinzufügen
+                    MatchUuid = matchUuid,
+                    OriginalMatchIdString = matchIdString
                 };
                 
                 DebugLog($"🎯 [PLANNER-WS] TRIGGERING OnMatchResultReceivedFromHub EVENT", "MATCH_RESULT");
                 DebugLog($"🔔 [PLANNER-WS] Event subscribers count: {OnMatchResultReceivedFromHub?.GetInvocationList()?.Length ?? 0}", "MATCH_RESULT");
+                DebugLog($"🆔 [PLANNER-WS] Match identification summary:", "MATCH_RESULT");
+                DebugLog($"   Using Numeric ID: {numericMatchId} (for internal processing)", "MATCH_RESULT");
+                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
+                DebugLog($"   Original String: {matchIdString}", "MATCH_RESULT");
                 
                 // Triggere Event für UI-Update mit erweiterten Informationen
                 OnMatchResultReceivedFromHub?.Invoke(matchUpdate);
@@ -1009,8 +1100,8 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                 // KORRIGIERT: Game Rules für jede Klasse hinzufügen
                 gameRulesArray.Add(new
                 {
-                    id = tournamentClass.Id,
-                    name = $"{tournamentClass.Name} Regel",
+                    id = 1, // Default ID da GameRules keine ID-Property hat
+                    name = "Standard Regel",
                     gamePoints = tournamentClass.GameRules.GamePoints,
                     gameMode = tournamentClass.GameRules.GameMode.ToString(),
                     finishMode = tournamentClass.GameRules.FinishMode.ToString(),
@@ -1019,11 +1110,11 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                     legsPerSet = tournamentClass.GameRules.LegsPerSet,
                     maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
                     maxLegsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
+                    playWithSets = tournamentClass.GameRules.PlayWithSets,
                     classId = tournamentClass.Id,
                     className = tournamentClass.Name,
-                    matchType = "Group", // Standard für Gruppenphase
-                    isDefault = true
+                    matchType = "Group", // Default da GameRules keine MatchType-Property hat
+                    isDefault = true // Default da GameRules keine IsDefault-Property hat
                 });
 
                 // 🎮 ERWEITERT: Rundenspezifische Game Rules für verschiedene Phasen
@@ -1075,12 +1166,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                         if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
                         {
                             legsPerSet = roundRules.LegsPerSet;
-                            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific legsPerSet for round {round}: {legsPerSet}");
+                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {round}: {legsPerSet}");
                         }
                         else
                         {
                             legsPerSet = Math.Max(tournamentClass.GameRules.LegsPerSet, legsToWin + 2);
-                            System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] Using calculated legsPerSet for round {round}: {legsPerSet}");
+                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {round}: {legsPerSet}");
                         }
                         
                         gameRulesArray.Add(new
@@ -1152,18 +1243,23 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             isDefault = false,
                             matchCount = matchCount
                         });
-                    }
+                }
                 }
 
-                // 1. GRUPPENPHASEN-MATCHES (wie bisher)
+                // 1. GRUPPENPHASEN-MATCHES mit vollständiger UUID-Integration
                 foreach (var group in tournamentClass.Groups)
                 {
                     foreach (var match in group.Matches)
                     {
                         allMatches.Add(new
                         {
-                            id = match.Id,
-                            matchId = match.Id,
+                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
+                            id = match.UniqueId,                                   // UUID als primäre ID
+                            matchId = match.Id,                                    // Numerische ID (legacy)
+                            uniqueId = match.UniqueId,                            // UUID (explizit)
+                            hubIdentifier = match.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
+                            
+                            // Match-Daten
                             player1 = match.Player1?.Name ?? "Unbekannt",
                             player2 = match.Player2?.Name ?? "Unbekannt",
                             player1Sets = match.Player1Sets,
@@ -1175,27 +1271,24 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = match.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = "Group",
                             groupId = group.Id,
                             groupName = group.Name,
-                            gameRulesId = tournamentClass.Id,
-                            gameRulesUsed = new
+                            matchType = "Group",
+                            
+                            // 🎯 UUID-System Metadaten für jedes Match
+                            uuidSystem = new
                             {
-                                id = tournamentClass.Id,
-                                name = $"{tournamentClass.Name} Regel",
-                                gamePoints = tournamentClass.GameRules.GamePoints,
-                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = tournamentClass.GameRules.SetsToWin,
-                                legsToWin = tournamentClass.GameRules.LegsToWin,
-                                legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                                maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5), // 🚨 HINZUGEFÜGT
-                                maxLegsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 HINZUGEFÜGT
-                                playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
-                                matchType = "Group",
-                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT
-                                className = tournamentClass.Name // 🚨 HINZUGEFÜGT
-                            }
+                                hasValidUuid = match.HasValidUniqueId(),
+                                hubReady = match.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                                preferredAccess = match.HasValidUniqueId() ? "uuid" : "numericId"
+                            },
+                    
+                            // Zeitstempel
+                            createdAt = match.CreatedAt,
+                            startedAt = match.StartTime,
+                            finishedAt = match.EndTime,
+                            syncedAt = DateTime.UtcNow
                         });
                     }
                 }
@@ -1219,8 +1312,13 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                         
                         allMatches.Add(new
                         {
-                            id = match.Id,
-                            matchId = match.Id,
+                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
+                            id = match.UniqueId,                                   // UUID als primäre ID
+                            matchId = match.Id,                                    // Numerische ID (legacy)
+                            uniqueId = match.UniqueId,                            // UUID (explizit)
+                            hubIdentifier = match.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
+                            
+                            // Match-Daten
                             player1 = match.Player1?.Name ?? "TBD",
                             player2 = match.Player2?.Name ?? "TBD",
                             player1Sets = match.Player1Sets,
@@ -1232,9 +1330,19 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = match.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = "Finals", // WICHTIG: Finals Match-Type
-                            groupId = (int?)null, // Finals haben keine Gruppe
-                            groupName = "Finals", // WICHTIG: Eindeutige Group-Name für Finals
+                            matchType = "Finals",
+                            groupId = (int?)null,
+                            groupName = "Finals",
+                            
+                            // 🎯 UUID-System Metadaten
+                            uuidSystem = new
+                            {
+                                hasValidUuid = match.HasValidUniqueId(),
+                                hubReady = match.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                                preferredAccess = match.HasValidUniqueId() ? "uuid" : "numericId"
+                            },
+                            
                             gameRulesId = $"{tournamentClass.Id}_Finals",
                             gameRulesUsed = new
                             {
@@ -1243,12 +1351,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 gamePoints = tournamentClass.GameRules.GamePoints,
                                 gameMode = tournamentClass.GameRules.GameMode.ToString(),
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = finalsSetsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                                legsToWin = finalsLegsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                                legsPerSet = finalsLegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                                maxSets = Math.Max(finalsSetsToWin * 2 - 1, 5), // Berechnet basierend auf exakten Werten
-                                maxLegsPerSet = finalsLegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                                playWithSets = finalsPlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne zusätzliche Logik
+                                setsToWin = finalsSetsToWin,
+                                legsToWin = finalsLegsToWin,
+                                legsPerSet = finalsLegsPerSet,
+                                maxSets = Math.Max(finalsSetsToWin * 2 - 1, 5),
+                                maxLegsPerSet = finalsLegsPerSet,
+                                playWithSets = finalsPlayWithSets,
                                 matchType = "Finals",
                                 classId = tournamentClass.Id,
                                 className = tournamentClass.Name,
@@ -1295,8 +1403,13 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                         
                         allMatches.Add(new
                         {
-                            id = knockoutMatch.Id,
-                            matchId = knockoutMatch.Id,
+                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
+                            id = knockoutMatch.UniqueId,                          // UUID als primäre ID
+                            matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
+                            uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
+                            hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
+                            
+                            // K.O.-Match-Daten
                             player1 = knockoutMatch.Player1?.Name ?? "TBD",
                             player2 = knockoutMatch.Player2?.Name ?? "TBD",
                             player1Sets = knockoutMatch.Player1Sets,
@@ -1308,13 +1421,22 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = knockoutMatch.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = matchType, // WICHTIG: Spezifischer Winner Bracket Match-Type
-                            groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
-                            groupName = $"Winner Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Winner Bracket
+                            matchType = $"Knockout-{knockoutMatch.BracketType}-{knockoutMatch.Round}",
+                            groupId = (int?)null,
+                            groupName = $"Winner Bracket - {knockoutMatch.Round}",
                             round = knockoutMatch.Round,
                             position = knockoutMatch.Position,
+                            
+                            // 🎯 UUID-System Metadaten
+                            uuidSystem = new
+                            {
+                                hasValidUuid = knockoutMatch.HasValidUniqueId(),
+                                hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                                preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
+                            },
+                            
                             gameRulesId = gameRuleId,
-                            // 🚨 KORRIGIERT: Verbesserte gameRulesUsed mit allen notwendigen Properties für Web Interface
                             gameRulesUsed = new
                             {
                                 id = gameRuleId,
@@ -1324,15 +1446,14 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 finishMode = tournamentClass.GameRules.FinishMode.ToString(),
                                 setsToWin = setsToWin,
                                 legsToWin = legsToWin,
-                                legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                                maxSets = Math.Max(setsToWin * 2 - 1, 5), // 🚨 HINZUGEFÜGT: maxSets für Web Interface
-                                maxLegsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
+                                legsPerSet = legsPerSet,
+                                maxSets = Math.Max(setsToWin * 2 - 1, 5),
+                                maxLegsPerSet = legsPerSet,
                                 playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
                                 matchType = matchType,
                                 round = knockoutMatch.Round.ToString(),
-                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT: für Web Interface Matching
-                                className = tournamentClass.Name, // 🚨 HINZUGEFÜGT
+                                classId = tournamentClass.Id,
+                                className = tournamentClass.Name,
                                 isDefault = false
                             }
                         });
@@ -1376,8 +1497,13 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                         
                         allMatches.Add(new
                         {
-                            id = knockoutMatch.Id,
-                            matchId = knockoutMatch.Id,
+                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
+                            id = knockoutMatch.UniqueId,                          // UUID als primäre ID
+                            matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
+                            uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
+                            hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
+                            
+                            // Loser Bracket Match-Daten
                             player1 = knockoutMatch.Player1?.Name ?? "TBD",
                             player2 = knockoutMatch.Player2?.Name ?? "TBD",
                             player1Sets = knockoutMatch.Player1Sets,
@@ -1389,13 +1515,22 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                             notes = knockoutMatch.Notes ?? "",
                             classId = tournamentClass.Id,
                             className = tournamentClass.Name,
-                            matchType = matchType, // WICHTIG: Spezifischer Loser Bracket Match-Type
-                            groupId = (int?)null, // KO-Matches haben keine traditionelle Gruppe
-                            groupName = $"Loser Bracket - {knockoutMatch.Round}", // WICHTIG: Eindeutige Group-Name für Loser Bracket
+                            matchType = $"Knockout-LB-{knockoutMatch.Round}",
+                            groupId = (int?)null,
+                            groupName = $"Loser Bracket - {knockoutMatch.Round}",
                             round = knockoutMatch.Round,
                             position = knockoutMatch.Position,
+                            
+                            // 🎯 UUID-System Metadaten
+                            uuidSystem = new
+                            {
+                                hasValidUuid = knockoutMatch.HasValidUniqueId(),
+                                hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                                preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
+                            },
+                            
                             gameRulesId = gameRuleId,
-                            // 🚨 KORRIGIERT: Verbesserte gameRulesUsed mit allen notwendigen Properties für Web Interface
                             gameRulesUsed = new
                             {
                                 id = gameRuleId,
@@ -1406,14 +1541,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
                                 setsToWin = setsToWin,
                                 legsToWin = legsToWin,
                                 legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                                maxSets = Math.Max(setsToWin * 2 - 1, 3), // 🚨 HINZUGEFÜGT: maxSets für Web Interface (kürzer für Loser)
-                                maxLegsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
                                 // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
                                 playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
                                 matchType = matchType,
                                 round = knockoutMatch.Round.ToString(),
-                                classId = tournamentClass.Id, // 🚨 HINZUGEFÜGT: für Web Interface Matching
-                                className = tournamentClass.Name, // 🚨 HINZUGEFÜGT
+                                classId = tournamentClass.Id,
+                                className = tournamentClass.Name,
                                 isDefault = false
                             }
                         });
@@ -1449,7 +1582,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             System.Diagnostics.Debug.WriteLine($"     - Loser Bracket Matches: {syncData.matchTypeStats.loserBracketMatches}");
             System.Diagnostics.Debug.WriteLine($"   Game Rules: {gameRulesArray.Count}");
 
-            var json = JsonSerializer.Serialize(syncData);
+            var json = System.Text.Json.JsonSerializer.Serialize(syncData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             using var syncClient = new HttpClient();
@@ -1728,6 +1861,322 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             _webSocketCancellation?.Dispose();
             _httpClient?.Dispose();
             _isDisposed = true;
+        }
+    }
+
+    /// <summary>
+    /// Sendet Tournament-Daten an den Hub mit UUID-Unterstützung
+    /// </summary>
+    public async Task<bool> SendTournamentDataAsync(TournamentClass tournamentClass, List<Group> groups, List<GameRules> gameRules)
+    {
+        try
+        {
+            Console.WriteLine($"📤 [HUB] Sending tournament data for {tournamentClass.Name} to Hub with UUID support...");
+
+            var tournamentData = new
+            {
+                tournamentId = _currentTournamentId,
+                name = $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
+                description = $"Live Dart Tournament von Tournament Planner",
+                @class = new
+                {
+                    id = tournamentClass.Id,
+                    name = tournamentClass.Name,
+                    type = tournamentClass.Name // Verwende Name als Type da ClassType nicht existiert
+                },
+                classes = new[]
+                {
+                    new
+                    {
+                        id = tournamentClass.Id,
+                        name = tournamentClass.Name,
+                        type = tournamentClass.Name // Verwende Name als Type da ClassType nicht existiert
+                    }
+                },
+                groups = groups.Select(g => new
+                {
+                    id = g.Id,
+                    name = g.Name,
+                    classId = tournamentClass.Id,
+                    className = tournamentClass.Name,
+                    players = g.Players.Select(p => new
+                    {
+                        name = p.Name,
+                        id = p.Id
+                    }).ToArray(),
+                    totalPlayers = g.Players.Count
+                }).ToArray(),
+                // 🎯 ERWEITERT: Matches mit vollständiger UUID-Unterstützung
+                matches = groups.SelectMany(g => g.Matches.Select(m => new
+                {
+                    // 🔑 PRIMÄRE IDENTIFIKATION: UUID ist die Hauptkennung
+                    id = m.UniqueId,                 // UUID als primäre ID (für Hub/Web Interface)
+                    matchId = m.Id,                  // Numerische ID (legacy, für interne Referenzen)
+                    uniqueId = m.UniqueId,          // UUID (explizit für Kompatibilität)
+                    
+                    // Match-Informationen
+                    player1 = m.Player1?.Name ?? "Unbekannt",
+                    player2 = m.Player2?.Name ?? "Unbekannt",
+                    player1Sets = m.Player1Sets,
+                    player2Sets = m.Player2Sets,
+                    player1Legs = m.Player1Legs,
+                    player2Legs = m.Player2Legs,
+                    status = m.Status switch
+                    {
+                        MatchStatus.NotStarted => "NotStarted",
+                        MatchStatus.InProgress => "InProgress", 
+                        MatchStatus.Finished => "Finished",
+                        MatchStatus.Bye => "Finished",
+                        _ => "NotStarted"
+                    },
+                    winner = m.Winner?.Name,
+                    notes = m.Notes ?? "",
+                    
+                    // Gruppierung und Klassifikation
+                    classId = tournamentClass.Id,
+                    className = tournamentClass.Name,
+                    groupId = g.Id,
+                    groupName = g.Name,
+                    matchType = "Group",
+                    
+                    // 🎯 UUID-System Metadaten für jedes Match
+                    uuidSystem = new
+                    {
+                        enabled = true,
+                        hasValidUuid = m.HasValidUniqueId(),
+                        hubReady = m.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                        identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                        preferredAccess = m.HasValidUniqueId() ? "uuid" : "numericId"
+                    },
+                    
+                    // Zeitstempel
+                    createdAt = m.CreatedAt,
+                    startedAt = m.StartTime,
+                    finishedAt = m.EndTime,
+                    syncedAt = DateTime.UtcNow
+                })).ToArray(),
+                gameRules = gameRules.Select(gr => new
+                {
+                    id = 1, // GameRules hat keine ID Property
+                    name = "Standard Regel",
+                    gamePoints = gr.GamePoints,
+                    gameMode = gr.GameMode.ToString(),
+                    finishMode = gr.FinishMode.ToString(),
+                    setsToWin = gr.SetsToWin,
+                    legsToWin = gr.LegsToWin,
+                    legsPerSet = gr.LegsPerSet,
+                    maxSets = Math.Max(gr.SetsToWin * 2 - 1, 5),
+                    maxLegsPerSet = gr.LegsPerSet,
+                    playWithSets = gr.PlayWithSets,
+                    classId = tournamentClass.Id,
+                    className = tournamentClass.Name,
+                    matchType = "Group",
+                    isDefault = true // Default da GameRules keine IsDefault-Property hat
+                }).ToArray(),
+                // 🎯 UUID-System Metadaten für gesamtes Tournament
+                uuidSystem = new
+                {
+                    enabled = true,
+                    version = "2.0", // Erhöht für erweiterte UUID-Unterstützung
+                    totalMatches = groups.SelectMany(g => g.Matches).Count(),
+                    matchesWithUuid = groups.SelectMany(g => g.Matches).Count(m => m.HasValidUniqueId()),
+                    matchesHubReady = groups.SelectMany(g => g.Matches).Count(m => m.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId)),
+                    primaryIdentifier = "uuid", // UUID ist primäre Identifikation
+                    supportedFormats = new[] { "uuid", "numericId", "hubIdentifier" },
+                    generatedAt = DateTime.UtcNow
+                },
+                lastModified = DateTime.UtcNow
+            };
+
+            Console.WriteLine($"📊 [HUB] Tournament data with enhanced UUID system prepared:");
+            Console.WriteLine($"   🆔 Tournament ID: {_currentTournamentId}");
+            Console.WriteLine($"   📋 Groups: {groups.Count}");
+            Console.WriteLine($"   🎯 Total Matches: {tournamentData.matches.Length}");
+            Console.WriteLine($"   🔑 Matches with UUID: {tournamentData.uuidSystem.matchesWithUuid}");
+            Console.WriteLine($"   📡 Hub-ready Matches: {tournamentData.uuidSystem.matchesHubReady}");
+
+            var json = System.Text.Json.JsonSerializer.Serialize(tournamentData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/register", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"✅ [HUB] Tournament data with enhanced UUIDs sent successfully");
+                Console.WriteLine($"📥 [HUB] Response: {responseContent}");
+                
+                // UUID-Validierung
+                var matchesWithoutUuid = groups.SelectMany(g => g.Matches).Where(m => !m.HasValidUniqueId()).ToList();
+                if (matchesWithoutUuid.Any())
+                {
+                    Console.WriteLine($"⚠️ [HUB] Warning: {matchesWithoutUuid.Count} matches without valid UUID:");
+                    foreach (var match in matchesWithoutUuid)
+                    {
+                        Console.WriteLine($"     Match {match.Id}: {match.Player1} vs {match.Player2}");
+                        // Generiere UUID falls fehlend
+                        match.EnsureUniqueId();
+                        Console.WriteLine($"     🔧 Generated UUID: {match.UniqueId}");
+                    }
+                }
+                
+                return true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ [HUB] Error sending tournament data: {response.StatusCode}");
+                Console.WriteLine($"📄 [HUB] Error details: {errorContent}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [HUB] Exception sending tournament data: {ex.Message}");
+            Console.WriteLine($"📋 [HUB] Stack trace: {ex.StackTrace}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Sendet KO-Match-Daten an den Hub mit UUID-Unterstützung
+    /// </summary>
+    public async Task<bool> SendKnockoutMatchDataAsync(TournamentClass tournamentClass, List<KnockoutMatch> knockoutMatches, List<GameRules> gameRules)
+    {
+        try
+        {
+            Console.WriteLine($"📤 [HUB] Sending KO match data for {tournamentClass.Name} to Hub with UUID support...");
+
+            var koData = new
+            {
+                tournamentId = _currentTournamentId,
+                classId = tournamentClass.Id,
+                className = tournamentClass.Name,
+                phase = "Knockout",
+                // KO-Matches mit UUID-Unterstützung
+                knockoutMatches = knockoutMatches.Select(knockoutMatch => new
+                {
+                    // 🔑 PRIMÄRE IDENTIFIKATION
+                    id = knockoutMatch.UniqueId,                          // UUID als primäre ID
+                    matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
+                    uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
+                    hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
+                    
+                    // KO-Match-Informationen
+                    player1 = knockoutMatch.Player1?.Name,
+                    player2 = knockoutMatch.Player2?.Name,
+                    player1Sets = knockoutMatch.Player1Sets,
+                    player2Sets = knockoutMatch.Player2Sets,
+                    player1Legs = knockoutMatch.Player1Legs,
+                    player2Legs = knockoutMatch.Player2Legs,
+                    status = knockoutMatch.Status.ToString(),
+                    winner = knockoutMatch.Winner?.Name,
+                    notes = knockoutMatch.Notes ?? "",
+                    
+                    // KO-spezifische Informationen
+                    bracketType = knockoutMatch.BracketType.ToString(),
+                    round = knockoutMatch.Round.ToString(),
+                    position = knockoutMatch.Position,
+                    matchType = $"Knockout-{knockoutMatch.BracketType}-{knockoutMatch.Round}",
+                    
+                    // Klassifizierung
+                    classId = tournamentClass.Id,
+                    className = tournamentClass.Name,
+                    
+                    // 🎯 UUID-System Metadaten
+                    uuidSystem = new
+                    {
+                        hasValidUuid = knockoutMatch.HasValidUniqueId(),
+                        hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
+                        identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
+                        preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
+                    },
+                    
+                    // Zeitstempel
+                    createdAt = knockoutMatch.CreatedAt,
+                    startedAt = knockoutMatch.StartedAt,
+                    finishedAt = knockoutMatch.FinishedAt,
+                    syncedAt = DateTime.UtcNow
+                }).ToArray(),
+                gameRules = gameRules.Select(gameRule => new
+                {
+                    id = 1, // GameRules hat keine ID Property
+                    name = "KO Regel",
+                    gamePoints = gameRule.GamePoints,
+                    gameMode = gameRule.GameMode.ToString(),
+                    finishMode = gameRule.FinishMode.ToString(),
+                    setsToWin = gameRule.SetsToWin,
+                    legsToWin = gameRule.LegsToWin,
+                    legsPerSet = gameRule.LegsPerSet,
+                    maxSets = Math.Max(gameRule.SetsToWin * 2 - 1, 5),
+                    maxLegsPerSet = gameRule.LegsPerSet,
+                    playWithSets = gameRule.PlayWithSets,
+                    classId = tournamentClass.Id,
+                    className = tournamentClass.Name,
+                    matchType = "Knockout",
+                    isDefault = false // KO Rules sind nicht default
+                }).ToArray(),
+                // UUID-System Metadaten für KO-Matches
+                uuidSystem = new
+                {
+                    enabled = true,
+                    version = "2.0", // UUID-System Version 2.0
+                    totalKnockoutMatches = knockoutMatches.Count,
+                    knockoutMatchesWithUuid = knockoutMatches.Count(knockoutMatch => knockoutMatch.HasValidUniqueId()),
+                    knockoutMatchesHubReady = knockoutMatches.Count(knockoutMatch => knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId)),
+                    primaryIdentifier = "uuid", // UUID ist primäre Identifikation
+                    supportedFormats = new[] { "uuid", "numericId", "hubIdentifier" },
+                    generatedAt = DateTime.UtcNow
+                },
+                lastModified = DateTime.UtcNow
+            };
+
+            Console.WriteLine($"📊 [HUB] KO match data with enhanced UUID system prepared:");
+            Console.WriteLine($"   🆔 Tournament ID: {_currentTournamentId}");
+            Console.WriteLine($"   ⚔️ KO Matches: {knockoutMatches.Count}");
+            Console.WriteLine($"   🔑 KO Matches with UUID: {koData.uuidSystem.knockoutMatchesWithUuid}");
+            Console.WriteLine($"   📡 Hub-ready KO Matches: {koData.uuidSystem.knockoutMatchesHubReady}");
+
+            var json = System.Text.Json.JsonSerializer.Serialize(koData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/{_currentTournamentId}/knockout", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"✅ [HUB] KO match data with enhanced UUIDs sent successfully");
+                Console.WriteLine($"📥 [HUB] Response: {responseContent}");
+                
+                // UUID-Validierung für KO-Matches
+                var koMatchesWithoutUuid = knockoutMatches.Where(knockoutMatch => !knockoutMatch.HasValidUniqueId()).ToList();
+                if (koMatchesWithoutUuid.Any())
+                {
+                    Console.WriteLine($"⚠️ [HUB] Warning: {koMatchesWithoutUuid.Count} KO matches without valid UUID:");
+                    foreach (var match in koMatchesWithoutUuid)
+                    {
+                        Console.WriteLine($"     KO Match {match.Id}: {match.Player1?.Name ?? "TBD"} vs {match.Player2?.Name ?? "TBD"} ({match.Round})");
+                        // Generiere UUID falls fehlend
+                        match.EnsureUniqueId();
+                        Console.WriteLine($"     🔧 Generated UUID: {match.UniqueId}");
+                    }
+                }
+                
+                return true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ [HUB] Error sending KO match data: {response.StatusCode}");
+                Console.WriteLine($"📄 [HUB] Error details: {errorContent}");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ [HUB] Exception sending KO match data: {ex.Message}");
+            Console.WriteLine($"📋 [HUB] Stack trace: {ex.StackTrace}");
+            return false;
         }
     }
 }
