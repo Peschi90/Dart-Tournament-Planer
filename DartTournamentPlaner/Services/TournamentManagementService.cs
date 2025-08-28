@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using DartTournamentPlaner.Models;
@@ -193,7 +194,23 @@ public class TournamentManagementService
     {
         try
         {
-            var overviewWindow = new TournamentOverviewWindow(_tournamentClasses, _localizationService);
+            // ? ERWEITERT: Hole HubIntegrationService für QR-Code Integration
+            HubIntegrationService? hubService = null;
+            try
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    var hubServiceField = mainWindow.GetType()
+                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    hubService = hubServiceField?.GetValue(mainWindow) as HubIntegrationService;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not get HubService for TournamentOverview: {ex.Message}");
+            }
+            
+            var overviewWindow = new TournamentOverviewWindow(_tournamentClasses, _localizationService, hubService);
             overviewWindow.Show();
         }
         catch (Exception ex)

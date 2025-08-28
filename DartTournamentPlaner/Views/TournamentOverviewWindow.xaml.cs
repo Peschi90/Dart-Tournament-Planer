@@ -4,9 +4,17 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Diagnostics;
+using System.IO;
+using System.Drawing.Imaging;
+using QRCoder;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using WinColor = System.Windows.Media.Color;
+using WinBrushes = System.Windows.Media.Brushes;
+using DrawingColor = System.Drawing.Color;
 
 namespace DartTournamentPlaner.Views;
 
@@ -15,6 +23,7 @@ public partial class TournamentOverviewWindow : Window
     private readonly List<TournamentClass> _tournamentClasses;
     private readonly LocalizationService _localizationService;
     private readonly DispatcherTimer _cycleTimer;
+    private readonly HubIntegrationService? _hubService; // ✅ NEU: Hub Service für QR-Codes
     private int _currentClassIndex = 0;
     private int _currentSubTabIndex = 0;
     private bool _isRunning = false;
@@ -28,12 +37,14 @@ public partial class TournamentOverviewWindow : Window
 
     public TournamentOverviewWindow(
         List<TournamentClass> tournamentClasses,
-        LocalizationService localizationService)
+        LocalizationService localizationService,
+        HubIntegrationService? hubService = null) // ✅ NEU: Optional Hub Service Parameter
     {
         InitializeComponent();
         
         _tournamentClasses = tournamentClasses;
         _localizationService = localizationService;
+        _hubService = hubService;
         
         _cycleTimer = new DispatcherTimer();
         _cycleTimer.Tick += CycleTimer_Tick;
@@ -89,8 +100,8 @@ public partial class TournamentOverviewWindow : Window
             Height = 16,
             CornerRadius = new CornerRadius(8),
             Margin = new Thickness(0, 0, 10, 0),
-            Background = Brushes.White,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(229, 231, 235)),
+            Background = WinBrushes.White,
+            BorderBrush = new SolidColorBrush(WinColor.FromRgb(229, 231, 235)),
             BorderThickness = new Thickness(2)
         };
 
@@ -114,10 +125,10 @@ public partial class TournamentOverviewWindow : Window
                 };
                 break;
             case 1: // Gold - #FFC107
-                colorEllipse.Fill = new SolidColorBrush(Color.FromRgb(255, 193, 7));
+                colorEllipse.Fill = new SolidColorBrush(WinColor.FromRgb(255, 193, 7));
                 colorBorder.Effect = new DropShadowEffect
                 {
-                    Color = Color.FromRgb(255, 152, 0),
+                    Color = WinColor.FromRgb(255, 152, 0),
                     Direction = 0,
                     ShadowDepth = 0,
                     BlurRadius = 6,
@@ -136,10 +147,10 @@ public partial class TournamentOverviewWindow : Window
                 };
                 break;
             case 3: // Bronze - #A1887F
-                colorEllipse.Fill = new SolidColorBrush(Color.FromRgb(161, 136, 127));
+                colorEllipse.Fill = new SolidColorBrush(WinColor.FromRgb(161, 136, 127));
                 colorBorder.Effect = new DropShadowEffect
                 {
-                    Color = Color.FromRgb(141, 110, 99),
+                    Color = WinColor.FromRgb(141, 110, 99),
                     Direction = 0,
                     ShadowDepth = 0,
                     BlurRadius = 6,
@@ -304,6 +315,18 @@ public partial class TournamentOverviewWindow : Window
                 Width = new DataGridLength(100)
             });
 
+            // ✅ NEU: QR-Code Spalte für Knockout Matches
+            if (_hubService != null && _hubService.IsRegisteredWithHub)
+            {
+                var qrColumn = new DataGridTemplateColumn
+                {
+                    Header = "📱",
+                    Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
+                    CellTemplate = CreateQRCodeCellTemplate()
+                };
+                dataGrid.Columns.Add(qrColumn);
+            }
+
             tabItem.Content = dataGrid;
         }
 
@@ -347,6 +370,18 @@ public partial class TournamentOverviewWindow : Window
             Width = new DataGridLength(100)
         });
 
+        // ✅ NEU: QR-Code Spalte für Finals Matches
+        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        {
+            var qrColumn = new DataGridTemplateColumn
+            {
+                Header = "📱",
+                Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
+                CellTemplate = CreateQRCodeCellTemplate()
+            };
+            dataGrid.Columns.Add(qrColumn);
+        }
+
         tabItem.Content = dataGrid;
         return tabItem;
     }
@@ -383,6 +418,18 @@ public partial class TournamentOverviewWindow : Window
             Binding = new System.Windows.Data.Binding("StatusDisplay"),
             Width = new DataGridLength(100)
         });
+
+        // ✅ NEU: QR-Code Spalte hinzufügen wenn Hub Service verfügbar
+        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        {
+            var qrColumn = new DataGridTemplateColumn
+            {
+                Header = "📱",
+                Width = new DataGridLength(120), // 60 -> 120 für größere QR-Codes
+                CellTemplate = CreateQRCodeCellTemplate()
+            };
+            dataGrid.Columns.Add(qrColumn);
+        }
 
         return dataGrid;
     }
@@ -443,6 +490,105 @@ public partial class TournamentOverviewWindow : Window
         });
 
         return dataGrid;
+    }
+
+    /// <summary>
+    /// ✅ NEU: Erstellt DataTemplate für QR-Code Zellen in DataGrid
+    /// </summary>
+    private DataTemplate CreateQRCodeCellTemplate()
+    {
+        var template = new DataTemplate();
+        
+        var stackPanelFactory = new FrameworkElementFactory(typeof(StackPanel));
+        stackPanelFactory.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+        stackPanelFactory.SetValue(StackPanel.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+        stackPanelFactory.SetValue(StackPanel.VerticalAlignmentProperty, VerticalAlignment.Center);
+        
+        // ✅ VERGRÖSSERT: QR-Code Image - doppelt so groß
+        var imageFactory = new FrameworkElementFactory(typeof(System.Windows.Controls.Image));
+        imageFactory.SetValue(System.Windows.Controls.Image.WidthProperty, 64.0); // 32 -> 64
+        imageFactory.SetValue(System.Windows.Controls.Image.HeightProperty, 64.0); // 32 -> 64
+        imageFactory.SetValue(System.Windows.Controls.Image.StretchProperty, Stretch.Uniform);
+        imageFactory.SetValue(System.Windows.Controls.Image.MarginProperty, new Thickness(4)); // 2 -> 4
+        imageFactory.SetValue(System.Windows.Controls.Image.ToolTipProperty, "QR-Code zum Match scannen");
+        
+        // QR-Code generieren und als Source setzen
+        var binding = new System.Windows.Data.Binding(".");
+        var converter = new MatchToQRCodeConverter(_hubService, _localizationService);
+        binding.Converter = converter;
+        imageFactory.SetBinding(System.Windows.Controls.Image.SourceProperty, binding);
+        
+        // ✅ KONDITIONELL: Button nur wenn Hub registriert ist
+        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        {
+            // ✅ VERGRÖSSERT: Button für direktes Öffnen der Match-Page
+            var buttonFactory = new FrameworkElementFactory(typeof(Button));
+            buttonFactory.SetValue(Button.ContentProperty, "🌐");
+            buttonFactory.SetValue(Button.WidthProperty, 40.0); // 24 -> 40
+            buttonFactory.SetValue(Button.HeightProperty, 40.0); // 24 -> 40
+            buttonFactory.SetValue(Button.FontSizeProperty, 16.0); // 10 -> 16
+            buttonFactory.SetValue(Button.MarginProperty, new Thickness(8, 0, 0, 0)); // 2 -> 8
+            buttonFactory.SetValue(Button.ToolTipProperty, "Match-Page im Browser öffnen");
+            buttonFactory.SetValue(Button.CursorProperty, System.Windows.Input.Cursors.Hand);
+            
+            // Event für Button-Click
+            buttonFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler(OnOpenMatchPageClick));
+            
+            //stackPanelFactory.AppendChild(buttonFactory);
+        }
+        
+        stackPanelFactory.AppendChild(imageFactory);
+        
+        template.VisualTree = stackPanelFactory;
+        return template;
+    }
+
+    /// <summary>
+    /// ✅ NEU: Event Handler für "Match-Page öffnen" Button
+    /// </summary>
+    private void OnOpenMatchPageClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (sender is Button button && button.DataContext is Match match)
+            {
+                var tournamentId = _hubService?.GetCurrentTournamentId();
+                if (!string.IsNullOrEmpty(tournamentId) && !string.IsNullOrEmpty(match.UniqueId))
+                {
+                    var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{match.UniqueId}?uuid=true";
+                    
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = matchPageUrl,
+                        UseShellExecute = true
+                    };
+                    
+                    Process.Start(processInfo);
+                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened Match-Page: {matchPageUrl}");
+                }
+            }
+            else if (sender is Button knockoutButton && knockoutButton.DataContext is KnockoutMatch knockoutMatch)
+            {
+                var tournamentId = _hubService?.GetCurrentTournamentId();
+                if (!string.IsNullOrEmpty(tournamentId) && !string.IsNullOrEmpty(knockoutMatch.UniqueId))
+                {
+                    var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{knockoutMatch.UniqueId}?uuid=true";
+                    
+                    var processInfo = new ProcessStartInfo
+                    {
+                        FileName = matchPageUrl,
+                        UseShellExecute = true
+                    };
+                    
+                    Process.Start(processInfo);
+                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened Knockout Match-Page: {matchPageUrl}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening match page: {ex.Message}");
+        }
     }
 
     private void StartStop_Click(object sender, RoutedEventArgs e)
@@ -711,9 +857,9 @@ public partial class TournamentOverviewWindow : Window
 
         var canvas = new Canvas
         {
-            Background = new System.Windows.Media.LinearGradientBrush(
-                System.Windows.Media.Colors.WhiteSmoke,
-                System.Windows.Media.Colors.LightGray, 90),
+            //Background = new System.Windows.Media.LinearGradientBrush(
+                //System.Windows.Media.Colors.WhiteSmoke,
+                //System.Windows.Media.Colors.LightGray, 90),
             MinWidth = 1000,
             MinHeight = 700
         };
@@ -794,8 +940,8 @@ public partial class TournamentOverviewWindow : Window
             .OrderBy(g => GetRoundOrderValue(g.Key, isLoserBracket))
             .ToList();
 
-        double roundWidth = 220;
-        double matchHeight = 70;
+        double roundWidth = 240;
+        double matchHeight = 100;
         double matchSpacing = 25;
         double roundSpacing = 50;
 
@@ -947,6 +1093,9 @@ public partial class TournamentOverviewWindow : Window
                 break;
         }
 
+        var mainGrid = new Grid();
+        
+        // Hauptinhalt (Spielerdaten)
         var stackPanel = new StackPanel
         {
             Orientation = Orientation.Vertical,
@@ -1017,9 +1166,79 @@ public partial class TournamentOverviewWindow : Window
         stackPanel.Children.Add(player2Text);
         stackPanel.Children.Add(scoreText);
 
-        border.Child = stackPanel;
+        mainGrid.Children.Add(stackPanel);
 
-        // Enhanced tooltip with more match details
+        // ✅ NEU: QR-Code und Web-Button in der Ecke wenn Hub verfügbar
+        if (_hubService != null && _hubService.IsRegisteredWithHub && !string.IsNullOrEmpty(match.UniqueId))
+        {
+            var qrPanel = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 4, 4, 0) // 0,2,2,0 -> 0,4,4,0
+            };
+
+            // ✅ VERGRÖSSERT: Mini QR-Code im Tree View
+            var qrImage = new System.Windows.Controls.Image
+            {
+                Width = 60, // 20 -> 40
+                Height = 60, // 20 -> 40
+                Margin = new Thickness(0, 0, 0, 2) // 0,0,0,1 -> 0,0,0,2
+            };
+
+            var qrBinding = new System.Windows.Data.Binding(".")
+            {
+                Source = match,
+                Converter = new MatchToQRCodeConverter(_hubService, _localizationService)
+            };
+            qrImage.SetBinding(System.Windows.Controls.Image.SourceProperty, qrBinding);
+
+            // ✅ VERGRÖSSERT: Mini Web-Button im Tree View
+            var webButton = new Button
+            {
+                Content = "🌐",
+                Width = 40, // 20 -> 40
+                Height = 24, // 15 -> 24
+                FontSize = 12, // 8 -> 12
+                Padding = new Thickness(0),
+                Margin = new Thickness(0),
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                ToolTip = "Match-Page öffnen"
+            };
+
+            webButton.Click += (s, e) =>
+            {
+                try
+                {
+                    var tournamentId = _hubService.GetCurrentTournamentId();
+                    if (!string.IsNullOrEmpty(tournamentId))
+                    {
+                        var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{match.UniqueId}?uuid=true";
+                        var processInfo = new ProcessStartInfo
+                        {
+                            FileName = matchPageUrl,
+                            UseShellExecute = true
+                        };
+                        Process.Start(processInfo);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Error opening match page: {ex.Message}");
+                }
+            };
+
+            qrPanel.Children.Add(qrImage);
+            //qrPanel.Children.Add(webButton);
+            mainGrid.Children.Add(qrPanel);
+        }
+
+        border.Child = mainGrid;
+
+        // Enhanced tooltip with more match details and QR info
         var tooltipText = $"Match {match.Id} - {match.RoundDisplay}\n" +
                          $"Status: {match.StatusDisplay}\n" +
                          $"Spieler 1: {match.Player1?.Name ?? "TBD"}\n" +
@@ -1028,6 +1247,11 @@ public partial class TournamentOverviewWindow : Window
         if (match.Status == MatchStatus.Finished && match.Winner != null)
         {
             tooltipText += $"\nSieger: {match.Winner.Name}";
+        }
+
+        if (_hubService != null && _hubService.IsRegisteredWithHub && !string.IsNullOrEmpty(match.UniqueId))
+        {
+            tooltipText += $"\n📱 QR-Code verfügbar für Mobile-Zugriff";
         }
 
         border.ToolTip = tooltipText;
@@ -1081,5 +1305,99 @@ public partial class TournamentOverviewWindow : Window
         
         var remaining = Math.Max(0, interval - (int)elapsed);
         return remaining;
+    }
+}
+
+/// <summary>
+/// ✅ NEU: Converter für Match zu QR-Code Konvertierung
+/// </summary>
+public class MatchToQRCodeConverter : System.Windows.Data.IValueConverter
+{
+    private readonly HubIntegrationService? _hubService;
+    private readonly LocalizationService? _localizationService;
+
+    public MatchToQRCodeConverter(HubIntegrationService? hubService, LocalizationService? localizationService)
+    {
+        _hubService = hubService;
+        _localizationService = localizationService;
+    }
+
+    public object? Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        try
+        {
+            string? matchUuid = null;
+            
+            if (value is Match match)
+            {
+                matchUuid = match.UniqueId;
+            }
+            else if (value is KnockoutMatch knockoutMatch)
+            {
+                matchUuid = knockoutMatch.UniqueId;
+            }
+
+            if (string.IsNullOrEmpty(matchUuid) || 
+                _hubService == null || 
+                !_hubService.IsRegisteredWithHub ||
+                string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
+            {
+                return null; // Kein QR-Code wenn Voraussetzungen nicht erfüllt
+            }
+
+            var tournamentId = _hubService.GetCurrentTournamentId();
+            var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{matchUuid}?uuid=true";
+
+            return GenerateQRCodeImage(matchPageUrl);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Error: {ex.Message}");
+            return null;
+        }
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+
+    private BitmapImage? GenerateQRCodeImage(string url)
+    {
+        try
+        {
+            using (var qrGenerator = new QRCodeGenerator())
+            {
+                var qrCodeData = qrGenerator.CreateQrCode(url, QRCodeGenerator.ECCLevel.M);
+                
+                using (var qrCode = new QRCoder.QRCode(qrCodeData))
+                {
+                    // ✅ VERGRÖSSERT: Höher aufgelöste QR Codes für DataGrid (6 -> 12)
+                    using (var qrCodeBitmap = qrCode.GetGraphic(12, DrawingColor.Black, DrawingColor.White, true))
+                    {
+                        // Konvertiere zu WPF BitmapImage
+                        var bitmapImage = new BitmapImage();
+                        using (var stream = new MemoryStream())
+                        {
+                            qrCodeBitmap.Save(stream, ImageFormat.Png);
+                            stream.Position = 0;
+                            
+                            bitmapImage.BeginInit();
+                            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                            bitmapImage.StreamSource = stream;
+                            bitmapImage.EndInit();
+                            bitmapImage.Freeze(); // Thread-Safety
+                        }
+                        
+                        return bitmapImage;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [QR-Generator] Error generating QR code: {ex.Message}");
+            return null;
+        }
     }
 }
