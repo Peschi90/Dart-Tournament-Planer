@@ -80,6 +80,11 @@ class DartScoringUI {
             // History
             historyList: document.getElementById('historyList'),
             
+            // BUSTED Animation
+            bustedAnimation: document.getElementById('bustedAnimation'),
+            bustedMessage: document.getElementById('bustedMessage'),
+            bustedDetails: document.getElementById('bustedDetails'),
+            
             // Win Animation
             winAnimation: document.getElementById('winAnimation'),
             winMessage: document.getElementById('winMessage'),
@@ -301,6 +306,21 @@ class DartScoringUI {
         this.updateDartDisplay(dartIndex, dartResult);
         this.updateThrowTotal();
         
+        // ✅ ERWEITERT: Prüfe BUST nach JEDEM Dart (nicht nur am Ende)
+        if (this.isBustWithCurrentDarts()) {
+            console.log('💥 [DART-UI] BUST detected after dart', dartIndex + 1);
+            
+            // Sofort BUST-Animation zeigen
+            this.keypadState.throwComplete = true;
+            this.disableKeypad();
+            
+            setTimeout(() => {
+                this.handleEarlyBust();
+            }, 300); // Kurze Verzögerung damit User den Dart sieht
+            
+            return; // Stoppe weitere Verarbeitung
+        }
+        
         // Move to next dart
         this.keypadState.currentDart++;
         
@@ -343,7 +363,14 @@ class DartScoringUI {
      * Handle automatic finish check for early checkout
      */
     handleAutoFinish() {
-        if (!this.canFinishWithCurrentDarts()) return;
+        if (!this.canFinishWithCurrentDarts()) {
+            // Prüfe auch auf BUST bei früher Eingabe
+            if (this.isBustWithCurrentDarts()) {
+                this.handleEarlyBust();
+                return;
+            }
+            return;
+        }
         
         const dart1 = this.keypadState.darts[0]?.score || 0;
         const dart2 = this.keypadState.darts[1]?.score || 0;
@@ -403,6 +430,91 @@ class DartScoringUI {
         }
         
         return false;
+    }
+
+    /**
+     * Check if player will bust with current darts
+     */
+    isBustWithCurrentDarts() {
+        if (!this.core || !this.core.gameState) return false;
+        
+        const currentPlayer = this.core.gameState.currentPlayer;
+        const playerData = currentPlayer === 1 ? this.core.gameState.player1 : this.core.gameState.player2;
+        
+        // Calculate current throw total
+        const throwTotal = this.keypadState.darts
+            .filter(dart => dart !== null)
+            .reduce((sum, dart) => sum + dart.score, 0);
+        
+        const newScore = playerData.score - throwTotal;
+        
+        // Prüfe auf Bust (Überwurf oder unmöglicher Finish bei Double-Out)
+        if (newScore < 0) {
+            console.log(`💥 [DART-UI] Early BUST detected: ${playerData.score} - ${throwTotal} = ${newScore}`);
+            return true;
+        }
+        
+        // Prüfe Double-Out Regel für Score 1
+        if (this.core.gameRules?.doubleOut && newScore === 1) {
+            console.log(`💥 [DART-UI] Early BUST detected: Can't finish on 1 with double-out`);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Handle early bust detection
+     */
+    handleEarlyBust() {
+        // ✅ KORRIGIERT: Bestimme Spieler VOR processThrow
+        const bustedPlayerNumber = this.core.gameState.currentPlayer;
+        const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
+        
+        const dart1 = this.keypadState.darts[0]?.score || 0;
+        const dart2 = this.keypadState.darts[1]?.score || 0;
+        const dart3 = this.keypadState.darts[2]?.score || 0;
+        
+        console.log('💥 [DART-UI] Processing early BUST for player', bustedPlayerNumber, 'with darts:', [dart1, dart2, dart3]);
+        
+        const result = this.core.processThrow(dart1, dart2, dart3);
+        
+        if (result.success && result.type === 'bust') {
+            this.resetKeypad();
+            this.updatePlayerDisplays();
+            this.updateThrowHistory();
+            this.updateGameStatus();
+            
+            // ✅ KORRIGIERT: Zeige BUSTED Animation mit korrektem Spieler
+            const animationResult = {
+                ...result,
+                bustedPlayer: bustedPlayerNumber,
+                bustedPlayerName: bustedPlayerName
+            };
+            
+            this.showBustedAnimationForPlayer(bustedPlayerNumber, bustedPlayerName);
+            
+            setTimeout(() => {
+                this.hideBustedAnimation();
+            }, 2500);
+            
+            console.log('💥 [DART-UI] Early BUST processed for player:', bustedPlayerName);
+        }
+    }
+
+    /**
+     * Show BUSTED animation for specific player
+     */
+    showBustedAnimationForPlayer(playerNumber, playerName) {
+        this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
+        this.elements.bustedDetails.innerHTML = `<strong>${playerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
+        
+        this.elements.bustedAnimation.classList.remove('hidden');
+        
+        // Sound-Effekt für Bust
+        this.playBustedSound();
+        
+        console.log('💥 [DART-UI] BUSTED animation displayed for player:', playerName, 'Number:', playerNumber);
     }
 
     /**
@@ -687,10 +799,27 @@ class DartScoringUI {
 
         const match = this.core.matchData;
         const gameState = this.core.gameState;
+        const gameRules = this.core.gameRules;
+        
+        // ✅ ERWEITERT: Match-Regeln in der Meta-Anzeige
+        const legsToWin = gameRules?.legsToWinSet || gameRules?.legsToWin || 2;
+        const setsToWin = gameRules?.setsToWin || 1;
+        const startingScore = this.core.getStartingScore();
+        const doubleOut = gameRules?.doubleOut ? ' D.Out' : '';
+        
+        let rulesText = '';
+        if (setsToWin > 1) {
+            // Best of Sets Format: "Best of 5 Sets • First to 3 Legs per Set"
+            const totalSets = (setsToWin * 2) - 1; // Best of X berechnen
+            rulesText = `Best of ${totalSets} Sets • First to ${legsToWin} Legs`;
+        } else {
+            // First to Legs Format: "First to 3 Legs"
+            rulesText = `First to ${legsToWin} Legs`;
+        }
 
         // Update header
         this.elements.gameTitle.textContent = `🎯 ${match.displayName}`;
-        this.elements.gameMeta.textContent = `${this.core.gameRules?.gameMode || '501'} • Leg ${gameState.currentLeg} • Set ${gameState.currentSet}`;
+        this.elements.gameMeta.textContent = `${startingScore}${doubleOut} • ${rulesText} • Leg ${gameState.currentLeg} • Set ${gameState.currentSet}`;
 
         // Update player names
         this.elements.player1Name.textContent = match.player1?.name || 'Spieler 1';
@@ -705,7 +834,7 @@ class DartScoringUI {
         // Show game container
         this.showGame();
 
-        console.log('📄 [DART-UI] Match display updated with keypad');
+        console.log('📄 [DART-UI] Match display updated with rules:', rulesText);
     }
 
     /**
@@ -822,7 +951,13 @@ class DartScoringUI {
                 }, 3000);
                 
             } else if (result.type === 'bust') {
-                this.showMessage(result.message, 'warning');
+                // Zeige BUSTED Animation
+                this.showBustedAnimation(result);
+                
+                // Nach 2.5 Sekunden Animation ausblenden und weiter
+                setTimeout(() => {
+                    this.hideBustedAnimation();
+                }, 2500);
             } else {
                 this.showMessage(result.message, 'success');
             }
@@ -872,6 +1007,61 @@ class DartScoringUI {
         this.hideWinAnimation();
         const lastResult = { type: 'leg_won' };
         this.showVictoryModal(lastResult);
+    }
+
+    /**
+     * Show BUSTED animation for overshot
+     */
+    showBustedAnimation(result) {
+        // ✅ KORRIGIERT: Bestimme Spieler VOR Spielerwechsel
+        // Der Spieler der sich überworfen hat ist noch der aktuelle Spieler
+        // (processThrow wechselt erst NACH der BUST-Verarbeitung)
+        const bustedPlayerNumber = this.core.gameState.currentPlayer;
+        const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
+        
+        this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
+        this.elements.bustedDetails.innerHTML = `<strong>${bustedPlayerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
+        
+        this.elements.bustedAnimation.classList.remove('hidden');
+        
+        // Sound-Effekt für Bust
+        this.playBustedSound();
+        
+        console.log('💥 [DART-UI] BUSTED animation displayed for player:', bustedPlayerName, 'Player Number:', bustedPlayerNumber);
+    }
+
+    /**
+     * Hide BUSTED animation
+     */
+    hideBustedAnimation() {
+        this.elements.bustedAnimation.classList.add('hidden');
+        console.log('🎯 [DART-UI] BUSTED animation hidden');
+    }
+
+    /**
+     * Play BUSTED sound effect
+     */
+    playBustedSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkit.AudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Tieferer, härterer Ton für BUSTED
+            oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.8);
+            
+            gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.8);
+        } catch (error) {
+            console.log('🔇 [DART-UI] Audio not supported');
+        }
     }
 
     /**
@@ -1046,7 +1236,6 @@ class DartScoringUI {
         const playerName = this.core.getPlayerName(this.core.gameState.currentPlayer);
         
         let message = `<strong>${playerName}</strong> gewinnt das Leg!`;
-
 
         if (result.gameResult) {
             if (result.gameResult.type === 'set_won') {

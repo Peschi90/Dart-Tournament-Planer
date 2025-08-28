@@ -147,16 +147,19 @@ class DartScoringCore {
             const throwScore = dart1 + dart2 + dart3;
             const currentPlayer = this.getCurrentPlayer();
             const newScore = currentPlayer.score - throwScore;
+            
+            // ✅ ERWEITERT: Bestimme aktuellen Spieler VOR Änderungen
+            const throwingPlayerNumber = this.gameState.currentPlayer;
 
             console.log('🎯 [DART-CORE] Processing throw:', {
-                player: this.gameState.currentPlayer,
+                player: throwingPlayerNumber,
                 darts: [dart1, dart2, dart3],
                 total: throwScore,
                 oldScore: currentPlayer.score,
                 newScore
             });
 
-            // ✅ ERWEITERT: Bestimme welcher Dart der letzte war (für Double-Out)
+            // Bestimme welcher Dart der letzte war (für Double-Out)
             let lastDartScore = 0;
             if (dart3 > 0) lastDartScore = dart3;
             else if (dart2 > 0) lastDartScore = dart2;
@@ -164,11 +167,11 @@ class DartScoringCore {
 
             // Check for bust
             if (this.isBust(newScore, lastDartScore)) {
-                console.log('💥 [DART-CORE] Bust! Score reset to previous value');
+                console.log('💥 [DART-CORE] Bust! Score reset to previous value for player', throwingPlayerNumber);
                 
                 // Record bust throw
                 const throwEntry = {
-                    player: this.gameState.currentPlayer,
+                    player: throwingPlayerNumber, // ✅ KORRIGIERT: Spieler VOR Wechsel
                     darts: [dart1, dart2, dart3],
                     total: throwScore,
                     previousScore: currentPlayer.score,
@@ -181,27 +184,28 @@ class DartScoringCore {
                 this.gameState.throwHistory.unshift(throwEntry);
                 currentPlayer.throws.push(throwEntry);
                 
-                // Switch player
+                // Switch player NACH Bust-Recording
                 this.switchPlayer();
                 
                 return {
                     success: true,
                     type: 'bust',
                     message: 'Überworfen! Nächster Spieler ist dran.',
+                    bustedPlayer: throwingPlayerNumber, // ✅ NEU: Info über überworfenen Spieler
                     gameState: this.gameState
                 };
             }
 
             // Check for finish
             if (newScore === 0) {
-                console.log('🎉 [DART-CORE] Leg finished!');
+                console.log('🎉 [DART-CORE] Leg finished by player', throwingPlayerNumber);
                 
                 // Update score
                 currentPlayer.score = newScore;
                 
                 // Record winning throw
                 const throwEntry = {
-                    player: this.gameState.currentPlayer,
+                    player: throwingPlayerNumber,
                     darts: [dart1, dart2, dart3],
                     total: throwScore,
                     previousScore: currentPlayer.score + throwScore,
@@ -225,7 +229,8 @@ class DartScoringCore {
                 return {
                     success: true,
                     type: 'leg_won',
-                    message: `${this.getPlayerName(this.gameState.currentPlayer)} gewinnt das Leg!`,
+                    message: `${this.getPlayerName(throwingPlayerNumber)} gewinnt das Leg!`,
+                    winner: throwingPlayerNumber, // ✅ NEU: Explizite Winner-Info
                     gameState: this.gameState,
                     gameResult: result
                 };
@@ -236,7 +241,7 @@ class DartScoringCore {
             
             // Record throw
             const throwEntry = {
-                player: this.gameState.currentPlayer,
+                player: throwingPlayerNumber,
                 darts: [dart1, dart2, dart3],
                 total: throwScore,
                 previousScore: currentPlayer.score + throwScore,
@@ -499,29 +504,34 @@ class DartScoringCore {
      */
     checkGameCompletion() {
         const currentPlayer = this.getCurrentPlayer();
-        const legsToWin = this.gameRules?.legsToWinSet || 3;
-        const setsToWin = this.gameRules?.setsToWin || 3;
+        
+        // ✅ KORRIGIERT: Verwende tatsächliche Game Rules statt fest codierte Werte
+        const legsToWin = this.gameRules?.legsToWinSet || this.gameRules?.legsToWin || 2;
+        const setsToWin = this.gameRules?.setsToWin || 1;
+        
+        console.log('🔍 [DART-CORE] Checking game completion:', {
+            currentPlayerLegs: currentPlayer.legs,
+            legsToWin: legsToWin,
+            currentPlayerSets: currentPlayer.sets,
+            setsToWin: setsToWin,
+            gameRules: this.gameRules
+        });
 
         // Check if player won the set
         if (currentPlayer.legs >= legsToWin) {
             currentPlayer.sets++;
             
-            // ✅ NEU: Set-Anwurf-Logik
-            // Der Spieler der das Set NICHT gestartet hat, startet das neue Set
+            // Set-Anwurf-Logik
             this.gameState.setStartPlayer = this.gameState.setStartPlayer === 1 ? 2 : 1;
             this.gameState.legStartPlayer = this.gameState.setStartPlayer;
             
             // Reset legs for new set
+            const otherPlayer = currentPlayer === this.gameState.player1 ? this.gameState.player2 : this.gameState.player1;
             currentPlayer.legs = 0;
-            this.gameState.player1.legs = 0;
-            this.gameState.player2.legs = 0;
+            otherPlayer.legs = 0;
             this.gameState.currentSet++;
             
             console.log('🏆 [DART-CORE] Set won by player', this.gameState.currentPlayer);
-            console.log('🔄 [DART-CORE] New set - start player:', {
-                setStartPlayer: this.gameState.setStartPlayer,
-                legStartPlayer: this.gameState.legStartPlayer
-            });
             
             // Check if player won the match
             if (currentPlayer.sets >= setsToWin) {
@@ -540,6 +550,18 @@ class DartScoringCore {
                 winner: this.gameState.currentPlayer,
                 winnerName: this.getPlayerName(this.gameState.currentPlayer),
                 newSetStartPlayer: this.gameState.setStartPlayer
+            };
+        }
+
+        // ✅ NEU: Prüfe Match-Ende wenn nur ein Set gespielt wird (First to X Legs)
+        if (setsToWin === 1 && currentPlayer.legs >= legsToWin) {
+            this.gameState.isGameFinished = true;
+            console.log('🥇 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(First to', legsToWin, 'legs)');
+            
+            return {
+                type: 'match_won',
+                winner: this.gameState.currentPlayer,
+                winnerName: this.getPlayerName(this.gameState.currentPlayer)
             };
         }
 
