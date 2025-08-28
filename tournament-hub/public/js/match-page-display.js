@@ -357,6 +357,18 @@ class MatchPageDisplay {
                         <span class="rules-hint">📋 Spiel-Modus: Legs Only (Best of ${legsToWin})</span>
                     </div>
                 `}
+                
+                <div class="dart-scoring-section">
+                    <h4>🎯 Live-Dart-Scoring</h4>
+                    <p>Spielen Sie das Match mit echtem Dart-Scoring!</p>
+                    <button id="openDartScoringBtn" class="dart-scoring-button">
+                        🎯 Live-Dart-Scoring öffnen
+                    </button>
+                    <div class="divider">
+                        <span>oder</span>
+                    </div>
+                </div>
+                
                 <form id="matchResultForm" class="result-form">
                     ${playWithSets ? `
                         <div class="form-section">
@@ -422,6 +434,45 @@ class MatchPageDisplay {
         inputs.forEach(input => {
             input.addEventListener('input', () => this.validateFormInput(input));
         });
+
+        // Setup dart scoring button
+        const dartScoringBtn = document.getElementById('openDartScoringBtn');
+        if (dartScoringBtn) {
+            dartScoringBtn.addEventListener('click', () => this.handleOpenDartScoring());
+        }
+    }
+
+    /**
+     * Handle opening dart scoring page
+     */
+    handleOpenDartScoring() {
+        try {
+            // Get URL parameters to pass to dart scoring page
+            const urlParams = new URLSearchParams(window.location.search);
+            const tournamentId = urlParams.get('tournament') || urlParams.get('t');
+            const matchId = urlParams.get('match') || urlParams.get('m');
+            const uuid = urlParams.get('uuid');
+
+            if (!tournamentId || !matchId) {
+                console.error('❌ [MATCH-DISPLAY] Missing tournament or match ID for dart scoring');
+                return;
+            }
+
+            // Build dart scoring URL
+            let dartScoringUrl = `/dart-scoring.html?tournament=${tournamentId}&match=${matchId}`;
+            if (uuid === 'true') {
+                dartScoringUrl += '&uuid=true';
+            }
+
+            console.log('🎯 [MATCH-DISPLAY] Opening dart scoring page:', dartScoringUrl);
+
+            // Open in same window
+            window.location.href = dartScoringUrl;
+
+        } catch (error) {
+            console.error('❌ [MATCH-DISPLAY] Error opening dart scoring:', error);
+            alert('Fehler beim Öffnen der Dart-Scoring-Seite');
+        }
     }
 
     /**
@@ -492,6 +543,20 @@ class MatchPageDisplay {
                 submitBtn.innerHTML = '📤 Ergebnis übertragen';
             }
         }
+    }
+
+    /**
+     * Open dart scoring page
+     */
+    openDartScoring() {
+        const matchId = this.currentMatch.id;
+        if (!matchId) {
+            alert('Keine gültige Match-ID gefunden');
+            return;
+        }
+        
+        const dartScoringUrl = `/dart-scoring/live?id=${matchId}`;
+        window.open(dartScoringUrl, '_blank');
     }
 
     /**
@@ -1121,6 +1186,70 @@ const additionalStyles = `
             color: #2d3748;
         }
 
+        .dart-scoring-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+            color: white;
+        }
+
+        .dart-scoring-section h4 {
+            margin-bottom: 10px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .dart-scoring-section p {
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+
+        .dart-scoring-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .dart-scoring-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .divider span {
+            background: #f7fafc;
+            padding: 0 15px;
+            color: #718096;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .players-section {
                 grid-template-columns: 1fr;
@@ -1141,6 +1270,11 @@ const additionalStyles = `
 
             .score-value {
                 font-size: 1.5em;
+            }
+
+            .dart-scoring-button {
+                width: 100%;
+                padding: 12px 20px;
             }
         }
     </style>
