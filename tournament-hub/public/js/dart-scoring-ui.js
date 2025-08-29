@@ -1159,6 +1159,14 @@ class DartScoringUI {
      * Handle new leg start
      */
     handleNewLeg() {
+        // ✅ NEU: Prüfe ob Match beendet ist und behandle als "Match beenden"
+        if (this.core.gameState.isGameFinished) {
+            console.log('🏁 [DART-UI] Match is finished - triggering match finish instead of new leg');
+            this.handleFinishMatch();
+            return;
+        }
+        
+        // Normaler neues Leg Ablauf
         const result = this.core.startNewLeg();
 
         if (result.success) {
@@ -1179,20 +1187,60 @@ class DartScoringUI {
      * Handle match finish
      */
     async handleFinishMatch() {
-        const result = await this.core.submitMatchResult();
-        
-        if (result.success) {
-            this.hideVictoryModal();
-            this.showMessage('Match beendet und Ergebnis übermittelt!', 'success');
+        try {
+            console.log('🏁 [DART-UI] Initiating match finish with enhanced submission...');
             
-            setTimeout(() => {
-                const urlParams = new URLSearchParams(window.location.search);
-                const tournamentId = urlParams.get('tournament') || urlParams.get('t');
-                const matchId = urlParams.get('match') || urlParams.get('m');
-                window.location.href = `/match-page.html?tournament=${tournamentId}&match=${matchId}&uuid=true`;
-            }, 2000);
-        } else {
-            this.showMessage(result.message, 'error');
+            // Disable the button to prevent double-clicks
+            this.elements.finishMatchBtn.disabled = true;
+            this.elements.finishMatchBtn.textContent = 'Übertrage...';
+            
+            // Show submission progress
+            this.showMessage('📤 Übertrage Match-Ergebnis mit Statistiken...', 'info');
+            
+            // Use enhanced submission system
+            const result = await this.core.submitMatchResult();
+            
+            if (result.success) {
+                this.hideVictoryModal();
+                
+                // Show enhanced success message with statistics
+                let successMessage = '✅ Match-Ergebnis erfolgreich übertragen!';
+                
+                if (result.statistics) {
+                    const stats = result.statistics;
+                    successMessage += `\n📊 Übertragene Statistiken: Averages, ${stats.player1.maximums + stats.player2.maximums} x 180er`;
+                    
+                    if (stats.player1.highFinishes + stats.player2.highFinishes > 0) {
+                        successMessage += `, ${stats.player1.highFinishes + stats.player2.highFinishes} High Finishes`;
+                    }
+                    
+                    if (stats.player1.score26 + stats.player2.score26 > 0) {
+                        successMessage += `, ${stats.player1.score26 + stats.player2.score26} x 26er Scores`;
+                    }
+                }
+                
+                this.showMessage(successMessage, 'success');
+                
+                // ✅ NEU: Enhanced submission handles navigation automatisch
+                // The submission system will navigate back to tournament after success
+                console.log('✅ [DART-UI] Enhanced submission successful - navigation handled automatically');
+                
+            } else {
+                // Re-enable button on failure
+                this.elements.finishMatchBtn.disabled = false;
+                this.elements.finishMatchBtn.textContent = 'Match beenden';
+                
+                this.showMessage(`❌ Fehler: ${result.message}`, 'error');
+            }
+            
+        } catch (error) {
+            console.error('❌ [DART-UI] Error in enhanced match finish:', error);
+            
+            // Re-enable button on error
+            this.elements.finishMatchBtn.disabled = false;
+            this.elements.finishMatchBtn.textContent = 'Match beenden';
+            
+            this.showMessage(`❌ Fehler beim Beenden: ${error.message}`, 'error');
         }
     }
 
@@ -1245,8 +1293,34 @@ class DartScoringUI {
                 
             } else if (result.gameResult.type === 'match_won') {
                 message += `<br><br>🥇 <strong>Match gewonnen!</strong>`;
-                this.elements.newLegBtn.textContent = 'Match beenden';
-                this.elements.finishMatchBtn.style.display = 'none';
+                
+                // ✅ KORRIGIERT: Prüfe isGameFinished Flag für korrekte Button-Anzeige
+                if (this.core.gameState.isGameFinished) {
+                    this.elements.newLegBtn.textContent = 'Match beenden';
+                    this.elements.finishMatchBtn.style.display = 'none';
+                    
+                    console.log('✅ [DART-UI] Match is finished - showing "Match beenden" button');
+                } else {
+                    // Fallback: Zeige beide Buttons wenn Flag nicht gesetzt
+                    this.elements.newLegBtn.textContent = 'Neues Leg starten';
+                    this.elements.finishMatchBtn.style.display = 'block';
+                    
+                    console.warn('⚠️ [DART-UI] Match won but isGameFinished=false - showing both buttons');
+                }
+                
+                // Zeige Match-Statistiken bei Match-Ende
+                message += this.generateMatchStatsSummary();
+                
+                // Add submission status info
+                if (window.dartScoringApp && window.dartScoringApp.getSubmissionStatus) {
+                    const submissionStatus = window.dartScoringApp.getSubmissionStatus();
+                    
+                    if (submissionStatus.isConnected) {
+                        message += '<br><br><div style="color: #28a745; font-size: 0.9em;">🌐 WebSocket-Verbindung bereit für erweiterte Übertragung</div>';
+                    } else {
+                        message += '<br><br><div style="color: #ffc107; font-size: 0.9em;">⚠️ Standard-Übertragung wird verwendet</div>';
+                    }
+                }
             }
         } else {
             const nextStartPlayerName = this.core.getPlayerName(this.core.gameState.legStartPlayer === 1 ? 2 : 1);
@@ -1255,6 +1329,38 @@ class DartScoringUI {
 
         this.elements.victoryMessage.innerHTML = message;
         this.elements.victoryModal.classList.remove('hidden');
+    }
+
+    /**
+     * Generate match statistics summary for display
+     */
+    generateMatchStatsSummary() {
+        if (!window.dartScoringApp || !window.dartScoringApp.stats) return '';
+        
+        const stats = window.dartScoringApp.getCurrentStatistics();
+        
+        let summary = '<br><br><div style="text-align: left; background: #f7fafc; padding: 15px; border-radius: 8px; margin-top: 15px;">';
+        summary += '<strong>📊 Match-Statistiken:</strong><br><br>';
+        
+        // Player 1 Stats
+        summary += `<strong>${stats.player1.name}:</strong><br>`;
+        summary += `• Average: ${stats.player1.average}<br>`;
+        if (stats.player1.maximums > 0) summary += `• 180er: ${stats.player1.maximums}<br>`;
+        if (stats.player1.highFinishes > 0) summary += `• High Finishes (≥100): ${stats.player1.highFinishes}<br>`;
+        if (stats.player1.score26 > 0) summary += `• 26er Scores: ${stats.player1.score26}<br>`;
+        summary += `• Checkouts: ${stats.player1.checkouts}<br><br>`;
+        
+        // Player 2 Stats
+        summary += `<strong>${stats.player2.name}:</strong><br>`;
+        summary += `• Average: ${stats.player2.average}<br>`;
+        if (stats.player2.maximums > 0) summary += `• 180er: ${stats.player2.maximums}<br>`;
+        if (stats.player2.highFinishes > 0) summary += `• High Finishes (≥100): ${stats.player2.highFinishes}<br>`;
+        if (stats.player2.score26 > 0) summary += `• 26er Scores: ${stats.player2.score26}<br>`;
+        summary += `• Checkouts: ${stats.player2.checkouts}<br>`;
+        
+        summary += '</div>';
+        
+        return summary;
     }
 
     /**

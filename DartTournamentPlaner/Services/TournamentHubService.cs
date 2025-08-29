@@ -1,13 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Text;
 using System.Text.Json;
 using DartTournamentPlaner.Models;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Collections.Generic;
-using System.Linq;
+using DartTournamentPlaner.Services.HubWebSocket;
+using DartTournamentPlaner.Services.HubSync;
 
 namespace DartTournamentPlaner.Services;
 
@@ -27,12 +26,12 @@ public class HubMatchUpdateEventArgs : EventArgs
     public DateTime UpdatedAt { get; set; }
     public string Source { get; set; } = "hub";
     
-    // 🚨 HINZUGEFÜGT: Group-Information für eindeutige Match-Identifikation
+    // Group-Information für eindeutige Match-Identifikation
     public int? GroupId { get; set; }
     public string? GroupName { get; set; }
     public string? MatchType { get; set; }
     
-    // ✅ NEUE: UUID-Support für erweiterte Match-Identifikation
+    // UUID-Support für erweiterte Match-Identifikation
     public string? MatchUuid { get; set; }
     public string? OriginalMatchIdString { get; set; }
     
@@ -56,6 +55,7 @@ public class HubMatchUpdateEventArgs : EventArgs
 
 /// <summary>
 /// Service für die Kommunikation mit dem Tournament Hub
+/// REFACTORED: Hauptklasse delegiert an spezialisierte Manager
 /// </summary>
 public interface ITournamentHubService
 {
@@ -84,7 +84,8 @@ public interface ITournamentHubService
 }
 
 /// <summary>
-/// Implementierung des Tournament Hub Service mit WebSocket Support
+/// Implementierung des Tournament Hub Service mit modularer Architektur
+/// REFACTORED: Verwendet spezialisierte Manager für verschiedene Aufgaben
 /// </summary>
 public class TournamentHubService : ITournamentHubService, IDisposable
 {
@@ -94,21 +95,17 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     // Hub configuration
     public string HubUrl { get; set; }
     private readonly Dictionary<string, string> _hubData = new Dictionary<string, string>();
-    
-    // Disposal
-    private bool _isDisposed = false;
-    
-    // Heartbeat Timer
-    private System.Timers.Timer? _heartbeatTimer;
 
-    // WebSocket connection state
-    private ClientWebSocket? _webSocket;
-    private CancellationTokenSource? _webSocketCancellation;
-    private bool _isWebSocketConnected = false;
-    private string? _connectedEndpoint;
+    // Specialized Managers
+    private readonly WebSocketConnectionManager _connectionManager;
+    private readonly WebSocketMessageHandler _messageHandler;
+    private readonly TournamentDataSyncService _syncService;
+
+    // Current state
     private string? _currentTournamentId;
+    private bool _isDisposed = false;
 
-    // WebSocket events
+    // Events (delegated from managers)
     public event Action<HubMatchUpdateEventArgs>? OnMatchResultReceivedFromHub;
     public event Action<string, object>? OnTournamentUpdateReceived;
     public event Action<bool, string>? OnConnectionStatusChanged;
@@ -120,13 +117,26 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         _configService = configService;
         HubUrl = "https://dtp.i3ull3t.de:9443";
-        
+
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "DartTournamentPlaner/1.0");
         _httpClient.Timeout = TimeSpan.FromSeconds(30);
-        
-        DebugLog($"🎯 TournamentHubService initialized with Hub URL: {HubUrl}");
+
+        // Initialize specialized managers
+        _connectionManager = new WebSocketConnectionManager(HubUrl, DebugLog, ProcessWebSocketMessage);
+        _messageHandler = new WebSocketMessageHandler(DebugLog, SendMatchUpdateAcknowledgment, SendErrorAcknowledgment);
+        _syncService = new TournamentDataSyncService(_httpClient, HubUrl, DebugLog);
+
+        // Wire up events
+        _connectionManager.ConnectionStatusChanged += OnConnectionStatusChangedInternal;
+        _messageHandler.MatchResultReceived += OnMatchResultReceivedInternal;
+        _messageHandler.TournamentUpdateReceived += OnTournamentUpdateReceivedInternal;
+
+        DebugLog($"🎯 TournamentHubService initialized with modular architecture", "SUCCESS");
+        DebugLog($"🔗 Hub URL: {HubUrl}", "INFO");
     }
+
+    #region Debug Window Management
 
     /// <summary>
     /// Setzt das HubDebugWindow für erweiterte Logging-Ausgaben
@@ -135,11 +145,11 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         _debugWindow = debugWindow;
         DebugLog("🔧 Debug Window connected to TournamentHubService", "SUCCESS");
-        
-        // Aktualisiere Verbindungsstatus im Debug Window
-        if (_isWebSocketConnected)
+
+        // Update connection status in debug window
+        if (_connectionManager.IsConnected)
         {
-            _debugWindow?.UpdateConnectionStatus(true, $"WebSocket Connected ({_connectedEndpoint})");
+            _debugWindow?.UpdateConnectionStatus(true, "WebSocket Connected");
         }
         else
         {
@@ -164,10 +174,10 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     /// </summary>
     private void DebugLog(string message, string category = "INFO")
     {
-        // Immer an Visual Studio Debug senden
+        // Always send to Visual Studio Debug
         System.Diagnostics.Debug.WriteLine(message);
-        
-        // Auch an HubDebugWindow senden wenn verfügbar
+
+        // Also send to HubDebugWindow if available
         try
         {
             _debugWindow?.AddDebugMessage(message, category);
@@ -178,791 +188,78 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         }
     }
 
-    // =====================================
-    // WEBSOCKET IMPLEMENTATION
-    // =====================================
+    #endregion
+
+    #region WebSocket Operations (Delegated to Managers)
 
     /// <summary>
-    /// Initialisiert WebSocket-Verbindung zum Hub
+    /// Initialisiert WebSocket-Verbindung (delegiert an ConnectionManager)
     /// </summary>
     public async Task<bool> InitializeWebSocketAsync()
     {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("🔌 [PLANNER-WS] ===== INITIALIZING WEBSOCKET =====");
-            System.Diagnostics.Debug.WriteLine($"🔌 [PLANNER-WS] Hub URL: {HubUrl}");
-            
-            if (_webSocket != null && _webSocket.State == WebSocketState.Open)
-            {
-                System.Diagnostics.Debug.WriteLine("🔌 [PLANNER-WS] WebSocket already connected, skipping initialization");
-                return true;
-            }
-            
-            // Dispose existing WebSocket if any
-            await CloseWebSocketAsync();
-            
-            _webSocket = new ClientWebSocket();
-            _webSocketCancellation = new CancellationTokenSource();
-            
-            // Configure WebSocket
-            _webSocket.Options.SetRequestHeader("User-Agent", "DartTournamentPlaner-WebSocket/1.0");
-            
-            // Korrekte SSL WebSocket-Endpunkte für Tournament Hub
-            var wsUrl = HubUrl.Replace("https://", "wss://").Replace("http://", "ws://");
-            
-            // Teste SSL und HTTP WebSocket-Endpunkte in korrekter Reihenfolge
-            string[] possibleEndpoints = {
-                $"wss://dtp.i3ull3t.de:9444/ws",     // SSL WebSocket (bevorzugt)
-                $"ws://dtp.i3ull3t.de:9445/ws",      // HTTP WebSocket (fallback)
-                $"{wsUrl}/socket.io/?EIO=4&transport=websocket"  // Socket.IO fallback
-            };
-            
-            bool connected = false;
-            Exception lastException = null;
-            
-            foreach (var endpoint in possibleEndpoints)
-            {
-                try
-                {
-                    System.Diagnostics.Debug.WriteLine($"🔌 [PLANNER-WS] Trying endpoint: {endpoint}");
-                    
-                    // Reset WebSocket for each attempt
-                    _webSocket?.Dispose();
-                    _webSocket = new ClientWebSocket();
-                    _webSocket.Options.SetRequestHeader("User-Agent", "DartTournamentPlaner-WebSocket/1.0");
-                    
-                    // SSL-spezifische Konfiguration
-                    if (endpoint.StartsWith("wss://"))
-                    {
-                        // SSL WebSocket Optionen - robuster für Productions-SSL
-                        _webSocket.Options.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-                        {
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS] SSL Certificate validation:");
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   Subject: {certificate?.Subject}");
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   Issuer: {certificate?.Issuer}");
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   Valid from: {certificate?.GetEffectiveDateString()}");
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   Valid to: {certificate?.GetExpirationDateString()}");
-                            System.Diagnostics.Debug.WriteLine($"🔒 [PLANNER-WS]   SSL Policy Errors: {sslPolicyErrors}");
-                            
-                            // Für Productions-SSL: Akzeptiere auch selbst-signierte Zertifikate
-                            return true;
-                        };
-                        
-                        // SSL-spezifische WebSocket-Optionen
-                        _webSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
-                    }
-                    
-                    // Allgemeine WebSocket-Konfiguration für Stabilität
-                    _webSocket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
-                    
-                    var uri = new Uri(endpoint);
-                    
-                    // Längerer Timeout für SSL-Verbindungen
-                    var connectionTimeout = endpoint.StartsWith("wss://") ? 30 : 15;
-                    var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(connectionTimeout));
-                    
-                    System.Diagnostics.Debug.WriteLine($"🔌 [PLANNER-WS] Attempting connection with {connectionTimeout}s timeout...");
-                    
-                    await _webSocket.ConnectAsync(uri, timeoutCts.Token);
-                    
-                    if (_webSocket.State == WebSocketState.Open)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"✅ [PLANNER-WS] Connected successfully to: {endpoint}");
-                        System.Diagnostics.Debug.WriteLine($"🔍 [PLANNER-WS] WebSocket SubProtocol: {_webSocket.SubProtocol}");
-                        System.Diagnostics.Debug.WriteLine($"🔍 [PLANNER-WS] WebSocket State: {_webSocket.State}");
-                        System.Diagnostics.Debug.WriteLine($"🔍 [PLANNER-WS] Keep-Alive Interval: {_webSocket.Options.KeepAliveInterval}");
-                        
-                        _connectedEndpoint = endpoint;
-                        connected = true;
-                        break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Failed to connect to {endpoint}: {ex.Message}");
-                    lastException = ex;
-                    continue;
-                }
-            }
-            
-            if (!connected)
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] All WebSocket connection attempts failed");
-                System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Last error: {lastException?.Message}");
-                
-                _isWebSocketConnected = false;
-                OnConnectionStatusChanged?.Invoke(false, $"Connection failed: {lastException?.Message}");
-                
-                return false;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"✅ [PLANNER-WS] WebSocket state: {_webSocket.State}");
-            System.Diagnostics.Debug.WriteLine($"🔗 [PLANNER-WS] Connected endpoint: {_connectedEndpoint}");
-            
-            _isWebSocketConnected = true;
-            OnConnectionStatusChanged?.Invoke(true, $"WebSocket Connected ({_connectedEndpoint})");
-            
-            // Start listening for messages
-            _ = Task.Run(ListenForWebSocketMessages);
-            
-            System.Diagnostics.Debug.WriteLine("✅ [PLANNER-WS] WebSocket connection established successfully");
-            System.Diagnostics.Debug.WriteLine("🔌 [PLANNER-WS] ===== WEBSOCKET INITIALIZATION COMPLETE =====");
-            
-            return true;
-            
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Error initializing WebSocket: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Stack trace: {ex.StackTrace}");
-            _isWebSocketConnected = false;
-            OnConnectionStatusChanged?.Invoke(false, $"Connection Error: {ex.Message}");
-            return false;
-        }
+        DebugLog("🔌 [HUB-SERVICE] Initializing WebSocket via ConnectionManager...", "WEBSOCKET");
+        return await _connectionManager.InitializeAsync();
     }
 
     /// <summary>
-    /// Lauscht auf WebSocket-Nachrichten mit Keep-Alive
-    /// </summary>
-    private async Task ListenForWebSocketMessages()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("👂 [PLANNER-WS] Starting to listen for WebSocket messages...");
-            var buffer = new byte[8192];
-            
-            // Start Heartbeat-Timer für Keep-Alive
-            _heartbeatTimer = new System.Timers.Timer(30000); // 30 Sekunden
-            _heartbeatTimer.Elapsed += async (sender, e) => await SendHeartbeat();
-            _heartbeatTimer.Start();
-            
-            System.Diagnostics.Debug.WriteLine("💓 [PLANNER-WS] Heartbeat timer started (30s interval)");
-            
-            while (_webSocket?.State == WebSocketState.Open && !_webSocketCancellation.Token.IsCancellationRequested)
-            {
-                try
-                {
-                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-                    using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(_webSocketCancellation.Token, timeoutCts.Token);
-                    
-                    var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), combinedCts.Token);
-                    
-                    if (result.MessageType == WebSocketMessageType.Text)
-                    {
-                        var messageJson = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        System.Diagnostics.Debug.WriteLine($"📥 [PLANNER-WS] Raw WebSocket message received ({result.Count} bytes): {messageJson}");
-                        
-                        await ProcessWebSocketMessage(messageJson);
-                    }
-                    else if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"🔌 [PLANNER-WS] WebSocket close message received: {result.CloseStatus} - {result.CloseStatusDescription}");
-                        break;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    System.Diagnostics.Debug.WriteLine("⏰ [PLANNER-WS] WebSocket receive operation cancelled or timed out");
-                    break;
-                }
-                catch (WebSocketException wsEx)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🔌 [PLANNER-WS] WebSocket exception: {wsEx.Message}");
-                    break;
-                }
-            }
-            
-            _heartbeatTimer?.Stop();
-            _heartbeatTimer?.Dispose();
-            _heartbeatTimer = null;
-            
-            System.Diagnostics.Debug.WriteLine($"👂 [PLANNER-WS] Stopped listening. WebSocket state: {_webSocket?.State}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Error listening to WebSocket: {ex.Message}");
-        }
-        finally
-        {
-            _isWebSocketConnected = false;
-            OnConnectionStatusChanged?.Invoke(false, "WebSocket Disconnected");
-            
-            // Automatischer Reconnect nach 5 Sekunden
-            if (!_webSocketCancellation.Token.IsCancellationRequested)
-            {
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(5000);
-                    if (!_webSocketCancellation.Token.IsCancellationRequested)
-                    {
-                        await InitializeWebSocketAsync();
-                    }
-                });
-            }
-        }
-    }
-
-    /// <summary>
-    /// WebSocket Message Processing
+    /// Verarbeitet WebSocket-Nachrichten (delegiert an MessageHandler)
     /// </summary>
     private async Task ProcessWebSocketMessage(string messageJson)
     {
-        try
-        {
-            var message = JsonSerializer.Deserialize<JsonElement>(messageJson);
-            
-            if (message.TryGetProperty("type", out var typeElement))
-            {
-                var messageType = typeElement.GetString();
-                
-                switch (messageType)
-                {
-                    case "welcome":
-                        HandleWelcomeMessage(message);
-                        break;
-                    case "subscription-confirmed":
-                        HandleSubscriptionConfirmed(message);
-                        break;
-                    case "planner-registration-confirmed":
-                        HandlePlannerRegistrationConfirmed(message);
-                        break;
-                    case "tournament-match-updated":
-                        await HandleTournamentMatchUpdate(message);
-                        break;
-                    case "heartbeat-ack":
-                        HandleHeartbeatAck(message);
-                        break;
-                    case "error":
-                        HandleErrorMessage(message);
-                        break;
-                    default:
-                        System.Diagnostics.Debug.WriteLine($"❓ [PLANNER-WS] Unknown message type: {messageType}");
-                        break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ [PLANNER-WS] Error processing WebSocket message: {ex.Message}");
-        }
+        await _messageHandler.ProcessWebSocketMessage(messageJson);
     }
 
-    // WebSocket Message Handlers (vereinfacht)
-    private void HandleWelcomeMessage(JsonElement message)
-    {
-        var clientId = message.TryGetProperty("clientId", out var clientIdElement) ? clientIdElement.GetString() : "unknown";
-        OnConnectionStatusChanged?.Invoke(true, $"WebSocket Connected (ID: {clientId})");
-        _debugWindow?.UpdateConnectionStatus(true, $"WebSocket Connected (ID: {clientId})");
-    }
-
-    private void HandleErrorMessage(JsonElement message)
-    {
-        var error = message.TryGetProperty("error", out var errorElement) ? errorElement.GetString() : "Unknown error";
-        OnConnectionStatusChanged?.Invoke(false, $"Server Error: {error}");
-        _debugWindow?.UpdateConnectionStatus(false, $"Server Error: {error}");
-    }
-
-    private void HandleHeartbeatAck(JsonElement message)
-    {
-        DebugLog($"💓 [PLANNER-WS] Heartbeat acknowledged", "WEBSOCKET");
-    }
-
-    private void HandleSubscriptionConfirmed(JsonElement message)
-    {
-        var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
-        OnConnectionStatusChanged?.Invoke(true, $"Subscribed to {tournamentId}");
-    }
-
-    private void HandlePlannerRegistrationConfirmed(JsonElement message)
-    {
-        var success = message.TryGetProperty("success", out var successElement) && successElement.GetBoolean();
-        var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
-        
-        if (success)
-        {
-            OnConnectionStatusChanged?.Invoke(true, $"Registered as Planner for {tournamentId}");
-        }
-        else
-        {
-            OnConnectionStatusChanged?.Invoke(false, "Planner registration failed");
-        }
-    }
-
-    private async Task HandleTournamentMatchUpdate(JsonElement message)
-    {
-        try
-        {
-            DebugLog($"📥 [PLANNER-WS] ===== MATCH UPDATE RECEIVED =====", "MATCH_RESULT");
-            DebugLog($"📥 [PLANNER-WS] Raw tournament match update message:", "MATCH_RESULT");
-            DebugLog($"📥 [PLANNER-WS] {JsonSerializer.Serialize(message, new JsonSerializerOptions { WriteIndented = true })}", "MATCH_RESULT");
-            
-            // Sende sofortige Empfangsbestätigung an Server
-            await SendMatchUpdateAcknowledgment(message);
-            
-            var isMatchResult = message.TryGetProperty("matchResultHighlight", out var highlightElement) && highlightElement.GetBoolean();
-            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdEl) ? tournamentIdEl.GetString() : "unknown";
-            
-            DebugLog($"🏆 [PLANNER-WS] Tournament Match Update for: {tournamentId}", "MATCH_RESULT");
-            DebugLog($"🎯 [PLANNER-WS] Match Result Highlight: {isMatchResult}", "MATCH_RESULT");
-            
-            // ERWEITERT: Mehrere Wege um Match Update zu extrahieren
-            JsonElement matchUpdateElement = default;
-            bool hasMatchUpdate = false;
-            
-            // Priorität 1: matchUpdate Property (direkt)
-            if (message.TryGetProperty("matchUpdate", out matchUpdateElement))
-            {
-                hasMatchUpdate = true;
-                DebugLog($"✅ [PLANNER-WS] Found matchUpdate property", "MATCH_RESULT");
-            }
-            // Priorität 2: Fallback zu result Property
-            else if (message.TryGetProperty("result", out matchUpdateElement))
-            {
-                hasMatchUpdate = true;
-                DebugLog($"✅ [PLANNER-WS] Using result property as matchUpdate fallback", "MATCH_RESULT");
-            }
-            // Priorität 3: Direkte Match-Daten im Root
-            else if (message.TryGetProperty("matchId", out var _))
-            {
-                matchUpdateElement = message;
-                hasMatchUpdate = true;
-                DebugLog($"✅ [PLANNER-WS] Using root message as matchUpdate", "MATCH_RESULT");
-            }
-            
-            if (hasMatchUpdate)
-            {
-                // ✅ KORRIGIERT: UUID-aware Match-ID Verarbeitung
-                string matchIdString = null;
-                string matchUuid = null;
-                int numericMatchId = 0;
-
-                // 1. Versuche Match ID zu extrahieren (mit String/UUID-Support)
-                if (matchUpdateElement.TryGetProperty("matchId", out var matchIdEl))
-                {
-                    matchIdString = matchIdEl.GetString() ?? matchIdEl.ToString();
-                }
-                else if (message.TryGetProperty("matchId", out var rootMatchIdEl))
-                {
-                    matchIdString = rootMatchIdEl.GetString() ?? rootMatchIdEl.ToString();
-                }
-
-                // 2. Versuche UUID separat zu extrahieren
-                if (matchUpdateElement.TryGetProperty("uniqueId", out var uuidEl))
-                {
-                    matchUuid = uuidEl.GetString();
-                }
-                else if (matchUpdateElement.TryGetProperty("result", out var resultEl) && 
-                         resultEl.TryGetProperty("uniqueId", out var resultUuidEl))
-                {
-                    matchUuid = resultUuidEl.GetString();
-                }
-
-                // 3. Versuche numerische ID zu extrahieren
-                if (matchUpdateElement.TryGetProperty("numericMatchId", out var numericIdEl) && 
-                    numericIdEl.TryGetInt32(out var numericId))
-                {
-                    numericMatchId = numericId;
-                }
-                else if (matchUpdateElement.TryGetProperty("result", out var resultElement) && 
-                         resultElement.TryGetProperty("numericMatchId", out var resultNumericIdEl))
-                {
-                    if (resultNumericIdEl.ValueKind == JsonValueKind.Number && 
-                        resultNumericIdEl.TryGetInt32(out var resultNumericId))
-                    {
-                        numericMatchId = resultNumericId;
-                    }
-                    else if (resultNumericIdEl.ValueKind == JsonValueKind.String)
-                    {
-                        var numericString = resultNumericIdEl.GetString();
-                        if (int.TryParse(numericString, out var parsedId))
-                        {
-                            numericMatchId = parsedId;
-                        }
-                    }
-                }
-
-                // 4. Fallback: Versuche Match ID als Numeric zu parsen (nur wenn es nicht UUID ist)
-                if (numericMatchId == 0 && matchIdString != null)
-                {
-                    if (int.TryParse(matchIdString, out var parsedMatchId))
-                    {
-                        numericMatchId = parsedMatchId;
-                        DebugLog($"✅ [PLANNER-WS] Parsed match ID as numeric: {numericMatchId}", "MATCH_RESULT");
-                    }
-                    else if (matchIdString.Contains("-") && matchIdString.Length > 30)
-                    {
-                        // Das ist wahrscheinlich eine UUID
-                        matchUuid = matchIdString;
-                        DebugLog($"✅ [PLANNER-WS] Detected match ID as UUID: {matchUuid}", "MATCH_RESULT");
-                    }
-                    else
-                    {
-                        DebugLog($"⚠️ [PLANNER-WS] Could not parse match ID: '{matchIdString}'", "WARNING");
-                    }
-                }
-
-                DebugLog($"🔍 [PLANNER-WS] Match identification extracted:", "MATCH_RESULT");
-                DebugLog($"   Original Match ID String: {matchIdString}", "MATCH_RESULT");
-                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
-                DebugLog($"   Numeric ID: {numericMatchId}", "MATCH_RESULT");
-                
-                // Erweiterte Result-Extraktion
-                var result = matchUpdateElement.TryGetProperty("result", out var resultEl2) ? resultEl2 : matchUpdateElement;
-                
-                // Detaillierte Score-Extraktion mit Debugging
-                var player1Sets = ExtractIntValue(result, "player1Sets", "Player1Sets") ?? 0;
-                var player2Sets = ExtractIntValue(result, "player2Sets", "Player2Sets") ?? 0;
-                var player1Legs = ExtractIntValue(result, "player1Legs", "Player1Legs") ?? 0;
-                var player2Legs = ExtractIntValue(result, "player2Legs", "Player2Legs") ?? 0;
-                var notes = ExtractStringValue(result, "notes", "Notes") ?? "";
-                var status = ExtractStringValue(result, "status", "Status") ?? "Finished";
-                
-                DebugLog($"📊 [PLANNER-WS] Extracted Match Data:", "MATCH_RESULT");
-                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
-                DebugLog($"   Numeric ID: {numericMatchId}", "MATCH_RESULT");
-                DebugLog($"   Player 1: {player1Sets} Sets, {player1Legs} Legs", "MATCH_RESULT");
-                DebugLog($"   Player 2: {player2Sets} Sets, {player2Legs} Legs", "MATCH_RESULT");
-                DebugLog($"   Status: {status}", "MATCH_RESULT");
-                DebugLog($"   Notes: {notes}", "MATCH_RESULT");
-                DebugLog($"   Source: {(isMatchResult ? "hub-match-result" : "hub-websocket-direct")}", "MATCH_RESULT");
-                
-                // Erweiterte Class-ID Extraktion
-                var classId = ExtractIntValue(result, "classId", "ClassId") ?? 
-                              ExtractIntValue(matchUpdateElement, "classId", "ClassId") ?? 
-                              ExtractIntValue(message, "classId", "ClassId") ?? 1;
-                
-                DebugLog($"📚 [PLANNER-WS] Tournament Class ID: {classId}", "MATCH_RESULT");
-                
-                // 🚨 ERWEITERT: Verbesserte Group-Information Extraktion mit Round-Informationen
-                var groupId = ExtractIntValue(result, "groupId", "GroupId") ?? 
-                              ExtractIntValue(matchUpdateElement, "groupId", "GroupId") ?? 
-                              ExtractIntValue(message, "groupId", "GroupId");
-                
-                var groupName = ExtractStringValue(result, "groupName", "GroupName") ?? 
-                                ExtractStringValue(matchUpdateElement, "groupName", "GroupName") ?? 
-                                ExtractStringValue(message, "groupName", "GroupName");
-                
-                var matchType = ExtractStringValue(result, "matchType", "MatchType") ?? 
-                                ExtractStringValue(matchUpdateElement, "matchType", "MatchType") ?? 
-                                ExtractStringValue(message, "matchType", "MatchType") ?? "Group";
-                
-                // 🚨 NEUE: Round-Information für KO-Matches extrahieren
-                var round = ExtractStringValue(result, "round", "Round") ?? 
-                           ExtractStringValue(matchUpdateElement, "round", "Round") ?? 
-                           ExtractStringValue(message, "round", "Round");
-                
-                var position = ExtractIntValue(result, "position", "Position") ?? 
-                              ExtractIntValue(matchUpdateElement, "position", "Position") ?? 
-                              ExtractIntValue(message, "position", "Position");
-                
-                DebugLog($"📋 [PLANNER-WS] Match Identification:", "MATCH_RESULT");
-                DebugLog($"   Group ID: {groupId?.ToString() ?? "None"}", "MATCH_RESULT");
-                DebugLog($"   Group Name: {groupName ?? "None"}", "MATCH_RESULT");
-                DebugLog($"   Match Type: {matchType}", "MATCH_RESULT");
-                DebugLog($"   Round: {round ?? "None"}", "MATCH_RESULT");
-                DebugLog($"   Position: {position?.ToString() ?? "None"}", "MATCH_RESULT");
-                
-                // ✅ KORRIGIERT: Erstelle HubMatchUpdateEventArgs mit UUID-Unterstützung
-                var matchUpdate = new HubMatchUpdateEventArgs
-                {
-                    // Verwende numeric ID für interne Verarbeitung (0 wenn keine vorhanden)
-                    MatchId = numericMatchId,
-                    ClassId = classId,
-                    Player1Sets = player1Sets,
-                    Player2Sets = player2Sets,
-                    Player1Legs = player1Legs,
-                    Player2Legs = player2Legs,
-                    Status = status,
-                    Notes = notes,
-                    UpdatedAt = DateTime.Now,
-                    Source = isMatchResult ? "hub-match-result" : "hub-websocket-direct",
-                    // 🚨 ERWEITERT: Verbesserte Match-Identifikation
-                    GroupId = groupId,
-                    GroupName = groupName,
-                    MatchType = matchType,
-                    // ✅ NEUE: UUID-Informationen hinzufügen
-                    MatchUuid = matchUuid,
-                    OriginalMatchIdString = matchIdString
-                };
-                
-                DebugLog($"🎯 [PLANNER-WS] TRIGGERING OnMatchResultReceivedFromHub EVENT", "MATCH_RESULT");
-                DebugLog($"🔔 [PLANNER-WS] Event subscribers count: {OnMatchResultReceivedFromHub?.GetInvocationList()?.Length ?? 0}", "MATCH_RESULT");
-                DebugLog($"🆔 [PLANNER-WS] Match identification summary:", "MATCH_RESULT");
-                DebugLog($"   Using Numeric ID: {numericMatchId} (for internal processing)", "MATCH_RESULT");
-                DebugLog($"   UUID: {matchUuid ?? "none"}", "MATCH_RESULT");
-                DebugLog($"   Original String: {matchIdString}", "MATCH_RESULT");
-                
-                // Triggere Event für UI-Update mit erweiterten Informationen
-                OnMatchResultReceivedFromHub?.Invoke(matchUpdate);
-                
-                DebugLog($"✅ [PLANNER-WS] Match update event triggered successfully!", "SUCCESS");
-                DebugLog($"📤 [PLANNER-WS] Match update forwarded to Tournament Planner UI", "SUCCESS");
-                
-            }
-            else
-            {
-                DebugLog($"⚠️ [PLANNER-WS] No match update data found in message", "WARNING");
-                DebugLog($"⚠️ [PLANNER-WS] Available properties: {string.Join(", ", GetJsonProperties(message))}", "WARNING");
-            }
-            
-            DebugLog($"📥 [PLANNER-WS] ===== MATCH UPDATE PROCESSING COMPLETE =====", "MATCH_RESULT");
-            
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ [PLANNER-WS] Error handling tournament match update: {ex.Message}", "ERROR");
-            DebugLog($"❌ [PLANNER-WS] Stack trace: {ex.StackTrace}", "ERROR");
-            
-            // Sende Fehler-Acknowledgment
-            await SendErrorAcknowledgment(ex.Message);
-        }
-    }
-
-    // Helper-Methoden für erweiterte Datenextraktion
-    private int? ExtractIntValue(JsonElement element, params string[] propertyNames)
-    {
-        foreach (var propName in propertyNames)
-        {
-            if (element.TryGetProperty(propName, out var propElement))
-            {
-                // ERWEITERT: Unterstützt sowohl Int32 als auch String-zu-Int Konvertierung
-                if (propElement.ValueKind == JsonValueKind.Number && propElement.TryGetInt32(out var intValue))
-                {
-                    DebugLog($"🔍 [PLANNER-WS] Extracted {propName} as number: {intValue}");
-                    return intValue;
-                }
-                else if (propElement.ValueKind == JsonValueKind.String)
-                {
-                    var stringValue = propElement.GetString();
-                    if (int.TryParse(stringValue, out var parsedInt))
-                    {
-                        DebugLog($"🔍 [PLANNER-WS] Extracted {propName} as string->int: '{stringValue}' -> {parsedInt}");
-                        return parsedInt;
-                    }
-                    else
-                    {
-                        DebugLog($"⚠️ [PLANNER-WS] Could not parse string to int for {propName}: '{stringValue}'", "WARNING");
-                    }
-                }
-                else
-                {
-                    DebugLog($"⚠️ [PLANNER-WS] Unexpected JsonValueKind for {propName}: {propElement.ValueKind}", "WARNING");
-                }
-            }
-        }
-        DebugLog($"⚠️ [PLANNER-WS] Could not extract int from properties: {string.Join(", ", propertyNames)}", "WARNING");
-        return null;
-    }
-    
-    private string? ExtractStringValue(JsonElement element, params string[] propertyNames)
-    {
-        foreach (var propName in propertyNames)
-        {
-            if (element.TryGetProperty(propName, out var propElement))
-            {
-                var stringValue = propElement.GetString();
-                if (!string.IsNullOrEmpty(stringValue))
-                {
-                    DebugLog($"🔍 [PLANNER-WS] Extracted {propName}: {stringValue}");
-                    return stringValue;
-                }
-            }
-        }
-        DebugLog($"⚠️ [PLANNER-WS] Could not extract string from properties: {string.Join(", ", propertyNames)}", "WARNING");
-        return null;
-    }
-    
-    private List<string> GetJsonProperties(JsonElement element)
-    {
-        var properties = new List<string>();
-        if (element.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var property in element.EnumerateObject())
-            {
-                properties.Add(property.Name);
-            }
-        }
-        return properties;
-    }
-
-    // NEUE FUNKTION: Empfangsbestätigung an Hub senden
-    private async Task SendMatchUpdateAcknowledgment(JsonElement message)
-    {
-        try
-        {
-            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdEl) ? tournamentIdEl.GetString() : _currentTournamentId;
-            var matchId = "unknown";
-            
-            // Versuche Match ID zu extrahieren (mit String-Support)
-            if (message.TryGetProperty("matchUpdate", out var matchUpdateEl))
-            {
-                if (matchUpdateEl.TryGetProperty("matchId", out var matchIdEl))
-                {
-                    matchId = matchIdEl.ToString();
-                }
-            }
-            else if (message.TryGetProperty("matchId", out var directMatchIdEl))
-            {
-                matchId = directMatchIdEl.ToString();
-            }
-            
-            var acknowledgment = new
-            {
-                type = "match-update-acknowledged",
-                tournamentId = tournamentId,
-                matchId = matchId,
-                timestamp = DateTime.Now.ToString("o"),
-                clientType = "Tournament Planner",
-                plannerVersion = "1.0",
-                receivedAt = DateTime.Now.ToString("o"),
-                status = "received_and_processed"
-            };
-            
-            DebugLog($"📤 [PLANNER-WS] Sending match update acknowledgment:", "WEBSOCKET");
-            DebugLog($"📤 [PLANNER-WS] Tournament: {tournamentId}, Match: {matchId}", "WEBSOCKET");
-            
-            await SendWebSocketMessage("match-update-acknowledged", acknowledgment);
-            
-            DebugLog($"✅ [PLANNER-WS] Match update acknowledgment sent successfully", "SUCCESS");
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ [PLANNER-WS] Failed to send match update acknowledgment: {ex.Message}", "ERROR");
-        }
-    }
-
-    // NEUE FUNKTION: Fehler-Acknowledgment senden
-    private async Task SendErrorAcknowledgment(string errorMessage)
-    {
-        try
-        {
-            var errorAck = new
-            {
-                type = "match-update-error",
-                tournamentId = _currentTournamentId,
-                error = errorMessage,
-                timestamp = DateTime.Now.ToString("o"),
-                clientType = "Tournament Planner",
-                status = "processing_failed"
-            };
-            
-            await SendWebSocketMessage("match-update-error", errorAck);
-            DebugLog($"📤 [PLANNER-WS] Error acknowledgment sent: {errorMessage}", "ERROR");
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ [PLANNER-WS] Failed to send error acknowledgment: {ex.Message}", "ERROR");
-        }
-    }
-
-    // WebSocket Operations
-    private async Task<bool> SendWebSocketMessage(string messageType, object data)
-    {
-        try
-        {
-            if (_webSocket?.State != WebSocketState.Open) return false;
-            
-            var message = new
-            {
-                type = messageType,
-                data = data,
-                timestamp = DateTime.Now.ToString("o")
-            };
-            
-            var messageJson = JsonSerializer.Serialize(message);
-            var messageBytes = Encoding.UTF8.GetBytes(messageJson);
-            
-            await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, _webSocketCancellation.Token);
-            
-            return true;
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ [PLANNER-WS] Error sending WebSocket message: {ex.Message}", "ERROR");
-            return false;
-        }
-    }
-
+    /// <summary>
+    /// Abonniert Tournament-Updates
+    /// </summary>
     public async Task<bool> SubscribeToTournamentAsync(string tournamentId)
     {
         _currentTournamentId = tournamentId;
-        return await SendWebSocketMessage("subscribe-tournament", tournamentId);
+        DebugLog($"📡 [HUB-SERVICE] Subscribing to tournament: {tournamentId}", "WEBSOCKET");
+        return await _connectionManager.SubscribeToTournamentAsync(tournamentId);
     }
 
+    /// <summary>
+    /// Deabonniert Tournament-Updates
+    /// </summary>
     public async Task<bool> UnsubscribeFromTournamentAsync(string tournamentId)
     {
-        return await SendWebSocketMessage("unsubscribe-tournament", tournamentId);
+        DebugLog($"📡 [HUB-SERVICE] Unsubscribing from tournament: {tournamentId}", "WEBSOCKET");
+        return await _connectionManager.UnsubscribeFromTournamentAsync(tournamentId);
     }
 
+    /// <summary>
+    /// Registriert als Planner
+    /// </summary>
     public async Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo)
     {
-        var data = new { tournamentId = tournamentId, plannerInfo = plannerInfo };
-        return await SendWebSocketMessage("register-planner", data);
+        DebugLog($"📋 [HUB-SERVICE] Registering as planner for: {tournamentId}", "WEBSOCKET");
+        return await _connectionManager.RegisterAsPlannerAsync(tournamentId, plannerInfo);
     }
 
-    private async Task SendHeartbeat()
-    {
-        try
-        {
-            if (_webSocket?.State == WebSocketState.Open)
-            {
-                await SendWebSocketMessage("heartbeat", new { 
-                    timestamp = DateTime.Now.ToString("o"),
-                    clientType = "Tournament Planner",
-                    tournamentId = _currentTournamentId
-                });
-                DebugLog($"💓 [PLANNER-WS] Heartbeat sent successfully", "WEBSOCKET");
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ [PLANNER-WS] Error sending heartbeat: {ex.Message}", "ERROR");
-        }
-    }
-
+    /// <summary>
+    /// Schließt WebSocket-Verbindung
+    /// </summary>
     public async Task CloseWebSocketAsync()
     {
-        try
-        {
-            _heartbeatTimer?.Stop();
-            _heartbeatTimer?.Dispose();
-            _heartbeatTimer = null;
-            
-            if (_webSocket != null)
-            {
-                _webSocketCancellation?.Cancel();
-                
-                if (_webSocket.State == WebSocketState.Open)
-                {
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
-                }
-                
-                _webSocket.Dispose();
-                _webSocket = null;
-            }
-            
-            _webSocketCancellation?.Dispose();
-            _webSocketCancellation = null;
-            
-            _isWebSocketConnected = false;
-            OnConnectionStatusChanged?.Invoke(false, "WebSocket Closed");
-            DebugLog("🔌 [PLANNER-WS] WebSocket connection closed", "WEBSOCKET");
-        }
-        catch (Exception ex)
-        {
-            DebugLog($"❌ Error closing WebSocket: {ex.Message}", "ERROR");
-        }
+        DebugLog("🔌 [HUB-SERVICE] Closing WebSocket connection...", "WEBSOCKET");
+        await _connectionManager.CloseAsync();
     }
 
-    // =====================================
-    // HTTP API METHODS 
-    // =====================================
+    #endregion
 
+    #region HTTP API Operations
+
+    /// <summary>
+    /// Registriert Tournament beim Hub
+    /// </summary>
     public async Task<bool> RegisterWithHubAsync(string tournamentId, string tournamentName, string description = null)
     {
         try
         {
             if (string.IsNullOrEmpty(tournamentId)) return false;
+
+            DebugLog($"📤 [HUB-SERVICE] Registering tournament with Hub: {tournamentId}", "API");
 
             string apiEndpoint = await DiscoverApiEndpoint();
             var registrationData = new
@@ -978,47 +275,30 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             var json = JsonSerializer.Serialize(registrationData, new JsonSerializerOptions { WriteIndented = true });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/register", content);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseText = await response.Content.ReadAsStringAsync();
-                
-                try
-                {
-                    var jsonDocument = JsonSerializer.Deserialize<JsonElement>(responseText);
-                    if (jsonDocument.TryGetProperty("success", out var successElement) && successElement.GetBoolean())
-                    {
-                        if (jsonDocument.TryGetProperty("data", out var dataElement))
-                        {
-                            if (dataElement.TryGetProperty("joinUrl", out var joinUrlElement))
-                            {
-                                _hubData[$"TournamentHub_Registration_{tournamentId}_JoinUrl"] = joinUrlElement.GetString() ?? "";
-                            }
-                            if (dataElement.TryGetProperty("websocketUrl", out var wsUrlElement))
-                            {
-                                _hubData[$"TournamentHub_Registration_{tournamentId}_WebsocketUrl"] = wsUrlElement.GetString() ?? "";
-                            }
-                        }
-                        
-                        _currentTournamentId = tournamentId;
-                        return true;
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [API] JSON parsing error: {ex.Message}");
-                }
+                ProcessRegistrationResponse(tournamentId, responseText);
+                _currentTournamentId = tournamentId;
+
+                DebugLog($"✅ [HUB-SERVICE] Tournament registered successfully: {tournamentId}", "SUCCESS");
+                return true;
             }
 
+            DebugLog($"❌ [HUB-SERVICE] Tournament registration failed: {response.StatusCode}", "ERROR");
             return false;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [API] Hub registration error: {ex.Message}");
+            DebugLog($"❌ [HUB-SERVICE] Hub registration error: {ex.Message}", "ERROR");
             return false;
         }
     }
 
+    /// <summary>
+    /// Sendet Heartbeat an Hub
+    /// </summary>
     public async Task<bool> SendHeartbeatAsync(string tournamentId, int activeMatches, int totalPlayers)
     {
         try
@@ -1027,7 +307,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             var json = JsonSerializer.Serialize(heartbeatData);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/{tournamentId}/heartbeat", content);
-            
+
+            if (response.IsSuccessStatusCode)
+            {
+                DebugLog($"💓 [HUB-SERVICE] Heartbeat sent successfully for: {tournamentId}", "API");
+            }
+
             return response.IsSuccessStatusCode;
         }
         catch
@@ -1036,16 +321,24 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Deregistriert Tournament vom Hub
+    /// </summary>
     public async Task<bool> UnregisterFromHubAsync(string tournamentId)
     {
         try
         {
+            DebugLog($"📤 [HUB-SERVICE] Unregistering tournament: {tournamentId}", "API");
+
             var response = await _httpClient.DeleteAsync($"{HubUrl}/api/tournaments/{tournamentId}");
             if (response.IsSuccessStatusCode)
             {
                 _hubData.Remove($"TournamentHub_Registration_{tournamentId}_JoinUrl");
+                DebugLog($"✅ [HUB-SERVICE] Tournament unregistered successfully: {tournamentId}", "SUCCESS");
                 return true;
             }
+
+            DebugLog($"❌ [HUB-SERVICE] Tournament unregistration failed: {response.StatusCode}", "ERROR");
             return false;
         }
         catch
@@ -1054,752 +347,130 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Synchronisiert Tournament-Daten (delegiert an SyncService)
+    /// </summary>
     public async Task<bool> SyncTournamentWithClassesAsync(string tournamentId, string tournamentName, TournamentData tournamentData)
+    {
+        DebugLog($"🔄 [HUB-SERVICE] Starting tournament sync via SyncService...", "SYNC");
+        return await _syncService.SyncTournamentWithClassesAsync(tournamentId, tournamentName, tournamentData);
+    }
+
+    #endregion
+
+    #region Event Handling (Internal)
+
+    private void OnConnectionStatusChangedInternal(bool isConnected, string status)
+    {
+        DebugLog($"🔌 [HUB-SERVICE] Connection status changed: {isConnected} - {status}", "WEBSOCKET");
+        OnConnectionStatusChanged?.Invoke(isConnected, status);
+    }
+
+    private void OnMatchResultReceivedInternal(HubMatchUpdateEventArgs eventArgs)
+    {
+        DebugLog($"📥 [HUB-SERVICE] Match result received: {eventArgs.GetMatchIdentificationSummary()}", "MATCH_RESULT");
+        OnMatchResultReceivedFromHub?.Invoke(eventArgs);
+    }
+
+    private void OnTournamentUpdateReceivedInternal(string tournamentId, object updateData)
+    {
+        DebugLog($"📥 [HUB-SERVICE] Tournament update received for: {tournamentId}", "TOURNAMENT");
+        OnTournamentUpdateReceived?.Invoke(tournamentId, updateData);
+    }
+
+    #endregion
+
+    #region WebSocket Message Acknowledgments
+
+    private async Task SendMatchUpdateAcknowledgment(JsonElement message)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"🔄 [API] Starting full tournament sync with ALL match types: {tournamentId}");
-            
-            var allMatches = new List<object>();
-            var tournamentClasses = new List<object>();
-            var gameRulesArray = new List<object>();
+            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdEl) ? tournamentIdEl.GetString() : _currentTournamentId;
+            var matchId = "unknown";
 
-            foreach (var tournamentClass in tournamentData.TournamentClasses)
+            // Versuche Match ID zu extrahieren
+            if (message.TryGetProperty("matchUpdate", out var matchUpdateEl))
             {
-                System.Diagnostics.Debug.WriteLine($"🎮 [API] Processing class {tournamentClass.Name} with Game Rules:");
-                System.Diagnostics.Debug.WriteLine($"   Game Mode: {tournamentClass.GameRules.GameMode}");
-                System.Diagnostics.Debug.WriteLine($"   Finish Mode: {tournamentClass.GameRules.FinishMode}"); 
-                System.Diagnostics.Debug.WriteLine($"   Legs to Win: {tournamentClass.GameRules.LegsToWin}");
-                System.Diagnostics.Debug.WriteLine($"   Sets to Win: {tournamentClass.GameRules.SetsToWin}");
-                System.Diagnostics.Debug.WriteLine($"   Play With Sets (Original): {tournamentClass.GameRules.PlayWithSets}");
-                System.Diagnostics.Debug.WriteLine($"   Legs per Set: {tournamentClass.GameRules.LegsPerSet}");
-                
-                // 🚨 KORRIGIERT: Debug-Ausgabe für PlayWithSets-Logik
-                var correctedPlayWithSets = tournamentClass.GameRules.PlayWithSets || tournamentClass.GameRules.SetsToWin > 1;
-                System.Diagnostics.Debug.WriteLine($"   🔧 CORRECTED Play With Sets: {correctedPlayWithSets} (Original: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin})");                
-                
-                // ERWEITERT: Zähle alle Match-Typen
-                int groupMatches = tournamentClass.Groups.Sum(g => g.Matches.Count);
-                int finalsMatches = tournamentClass.CurrentPhase?.FinalsGroup?.Matches.Count ?? 0;
-                int winnerBracketMatches = tournamentClass.CurrentPhase?.WinnerBracket?.Count ?? 0;
-                int loserBracketMatches = tournamentClass.CurrentPhase?.LoserBracket?.Count ?? 0;
-                int totalMatches = groupMatches + finalsMatches + winnerBracketMatches + loserBracketMatches;
-                
-                System.Diagnostics.Debug.WriteLine($"   📊 Match Count: Groups={groupMatches}, Finals={finalsMatches}, Winner={winnerBracketMatches}, Loser={loserBracketMatches}, Total={totalMatches}");
-                
-                tournamentClasses.Add(new
+                if (matchUpdateEl.TryGetProperty("matchId", out var matchIdEl))
                 {
-                    id = tournamentClass.Id,
-                    name = tournamentClass.Name,
-                    playerCount = tournamentClass.Groups.Sum(g => g.Players.Count),
-                    groupCount = tournamentClass.Groups.Count,
-                    matchCount = totalMatches, // KORRIGIERT: Alle Match-Typen einbeziehen
-                    phase = GetTournamentPhase(tournamentClass) // NEUE: Aktuelle Phase
-                });
-
-                // KORRIGIERT: Game Rules für jede Klasse hinzufügen
-                gameRulesArray.Add(new
-                {
-                    id = 1, // Default ID da GameRules keine ID-Property hat
-                    name = "Standard Regel",
-                    gamePoints = tournamentClass.GameRules.GamePoints,
-                    gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                    finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                    setsToWin = tournamentClass.GameRules.SetsToWin,
-                    legsToWin = tournamentClass.GameRules.LegsToWin,
-                    legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
-                    maxLegsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    playWithSets = tournamentClass.GameRules.PlayWithSets,
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    matchType = "Group", // Default da GameRules keine MatchType-Property hat
-                    isDefault = true // Default da GameRules keine IsDefault-Property hat
-                });
-
-                // 🎮 ERWEITERT: Rundenspezifische Game Rules für verschiedene Phasen
-                
-                // Finals-spezifische Game Rules (falls vorhanden)
-                if (tournamentClass.CurrentPhase?.FinalsGroup != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Adding Finals-specific GameRules for {tournamentClass.Name}");
-                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals Rules - PlayWithSets: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin}");
-                    
-                    gameRulesArray.Add(new
-                    {
-                        id = $"{tournamentClass.Id}_Finals",
-                        name = $"{tournamentClass.Name} Finalrunde",
-                        gamePoints = tournamentClass.GameRules.GamePoints,
-                        gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                        finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                        setsToWin = tournamentClass.GameRules.SetsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                        legsToWin = tournamentClass.GameRules.LegsToWin, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                        legsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                        maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
-                        maxLegsPerSet = tournamentClass.GameRules.LegsPerSet, // 🚨 KORRIGIERT: Exakter Wert vom Planer
-                        playWithSets = tournamentClass.GameRules.PlayWithSets, // 🚨 KORRIGIERT: Exakter Wert vom Planer ohne Logik-Modifikation
-                        classId = tournamentClass.Id,
-                        className = tournamentClass.Name,
-                        matchType = "Finals",
-                        isDefault = false
-                    });
-                }
-
-                // Winner Bracket spezifische Game Rules mit rundenabhängiger Eskalation
-                if (tournamentClass.CurrentPhase?.WinnerBracket != null)
-                {
-                    // Gruppiere Winner Bracket Matches nach Runden
-                    var winnerRounds = tournamentClass.CurrentPhase.WinnerBracket
-                        .GroupBy(m => m.Round)
-                        .ToList();
-
-                    foreach (var roundGroup in winnerRounds)
-                    {
-                        var round = roundGroup.Key;
-                        var matchCount = roundGroup.Count();
-                        
-                        // Ermittle eskalierte Regeln basierend auf der Runde
-                        var (setsToWin, legsToWin) = GetEscalatedRulesForWinnerBracket(round, tournamentClass.GameRules);
-                        
-                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
-                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
-                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
-                        {
-                            legsPerSet = roundRules.LegsPerSet;
-                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {round}: {legsPerSet}");
-                        }
-                        else
-                        {
-                            legsPerSet = Math.Max(tournamentClass.GameRules.LegsPerSet, legsToWin + 2);
-                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {round}: {legsPerSet}");
-                        }
-                        
-                        gameRulesArray.Add(new
-                        {
-                            id = $"{tournamentClass.Id}_WB_{round}",
-                            name = $"{tournamentClass.Name} {GetWinnerBracketRoundName(round)}",
-                            gamePoints = tournamentClass.GameRules.GamePoints,
-                            gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                            finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                            setsToWin = setsToWin,
-                            legsToWin = legsToWin,
-                            legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                            // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                            playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            matchType = $"Knockout-WB-{round}",
-                            round = round.ToString(),
-                            isDefault = false,
-                            matchCount = matchCount
-                        });
-                    }
-                }
-
-                // Loser Bracket spezifische Game Rules (generell schneller)
-                if (tournamentClass.CurrentPhase?.LoserBracket != null)
-                {
-                    var loserRounds = tournamentClass.CurrentPhase.LoserBracket
-                        .GroupBy(m => m.Round)
-                        .ToList();
-
-                    foreach (var roundGroup in loserRounds)
-                    {
-                        var round = roundGroup.Key;
-                        var matchCount = roundGroup.Count();
-                        
-                        // Loser Bracket hat generell kürzere Spiele
-                        var (setsToWin, legsToWin) = GetLoserBracketRules(round, tournamentClass.GameRules);
-                        
-                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
-                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
-                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
-                        {
-                            legsPerSet = roundRules.LegsPerSet;
-                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {round}: {legsPerSet}");
-                        }
-                        else
-                        {
-                            legsPerSet = Math.Max(3, legsToWin + 1);
-                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {round}: {legsPerSet}");
-                        }
-                        
-                        gameRulesArray.Add(new
-                        {
-                            id = $"{tournamentClass.Id}_LB_{round}",
-                            name = $"{tournamentClass.Name} {GetLoserBracketRoundName(round)}",
-                            gamePoints = tournamentClass.GameRules.GamePoints,
-                            gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                            finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                            setsToWin = setsToWin,
-                            legsToWin = legsToWin,
-                            legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                            // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                            playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            matchType = $"Knockout-LB-{round}",
-                            round = round.ToString(),
-                            isDefault = false,
-                            matchCount = matchCount
-                        });
-                }
-                }
-
-                // 1. GRUPPENPHASEN-MATCHES mit vollständiger UUID-Integration
-                foreach (var group in tournamentClass.Groups)
-                {
-                    foreach (var match in group.Matches)
-                    {
-                        allMatches.Add(new
-                        {
-                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
-                            id = match.UniqueId,                                   // UUID als primäre ID
-                            matchId = match.Id,                                    // Numerische ID (legacy)
-                            uniqueId = match.UniqueId,                            // UUID (explizit)
-                            hubIdentifier = match.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
-                            
-                            // Match-Daten
-                            player1 = match.Player1?.Name ?? "Unbekannt",
-                            player2 = match.Player2?.Name ?? "Unbekannt",
-                            player1Sets = match.Player1Sets,
-                            player2Sets = match.Player2Sets,
-                            player1Legs = match.Player1Legs,
-                            player2Legs = match.Player2Legs,
-                            status = GetMatchStatus(match),
-                            winner = GetWinner(match),
-                            notes = match.Notes ?? "",
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            groupId = group.Id,
-                            groupName = group.Name,
-                            matchType = "Group",
-                            
-                            // 🎯 UUID-System Metadaten für jedes Match
-                            uuidSystem = new
-                            {
-                                hasValidUuid = match.HasValidUniqueId(),
-                                hubReady = match.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                                preferredAccess = match.HasValidUniqueId() ? "uuid" : "numericId"
-                            },
-                    
-                            // Zeitstempel
-                            createdAt = match.CreatedAt,
-                            startedAt = match.StartTime,
-                            finishedAt = match.EndTime,
-                            syncedAt = DateTime.UtcNow
-                        });
-                    }
-                }
-
-                // 2. NEUE: FINALRUNDEN-MATCHES
-                if (tournamentClass.CurrentPhase?.FinalsGroup != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches");
-                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals GameRules - PlayWithSets: {tournamentClass.GameRules.PlayWithSets}, SetsToWin: {tournamentClass.GameRules.SetsToWin}");
-                    System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals GameRules - LegsToWin: {tournamentClass.GameRules.LegsToWin}, LegsPerSet: {tournamentClass.GameRules.LegsPerSet}");
-                    
-                    foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
-                    {
-                        // 🚨 KORRIGIERT: Verwende die exakten GameRules-Werte vom Planer ohne Modifikation
-                        var finalsPlayWithSets = tournamentClass.GameRules.PlayWithSets;
-                        var finalsSetsToWin = tournamentClass.GameRules.SetsToWin;
-                        var finalsLegsToWin = tournamentClass.GameRules.LegsToWin;
-                        var finalsLegsPerSet = tournamentClass.GameRules.LegsPerSet;
-                        
-                        System.Diagnostics.Debug.WriteLine($"🏆 [API] Finals Match {match.Id}: PlayWithSets={finalsPlayWithSets}, UsesSets={match.UsesSets}");
-                        
-                        allMatches.Add(new
-                        {
-                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
-                            id = match.UniqueId,                                   // UUID als primäre ID
-                            matchId = match.Id,                                    // Numerische ID (legacy)
-                            uniqueId = match.UniqueId,                            // UUID (explizit)
-                            hubIdentifier = match.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
-                            
-                            // Match-Daten
-                            player1 = match.Player1?.Name ?? "TBD",
-                            player2 = match.Player2?.Name ?? "TBD",
-                            player1Sets = match.Player1Sets,
-                            player2Sets = match.Player2Sets,
-                            player1Legs = match.Player1Legs,
-                            player2Legs = match.Player2Legs,
-                            status = GetMatchStatus(match),
-                            winner = GetWinner(match),
-                            notes = match.Notes ?? "",
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            matchType = "Finals",
-                            groupId = (int?)null,
-                            groupName = "Finals",
-                            
-                            // 🎯 UUID-System Metadaten
-                            uuidSystem = new
-                            {
-                                hasValidUuid = match.HasValidUniqueId(),
-                                hubReady = match.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                                preferredAccess = match.HasValidUniqueId() ? "uuid" : "numericId"
-                            },
-                            
-                            gameRulesId = $"{tournamentClass.Id}_Finals",
-                            gameRulesUsed = new
-                            {
-                                id = $"{tournamentClass.Id}_Finals",
-                                name = $"{tournamentClass.Name} Finals Regel",
-                                gamePoints = tournamentClass.GameRules.GamePoints,
-                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = finalsSetsToWin,
-                                legsToWin = finalsLegsToWin,
-                                legsPerSet = finalsLegsPerSet,
-                                maxSets = Math.Max(finalsSetsToWin * 2 - 1, 5),
-                                maxLegsPerSet = finalsLegsPerSet,
-                                playWithSets = finalsPlayWithSets,
-                                matchType = "Finals",
-                                classId = tournamentClass.Id,
-                                className = tournamentClass.Name,
-                                isDefault = false
-                            }
-                        });
-                    }
-                }
-
-                // 3. KORRIGIERT: WINNER BRACKET MATCHES
-                if (tournamentClass.CurrentPhase?.WinnerBracket != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"⚡ [API] Processing Winner Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.WinnerBracket.Count} matches");
-                    
-                    foreach (var knockoutMatch in tournamentClass.CurrentPhase.WinnerBracket)
-                    {
-                        // 🎮 ERWEITERT: Ermittle rundenspezifische Game Rules
-                        var (setsToWin, legsToWin) = GetEscalatedRulesForWinnerBracket(knockoutMatch.Round, tournamentClass.GameRules);
-                        
-                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
-                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
-                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(knockoutMatch.Round, out var roundRules))
-                        {
-                            legsPerSet = roundRules.LegsPerSet;
-                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
-                        }
-                        else
-                        {
-                            legsPerSet = Math.Max(tournamentClass.GameRules.LegsPerSet, legsToWin + 2);
-                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
-                        }
-                        
-                        var gameRuleId = $"{tournamentClass.Id}_WB_{knockoutMatch.Round}";
-                        var roundName = GetWinnerBracketRoundName(knockoutMatch.Round);
-                        var matchType = GetWinnerBracketMatchType(knockoutMatch);
-                        
-                        // 🚨 DEBUG: KO Game Rules Übertragung
-                        System.Diagnostics.Debug.WriteLine($"🎮 [API] Winner Bracket Match {knockoutMatch.Id}:");
-                        System.Diagnostics.Debug.WriteLine($"   Round: {knockoutMatch.Round}");
-                        System.Diagnostics.Debug.WriteLine($"   Game Rule ID: {gameRuleId}");
-                        System.Diagnostics.Debug.WriteLine($"   Match Type: {matchType}");
-                        System.Diagnostics.Debug.WriteLine($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}");
-                        System.Diagnostics.Debug.WriteLine($"   Rule Name: {roundName}");
-                        
-                        allMatches.Add(new
-                        {
-                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
-                            id = knockoutMatch.UniqueId,                          // UUID als primäre ID
-                            matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
-                            uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
-                            hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
-                            
-                            // K.O.-Match-Daten
-                            player1 = knockoutMatch.Player1?.Name ?? "TBD",
-                            player2 = knockoutMatch.Player2?.Name ?? "TBD",
-                            player1Sets = knockoutMatch.Player1Sets,
-                            player2Sets = knockoutMatch.Player2Sets,
-                            player1Legs = knockoutMatch.Player1Legs,
-                            player2Legs = knockoutMatch.Player2Legs,
-                            status = GetKnockoutMatchStatus(knockoutMatch),
-                            winner = GetKnockoutWinner(knockoutMatch),
-                            notes = knockoutMatch.Notes ?? "",
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            matchType = $"Knockout-{knockoutMatch.BracketType}-{knockoutMatch.Round}",
-                            groupId = (int?)null,
-                            groupName = $"Winner Bracket - {knockoutMatch.Round}",
-                            round = knockoutMatch.Round,
-                            position = knockoutMatch.Position,
-                            
-                            // 🎯 UUID-System Metadaten
-                            uuidSystem = new
-                            {
-                                hasValidUuid = knockoutMatch.HasValidUniqueId(),
-                                hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                                preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
-                            },
-                            
-                            gameRulesId = gameRuleId,
-                            gameRulesUsed = new
-                            {
-                                id = gameRuleId,
-                                name = $"{tournamentClass.Name} {roundName}",
-                                gamePoints = tournamentClass.GameRules.GamePoints,
-                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = setsToWin,
-                                legsToWin = legsToWin,
-                                legsPerSet = legsPerSet,
-                                maxSets = Math.Max(setsToWin * 2 - 1, 5),
-                                maxLegsPerSet = legsPerSet,
-                                playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
-                                matchType = matchType,
-                                round = knockoutMatch.Round.ToString(),
-                                classId = tournamentClass.Id,
-                                className = tournamentClass.Name,
-                                isDefault = false
-                            }
-                        });
-                    }
-                }
-
-                // 4. KORRIGIERT: LOSER BRACKET MATCHES
-                if (tournamentClass.CurrentPhase?.LoserBracket != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🔄 [API] Processing Loser Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.LoserBracket.Count} matches");
-                    
-                    foreach (var knockoutMatch in tournamentClass.CurrentPhase.LoserBracket)
-                    {
-                        // 🎮 ERWEITERT: Ermittle Loser Bracket spezifische Game Rules
-                        var (setsToWin, legsToWin) = GetLoserBracketRules(knockoutMatch.Round, tournamentClass.GameRules);
-                        
-                        // 🚨 KORRIGIERT: Verwende auch legsPerSet aus den Round Rules wenn verfügbar
-                        int legsPerSet = tournamentClass.GameRules.LegsPerSet; // Default
-                        if (tournamentClass.GameRules.KnockoutRoundRules.TryGetValue(knockoutMatch.Round, out var roundRules))
-                        {
-                            legsPerSet = roundRules.LegsPerSet;
-                            System.Diagnostics.Debug.WriteLine($"🎮 [MATCH] Using round-specific legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
-                        }
-                        else
-                        {
-                            legsPerSet = Math.Max(3, legsToWin + 1);
-                            System.Diagnostics.Debug.WriteLine($"⚠️ [MATCH] Using calculated legsPerSet for match {knockoutMatch.Id}, round {knockoutMatch.Round}: {legsPerSet}");
-                        }
-                        
-                        var gameRuleId = $"{tournamentClass.Id}_LB_{knockoutMatch.Round}";
-                        var roundName = GetLoserBracketRoundName(knockoutMatch.Round);
-                        var matchType = GetLoserBracketMatchType(knockoutMatch);
-                        
-                        // 🚨 DEBUG: KO Game Rules Übertragung
-                        System.Diagnostics.Debug.WriteLine($"🎮 [API] Loser Bracket Match {knockoutMatch.Id}:");
-                        System.Diagnostics.Debug.WriteLine($"   Round: {knockoutMatch.Round}");
-                        System.Diagnostics.Debug.WriteLine($"   Game Rule ID: {gameRuleId}");
-                        System.Diagnostics.Debug.WriteLine($"   Match Type: {matchType}");
-                        System.Diagnostics.Debug.WriteLine($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}");
-                        System.Diagnostics.Debug.WriteLine($"   Rule Name: {roundName}");
-                        
-                        allMatches.Add(new
-                        {
-                            // 🔑 PRIMÄRE UUID-IDENTIFIKATION
-                            id = knockoutMatch.UniqueId,                          // UUID als primäre ID
-                            matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
-                            uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
-                            hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
-                            
-                            // Loser Bracket Match-Daten
-                            player1 = knockoutMatch.Player1?.Name ?? "TBD",
-                            player2 = knockoutMatch.Player2?.Name ?? "TBD",
-                            player1Sets = knockoutMatch.Player1Sets,
-                            player2Sets = knockoutMatch.Player2Sets,
-                            player1Legs = knockoutMatch.Player1Legs,
-                            player2Legs = knockoutMatch.Player2Legs,
-                            status = GetKnockoutMatchStatus(knockoutMatch),
-                            winner = GetKnockoutWinner(knockoutMatch),
-                            notes = knockoutMatch.Notes ?? "",
-                            classId = tournamentClass.Id,
-                            className = tournamentClass.Name,
-                            matchType = $"Knockout-LB-{knockoutMatch.Round}",
-                            groupId = (int?)null,
-                            groupName = $"Loser Bracket - {knockoutMatch.Round}",
-                            round = knockoutMatch.Round,
-                            position = knockoutMatch.Position,
-                            
-                            // 🎯 UUID-System Metadaten
-                            uuidSystem = new
-                            {
-                                hasValidUuid = knockoutMatch.HasValidUniqueId(),
-                                hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                                identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                                preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
-                            },
-                            
-                            gameRulesId = gameRuleId,
-                            gameRulesUsed = new
-                            {
-                                id = gameRuleId,
-                                name = $"{tournamentClass.Name} {roundName}",
-                                gamePoints = tournamentClass.GameRules.GamePoints,
-                                gameMode = tournamentClass.GameRules.GameMode.ToString(),
-                                finishMode = tournamentClass.GameRules.FinishMode.ToString(),
-                                setsToWin = setsToWin,
-                                legsToWin = legsToWin,
-                                legsPerSet = legsPerSet, // 🚨 KORRIGIERT: Verwende Round-spezifischen Wert
-                                // 🚨 KORRIGIERT: PlayWithSets sollte true sein wenn setsToWin > 1 ODER wenn PlayWithSets explizit true ist
-                                playWithSets = tournamentClass.GameRules.PlayWithSets || setsToWin > 1,
-                                matchType = matchType,
-                                round = knockoutMatch.Round.ToString(),
-                                classId = tournamentClass.Id,
-                                className = tournamentClass.Name,
-                                isDefault = false
-                            }
-                        });
-                    }
+                    matchId = matchIdEl.ToString();
                 }
             }
-
-            var syncData = new
+            else if (message.TryGetProperty("matchId", out var directMatchIdEl))
             {
-                tournamentId,
-                name = tournamentName,
-                classes = tournamentClasses,
-                matches = allMatches,
-                gameRules = gameRulesArray,
-                syncedAt = DateTime.UtcNow,
-                // NEUE: Zusätzliche Match-Typ Statistiken
-                matchTypeStats = new
-                {
-                    totalMatches = allMatches.Count,
-                    groupMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString() == "Group"),
-                    finalsMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString() == "Finals"),
-                    winnerBracketMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString().StartsWith("Knockout-WB")),
-                    loserBracketMatches = allMatches.Count(m => ((dynamic)m).matchType.ToString().StartsWith("Knockout-LB"))
-                }
+                matchId = directMatchIdEl.ToString();
+            }
+
+            var acknowledgment = new
+            {
+                type = "match-update-acknowledged",
+                tournamentId = tournamentId,
+                matchId = matchId,
+                timestamp = DateTime.Now.ToString("o"),
+                clientType = "Tournament Planner",
+                plannerVersion = "1.0",
+                receivedAt = DateTime.Now.ToString("o"),
+                status = "received_and_processed"
             };
 
-            System.Diagnostics.Debug.WriteLine($"🎯 [API] Tournament sync data prepared:");
-            System.Diagnostics.Debug.WriteLine($"   Classes: {tournamentClasses.Count}");
-            System.Diagnostics.Debug.WriteLine($"   Total Matches: {allMatches.Count}");
-            System.Diagnostics.Debug.WriteLine($"     - Group Matches: {syncData.matchTypeStats.groupMatches}");
-            System.Diagnostics.Debug.WriteLine($"     - Finals Matches: {syncData.matchTypeStats.finalsMatches}");
-            System.Diagnostics.Debug.WriteLine($"     - Winner Bracket Matches: {syncData.matchTypeStats.winnerBracketMatches}");
-            System.Diagnostics.Debug.WriteLine($"     - Loser Bracket Matches: {syncData.matchTypeStats.loserBracketMatches}");
-            System.Diagnostics.Debug.WriteLine($"   Game Rules: {gameRulesArray.Count}");
-
-            var json = System.Text.Json.JsonSerializer.Serialize(syncData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            using var syncClient = new HttpClient();
-            syncClient.Timeout = TimeSpan.FromSeconds(60);
-            var response = await syncClient.PostAsync($"{HubUrl}/api/tournaments/{tournamentId}/sync-full", content);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                System.Diagnostics.Debug.WriteLine($"✅ [API] Tournament sync successful with ALL match types:");
-                System.Diagnostics.Debug.WriteLine($"   📊 Synced: {syncData.matchTypeStats.totalMatches} total matches");
-                System.Diagnostics.Debug.WriteLine($"   📊 Game Rules: {gameRulesArray.Count} rules synced");
-                return true;
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"❌ [API] Tournament sync failed: {response.StatusCode}");
-                var errorContent = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"❌ [API] Error response: {errorContent}");
-                return false;
-            }
+            DebugLog($"📤 [HUB-SERVICE] Sending match update acknowledgment", "WEBSOCKET");
+            await _connectionManager.SendMessageAsync("match-update-acknowledged", acknowledgment);
+            DebugLog($"✅ [HUB-SERVICE] Match update acknowledgment sent successfully", "SUCCESS");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [API] Tournament sync error: {ex.Message}");
-            return false;
+            DebugLog($"❌ [HUB-SERVICE] Failed to send match update acknowledgment: {ex.Message}", "ERROR");
         }
     }
 
-    // NEUE HELPER-METHODEN für verschiedene Match-Typen
-
-    /// <summary>
-    /// Bestimmt die aktuelle Tournament-Phase
-    /// </summary>
-    private string GetTournamentPhase(TournamentClass tournamentClass)
+    private async Task SendErrorAcknowledgment(string errorMessage)
     {
-        if (tournamentClass.CurrentPhase?.WinnerBracket?.Any() == true || tournamentClass.CurrentPhase?.LoserBracket?.Any() == true)
+        try
         {
-            return "Knockout";
+            var errorAck = new
+            {
+                type = "match-update-error",
+                tournamentId = _currentTournamentId,
+                error = errorMessage,
+                timestamp = DateTime.Now.ToString("o"),
+                clientType = "Tournament Planner",
+                status = "processing_failed"
+            };
+
+            await _connectionManager.SendMessageAsync("match-update-error", errorAck);
+            DebugLog($"📤 [HUB-SERVICE] Error acknowledgment sent: {errorMessage}", "ERROR");
         }
-        else if (tournamentClass.CurrentPhase?.FinalsGroup?.Matches?.Any() == true)
+        catch (Exception ex)
         {
-            return "Finals";
-        }
-        else
-        {
-            return "GroupPhase";
+            DebugLog($"❌ [HUB-SERVICE] Failed to send error acknowledgment: {ex.Message}", "ERROR");
         }
     }
 
+    #endregion
+
+    #region Utility Methods
+
     /// <summary>
-    /// Ermittelt den Status eines Match
+    /// Gibt Join-URL zurück
     /// </summary>
-    private string GetMatchStatus(Match match)
+    public string GetJoinUrl(string tournamentId)
     {
-        return match.Status switch
+        if (_hubData.TryGetValue($"TournamentHub_Registration_{tournamentId}_JoinUrl", out var joinUrl))
         {
-            MatchStatus.NotStarted => "NotStarted",
-            MatchStatus.InProgress => "InProgress", 
-            MatchStatus.Finished => "Finished",
-            MatchStatus.Bye => "Finished",
-            _ => "NotStarted"
-        };
-    }
-
-    /// <summary>
-    /// Ermittelt den Gewinner eines Match
-    /// </summary>
-    private string GetWinner(Match match)
-    {
-        if (match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
-            return null;
-        return match.Winner?.Name;
-    }
-
-    /// <summary>
-    /// Ermittelt den Status eines KnockoutMatch
-    /// </summary>
-    private string GetKnockoutMatchStatus(KnockoutMatch match)
-    {
-        return match.Status switch
-        {
-            MatchStatus.NotStarted => "NotStarted",
-            MatchStatus.InProgress => "InProgress", 
-            MatchStatus.Finished => "Finished",
-            MatchStatus.Bye => "Finished",
-            _ => "NotStarted"
-        };
-    }
-
-    /// <summary>
-    /// Ermittelt den Gewinner eines KnockoutMatch
-    /// </summary>
-    private string GetKnockoutWinner(KnockoutMatch match)
-    {
-        if (match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
-            return null;
-        return match.Winner?.Name;
-    }
-
-    /// <summary>
-    /// Ermittelt den spezifischen Match-Type für Winner Bracket Matches
-    /// </summary>
-    private string GetWinnerBracketMatchType(KnockoutMatch match)
-    {
-        // Verwende eine vereinfachte Rundenbeschreibung basierend auf der Round-Eigenschaft
-        return match.Round switch
-        {
-            KnockoutRound.Final => "Knockout-WB-Final",
-            KnockoutRound.Semifinal => "Knockout-WB-Semifinal", 
-            KnockoutRound.Quarterfinal => "Knockout-WB-Quarterfinal",
-            KnockoutRound.Best16 => "Knockout-WB-Best16",
-            KnockoutRound.Best32 => "Knockout-WB-Best32",
-            KnockoutRound.Best64 => "Knockout-WB-Best64",
-            _ => $"Knockout-WB-{match.Round}"
-        };
-    }
-
-    /// <summary>
-    /// Ermittelt den spezifischen Match-Type für Loser Bracket Matches
-    /// </summary>
-    private string GetLoserBracketMatchType(KnockoutMatch match)
-    {
-        // Für Loser Bracket verwenden wir eine einfachere Struktur
-        return match.Round switch
-        {
-            KnockoutRound.LoserFinal => "Knockout-LB-LoserFinal",
-            _ => $"Knockout-LB-LoserRound{(int)match.Round}"
-        };
-    }
-
-    // 🎮 NEUE HELPER-METHODEN für rundenspezifische Game Rules
-
-    /// <summary>
-    /// Ermittelt eskalierte Regeln für Winner Bracket basierend auf der Runde
-    /// 🚨 KORRIGIERT: Verwendet jetzt die tatsächlichen Round Rules aus GameRules.KnockoutRoundRules
-    /// </summary>
-    private (int setsToWin, int legsToWin) GetEscalatedRulesForWinnerBracket(KnockoutRound round, GameRules baseRules)
-    {
-        // 🚨 KORRIGIERT: Verwende die tatsächlichen Round Rules statt eigene Berechnung
-        if (baseRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
-        {
-            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific rules for {round}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}");
-            return (roundRules.SetsToWin, roundRules.LegsToWin);
+            return joinUrl;
         }
-        
-        // Fallback: Alte Logik wenn keine rundenspezifischen Regeln vorhanden sind
-        System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] No round-specific rules found for {round}, using fallback logic");
-        return round switch
-        {
-            KnockoutRound.Best64 => (Math.Max(2, baseRules.SetsToWin - 1), Math.Max(3, baseRules.LegsToWin)), // Schnelle frühe Runden
-            KnockoutRound.Best32 => (Math.Max(2, baseRules.SetsToWin - 1), Math.Max(3, baseRules.LegsToWin)),
-            KnockoutRound.Best16 => (baseRules.SetsToWin, baseRules.LegsToWin), // Standard
-            KnockoutRound.Quarterfinal => (baseRules.SetsToWin, baseRules.LegsToWin),
-            KnockoutRound.Semifinal => (baseRules.SetsToWin, Math.Min(baseRules.LegsToWin + 1, 6)), // Längere wichtige Spiele
-            KnockoutRound.Final => (Math.Min(baseRules.SetsToWin + 1, 5), Math.Min(baseRules.LegsToWin + 1, 6)),
-            _ => (baseRules.SetsToWin, baseRules.LegsToWin) // Fallback
-        };
+
+        return $"{HubUrl}/join/{tournamentId}";
     }
 
     /// <summary>
-    /// Ermittelt Loser Bracket Regeln (generell schneller als Winner Bracket)
-    /// 🚨 KORRIGIERT: Verwendet jetzt die tatsächlichen Round Rules aus GameRules.KnockoutRoundRules
-    /// </summary>
-    private (int setsToWin, int legsToWin) GetLoserBracketRules(KnockoutRound round, GameRules baseRules)
-    {
-        // 🚨 KORRIGIERT: Verwende die tatsächlichen Round Rules statt eigene Berechnung
-        if (baseRules.KnockoutRoundRules.TryGetValue(round, out var roundRules))
-        {
-            System.Diagnostics.Debug.WriteLine($"🎮 [RULES] Using round-specific rules for {round}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}");
-            return (roundRules.SetsToWin, roundRules.LegsToWin);
-        }
-        
-        // Fallback: Alte Logik wenn keine rundenspezifischen Regeln vorhanden sind
-        System.Diagnostics.Debug.WriteLine($"⚠️ [RULES] No round-specific rules found for {round}, using fallback logic");
-        return round switch
-        {
-            KnockoutRound.LoserFinal => (baseRules.SetsToWin, Math.Min(baseRules.LegsToWin + 1, 5)), // Loser Final ist wichtig
-            _ => (Math.Max(2, baseRules.SetsToWin - 1), baseRules.LegsToWin) // Alle anderen Loser Rounds sind schneller
-        };
-    }
-
-    /// <summary>
-    /// Ermittelt benutzerfreundliche Namen für Winner Bracket Runden
-    /// </summary>
-    private string GetWinnerBracketRoundName(KnockoutRound round)
-    {
-        return round switch
-        {
-            KnockoutRound.Best64 => "K.O. Beste 64",
-            KnockoutRound.Best32 => "K.O. Beste 32",
-            KnockoutRound.Best16 => "K.O. Beste 16",
-            KnockoutRound.Quarterfinal => "K.O. Viertelfinale",
-            KnockoutRound.Semifinal => "K.O. Halbfinale",
-            KnockoutRound.Final => "K.O. Finale",
-            _ => $"K.O. Winner {round}"
-        };
-    }
-
-    /// <summary>
-    /// Ermittelt benutzerfreundliche Namen für Loser Bracket Runden
-    /// </summary>
-    private string GetLoserBracketRoundName(KnockoutRound round)
-    {
-        return round switch
-        {
-            KnockoutRound.LoserFinal => "K.O. Loser Final",
-            _ => $"K.O. Loser Runde {(int)round}"
-        };
-    }
-
-    /// <summary>
-    /// Entdeckt den API-Endpunkt
+    /// Entdeckt API-Endpunkt
     /// </summary>
     private async Task<string> DiscoverApiEndpoint()
     {
         string apiEndpoint = "http://localhost:5000";
-        
+
         try
         {
             using var testClient = new HttpClient();
@@ -1822,14 +493,14 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [API] Error discovering API endpoint: {ex.Message}");
+            DebugLog($"❌ [HUB-SERVICE] Error discovering API endpoint: {ex.Message}", "ERROR");
         }
-        
+
         return apiEndpoint;
     }
 
     /// <summary>
-    /// Generiert einen API-Schlüssel
+    /// Generiert API-Schlüssel
     /// </summary>
     private string GenerateApiKey(string tournamentId)
     {
@@ -1837,346 +508,79 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(combined))[..20];
     }
 
-    public string GetJoinUrl(string tournamentId)
+    /// <summary>
+    /// Verarbeitet Registration Response
+    /// </summary>
+    private void ProcessRegistrationResponse(string tournamentId, string responseText)
     {
-        if (_hubData.TryGetValue($"TournamentHub_Registration_{tournamentId}_JoinUrl", out var joinUrl))
+        try
         {
-            return joinUrl;
+            var jsonDocument = JsonSerializer.Deserialize<JsonElement>(responseText);
+            if (jsonDocument.TryGetProperty("success", out var successElement) && successElement.GetBoolean())
+            {
+                if (jsonDocument.TryGetProperty("data", out var dataElement))
+                {
+                    if (dataElement.TryGetProperty("joinUrl", out var joinUrlElement))
+                    {
+                        _hubData[$"TournamentHub_Registration_{tournamentId}_JoinUrl"] = joinUrlElement.GetString() ?? "";
+                    }
+                    if (dataElement.TryGetProperty("websocketUrl", out var wsUrlElement))
+                    {
+                        _hubData[$"TournamentHub_Registration_{tournamentId}_WebsocketUrl"] = wsUrlElement.GetString() ?? "";
+                    }
+                }
+            }
         }
-        
-        return $"{HubUrl}/join/{tournamentId}";
+        catch (JsonException ex)
+        {
+            DebugLog($"❌ [HUB-SERVICE] JSON parsing error in registration response: {ex.Message}", "ERROR");
+        }
     }
+
+    #endregion
+
+    #region Legacy Compatibility Methods
+
+    // These methods maintain compatibility with existing code that uses the old interface
+    public event Action<HubMatchUpdateEventArgs>? MatchResultReceived
+    {
+        add => OnMatchResultReceivedFromHub += value;
+        remove => OnMatchResultReceivedFromHub -= value;
+    }
+
+    public event Action<string, object>? TournamentUpdateReceived
+    {
+        add => OnTournamentUpdateReceived += value;
+        remove => OnTournamentUpdateReceived -= value;
+    }
+
+    public event Action<bool, string>? ConnectionStatusChanged
+    {
+        add => OnConnectionStatusChanged += value;
+        remove => OnConnectionStatusChanged -= value;
+    }
+
+    public async Task<bool> DisconnectAsync()
+    {
+        await CloseWebSocketAsync();
+        return true;
+    }
+
+    #endregion
+
+    #region Disposal
 
     public void Dispose()
     {
         if (!_isDisposed)
         {
-            _heartbeatTimer?.Stop();
-            _heartbeatTimer?.Dispose();
-            _heartbeatTimer = null;
-            
-            _webSocketCancellation?.Cancel();
-            _webSocket?.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disposing", CancellationToken.None);
-            _webSocket?.Dispose();
-            _webSocketCancellation?.Dispose();
+            _connectionManager?.Dispose();
             _httpClient?.Dispose();
             _isDisposed = true;
+
+            DebugLog("🗑️ [HUB-SERVICE] TournamentHubService disposed", "INFO");
         }
     }
 
-    /// <summary>
-    /// Sendet Tournament-Daten an den Hub mit UUID-Unterstützung
-    /// </summary>
-    public async Task<bool> SendTournamentDataAsync(TournamentClass tournamentClass, List<Group> groups, List<GameRules> gameRules)
-    {
-        try
-        {
-            Console.WriteLine($"📤 [HUB] Sending tournament data for {tournamentClass.Name} to Hub with UUID support...");
-
-            var tournamentData = new
-            {
-                tournamentId = _currentTournamentId,
-                name = $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
-                description = $"Live Dart Tournament von Tournament Planner",
-                @class = new
-                {
-                    id = tournamentClass.Id,
-                    name = tournamentClass.Name,
-                    type = tournamentClass.Name // Verwende Name als Type da ClassType nicht existiert
-                },
-                classes = new[]
-                {
-                    new
-                    {
-                        id = tournamentClass.Id,
-                        name = tournamentClass.Name,
-                        type = tournamentClass.Name // Verwende Name als Type da ClassType nicht existiert
-                    }
-                },
-                groups = groups.Select(g => new
-                {
-                    id = g.Id,
-                    name = g.Name,
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    players = g.Players.Select(p => new
-                    {
-                        name = p.Name,
-                        id = p.Id
-                    }).ToArray(),
-                    totalPlayers = g.Players.Count
-                }).ToArray(),
-                // 🎯 ERWEITERT: Matches mit vollständiger UUID-Unterstützung
-                matches = groups.SelectMany(g => g.Matches.Select(m => new
-                {
-                    // 🔑 PRIMÄRE IDENTIFIKATION: UUID ist die Hauptkennung
-                    id = m.UniqueId,                 // UUID als primäre ID (für Hub/Web Interface)
-                    matchId = m.Id,                  // Numerische ID (legacy, für interne Referenzen)
-                    uniqueId = m.UniqueId,          // UUID (explizit für Kompatibilität)
-                    
-                    // Match-Informationen
-                    player1 = m.Player1?.Name ?? "Unbekannt",
-                    player2 = m.Player2?.Name ?? "Unbekannt",
-                    player1Sets = m.Player1Sets,
-                    player2Sets = m.Player2Sets,
-                    player1Legs = m.Player1Legs,
-                    player2Legs = m.Player2Legs,
-                    status = m.Status switch
-                    {
-                        MatchStatus.NotStarted => "NotStarted",
-                        MatchStatus.InProgress => "InProgress", 
-                        MatchStatus.Finished => "Finished",
-                        MatchStatus.Bye => "Finished",
-                        _ => "NotStarted"
-                    },
-                    winner = m.Winner?.Name,
-                    notes = m.Notes ?? "",
-                    
-                    // Gruppierung und Klassifikation
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    groupId = g.Id,
-                    groupName = g.Name,
-                    matchType = "Group",
-                    
-                    // 🎯 UUID-System Metadaten für jedes Match
-                    uuidSystem = new
-                    {
-                        enabled = true,
-                        hasValidUuid = m.HasValidUniqueId(),
-                        hubReady = m.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                        identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                        preferredAccess = m.HasValidUniqueId() ? "uuid" : "numericId"
-                    },
-                    
-                    // Zeitstempel
-                    createdAt = m.CreatedAt,
-                    startedAt = m.StartTime,
-                    finishedAt = m.EndTime,
-                    syncedAt = DateTime.UtcNow
-                })).ToArray(),
-                gameRules = gameRules.Select(gr => new
-                {
-                    id = 1, // GameRules hat keine ID Property
-                    name = "Standard Regel",
-                    gamePoints = gr.GamePoints,
-                    gameMode = gr.GameMode.ToString(),
-                    finishMode = gr.FinishMode.ToString(),
-                    setsToWin = gr.SetsToWin,
-                    legsToWin = gr.LegsToWin,
-                    legsPerSet = gr.LegsPerSet,
-                    maxSets = Math.Max(gr.SetsToWin * 2 - 1, 5),
-                    maxLegsPerSet = gr.LegsPerSet,
-                    playWithSets = gr.PlayWithSets,
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    matchType = "Group",
-                    isDefault = true // Default da GameRules keine IsDefault-Property hat
-                }).ToArray(),
-                // 🎯 UUID-System Metadaten für gesamtes Tournament
-                uuidSystem = new
-                {
-                    enabled = true,
-                    version = "2.0", // Erhöht für erweiterte UUID-Unterstützung
-                    totalMatches = groups.SelectMany(g => g.Matches).Count(),
-                    matchesWithUuid = groups.SelectMany(g => g.Matches).Count(m => m.HasValidUniqueId()),
-                    matchesHubReady = groups.SelectMany(g => g.Matches).Count(m => m.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId)),
-                    primaryIdentifier = "uuid", // UUID ist primäre Identifikation
-                    supportedFormats = new[] { "uuid", "numericId", "hubIdentifier" },
-                    generatedAt = DateTime.UtcNow
-                },
-                lastModified = DateTime.UtcNow
-            };
-
-            Console.WriteLine($"📊 [HUB] Tournament data with enhanced UUID system prepared:");
-            Console.WriteLine($"   🆔 Tournament ID: {_currentTournamentId}");
-            Console.WriteLine($"   📋 Groups: {groups.Count}");
-            Console.WriteLine($"   🎯 Total Matches: {tournamentData.matches.Length}");
-            Console.WriteLine($"   🔑 Matches with UUID: {tournamentData.uuidSystem.matchesWithUuid}");
-            Console.WriteLine($"   📡 Hub-ready Matches: {tournamentData.uuidSystem.matchesHubReady}");
-
-            var json = System.Text.Json.JsonSerializer.Serialize(tournamentData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/register", content);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"✅ [HUB] Tournament data with enhanced UUIDs sent successfully");
-                Console.WriteLine($"📥 [HUB] Response: {responseContent}");
-                
-                // UUID-Validierung
-                var matchesWithoutUuid = groups.SelectMany(g => g.Matches).Where(m => !m.HasValidUniqueId()).ToList();
-                if (matchesWithoutUuid.Any())
-                {
-                    Console.WriteLine($"⚠️ [HUB] Warning: {matchesWithoutUuid.Count} matches without valid UUID:");
-                    foreach (var match in matchesWithoutUuid)
-                    {
-                        Console.WriteLine($"     Match {match.Id}: {match.Player1} vs {match.Player2}");
-                        // Generiere UUID falls fehlend
-                        match.EnsureUniqueId();
-                        Console.WriteLine($"     🔧 Generated UUID: {match.UniqueId}");
-                    }
-                }
-                
-                return true;
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"❌ [HUB] Error sending tournament data: {response.StatusCode}");
-                Console.WriteLine($"📄 [HUB] Error details: {errorContent}");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ [HUB] Exception sending tournament data: {ex.Message}");
-            Console.WriteLine($"📋 [HUB] Stack trace: {ex.StackTrace}");
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Sendet KO-Match-Daten an den Hub mit UUID-Unterstützung
-    /// </summary>
-    public async Task<bool> SendKnockoutMatchDataAsync(TournamentClass tournamentClass, List<KnockoutMatch> knockoutMatches, List<GameRules> gameRules)
-    {
-        try
-        {
-            Console.WriteLine($"📤 [HUB] Sending KO match data for {tournamentClass.Name} to Hub with UUID support...");
-
-            var koData = new
-            {
-                tournamentId = _currentTournamentId,
-                classId = tournamentClass.Id,
-                className = tournamentClass.Name,
-                phase = "Knockout",
-                // KO-Matches mit UUID-Unterstützung
-                knockoutMatches = knockoutMatches.Select(knockoutMatch => new
-                {
-                    // 🔑 PRIMÄRE IDENTIFIKATION
-                    id = knockoutMatch.UniqueId,                          // UUID als primäre ID
-                    matchId = knockoutMatch.Id,                           // Numerische ID (legacy)
-                    uniqueId = knockoutMatch.UniqueId,                    // UUID (explizit)
-                    hubIdentifier = knockoutMatch.GetHubIdentifier(_currentTournamentId ?? ""), // Hub-spezifisch
-                    
-                    // KO-Match-Informationen
-                    player1 = knockoutMatch.Player1?.Name,
-                    player2 = knockoutMatch.Player2?.Name,
-                    player1Sets = knockoutMatch.Player1Sets,
-                    player2Sets = knockoutMatch.Player2Sets,
-                    player1Legs = knockoutMatch.Player1Legs,
-                    player2Legs = knockoutMatch.Player2Legs,
-                    status = knockoutMatch.Status.ToString(),
-                    winner = knockoutMatch.Winner?.Name,
-                    notes = knockoutMatch.Notes ?? "",
-                    
-                    // KO-spezifische Informationen
-                    bracketType = knockoutMatch.BracketType.ToString(),
-                    round = knockoutMatch.Round.ToString(),
-                    position = knockoutMatch.Position,
-                    matchType = $"Knockout-{knockoutMatch.BracketType}-{knockoutMatch.Round}",
-                    
-                    // Klassifizierung
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    
-                    // 🎯 UUID-System Metadaten
-                    uuidSystem = new
-                    {
-                        hasValidUuid = knockoutMatch.HasValidUniqueId(),
-                        hubReady = knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId),
-                        identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
-                        preferredAccess = knockoutMatch.HasValidUniqueId() ? "uuid" : "numericId"
-                    },
-                    
-                    // Zeitstempel
-                    createdAt = knockoutMatch.CreatedAt,
-                    startedAt = knockoutMatch.StartedAt,
-                    finishedAt = knockoutMatch.FinishedAt,
-                    syncedAt = DateTime.UtcNow
-                }).ToArray(),
-                gameRules = gameRules.Select(gameRule => new
-                {
-                    id = 1, // GameRules hat keine ID Property
-                    name = "KO Regel",
-                    gamePoints = gameRule.GamePoints,
-                    gameMode = gameRule.GameMode.ToString(),
-                    finishMode = gameRule.FinishMode.ToString(),
-                    setsToWin = gameRule.SetsToWin,
-                    legsToWin = gameRule.LegsToWin,
-                    legsPerSet = gameRule.LegsPerSet,
-                    maxSets = Math.Max(gameRule.SetsToWin * 2 - 1, 5),
-                    maxLegsPerSet = gameRule.LegsPerSet,
-                    playWithSets = gameRule.PlayWithSets,
-                    classId = tournamentClass.Id,
-                    className = tournamentClass.Name,
-                    matchType = "Knockout",
-                    isDefault = false // KO Rules sind nicht default
-                }).ToArray(),
-                // UUID-System Metadaten für KO-Matches
-                uuidSystem = new
-                {
-                    enabled = true,
-                    version = "2.0", // UUID-System Version 2.0
-                    totalKnockoutMatches = knockoutMatches.Count,
-                    knockoutMatchesWithUuid = knockoutMatches.Count(knockoutMatch => knockoutMatch.HasValidUniqueId()),
-                    knockoutMatchesHubReady = knockoutMatches.Count(knockoutMatch => knockoutMatch.HasValidUniqueId() && !string.IsNullOrEmpty(_currentTournamentId)),
-                    primaryIdentifier = "uuid", // UUID ist primäre Identifikation
-                    supportedFormats = new[] { "uuid", "numericId", "hubIdentifier" },
-                    generatedAt = DateTime.UtcNow
-                },
-                lastModified = DateTime.UtcNow
-            };
-
-            Console.WriteLine($"📊 [HUB] KO match data with enhanced UUID system prepared:");
-            Console.WriteLine($"   🆔 Tournament ID: {_currentTournamentId}");
-            Console.WriteLine($"   ⚔️ KO Matches: {knockoutMatches.Count}");
-            Console.WriteLine($"   🔑 KO Matches with UUID: {koData.uuidSystem.knockoutMatchesWithUuid}");
-            Console.WriteLine($"   📡 Hub-ready KO Matches: {koData.uuidSystem.knockoutMatchesHubReady}");
-
-            var json = System.Text.Json.JsonSerializer.Serialize(koData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync($"{HubUrl}/api/tournaments/{_currentTournamentId}/knockout", content);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"✅ [HUB] KO match data with enhanced UUIDs sent successfully");
-                Console.WriteLine($"📥 [HUB] Response: {responseContent}");
-                
-                // UUID-Validierung für KO-Matches
-                var koMatchesWithoutUuid = knockoutMatches.Where(knockoutMatch => !knockoutMatch.HasValidUniqueId()).ToList();
-                if (koMatchesWithoutUuid.Any())
-                {
-                    Console.WriteLine($"⚠️ [HUB] Warning: {koMatchesWithoutUuid.Count} KO matches without valid UUID:");
-                    foreach (var match in koMatchesWithoutUuid)
-                    {
-                        Console.WriteLine($"     KO Match {match.Id}: {match.Player1?.Name ?? "TBD"} vs {match.Player2?.Name ?? "TBD"} ({match.Round})");
-                        // Generiere UUID falls fehlend
-                        match.EnsureUniqueId();
-                        Console.WriteLine($"     🔧 Generated UUID: {match.UniqueId}");
-                    }
-                }
-                
-                return true;
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"❌ [HUB] Error sending KO match data: {response.StatusCode}");
-                Console.WriteLine($"📄 [HUB] Error details: {errorContent}");
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ [HUB] Exception sending KO match data: {ex.Message}");
-            Console.WriteLine($"📋 [HUB] Stack trace: {ex.StackTrace}");
-            return false;
-        }
-    }
+    #endregion
 }
