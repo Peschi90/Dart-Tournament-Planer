@@ -889,6 +889,14 @@
                     </Border>
                 </Grid>
             </TabItem>
+            
+            <!-- ✅ NEU: Statistiken Tab -->
+            <TabItem Name="StatisticsTabItem" Header="📊 Statistiken">
+                <Grid Margin="20">
+                    <!-- Statistiken-View einbinden -->
+                    <local:PlayerStatisticsView x:Name="StatisticsView"/>
+                </Grid>
+            </TabItem>
         </TabControl>
     </Grid>
 </UserControl>

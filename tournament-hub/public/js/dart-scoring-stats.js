@@ -16,7 +16,11 @@ class DartScoringStats {
                 legs: 0,
                 sets: 0,
                 average: 0,
-                checkouts: []
+                checkouts: [],
+                // ✅ NEU: Leg-spezifische Averages
+                legAverages: [], // Array mit Average pro Leg
+                currentLegThrows: 0,
+                currentLegScore: 0
             },
             player2: {
                 maximums: [], // 180er
@@ -27,7 +31,11 @@ class DartScoringStats {
                 legs: 0,
                 sets: 0,
                 average: 0,
-                checkouts: []
+                checkouts: [],
+                // ✅ NEU: Leg-spezifische Averages
+                legAverages: [], // Array mit Average pro Leg
+                currentLegThrows: 0,
+                currentLegScore: 0
             },
             matchStatistics: {
                 totalLegs: 0,
@@ -37,9 +45,9 @@ class DartScoringStats {
                 endTime: null
             }
         };
-        
+
         this.isTracking = false;
-        
+
         console.log('📊 [DART-STATS] Statistics module initialized');
     }
 
@@ -49,10 +57,10 @@ class DartScoringStats {
     startTracking() {
         this.isTracking = true;
         this.statistics.matchStatistics.startTime = new Date();
-        
+
         // Hook into throw processing to collect stats
         this.setupStatsHooks();
-        
+
         console.log('📊 [DART-STATS] Statistics tracking started');
     }
 
@@ -62,15 +70,28 @@ class DartScoringStats {
     setupStatsHooks() {
         // Store original processThrow method
         const originalProcessThrow = this.core.processThrow.bind(this.core);
-        
+
         // Override processThrow to collect statistics
         this.core.processThrow = (dart1, dart2, dart3) => {
             const result = originalProcessThrow(dart1, dart2, dart3);
-            
+
             if (result.success && this.isTracking) {
                 this.collectThrowStatistics(dart1, dart2, dart3, result);
             }
-            
+
+            return result;
+        };
+
+        // ✅ NEU: Hook into startNewLeg to reset leg stats
+        const originalStartNewLeg = this.core.startNewLeg.bind(this.core);
+
+        this.core.startNewLeg = () => {
+            const result = originalStartNewLeg();
+
+            if (result.success && this.isTracking) {
+                this.resetLegStatsForAllPlayers();
+            }
+
             return result;
         };
     }
@@ -82,13 +103,26 @@ class DartScoringStats {
         const throwTotal = dart1 + dart2 + dart3;
         const playerNumber = throwResult.bustedPlayer || throwResult.winner || this.getPreviousPlayer();
         const playerStats = playerNumber === 1 ? this.statistics.player1 : this.statistics.player2;
-        
+
         console.log('📊 [DART-STATS] Collecting stats for player', playerNumber, 'throw:', [dart1, dart2, dart3], 'total:', throwTotal);
 
-        // Update basic stats
-        playerStats.totalThrows += 3; // Always count 3 darts per turn
+        // ✅ NEU: Berechne die tatsächlich geworfenen Darts für korrekte Average-Berechnung
+        const actualDartsThrown = this.countActualDartsThrown(dart1, dart2, dart3);
+
+        // Update basic stats - ✅ KORRIGIERT: Match Average = alle Punkte / alle geworfenen Darts * 3
+        playerStats.totalThrows += actualDartsThrown;
         playerStats.totalScore += throwTotal;
-        playerStats.average = playerStats.totalScore / (playerStats.totalThrows / 3);
+
+        // ✅ NEU: Match Average = (Gesamtpunkte / Gesamtdarts) * 3
+        // Beispiel: 300 Punkte mit 6 Darts = (300/6)*3 = 150 Average
+        const totalDartsThrown = playerStats.totalThrows;
+        if (totalDartsThrown > 0) {
+            playerStats.average = (playerStats.totalScore / totalDartsThrown) * 3;
+        }
+
+        // ✅ NEU: Update Leg-spezifische Statistiken
+        playerStats.currentLegThrows += actualDartsThrown;
+        playerStats.currentLegScore += throwTotal;
 
         // Check for 180 (Maximum)
         if (throwTotal === 180) {
@@ -121,7 +155,7 @@ class DartScoringStats {
             console.log('🏁 [DART-STATS] High finish (≥100) recorded for player', playerNumber, 'finish:', throwTotal);
         }
 
-        // Record all checkouts
+        // Record all checkouts and berechne Leg Average
         if (throwResult.type === 'leg_won') {
             playerStats.checkouts.push({
                 finish: throwTotal,
@@ -129,6 +163,9 @@ class DartScoringStats {
                 doubleOut: throwResult.doubleOut || false,
                 timestamp: new Date()
             });
+
+            // ✅ NEU: Berechne und speichere Leg Average beim Leg-Ende
+            this.finalizeLegAverage(playerStats);
         }
 
         // Update legs and sets from game state
@@ -138,6 +175,71 @@ class DartScoringStats {
             this.statistics.player2.legs = this.core.gameState.player2.legs;
             this.statistics.player2.sets = this.core.gameState.player2.sets;
         }
+
+        console.log('📊 [DART-STATS] Updated stats for player', playerNumber, ':', {
+            totalScore: playerStats.totalScore,
+            totalThrows: playerStats.totalThrows,
+            matchAverage: playerStats.average.toFixed(2),
+            currentLegScore: playerStats.currentLegScore,
+            currentLegThrows: playerStats.currentLegThrows,
+            legAverages: playerStats.legAverages
+        });
+    }
+
+    /**
+     * ✅ NEU: Zähle tatsächlich geworfene Darts (nicht immer 3)
+     */
+    countActualDartsThrown(dart1, dart2, dart3) {
+        let count = 0;
+
+        // Zähle jeden Dart der >= 0 ist (Miss = 0 ist ein geworfener Dart)
+        if (dart1 !== null && dart1 !== undefined && dart1 >= 0) count++;
+        if (dart2 !== null && dart2 !== undefined && dart2 >= 0) count++;
+        if (dart3 !== null && dart3 !== undefined && dart3 >= 0) count++;
+
+        // Falls keine Darts gezählt wurden aber processThrow aufgerufen wurde, mindestens 1
+        return Math.max(count, 1);
+    }
+
+    /**
+     * ✅ NEU: Finalisiere Leg Average und reset current leg stats
+     */
+    finalizeLegAverage(playerStats) {
+        if (playerStats.currentLegThrows > 0) {
+            // Berechne Leg Average: (Leg-Punkte / Leg-Darts) * 3
+            const legAverage = (playerStats.currentLegScore / playerStats.currentLegThrows) * 3;
+
+            playerStats.legAverages.push({
+                legNumber: playerStats.legAverages.length + 1,
+                average: Math.round(legAverage * 10) / 10, // Auf 1 Dezimalstelle runden
+                score: playerStats.currentLegScore,
+                throws: playerStats.currentLegThrows,
+                timestamp: new Date()
+            });
+
+            console.log('🏁 [DART-STATS] Leg average finalized:', {
+                leg: playerStats.legAverages.length,
+                average: legAverage.toFixed(1),
+                score: playerStats.currentLegScore,
+                throws: playerStats.currentLegThrows
+            });
+        }
+
+        // Reset current leg stats
+        playerStats.currentLegThrows = 0;
+        playerStats.currentLegScore = 0;
+    }
+
+    /**
+     * ✅ NEU: Reset leg stats for new leg (auch bei anderen Spielern)
+     */
+    resetLegStatsForAllPlayers() {
+        this.statistics.player1.currentLegThrows = 0;
+        this.statistics.player1.currentLegScore = 0;
+        this.statistics.player2.currentLegThrows = 0;
+        this.statistics.player2.currentLegScore = 0;
+
+        console.log('🔄 [DART-STATS] Leg stats reset for both players (new leg)');
     }
 
     /**
@@ -153,16 +255,16 @@ class DartScoringStats {
      */
     finalizeStatistics() {
         this.statistics.matchStatistics.endTime = new Date();
-        
+
         if (this.statistics.matchStatistics.startTime) {
-            this.statistics.matchStatistics.matchDuration = 
+            this.statistics.matchStatistics.matchDuration =
                 this.statistics.matchStatistics.endTime - this.statistics.matchStatistics.startTime;
         }
 
-        this.statistics.matchStatistics.totalLegs = 
+        this.statistics.matchStatistics.totalLegs =
             this.statistics.player1.legs + this.statistics.player2.legs;
-            
-        this.statistics.matchStatistics.totalSets = 
+
+        this.statistics.matchStatistics.totalSets =
             this.statistics.player1.sets + this.statistics.player2.sets;
 
         console.log('📊 [DART-STATS] Statistics finalized:', this.statistics);
@@ -183,7 +285,7 @@ class DartScoringStats {
         const playWithSets = this.determinePlayWithSets(gameRules);
         const legsToWin = this.determineLegsToWin(gameRules);
         const setsToWin = this.determineSetsToWin(gameRules, playWithSets);
-        
+
         console.log('📊 [DART-STATS] Analyzed Game Rules:', {
             originalRules: gameRules,
             playWithSets,
@@ -215,7 +317,7 @@ class DartScoringStats {
             player2Legs: gameState.player2.legs,
             winner: winner === 1 ? matchData.player1.name : matchData.player2.name,
             winnerPlayerNumber: winner,
-            
+
             // Enhanced dart scoring specific data
             dartScoringResult: {
                 // Player Statistics
@@ -233,7 +335,11 @@ class DartScoringStats {
                     score26Count: this.statistics.player1.score26.length,
                     score26Details: this.statistics.player1.score26,
                     checkouts: this.statistics.player1.checkouts.length,
-                    checkoutDetails: this.statistics.player1.checkouts
+                    checkoutDetails: this.statistics.player1.checkouts,
+                    // ✅ NEU: Leg-spezifische Averages
+                    legAverages: this.statistics.player1.legAverages,
+                    legAveragesCount: this.statistics.player1.legAverages.length,
+                    averageLegAverage: this.calculateAverageLegAverage(this.statistics.player1.legAverages)
                 },
                 player2Stats: {
                     name: matchData.player2.name,
@@ -249,12 +355,16 @@ class DartScoringStats {
                     score26Count: this.statistics.player2.score26.length,
                     score26Details: this.statistics.player2.score26,
                     checkouts: this.statistics.player2.checkouts.length,
-                    checkoutDetails: this.statistics.player2.checkouts
+                    checkoutDetails: this.statistics.player2.checkouts,
+                    // ✅ NEU: Leg-spezifische Averages
+                    legAverages: this.statistics.player2.legAverages,
+                    legAveragesCount: this.statistics.player2.legAverages.length,
+                    averageLegAverage: this.calculateAverageLegAverage(this.statistics.player2.legAverages)
                 },
-                
+
                 // ✅ KORRIGIERT: Normalisierte Game Rules
                 gameRules: {
-                    gameMode: gameRules?.gameMode || 'Game501',
+                    gameMode: gameRules ? .gameMode || 'Game501',
                     startingScore: this.core.getStartingScore(),
                     legsToWin: legsToWin,
                     setsToWin: playWithSets ? setsToWin : 0, // 0 wenn keine Sets
@@ -262,20 +372,20 @@ class DartScoringStats {
                     usesSets: playWithSets, // Alias für Kompatibilität
                     doubleOut: this.parseDoubleOut(gameRules)
                 },
-                
+
                 // Match Statistics
                 matchDuration: this.statistics.matchStatistics.matchDuration,
                 totalLegs: this.statistics.matchStatistics.totalLegs,
                 totalSets: this.statistics.matchStatistics.totalSets,
-                startTime: this.statistics.matchStatistics.startTime?.toISOString(),
-                endTime: this.statistics.matchStatistics.endTime?.toISOString(),
-                
+                startTime: this.statistics.matchStatistics.startTime ? .toISOString(),
+                endTime: this.statistics.matchStatistics.endTime ? .toISOString(),
+
                 // Technical Info
                 submittedVia: 'DartScoringAdvanced',
                 submissionTimestamp: new Date().toISOString(),
                 version: '1.2.0' // Version erhöht für robuste Game Rules
             },
-            
+
             // Legacy compatibility
             notes: this.generateMatchNotes(playWithSets, legsToWin, setsToWin),
             submittedVia: 'DartScoringAdvanced',
@@ -291,18 +401,18 @@ class DartScoringStats {
      */
     determinePlayWithSets(gameRules) {
         if (!gameRules) return false;
-        
+
         // Direkte Boolean-Werte
         if (typeof gameRules.playWithSets === 'boolean') return gameRules.playWithSets;
         if (typeof gameRules.usesSets === 'boolean') return gameRules.usesSets;
-        
+
         // Indirekte Erkennung über setsToWin
         if (typeof gameRules.setsToWin === 'number' && gameRules.setsToWin > 1) return true;
-        
+
         // String-Werte
         if (gameRules.playWithSets === 'true') return true;
         if (gameRules.usesSets === 'true') return true;
-        
+
         console.log('📊 [DART-STATS] determinePlayWithSets: Default to false for rules:', gameRules);
         return false;
     }
@@ -312,26 +422,26 @@ class DartScoringStats {
      */
     determineLegsToWin(gameRules) {
         if (!gameRules) return 2;
-        
+
         // Verschiedene Namenskonventionen
         if (typeof gameRules.legsToWinSet === 'number' && gameRules.legsToWinSet > 0) {
             return gameRules.legsToWinSet;
         }
-        
+
         if (typeof gameRules.legsToWin === 'number' && gameRules.legsToWin > 0) {
             return gameRules.legsToWin;
         }
-        
+
         if (typeof gameRules.legsPerSet === 'number' && gameRules.legsPerSet > 0) {
             return gameRules.legsPerSet;
         }
-        
+
         // String-Parsing
         if (typeof gameRules.legsToWin === 'string') {
             const parsed = parseInt(gameRules.legsToWin);
             if (!isNaN(parsed) && parsed > 0) return parsed;
         }
-        
+
         console.log('📊 [DART-STATS] determineLegsToWin: Default to 2 for rules:', gameRules);
         return 2; // Fallback
     }
@@ -341,17 +451,17 @@ class DartScoringStats {
      */
     determineSetsToWin(gameRules, playWithSets) {
         if (!gameRules || !playWithSets) return 0;
-        
+
         if (typeof gameRules.setsToWin === 'number' && gameRules.setsToWin > 0) {
             return gameRules.setsToWin;
         }
-        
+
         // String-Parsing
         if (typeof gameRules.setsToWin === 'string') {
             const parsed = parseInt(gameRules.setsToWin);
             if (!isNaN(parsed) && parsed > 0) return parsed;
         }
-        
+
         console.log('📊 [DART-STATS] determineSetsToWin: Default to 1 for rules:', gameRules);
         return 1; // Fallback wenn Sets gespielt werden
     }
@@ -361,16 +471,26 @@ class DartScoringStats {
      */
     parseDoubleOut(gameRules) {
         if (!gameRules) return false;
-        
+
         if (typeof gameRules.doubleOut === 'boolean') return gameRules.doubleOut;
         if (gameRules.doubleOut === 'true') return true;
         if (gameRules.doubleOut === 'false') return false;
-        
+
         // Auch finishMode berücksichtigen
         if (gameRules.finishMode === 'DoubleOut') return true;
         if (gameRules.finishMode === 'SingleOut') return false;
-        
+
         return false; // Fallback
+    }
+
+    /**
+     * ✅ NEU: Berechne durchschnittlichen Leg Average
+     */
+    calculateAverageLegAverage(legAverages) {
+        if (!legAverages || legAverages.length === 0) return 0;
+
+        const totalAverage = legAverages.reduce((sum, leg) => sum + leg.average, 0);
+        return Math.round((totalAverage / legAverages.length) * 10) / 10;
     }
 
     /**
@@ -382,7 +502,7 @@ class DartScoringStats {
         const gameRules = this.core.gameRules;
 
         let notes = [];
-        
+
         // ✅ KORRIGIERT: Verwende übergebene Parameter statt erneute Analyse
         let format;
         if (playWithSets) {
@@ -422,10 +542,10 @@ class DartScoringStats {
         // ✅ KORRIGIERT: Game Rules Info mit übergebenen Parametern
         const startingScore = this.core.getStartingScore();
         const doubleOutInfo = this.parseDoubleOut(gameRules) ? ' Double-Out' : ' Single-Out';
-        const formatInfo = playWithSets ? 
-            ` (First to ${setsToWin} Sets)` : 
+        const formatInfo = playWithSets ?
+            ` (First to ${setsToWin} Sets)` :
             ` (First to ${legsToWin} Legs)`;
-        
+
         notes.push(`Format: ${startingScore}${doubleOutInfo}${formatInfo}`);
 
         notes.push('Submitted via Advanced Dart Scoring');
@@ -446,7 +566,7 @@ class DartScoringStats {
 
         try {
             const matchResult = this.generateMatchResult();
-            
+
             console.log('📤 [DART-STATS] Submitting enhanced match result:', matchResult);
 
             // Submit via REST API (same endpoint as regular match result)
@@ -541,7 +661,11 @@ class DartScoringStats {
                 legs: 0,
                 sets: 0,
                 average: 0,
-                checkouts: []
+                checkouts: [],
+                // ✅ NEU: Leg-spezifische Averages
+                legAverages: [],
+                currentLegThrows: 0,
+                currentLegScore: 0
             },
             player2: {
                 maximums: [],
@@ -552,7 +676,11 @@ class DartScoringStats {
                 legs: 0,
                 sets: 0,
                 average: 0,
-                checkouts: []
+                checkouts: [],
+                // ✅ NEU: Leg-spezifische Averages
+                legAverages: [],
+                currentLegThrows: 0,
+                currentLegScore: 0
             },
             matchStatistics: {
                 totalLegs: 0,
@@ -562,7 +690,7 @@ class DartScoringStats {
                 endTime: null
             }
         };
-        
+
         this.isTracking = false;
         console.log('📊 [DART-STATS] Statistics reset');
     }

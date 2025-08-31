@@ -7,7 +7,8 @@ class DartScoringUI {
         this.core = null;
         this.elements = {};
         this.isInitialized = false;
-        
+        this.keyboard = null; // ✅ NEU: Keyboard-Instanz
+
         console.log('🎨 [DART-UI] Dart Scoring UI initialized');
     }
 
@@ -18,9 +19,14 @@ class DartScoringUI {
         this.core = core;
         this.cacheElements();
         this.setupEventListeners();
-        this.isInitialized = true;
         
-        console.log('✅ [DART-UI] UI initialized with core');
+        // ✅ NEU: Initialize keyboard module
+        this.keyboard = new DartScoringKeyboard(this);
+        this.keyboard.initialize();
+        
+        this.isInitialized = true;
+
+        console.log('✅ [DART-UI] UI initialized with core and keyboard module');
     }
 
     /**
@@ -33,14 +39,14 @@ class DartScoringUI {
             gameMeta: document.getElementById('gameMeta'),
             backToMatch: document.getElementById('backToMatch'),
             backToTournament: document.getElementById('backToTournament'),
-            
+
             // Game status - NEUE KOMPAKTE ELEMENTE
             gameStatus: document.getElementById('gameStatus'),
             currentLegDisplay: document.getElementById('currentLegDisplay'),
             currentSetDisplay: document.getElementById('currentSetDisplay'),
             currentSetContainer: document.getElementById('currentSetContainer'),
             gameModeDisplay: document.getElementById('gameModeDisplay'),
-            
+
             // Player sections
             player1Section: document.getElementById('player1Section'),
             player1Name: document.getElementById('player1Name'),
@@ -50,7 +56,7 @@ class DartScoringUI {
             player1Average: document.getElementById('player1Average'),
             player1Finishes: document.getElementById('player1Finishes'),
             player1FinishOptions: document.getElementById('player1FinishOptions'),
-            
+
             player2Section: document.getElementById('player2Section'),
             player2Name: document.getElementById('player2Name'),
             player2Score: document.getElementById('player2Score'),
@@ -59,7 +65,7 @@ class DartScoringUI {
             player2Average: document.getElementById('player2Average'),
             player2Finishes: document.getElementById('player2Finishes'),
             player2FinishOptions: document.getElementById('player2FinishOptions'),
-            
+
             // Dart keypad elements - NEUE STRUKTUR mit beiden Spielern
             player1Display: document.getElementById('player1Display'),
             player1DisplayName: document.getElementById('player1DisplayName'),
@@ -71,32 +77,41 @@ class DartScoringUI {
             dart2Result: document.getElementById('dart2Result'),
             dart3Result: document.getElementById('dart3Result'),
             throwTotal: document.getElementById('throwTotal'),
-            
+
             // Control buttons
             confirmThrow: document.getElementById('confirmThrow'),
             undoLastDart: document.getElementById('undoLastDart'),
             undoThrow: document.getElementById('undoThrow'),
-            
+
             // History
             historyList: document.getElementById('historyList'),
-            
+
             // BUSTED Animation
             bustedAnimation: document.getElementById('bustedAnimation'),
             bustedMessage: document.getElementById('bustedMessage'),
             bustedDetails: document.getElementById('bustedDetails'),
-            
+
             // Win Animation
             winAnimation: document.getElementById('winAnimation'),
             winMessage: document.getElementById('winMessage'),
             winDetails: document.getElementById('winDetails'),
             continueFromWin: document.getElementById('continueFromWin'),
-            
+
             // Modals
             victoryModal: document.getElementById('victoryModal'),
             victoryMessage: document.getElementById('victoryMessage'),
             newLegBtn: document.getElementById('newLegBtn'),
             finishMatchBtn: document.getElementById('finishMatchBtn'),
-            
+
+            // ✅ NEU: Match Statistics Modal Elements
+            matchStatsModal: document.getElementById('matchStatsModal'),
+            matchStatsContent: document.getElementById('matchStatsContent'),
+            submitMatchResultBtn: document.getElementById('submitMatchResultBtn'),
+
+            // ✅ NEU: Match Finished Display Elements
+            matchFinishedDisplay: document.getElementById('matchFinishedDisplay'),
+            backToTournamentFinal: document.getElementById('backToTournamentFinal'),
+
             // Containers
             loadingContainer: document.getElementById('loadingContainer'),
             gameContainer: document.getElementById('gameContainer')
@@ -126,6 +141,10 @@ class DartScoringUI {
         // Modal buttons
         this.elements.newLegBtn.addEventListener('click', () => this.handleNewLeg());
         this.elements.finishMatchBtn.addEventListener('click', () => this.handleFinishMatch());
+
+        // ✅ NEU: Match Statistics Modal
+        this.elements.submitMatchResultBtn.addEventListener('click', () => this.handleSubmitMatchResult());
+        this.elements.backToTournamentFinal.addEventListener('click', () => this.navigateBackToTournament());
 
         // Win Animation
         this.elements.continueFromWin.addEventListener('click', () => this.handleContinueFromWin());
@@ -178,11 +197,11 @@ class DartScoringUI {
             awaitingNumber: false,
             throwComplete: false
         };
-        
+
         // Set default multiplier to single
         this.setActiveMultiplier(1);
         this.updateKeypadState();
-        
+
         console.log('🎯 [DART-UI] Keypad initialized');
     }
 
@@ -194,7 +213,7 @@ class DartScoringUI {
         if (this.core && this.core.gameState && this.core.gameState.isGameFinished) {
             return;
         }
-        
+
         if (this.keypadState.currentDart > 3 || this.keypadState.throwComplete) {
             return;
         }
@@ -206,7 +225,7 @@ class DartScoringUI {
 
         const multiplier = this.keypadState.selectedMultiplier;
         const score = number * multiplier;
-        
+
         // Validate maximum score per dart (60)
         if (score > 60) {
             this.showMessage('Maximaler Wert pro Dart ist 60!', 'warning');
@@ -231,12 +250,12 @@ class DartScoringUI {
         if (this.core && this.core.gameState && this.core.gameState.isGameFinished) {
             return;
         }
-        
+
         // Verhindere Multiplier-Eingabe wenn Keypad deaktiviert
         if (this.keypadElements.multiplierBtns[0] && this.keypadElements.multiplierBtns[0].classList.contains('disabled')) {
             return;
         }
-        
+
         this.keypadState.selectedMultiplier = multiplier;
         this.setActiveMultiplier(multiplier);
         console.log(`🎯 [DART-UI] Multiplier selected: ${this.getMultiplierName(multiplier)}`);
@@ -250,7 +269,7 @@ class DartScoringUI {
         if (this.core && this.core.gameState && this.core.gameState.isGameFinished) {
             return;
         }
-        
+
         if (this.keypadState.currentDart > 3 || this.keypadState.throwComplete) {
             return;
         }
@@ -261,7 +280,7 @@ class DartScoringUI {
         }
 
         let dartResult;
-        
+
         switch (special) {
             case 'bull':
                 dartResult = {
@@ -301,47 +320,47 @@ class DartScoringUI {
     addDartResult(dartResult) {
         const dartIndex = this.keypadState.currentDart - 1;
         this.keypadState.darts[dartIndex] = dartResult;
-        
+
         // Update UI
         this.updateDartDisplay(dartIndex, dartResult);
         this.updateThrowTotal();
-        
+
         // ✅ ERWEITERT: Prüfe BUST nach JEDEM Dart (nicht nur am Ende)
         if (this.isBustWithCurrentDarts()) {
             console.log('💥 [DART-UI] BUST detected after dart', dartIndex + 1);
-            
+
             // Sofort BUST-Animation zeigen
             this.keypadState.throwComplete = true;
             this.disableKeypad();
-            
+
             setTimeout(() => {
                 this.handleEarlyBust();
             }, 300); // Kurze Verzögerung damit User den Dart sieht
-            
+
             return; // Stoppe weitere Verarbeitung
         }
-        
+
         // Move to next dart
         this.keypadState.currentDart++;
-        
+
         // Reset multiplier nach jedem Dart
         this.keypadState.selectedMultiplier = 1;
         this.setActiveMultiplier(1);
-        
+
         // Check if throw is complete OR if fewer darts needed
         const isThrowComplete = this.keypadState.currentDart > 3;
         const canFinishEarly = this.canFinishWithCurrentDarts();
-        
+
         // Enable confirm button after each dart
         const dartsEntered = this.keypadState.darts.filter(dart => dart !== null).length;
         if (dartsEntered > 0) {
             this.elements.confirmThrow.disabled = false;
         }
-        
+
         if (isThrowComplete || canFinishEarly) {
             this.keypadState.throwComplete = true;
             this.disableKeypad();
-            
+
             // Automatischer Wurf nach 3 Darts oder bei Finish
             if (canFinishEarly) {
                 setTimeout(() => {
@@ -353,9 +372,9 @@ class DartScoringUI {
                 }, 1000);
             }
         }
-        
+
         this.updateKeypadState();
-        
+
         console.log(`🎯 [DART-UI] Dart ${dartIndex + 1} added:`, dartResult);
     }
 
@@ -371,27 +390,27 @@ class DartScoringUI {
             }
             return;
         }
-        
-        const dart1 = this.keypadState.darts[0]?.score || 0;
-        const dart2 = this.keypadState.darts[1]?.score || 0;
-        const dart3 = this.keypadState.darts[2]?.score || 0;
-        
+
+        const dart1 = this.keypadState.darts[0] ? .score || 0;
+        const dart2 = this.keypadState.darts[1] ? .score || 0;
+        const dart3 = this.keypadState.darts[2] ? .score || 0;
+
         const result = this.core.processThrow(dart1, dart2, dart3);
-        
+
         if (result.success && result.type === 'leg_won') {
             this.resetKeypad();
             this.updatePlayerDisplays();
             this.updateThrowHistory();
             this.updateGameStatus();
-            
+
             this.disableAllInputs();
             this.showWinAnimation(result);
-            
+
             setTimeout(() => {
                 this.hideWinAnimation();
                 this.showVictoryModal(result);
             }, 3000);
-            
+
             console.log('🎉 [DART-UI] Auto-finish detected and processed');
         }
     }
@@ -401,34 +420,34 @@ class DartScoringUI {
      */
     canFinishWithCurrentDarts() {
         if (!this.core || !this.core.gameState) return false;
-        
+
         const currentPlayer = this.core.gameState.currentPlayer;
         const playerData = currentPlayer === 1 ? this.core.gameState.player1 : this.core.gameState.player2;
-        
+
         // Calculate current throw total
         const throwTotal = this.keypadState.darts
             .filter(dart => dart !== null)
             .reduce((sum, dart) => sum + dart.score, 0);
-        
+
         const newScore = playerData.score - throwTotal;
-        
+
         // Prüfe ob Finish möglich und regelkonform
         if (newScore === 0) {
             const lastDart = this.getLastThrownDart();
-            
+
             if (!lastDart) return false;
-            
+
             // Prüfe Double-Out-Regel
-            if (this.core.gameRules?.doubleOut) {
+            if (this.core.gameRules ? .doubleOut) {
                 const isValidDouble = this.core.isValidDouble(lastDart.score);
                 console.log(`🎯 [DART-UI] Double-Out check: ${lastDart.display} (${lastDart.score}) is valid double: ${isValidDouble}`);
                 return isValidDouble;
             }
-            
+
             // Single-Out: Jeder Dart außer Miss ist gültig
             return lastDart.score > 0;
         }
-        
+
         return false;
     }
 
@@ -437,29 +456,29 @@ class DartScoringUI {
      */
     isBustWithCurrentDarts() {
         if (!this.core || !this.core.gameState) return false;
-        
+
         const currentPlayer = this.core.gameState.currentPlayer;
         const playerData = currentPlayer === 1 ? this.core.gameState.player1 : this.core.gameState.player2;
-        
+
         // Calculate current throw total
         const throwTotal = this.keypadState.darts
             .filter(dart => dart !== null)
             .reduce((sum, dart) => sum + dart.score, 0);
-        
+
         const newScore = playerData.score - throwTotal;
-        
+
         // Prüfe auf Bust (Überwurf oder unmöglicher Finish bei Double-Out)
         if (newScore < 0) {
             console.log(`💥 [DART-UI] Early BUST detected: ${playerData.score} - ${throwTotal} = ${newScore}`);
             return true;
         }
-        
+
         // Prüfe Double-Out Regel für Score 1
-        if (this.core.gameRules?.doubleOut && newScore === 1) {
+        if (this.core.gameRules ? .doubleOut && newScore === 1) {
             console.log(`💥 [DART-UI] Early BUST detected: Can't finish on 1 with double-out`);
             return true;
         }
-        
+
         return false;
     }
 
@@ -470,34 +489,34 @@ class DartScoringUI {
         // ✅ KORRIGIERT: Bestimme Spieler VOR processThrow
         const bustedPlayerNumber = this.core.gameState.currentPlayer;
         const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
-        
-        const dart1 = this.keypadState.darts[0]?.score || 0;
-        const dart2 = this.keypadState.darts[1]?.score || 0;
-        const dart3 = this.keypadState.darts[2]?.score || 0;
-        
+
+        const dart1 = this.keypadState.darts[0] ? .score || 0;
+        const dart2 = this.keypadState.darts[1] ? .score || 0;
+        const dart3 = this.keypadState.darts[2] ? .score || 0;
+
         console.log('💥 [DART-UI] Processing early BUST for player', bustedPlayerNumber, 'with darts:', [dart1, dart2, dart3]);
-        
+
         const result = this.core.processThrow(dart1, dart2, dart3);
-        
+
         if (result.success && result.type === 'bust') {
             this.resetKeypad();
             this.updatePlayerDisplays();
             this.updateThrowHistory();
             this.updateGameStatus();
-            
+
             // ✅ KORRIGIERT: Zeige BUSTED Animation mit korrektem Spieler
             const animationResult = {
                 ...result,
                 bustedPlayer: bustedPlayerNumber,
                 bustedPlayerName: bustedPlayerName
             };
-            
+
             this.showBustedAnimationForPlayer(bustedPlayerNumber, bustedPlayerName);
-            
+
             setTimeout(() => {
                 this.hideBustedAnimation();
             }, 2500);
-            
+
             console.log('💥 [DART-UI] Early BUST processed for player:', bustedPlayerName);
         }
     }
@@ -508,12 +527,12 @@ class DartScoringUI {
     showBustedAnimationForPlayer(playerNumber, playerName) {
         this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
         this.elements.bustedDetails.innerHTML = `<strong>${playerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
-        
+
         this.elements.bustedAnimation.classList.remove('hidden');
-        
+
         // Sound-Effekt für Bust
         this.playBustedSound();
-        
+
         console.log('💥 [DART-UI] BUSTED animation displayed for player:', playerName, 'Number:', playerNumber);
     }
 
@@ -526,13 +545,13 @@ class DartScoringUI {
             this.elements.dart2Result,
             this.elements.dart3Result
         ][dartIndex];
-        
+
         if (displayElement) {
             displayElement.textContent = dartResult.display;
             displayElement.classList.add('entered');
             displayElement.classList.remove('active');
         }
-        
+
         // Set next dart as active
         if (dartIndex + 1 < 3) {
             const nextElement = [
@@ -540,7 +559,7 @@ class DartScoringUI {
                 this.elements.dart2Result,
                 this.elements.dart3Result
             ][dartIndex + 1];
-            
+
             if (nextElement) {
                 nextElement.classList.add('active');
             }
@@ -554,9 +573,9 @@ class DartScoringUI {
         const total = this.keypadState.darts
             .filter(dart => dart !== null)
             .reduce((sum, dart) => sum + dart.score, 0);
-        
+
         this.elements.throwTotal.textContent = total;
-        
+
         // Color coding for total
         if (total > 180) {
             this.elements.throwTotal.style.color = '#e53e3e'; // Red for invalid
@@ -589,13 +608,13 @@ class DartScoringUI {
         if (this.core && this.core.gameState) {
             const player1Data = this.core.gameState.player1;
             const player2Data = this.core.gameState.player2;
-            
+
             // Update both player displays in header
             this.elements.player1DisplayName.textContent = this.core.getPlayerName(1);
             this.elements.player1DisplayScore.textContent = player1Data.score;
             this.elements.player2DisplayName.textContent = this.core.getPlayerName(2);
             this.elements.player2DisplayScore.textContent = player2Data.score;
-            
+
             // Set active/inactive states for player displays
             if (this.core.gameState.currentPlayer === 1) {
                 this.elements.player1Display.classList.add('active');
@@ -609,21 +628,21 @@ class DartScoringUI {
                 this.elements.player1Display.classList.remove('active');
             }
         }
-        
+
         // Update dart result active states
         const dartElements = [
             this.elements.dart1Result,
             this.elements.dart2Result,
             this.elements.dart3Result
         ];
-        
+
         dartElements.forEach((el, index) => {
             el.classList.remove('active');
             if (index === this.keypadState.currentDart - 1 && !this.keypadState.throwComplete) {
                 el.classList.add('active');
             }
         });
-        
+
         // Enable/disable control buttons
         this.elements.undoLastDart.disabled = this.keypadState.currentDart === 1;
     }
@@ -636,27 +655,27 @@ class DartScoringUI {
 
         const gameState = this.core.gameState;
         const gameRules = this.core.gameRules;
-        
+
         // Update Leg display
         this.elements.currentLegDisplay.textContent = gameState.currentLeg;
-        
+
         // Update Set display - nur anzeigen wenn Sets aktiviert
-        const setsToWin = gameRules?.setsToWin || 0;
+        const setsToWin = gameRules ? .setsToWin || 0;
         if (setsToWin > 1) {
             this.elements.currentSetDisplay.textContent = gameState.currentSet;
             this.elements.currentSetContainer.style.display = 'block';
         } else {
             this.elements.currentSetContainer.style.display = 'none';
         }
-        
+
         // Update game mode display
         const startingScore = this.core.getStartingScore();
         let modeText = startingScore.toString();
-        
-        if (gameRules?.doubleOut) {
+
+        if (gameRules ? .doubleOut) {
             modeText += ' D.Out';
         }
-        
+
         this.elements.gameModeDisplay.textContent = modeText;
     }
 
@@ -698,10 +717,10 @@ class DartScoringUI {
 
         // Reset UI
         [this.elements.dart1Result, this.elements.dart2Result, this.elements.dart3Result]
-            .forEach(el => {
-                el.textContent = '-';
-                el.classList.remove('entered', 'active');
-            });
+        .forEach(el => {
+            el.textContent = '-';
+            el.classList.remove('entered', 'active');
+        });
 
         this.elements.dart1Result.classList.add('active');
         this.elements.throwTotal.textContent = '0';
@@ -720,15 +739,18 @@ class DartScoringUI {
      */
     disableAllInputs() {
         this.disableKeypad();
-        
+
         this.elements.confirmThrow.disabled = true;
         this.elements.undoLastDart.disabled = true;
         this.elements.undoThrow.disabled = true;
-        
+
         this.keypadElements.multiplierBtns.forEach(btn => {
             btn.classList.add('disabled');
         });
-        
+
+        // ✅ NEU: Disable keyboard module
+        this.disableKeyboard();
+
         console.log('🚫 [DART-UI] All inputs disabled');
     }
 
@@ -737,11 +759,14 @@ class DartScoringUI {
      */
     enableAllInputs() {
         this.enableKeypad();
-        
+
         this.keypadElements.multiplierBtns.forEach(btn => {
             btn.classList.remove('disabled');
         });
-        
+
+        // ✅ NEU: Enable keyboard module
+        this.enableKeyboard();
+
         console.log('✅ [DART-UI] All inputs enabled for new leg');
     }
 
@@ -752,7 +777,7 @@ class DartScoringUI {
         if (number === 0) return 'Miss';
         if (number === 25 && multiplier === 1) return 'Bull';
         if (number === 25 && multiplier === 2) return 'D-Bull';
-        
+
         const multiplierPrefix = multiplier === 2 ? 'D' : multiplier === 3 ? 'T' : '';
         return `${multiplierPrefix}${number}`;
     }
@@ -762,10 +787,14 @@ class DartScoringUI {
      */
     getMultiplierName(multiplier) {
         switch (multiplier) {
-            case 1: return 'Single';
-            case 2: return 'Double';
-            case 3: return 'Triple';
-            default: return 'Unknown';
+            case 1:
+                return 'Single';
+            case 2:
+                return 'Double';
+            case 3:
+                return 'Triple';
+            default:
+                return 'Unknown';
         }
     }
 
@@ -800,13 +829,13 @@ class DartScoringUI {
         const match = this.core.matchData;
         const gameState = this.core.gameState;
         const gameRules = this.core.gameRules;
-        
+
         // ✅ ERWEITERT: Match-Regeln in der Meta-Anzeige
-        const legsToWin = gameRules?.legsToWinSet || gameRules?.legsToWin || 2;
-        const setsToWin = gameRules?.setsToWin || 1;
+        const legsToWin = gameRules ? .legsToWinSet || gameRules ? .legsToWin || 2;
+        const setsToWin = gameRules ? .setsToWin || 1;
         const startingScore = this.core.getStartingScore();
-        const doubleOut = gameRules?.doubleOut ? ' D.Out' : '';
-        
+        const doubleOut = gameRules ? .doubleOut ? ' D.Out' : '';
+
         let rulesText = '';
         if (setsToWin > 1) {
             // Best of Sets Format: "Best of 5 Sets • First to 3 Legs per Set"
@@ -822,8 +851,8 @@ class DartScoringUI {
         this.elements.gameMeta.textContent = `${startingScore}${doubleOut} • ${rulesText} • Leg ${gameState.currentLeg} • Set ${gameState.currentSet}`;
 
         // Update player names
-        this.elements.player1Name.textContent = match.player1?.name || 'Spieler 1';
-        this.elements.player2Name.textContent = match.player2?.name || 'Spieler 2';
+        this.elements.player1Name.textContent = match.player1 ? .name || 'Spieler 1';
+        this.elements.player2Name.textContent = match.player2 ? .name || 'Spieler 2';
 
         // Initialize keypad
         this.initializeKeypad();
@@ -868,7 +897,7 @@ class DartScoringUI {
         this.elements.player1DisplayScore.textContent = gameState.player1.score;
         this.elements.player2DisplayName.textContent = this.core.getPlayerName(2);
         this.elements.player2DisplayScore.textContent = gameState.player2.score;
-        
+
         // Set active/inactive states for player displays
         if (gameState.currentPlayer === 1) {
             this.elements.player1Display.classList.add('active');
@@ -920,16 +949,16 @@ class DartScoringUI {
     handleConfirmThrow() {
         // Erlaube Bestätigung auch mit weniger als 3 Darts
         const dartsThrown = this.keypadState.darts.filter(dart => dart !== null).length;
-        
+
         if (dartsThrown === 0) {
             this.showMessage('Mindestens einen Dart eingeben', 'warning');
             return;
         }
 
         // Extract scores from darts
-        const dart1 = this.keypadState.darts[0]?.score || 0;
-        const dart2 = this.keypadState.darts[1]?.score || 0;
-        const dart3 = this.keypadState.darts[2]?.score || 0;
+        const dart1 = this.keypadState.darts[0] ? .score || 0;
+        const dart2 = this.keypadState.darts[1] ? .score || 0;
+        const dart3 = this.keypadState.darts[2] ? .score || 0;
 
         console.log(`🎯 [DART-UI] Confirming throw with ${dartsThrown} darts:`, [dart1, dart2, dart3]);
 
@@ -944,16 +973,16 @@ class DartScoringUI {
             if (result.type === 'leg_won') {
                 this.disableAllInputs();
                 this.showWinAnimation(result);
-                
+
                 setTimeout(() => {
                     this.hideWinAnimation();
                     this.showVictoryModal(result);
                 }, 3000);
-                
+
             } else if (result.type === 'bust') {
                 // Zeige BUSTED Animation
                 this.showBustedAnimation(result);
-                
+
                 // Nach 2.5 Sekunden Animation ausblenden und weiter
                 setTimeout(() => {
                     this.hideBustedAnimation();
@@ -972,10 +1001,10 @@ class DartScoringUI {
     showWinAnimation(result) {
         const playerName = this.core.getPlayerName(this.core.gameState.currentPlayer);
         const lastDart = this.getLastThrownDart();
-        const isDoubleOut = this.core.gameRules?.doubleOut;
-        
+        const isDoubleOut = this.core.gameRules ? .doubleOut;
+
         this.elements.winMessage.textContent = '🎉 CHECKOUT! 🎉';
-        
+
         let detailsHtml = `<strong>${playerName}</strong> gewinnt das Leg!<br>`;
         if (lastDart && lastDart.display !== 'Miss') {
             detailsHtml += `Mit ${lastDart.display}`;
@@ -983,12 +1012,12 @@ class DartScoringUI {
                 detailsHtml += ` (Double-Out!)`;
             }
         }
-        
+
         this.elements.winDetails.innerHTML = detailsHtml;
         this.elements.winAnimation.classList.remove('hidden');
-        
+
         this.playWinSound();
-        
+
         console.log('🎉 [DART-UI] Win animation displayed');
     }
 
@@ -1018,15 +1047,15 @@ class DartScoringUI {
         // (processThrow wechselt erst NACH der BUST-Verarbeitung)
         const bustedPlayerNumber = this.core.gameState.currentPlayer;
         const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
-        
+
         this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
         this.elements.bustedDetails.innerHTML = `<strong>${bustedPlayerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
-        
+
         this.elements.bustedAnimation.classList.remove('hidden');
-        
+
         // Sound-Effekt für Bust
         this.playBustedSound();
-        
+
         console.log('💥 [DART-UI] BUSTED animation displayed for player:', bustedPlayerName, 'Player Number:', bustedPlayerNumber);
     }
 
@@ -1043,20 +1072,20 @@ class DartScoringUI {
      */
     playBustedSound() {
         try {
-            const audioContext = new (window.AudioContext || window.webkit.AudioContext)();
+            const audioContext = new(window.AudioContext || window.webkit.AudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             // Tieferer, härterer Ton für BUSTED
             oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.8);
-            
+
             gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-            
+
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 0.8);
         } catch (error) {
@@ -1082,19 +1111,19 @@ class DartScoringUI {
      */
     playWinSound() {
         try {
-            const audioContext = new (window.AudioContext || window.webkit.AudioContext)();
+            const audioContext = new(window.AudioContext || window.webkit.AudioContext)();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
-            
+
             oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
             oscillator.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.5);
-            
+
             gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
-            
+
             oscillator.start(audioContext.currentTime);
             oscillator.stop(audioContext.currentTime + 1);
         } catch (error) {
@@ -1113,14 +1142,14 @@ class DartScoringUI {
         // Remove last dart
         const lastDartIndex = this.keypadState.throwComplete ? 2 : this.keypadState.currentDart - 2;
         this.keypadState.darts[lastDartIndex] = null;
-        
+
         // Update UI
         const dartElement = [
             this.elements.dart1Result,
             this.elements.dart2Result,
             this.elements.dart3Result
         ][lastDartIndex];
-        
+
         if (dartElement) {
             dartElement.textContent = '-';
             dartElement.classList.remove('entered', 'active');
@@ -1129,7 +1158,7 @@ class DartScoringUI {
         // Update state
         this.keypadState.currentDart = lastDartIndex + 1;
         this.keypadState.throwComplete = false;
-        
+
         // Re-enable keypad and update UI
         this.enableKeypad();
         this.elements.confirmThrow.disabled = true;
@@ -1156,16 +1185,16 @@ class DartScoringUI {
     }
 
     /**
-     * Handle new leg start
+     * Handle new leg start - ✅ GEÄNDERT: Behandle Match-Ende anders
      */
     handleNewLeg() {
-        // ✅ NEU: Prüfe ob Match beendet ist und behandle als "Match beenden"
+        // ✅ NEU: Prüfe ob Match beendet ist und zeige Statistiken statt neues Leg zu starten
         if (this.core.gameState.isGameFinished) {
-            console.log('🏁 [DART-UI] Match is finished - triggering match finish instead of new leg');
-            this.handleFinishMatch();
+            console.log('🏁 [DART-UI] Match is finished - showing statistics instead of new leg');
+            this.handleFinishMatch(); // Zeigt Statistik-Modal
             return;
         }
-        
+
         // Normaler neues Leg Ablauf
         const result = this.core.startNewLeg();
 
@@ -1173,74 +1202,77 @@ class DartScoringUI {
             this.hideVictoryModal();
             this.enableAllInputs();
             this.resetKeypad();
-            
+
             this.updatePlayerDisplays();
             this.updateThrowHistory();
             this.updateGameStatus();
             this.showMessage(result.message, 'success');
-            
+
             console.log('🎯 [DART-UI] New leg started - inputs re-enabled');
         }
     }
 
     /**
-     * Handle match finish
+     * Handle match finish - ✅ GEÄNDERT: Zeige Statistik-Modal statt direkte Übertragung
      */
     async handleFinishMatch() {
         try {
-            console.log('🏁 [DART-UI] Initiating match finish with enhanced submission...');
-            
+            console.log('🏁 [DART-UI] Match finish requested - showing match statistics...');
+
+            // Verstecke Victory Modal
+            this.hideVictoryModal();
+
+            // Zeige Match-Statistik-Modal mit Absenden-Button
+            this.showMatchStatisticsModal();
+
+        } catch (error) {
+            console.error('❌ [DART-UI] Error showing match statistics:', error);
+            this.showMessage(`❌ Fehler beim Anzeigen der Statistiken: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * ✅ NEU: Handle submit match result from statistics modal
+     */
+    async handleSubmitMatchResult() {
+        try {
+            console.log('📤 [DART-UI] Submitting match result from statistics modal...');
+
             // Disable the button to prevent double-clicks
-            this.elements.finishMatchBtn.disabled = true;
-            this.elements.finishMatchBtn.textContent = 'Übertrage...';
-            
+            this.elements.submitMatchResultBtn.disabled = true;
+            this.elements.submitMatchResultBtn.textContent = 'Übertrage...';
+
             // Show submission progress
-            this.showMessage('📤 Übertrage Match-Ergebnis mit Statistiken...', 'info');
-            
+            this.showMessage('� Übertrage Match-Ergebnis mit Statistiken...', 'info');
+
             // Use enhanced submission system
             const result = await this.core.submitMatchResult();
-            
+
             if (result.success) {
-                this.hideVictoryModal();
-                
-                // Show enhanced success message with statistics
-                let successMessage = '✅ Match-Ergebnis erfolgreich übertragen!';
-                
-                if (result.statistics) {
-                    const stats = result.statistics;
-                    successMessage += `\n📊 Übertragene Statistiken: Averages, ${stats.player1.maximums + stats.player2.maximums} x 180er`;
-                    
-                    if (stats.player1.highFinishes + stats.player2.highFinishes > 0) {
-                        successMessage += `, ${stats.player1.highFinishes + stats.player2.highFinishes} High Finishes`;
-                    }
-                    
-                    if (stats.player1.score26 + stats.player2.score26 > 0) {
-                        successMessage += `, ${stats.player1.score26 + stats.player2.score26} x 26er Scores`;
-                    }
-                }
-                
-                this.showMessage(successMessage, 'success');
-                
-                // ✅ NEU: Enhanced submission handles navigation automatisch
-                // The submission system will navigate back to tournament after success
-                console.log('✅ [DART-UI] Enhanced submission successful - navigation handled automatically');
-                
+                // Hide statistics modal
+                this.hideMatchStatisticsModal();
+
+                // Show success and final completion
+                this.showMatchFinishedDisplay();
+
+                console.log('✅ [DART-UI] Match result submitted successfully from statistics modal');
+
             } else {
                 // Re-enable button on failure
-                this.elements.finishMatchBtn.disabled = false;
-                this.elements.finishMatchBtn.textContent = 'Match beenden';
-                
+                this.elements.submitMatchResultBtn.disabled = false;
+                this.elements.submitMatchResultBtn.textContent = '📤 Ergebnis absenden';
+
                 this.showMessage(`❌ Fehler: ${result.message}`, 'error');
             }
-            
+
         } catch (error) {
-            console.error('❌ [DART-UI] Error in enhanced match finish:', error);
-            
+            console.error('❌ [DART-UI] Error submitting from statistics modal:', error);
+
             // Re-enable button on error
-            this.elements.finishMatchBtn.disabled = false;
-            this.elements.finishMatchBtn.textContent = 'Match beenden';
-            
-            this.showMessage(`❌ Fehler beim Beenden: ${error.message}`, 'error');
+            this.elements.submitMatchResultBtn.disabled = false;
+            this.elements.submitMatchResultBtn.textContent = '📤 Ergebnis absenden';
+
+            this.showMessage(`❌ Fehler beim Übertragen: ${error.message}`, 'error');
         }
     }
 
@@ -1248,24 +1280,24 @@ class DartScoringUI {
      * Update throw history display
      */
     updateThrowHistory() {
-        const gameState = this.core.gameState;
-        const history = gameState.throwHistory.slice(0, 20);
+            const gameState = this.core.gameState;
+            const history = gameState.throwHistory.slice(0, 20);
 
-        this.elements.historyList.innerHTML = history.map(entry => {
-            const playerName = this.core.getPlayerName(entry.player);
-            
-            let entryClass = '';
-            let statusIcon = '';
-            
-            if (entry.isWinning) {
-                entryClass = 'style="background: #c6f6d5;"';
-                statusIcon = '🎉';
-            } else if (entry.isBust) {
-                entryClass = 'style="background: #fed7d7;"';
-                statusIcon = '💥';
-            }
+            this.elements.historyList.innerHTML = history.map(entry => {
+                        const playerName = this.core.getPlayerName(entry.player);
 
-            return `
+                        let entryClass = '';
+                        let statusIcon = '';
+
+                        if (entry.isWinning) {
+                            entryClass = 'style="background: #c6f6d5;"';
+                            statusIcon = '🎉';
+                        } else if (entry.isBust) {
+                            entryClass = 'style="background: #fed7d7;"';
+                            statusIcon = '💥';
+                        }
+
+                        return `
                 <div class="history-entry" ${entryClass}>
                     <div class="history-player">${statusIcon} ${playerName}</div>
                     <div class="history-throws">
@@ -1296,10 +1328,11 @@ class DartScoringUI {
                 
                 // ✅ KORRIGIERT: Prüfe isGameFinished Flag für korrekte Button-Anzeige
                 if (this.core.gameState.isGameFinished) {
-                    this.elements.newLegBtn.textContent = 'Match beenden';
+                    // ✅ NEU: Bei Match-Ende zeige "Statistiken anzeigen" statt direkter Submit
+                    this.elements.newLegBtn.textContent = 'Statistiken anzeigen';
                     this.elements.finishMatchBtn.style.display = 'none';
                     
-                    console.log('✅ [DART-UI] Match is finished - showing "Match beenden" button');
+                    console.log('✅ [DART-UI] Match is finished - showing "Statistiken anzeigen" button');
                 } else {
                     // Fallback: Zeige beide Buttons wenn Flag nicht gesetzt
                     this.elements.newLegBtn.textContent = 'Neues Leg starten';
@@ -1373,6 +1406,269 @@ class DartScoringUI {
     }
 
     /**
+     * ✅ NEU: Show match statistics modal
+     */
+    showMatchStatisticsModal() {
+        try {
+            console.log('📊 [DART-UI] Showing match statistics modal...');
+            
+            // Generate statistics content
+            const statsContent = this.generateMatchStatisticsContent();
+            this.elements.matchStatsContent.innerHTML = statsContent;
+            
+            // Reset submit button
+            this.elements.submitMatchResultBtn.disabled = false;
+            this.elements.submitMatchResultBtn.textContent = '📤 Ergebnis absenden';
+            
+            // Show modal
+            this.elements.matchStatsModal.classList.remove('hidden');
+            
+            console.log('📊 [DART-UI] Match statistics modal displayed');
+            
+        } catch (error) {
+            console.error('❌ [DART-UI] Error showing match statistics modal:', error);
+            this.showMessage(`❌ Fehler beim Anzeigen der Statistiken: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * ✅ NEU: Hide match statistics modal
+     */
+    hideMatchStatisticsModal() {
+        this.elements.matchStatsModal.classList.add('hidden');
+    }
+
+    /**
+     * ✅ NEU: Show match finished display
+     */
+    showMatchFinishedDisplay() {
+        this.elements.matchFinishedDisplay.classList.remove('hidden');
+    }
+
+    /**
+     * ✅ NEU: Generate match statistics content
+     */
+    generateMatchStatisticsContent() {
+        if (!window.dartScoringApp || !window.dartScoringApp.stats) {
+            return '<p>Statistiken nicht verfügbar</p>';
+        }
+        
+        try {
+            const stats = window.dartScoringApp.getCurrentStatistics();
+            const fullStats = window.dartScoringApp.stats.statistics;
+            
+            // Determine winner
+            const gameState = this.core.gameState;
+            let winner = null;
+            let winnerName = '';
+            
+            if (gameState.player1.sets > gameState.player2.sets) {
+                winner = 1;
+                winnerName = stats.player1.name;
+            } else if (gameState.player2.sets > gameState.player1.sets) {
+                winner = 2;
+                winnerName = stats.player2.name;
+            } else if (gameState.player1.legs > gameState.player2.legs) {
+                winner = 1;
+                winnerName = stats.player1.name;
+            } else if (gameState.player2.legs > gameState.player1.legs) {
+                winner = 2;
+                winnerName = stats.player2.name;
+            }
+
+            let content = `
+                <div class="match-summary">
+                    <h3>🏆 ${winnerName} gewinnt das Match!</h3>
+                    <p><strong>Ergebnis:</strong> ${gameState.player1.legs}-${gameState.player2.legs} Legs`;
+            
+            if (gameState.player1.sets > 0 || gameState.player2.sets > 0) {
+                content += `, ${gameState.player1.sets}-${gameState.player2.sets} Sets`;
+            }
+            
+            content += '</p></div>';
+
+            content += '<div class="match-stats-grid">';
+            
+            // Player 1 Stats
+            content += `
+                <div class="player-stats-section ${winner === 1 ? 'winner-highlight' : ''}">
+                    <h3>${winner === 1 ? '👑 ' : ''}${stats.player1.name}</h3>
+                    <div class="stats-row">
+                        <span class="stats-label">Match Average:</span>
+                        <span class="stats-value">${stats.player1.average}</span>
+                    </div>`;
+
+            // Show leg averages if available
+            if (fullStats.player1.legAverages && fullStats.player1.legAverages.length > 0) {
+                const avgLegAvg = fullStats.player1.legAverages.reduce((sum, leg) => sum + leg.average, 0) / fullStats.player1.legAverages.length;
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">⌀ Leg Average:</span>
+                        <span class="stats-value">${avgLegAvg.toFixed(1)}</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">Legs gespielt:</span>
+                        <span class="stats-value">${fullStats.player1.legAverages.length}</span>
+                    </div>`;
+            }
+
+            content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Legs gewonnen:</span>
+                        <span class="stats-value">${gameState.player1.legs}</span>
+                    </div>`;
+
+            if (gameState.player1.sets > 0 || gameState.player2.sets > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Sets gewonnen:</span>
+                        <span class="stats-value">${gameState.player1.sets}</span>
+                    </div>`;
+            }
+
+            if (stats.player1.maximums > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">180er:</span>
+                        <span class="stats-value">${stats.player1.maximums}</span>
+                    </div>`;
+            }
+
+            if (stats.player1.highFinishes > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">High Finishes (≥100):</span>
+                        <span class="stats-value">${stats.player1.highFinishes}</span>
+                    </div>`;
+            }
+
+            if (stats.player1.score26 > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">26er Scores:</span>
+                        <span class="stats-value">${stats.player1.score26}</span>
+                    </div>`;
+            }
+
+            content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Checkouts:</span>
+                        <span class="stats-value">${stats.player1.checkouts}</span>
+                    </div>
+                </div>`;
+
+            // Player 2 Stats
+            content += `
+                <div class="player-stats-section ${winner === 2 ? 'winner-highlight' : ''}">
+                    <h3>${winner === 2 ? '👑 ' : ''}${stats.player2.name}</h3>
+                    <div class="stats-row">
+                        <span class="stats-label">Match Average:</span>
+                        <span class="stats-value">${stats.player2.average}</span>
+                    </div>`;
+
+            // Show leg averages if available
+            if (fullStats.player2.legAverages && fullStats.player2.legAverages.length > 0) {
+                const avgLegAvg = fullStats.player2.legAverages.reduce((sum, leg) => sum + leg.average, 0) / fullStats.player2.legAverages.length;
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">⌀ Leg Average:</span>
+                        <span class="stats-value">${avgLegAvg.toFixed(1)}</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">Legs gespielt:</span>
+                        <span class="stats-value">${fullStats.player2.legAverages.length}</span>
+                    </div>`;
+            }
+
+            content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Legs gewonnen:</span>
+                        <span class="stats-value">${gameState.player2.legs}</span>
+                    </div>`;
+
+            if (gameState.player1.sets > 0 || gameState.player2.sets > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Sets gewonnen:</span>
+                        <span class="stats-value">${gameState.player2.sets}</span>
+                    </div>`;
+            }
+
+            if (stats.player2.maximums > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">180er:</span>
+                        <span class="stats-value">${stats.player2.maximums}</span>
+                    </div>`;
+            }
+
+            if (stats.player2.highFinishes > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">High Finishes (≥100):</span>
+                        <span class="stats-value">${stats.player2.highFinishes}</span>
+                    </div>`;
+            }
+
+            if (stats.player2.score26 > 0) {
+                content += `
+                    <div class="stats-row">
+                        <span class="stats-label">26er Scores:</span>
+                        <span class="stats-value">${stats.player2.score26}</span>
+                    </div>`;
+            }
+
+            content += `
+                    <div class="stats-row">
+                        <span class="stats-label">Checkouts:</span>
+                        <span class="stats-value">${stats.player2.checkouts}</span>
+                    </div>
+                </div>
+            </div>`;
+
+            // Match overview
+            const totalThrows = fullStats.player1.totalThrows + fullStats.player2.totalThrows;
+            const totalMaximums = stats.player1.maximums + stats.player2.maximums;
+            const totalHighFinishes = stats.player1.highFinishes + stats.player2.highFinishes;
+            const total26Scores = stats.player1.score26 + stats.player2.score26;
+            
+            content += `
+                <div style="margin-top: 20px; text-align: center; color: #4a5568;">
+                    <p><strong>Match-Übersicht:</strong></p>
+                    <p>Gesamte Darts geworfen: ${totalThrows}`;
+            
+            if (totalMaximums > 0) content += ` • 180er: ${totalMaximums}`;
+            if (totalHighFinishes > 0) content += ` • High Finishes: ${totalHighFinishes}`;
+            if (total26Scores > 0) content += ` • 26er Scores: ${total26Scores}`;
+            
+            content += '</p></div>';
+
+            return content;
+            
+        } catch (error) {
+            console.error('❌ [DART-UI] Error generating statistics content:', error);
+            return '<p>❌ Fehler beim Laden der Statistiken</p>';
+        }
+    }
+
+    /**
+     * ✅ NEU: Navigate back to tournament
+     */
+    navigateBackToTournament() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tournamentId = urlParams.get('tournament') || urlParams.get('t');
+        
+        if (tournamentId) {
+            const tournamentUrl = `/tournament-interface.html?tournament=${tournamentId}`;
+            console.log(`🔗 [DART-UI] Redirecting to: ${tournamentUrl}`);
+            window.location.href = tournamentUrl;
+        } else {
+            console.warn('⚠️ [DART-UI] No tournament ID found, going to dashboard');
+            window.location.href = '/dashboard.html';
+        }
+    }
+
+    /**
      * Show temporary message
      */
     showMessage(text, type = 'success') {
@@ -1387,6 +1683,241 @@ class DartScoringUI {
                 message.parentNode.removeChild(message);
             }
         }, 3000);
+    }
+
+    /**
+     * ✅ NEU: Show match completed message instead of redirect
+     */
+    showMatchCompletedMessage() {
+        try {
+            console.log('🏁 [DART-UI] Showing match completed message');
+
+            // Hide game interface
+            this.elements.gameContainer.classList.add('hidden');
+
+            // Create completion message container
+            const completionContainer = document.createElement('div');
+            completionContainer.id = 'match-completion-container';
+            completionContainer.className = 'completion-container';
+            completionContainer.innerHTML = `
+                <div class="completion-content">
+                    <div class="completion-header">
+                        <h2>🏁 Match beendet</h2>
+                        <p class="completion-subtitle">Das Ergebnis wurde erfolgreich übertragen</p>
+                    </div>
+                    
+                    <div class="completion-message">
+                        <div class="success-icon">✅</div>
+                        <h3>Übertragung erfolgreich!</h3>
+                        <p>Das Match-Ergebnis und alle Statistiken wurden erfolgreich zum Tournament Hub übertragen.</p>
+                    </div>
+
+                    <div class="completion-actions">
+                        <p><strong>Die Seite kann nun geschlossen werden.</strong></p>
+                        <small>Oder nutzen Sie den Button unten, um zum Tournament zurückzukehren.</small>
+                    </div>
+
+                    <div class="completion-buttons">
+                        <button id="close-window-btn" class="btn btn-primary">
+                            🔒 Fenster schließen
+                        </button>
+                        <button id="back-to-tournament-btn" class="btn btn-secondary">
+                            ↩️ Zurück zum Tournament
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add completion styles
+            const style = document.createElement('style');
+            style.textContent = `
+                .completion-container {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    animation: fadeIn 0.5s ease-in;
+                }
+
+                .completion-content {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                    text-align: center;
+                    max-width: 500px;
+                    width: 90%;
+                    animation: slideInUp 0.6s ease-out;
+                }
+
+                .completion-header h2 {
+                    color: #2d3748;
+                    margin-bottom: 10px;
+                    font-size: 2.2em;
+                }
+
+                .completion-subtitle {
+                    color: #718096;
+                    margin-bottom: 30px;
+                    font-size: 1.1em;
+                }
+
+                .completion-message {
+                    background: #f7fafc;
+                    padding: 30px;
+                    border-radius: 15px;
+                    margin-bottom: 30px;
+                }
+
+                .success-icon {
+                    font-size: 4em;
+                    margin-bottom: 20px;
+                    animation: bounce 1s infinite;
+                }
+
+                .completion-message h3 {
+                    color: #38a169;
+                    margin-bottom: 15px;
+                    font-size: 1.5em;
+                }
+
+                .completion-message p {
+                    color: #4a5568;
+                    line-height: 1.6;
+                }
+
+                .completion-actions {
+                    margin-bottom: 30px;
+                }
+
+                .completion-actions p {
+                    color: #2d3748;
+                    font-size: 1.2em;
+                    margin-bottom: 10px;
+                }
+
+                .completion-actions small {
+                    color: #718096;
+                }
+
+                .completion-buttons {
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+
+                .completion-buttons .btn {
+                    padding: 15px 30px;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 1.1em;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    min-width: 180px;
+                }
+
+                .btn-primary {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                }
+
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                }
+
+                .btn-secondary {
+                    background: #e2e8f0;
+                    color: #4a5568;
+                }
+
+                .btn-secondary:hover {
+                    background: #cbd5e0;
+                    transform: translateY(-2px);
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                @keyframes slideInUp {
+                    from {
+                        transform: translateY(30px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+
+                @keyframes bounce {
+                    0%, 20%, 53%, 80%, 100% {
+                        transform: translate3d(0,0,0);
+                    }
+                    40%, 43% {
+                        transform: translate3d(0, -20px, 0);
+                    }
+                    70% {
+                        transform: translate3d(0, -10px, 0);
+                    }
+                    90% {
+                        transform: translate3d(0, -4px, 0);
+                    }
+                }
+
+                @media (max-width: 600px) {
+                    .completion-content {
+                        padding: 30px 20px;
+                        margin: 20px;
+                    }
+                    
+                    .completion-buttons {
+                        flex-direction: column;
+                        align-items: center;
+                    }
+                    
+                    .completion-buttons .btn {
+                        width: 100%;
+                        max-width: 280px;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Add to page
+            document.body.appendChild(completionContainer);
+
+            // Add event listeners
+            const closeBtn = document.getElementById('close-window-btn');
+            const backBtn = document.getElementById('back-to-tournament-btn');
+
+            closeBtn.addEventListener('click', () => {
+                console.log('🔒 [DART-UI] User requested window close');
+                window.close();
+            });
+
+            backBtn.addEventListener('click', () => {
+                console.log('↩️ [DART-UI] User requested back to tournament');
+                this.navigateBackToTournament();
+            });
+
+            console.log('✅ [DART-UI] Match completion message shown');
+
+        } catch (error) {
+            console.error('❌ [DART-UI] Error showing completion message:', error);
+            // Fallback: show simple alert
+            alert('🏁 Match beendet!\n\nDas Ergebnis wurde erfolgreich übertragen.\nDie Seite kann nun geschlossen werden.');
+        }
     }
 
     /**
@@ -1416,89 +1947,35 @@ class DartScoringUI {
     /**
      * Handle keyboard shortcuts
      */
+    /**
+     * ✅ GEÄNDERT: Delegate keyboard functionality to separate module
+     */
     setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // Ignore if typing in input fields
-            if (e.target.tagName === 'INPUT') return;
-            
-            // Prevent default for handled keys
-            const handledKeys = [
-                'Enter', 'Backspace', 'Delete', 
-                '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',
-                'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p',
-                'd', 'D', 'T', 's', 'b', 'B', 'm', 'M'
-            ];
-            
-            if (handledKeys.includes(e.key)) {
-                e.preventDefault();
-            }
-            
-            // Handle number keys (1-9, 0 for 10)
-            if (e.key >= '1' && e.key <= '9') {
-                const number = parseInt(e.key);
-                this.handleNumberInput(number);
-            } else if (e.key === '0') {
-                this.handleNumberInput(10);
-            }
-            
-            // Handle number keys for 11-20
-            const numberMap = {
-                'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15,
-                'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20
-            };
-            
-            if (numberMap[e.key.toLowerCase()]) {
-                this.handleNumberInput(numberMap[e.key.toLowerCase()]);
-            }
-            
-            // Handle multipliers
-            switch (e.key.toLowerCase()) {
-                case 's': // Single
-                    this.handleMultiplierInput(1);
-                    break;
-                case 'd': // Double
-                    this.handleMultiplierInput(2);
-                    break;
-                case 't': // Triple
-                    this.handleMultiplierInput(3);
-                    break;
-            }
-            
-            // Handle special targets
-            switch (e.key.toLowerCase()) {
-                case 'b': // Bull
-                    this.handleSpecialInput('bull');
-                    break;
-                case 'B': // Bullseye (Shift+B)
-                    this.handleSpecialInput('bullseye');
-                    break;
-                case 'm': // Miss
-                    this.handleSpecialInput('miss');
-                    break;
-            }
-            
-            // Handle control keys
-            switch (e.key) {
-                case 'Enter':
-                    if (!this.elements.confirmThrow.disabled) {
-                        this.handleConfirmThrow();
-                    }
-                    break;
-                case 'Backspace':
-                    this.handleUndoLastDart();
-                    break;
-                case 'Delete':
-                    this.handleUndoThrow();
-                    break;
-            }
-        });
-        
-        console.log('⌨️ [DART-UI] Keyboard shortcuts enabled');
-        console.log('📋 [DART-UI] Keyboard shortcuts:');
-        console.log('   Numbers: 1-9, 0(=10), Q-P(=11-20)');
-        console.log('   Multipliers: S(Single), D(Double), T(Triple)');
-        console.log('   Special: B(Bull), Shift+B(Bullseye), M(Miss)');
-        console.log('   Controls: Enter(Confirm), Backspace(Undo Dart), Delete(Undo Throw)');
+        // Keyboard functionality is now handled by the DartScoringKeyboard module
+        // which is initialized in the initialize() method
+        console.log('⌨️ [DART-UI] Keyboard shortcuts delegated to DartScoringKeyboard module');
+    }
+
+    /**
+     * ✅ NEU: Keyboard control methods for external keyboard module
+     */
+    enableKeyboard() {
+        if (this.keyboard) {
+            this.keyboard.enable();
+        }
+    }
+
+    disableKeyboard() {
+        if (this.keyboard) {
+            this.keyboard.disable();
+        }
+    }
+
+    getKeyboardHelpText() {
+        if (this.keyboard) {
+            return this.keyboard.getHelpText();
+        }
+        return '';
     }
 
     /**
@@ -1518,9 +1995,15 @@ class DartScoringUI {
      * Initialize UI fully
      */
     initializeComplete() {
-        this.setupKeyboardShortcuts();
+        this.setupKeyboardShortcuts(); // Delegate to keyboard module
         this.setupResponsive();
-        console.log('🎨 [DART-UI] UI initialization complete');
+        
+        // ✅ NEU: Log keyboard help for debugging
+        if (this.keyboard) {
+            console.log('📋 [DART-UI] Available keyboard shortcuts:', this.getKeyboardHelpText());
+        }
+        
+        console.log('🎨 [DART-UI] UI initialization complete with keyboard module');
     }
 }
 

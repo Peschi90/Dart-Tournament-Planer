@@ -274,7 +274,7 @@ public class GameRules : INotifyPropertyChanged
     /// <param name="legsPerSet">Legs per set</param>
     public void SetRulesForRound(KnockoutRound round, int setsToWin, int legsToWin, int legsPerSet)
     {
-        System.Diagnostics.Debug.WriteLine($"SetRulesForRound: {round} -> Sets={setsToWin}, Legs={legsToWin}, LegsPerSet={legsPerSet}");
+        //System.Diagnostics.Debug.WriteLine($"SetRulesForRound: {round} -> Sets={setsToWin}, Legs={legsToWin}, LegsPerSet={legsPerSet}");
         
         if (_knockoutRoundRules.ContainsKey(round))
         {
@@ -298,7 +298,7 @@ public class GameRules : INotifyPropertyChanged
             _knockoutRoundRules[round] = newRoundRules;
         }
         
-        System.Diagnostics.Debug.WriteLine($"SetRulesForRound: After setting -> Sets={_knockoutRoundRules[round].SetsToWin}, Legs={_knockoutRoundRules[round].LegsToWin}");
+        //System.Diagnostics.Debug.WriteLine($"SetRulesForRound: After setting -> Sets={_knockoutRoundRules[round].SetsToWin}, Legs={_knockoutRoundRules[round].LegsToWin}");
         
         OnPropertyChanged(nameof(KnockoutRoundRules));
         OnPropertyChanged(nameof(SerializableKnockoutRoundRules));
@@ -309,7 +309,7 @@ public class GameRules : INotifyPropertyChanged
     /// </summary>
     private void OnRoundRulesPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"OnRoundRulesPropertyChanged: {e.PropertyName}");
+        //System.Diagnostics.Debug.WriteLine($"OnRoundRulesPropertyChanged: {e.PropertyName}");
         
         // Propagate property change to GameRules level
         OnPropertyChanged(nameof(KnockoutRoundRules));
@@ -321,7 +321,7 @@ public class GameRules : INotifyPropertyChanged
     /// </summary>
     private void InitializeDefaultKnockoutRules()
     {
-        System.Diagnostics.Debug.WriteLine("InitializeDefaultKnockoutRules: START");
+        //System.Diagnostics.Debug.WriteLine("InitializeDefaultKnockoutRules: START");
         
         _knockoutRoundRules = new Dictionary<KnockoutRound, RoundRules>();
 
@@ -352,7 +352,7 @@ public class GameRules : INotifyPropertyChanged
         // Debug: Verify values after creation
         foreach (var rule in _knockoutRoundRules)
         {
-            System.Diagnostics.Debug.WriteLine($"  Default {rule.Key}: Sets={rule.Value.SetsToWin}, Legs={rule.Value.LegsToWin}, LegsPerSet={rule.Value.LegsPerSet}");
+            //System.Diagnostics.Debug.WriteLine($"  Default {rule.Key}: Sets={rule.Value.SetsToWin}, Legs={rule.Value.LegsToWin}, LegsPerSet={rule.Value.LegsPerSet}");
         }
 
         // Füge Event-Handler für alle RoundRules hinzu
@@ -361,7 +361,7 @@ public class GameRules : INotifyPropertyChanged
             roundRule.PropertyChanged += OnRoundRulesPropertyChanged;
         }
         
-        System.Diagnostics.Debug.WriteLine("InitializeDefaultKnockoutRules: END");
+        //System.Diagnostics.Debug.WriteLine("InitializeDefaultKnockoutRules: END");
     }
 
     /// <summary>
@@ -382,7 +382,7 @@ public class GameRules : INotifyPropertyChanged
         get 
         { 
             var result = new SerializableRoundRules(KnockoutRoundRules);
-            System.Diagnostics.Debug.WriteLine($"SerializableKnockoutRoundRules GET: {result.Rules.Count} rules");
+            //System.Diagnostics.Debug.WriteLine($"SerializableKnockoutRoundRules GET: {result.Rules.Count} rules");
             foreach (var rule in result.Rules)
             {
                 var roundRules = rule.Value;
@@ -392,7 +392,7 @@ public class GameRules : INotifyPropertyChanged
         }
         set
         {
-            System.Diagnostics.Debug.WriteLine($"SerializableKnockoutRoundRules SET: {value?.Rules?.Count ?? 0} rules");
+            //System.Diagnostics.Debug.WriteLine($"SerializableKnockoutRoundRules SET: {value?.Rules?.Count ?? 0} rules");
             
             if (value != null)
             {
@@ -413,7 +413,7 @@ public class GameRules : INotifyPropertyChanged
                 // Debug: Log loaded rules
                 foreach (var rule in _knockoutRoundRules)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Loaded {rule.Key}: Sets={rule.Value.SetsToWin}, Legs={rule.Value.LegsToWin}, LegsPerSet={rule.Value.LegsPerSet}");
+                    //System.Diagnostics.Debug.WriteLine($"  Loaded {rule.Key}: Sets={rule.Value.SetsToWin}, Legs={rule.Value.LegsToWin}, LegsPerSet={rule.Value.LegsPerSet}");
                 }
                 
                 // Füge Event-Handler für alle neuen RoundRules hinzu
@@ -427,7 +427,7 @@ public class GameRules : INotifyPropertyChanged
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine("SerializableKnockoutRoundRules SET: value is null, initializing defaults");
+                //System.Diagnostics.Debug.WriteLine("SerializableKnockoutRoundRules SET: value is null, initializing defaults");
                 _knockoutRoundRules = new Dictionary<KnockoutRound, RoundRules>();
                 InitializeDefaultKnockoutRules();
             }
@@ -492,7 +492,7 @@ public class SerializableRoundRules
         foreach (var kvp in rules)
         {
             Rules[kvp.Key.ToString()] = kvp.Value;
-            System.Diagnostics.Debug.WriteLine($"SerializableRoundRules Constructor: {kvp.Key} -> Sets={kvp.Value.SetsToWin}, Legs={kvp.Value.LegsToWin}, LegsPerSet={kvp.Value.LegsPerSet}");
+            //System.Diagnostics.Debug.WriteLine($"SerializableRoundRules Constructor: {kvp.Key} -> Sets={kvp.Value.SetsToWin}, Legs={kvp.Value.LegsToWin}, LegsPerSet={kvp.Value.LegsPerSet}");
         }
     }
 
@@ -504,7 +504,7 @@ public class SerializableRoundRules
             if (Enum.TryParse<KnockoutRound>(kvp.Key, out var round))
             {
                 result[round] = kvp.Value;
-                System.Diagnostics.Debug.WriteLine($"SerializableRoundRules ToDictionary: {round} -> Sets={kvp.Value.SetsToWin}, Legs={kvp.Value.LegsToWin}, LegsPerSet={kvp.Value.LegsPerSet}");
+                //System.Diagnostics.Debug.WriteLine($"SerializableRoundRules ToDictionary: {round} -> Sets={kvp.Value.SetsToWin}, Legs={kvp.Value.LegsToWin}, LegsPerSet={kvp.Value.LegsPerSet}");
             }
         }
         return result;

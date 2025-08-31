@@ -1149,15 +1149,45 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     id: `default_${match.classId || 1}`,
                     name: 'Standard Rules',
                     gamePoints: 501,
-                    gameMode: 'Game501',
+                    startingScore: 501,
+                    gameMode: 'Points501',
                     finishMode: 'DoubleOut',
+                    doubleOut: true,
+                    singleOut: false,
                     playWithSets: true,
                     setsToWin: 3,
                     legsToWin: 3,
                     legsPerSet: 5,
-                    doubleOut: true
+                    gameTypeString: '501',
+                    finishTypeString: 'DoubleOut',
+                    dartScoringReady: true
                 };
                 console.log(`🎮 [API] Using default game rules for match ${matchId}`);
+            } else {
+                // ✅ KORRIGIERT: Sicherstellen dass alle Frontend-Felder vorhanden sind
+                if (!gameRules.startingScore && gameRules.gamePoints) {
+                    gameRules.startingScore = gameRules.gamePoints;
+                }
+                if (!gameRules.gameTypeString && gameRules.gamePoints) {
+                    gameRules.gameTypeString = gameRules.gamePoints.toString();
+                }
+                if (!gameRules.finishTypeString && gameRules.finishMode) {
+                    gameRules.finishTypeString = gameRules.finishMode;
+                }
+                if (gameRules.doubleOut === undefined && gameRules.finishMode) {
+                    gameRules.doubleOut = gameRules.finishMode === 'DoubleOut';
+                }
+                if (gameRules.singleOut === undefined && gameRules.finishMode) {
+                    gameRules.singleOut = gameRules.finishMode === 'SingleOut';
+                }
+                gameRules.dartScoringReady = true;
+                
+                // ✅ NEU: Debug-Logging für Finals-Matches
+                if (match.matchType === 'Finals') {
+                    console.log(`🏆 [API] Finals game rules applied: ${JSON.stringify(gameRules, null, 2)}`);
+                }
+                
+                console.log(`🎮 [API] Enhanced game rules for dart scoring compatibility`);
             }
             
             // Enhanced match response for dart scoring

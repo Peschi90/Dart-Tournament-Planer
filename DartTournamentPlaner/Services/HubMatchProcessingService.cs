@@ -9,6 +9,7 @@ namespace DartTournamentPlaner.Services;
 /// <summary>
 /// Service für die Verarbeitung von Match-Updates vom Tournament Hub
 /// Verwaltet die Suche und Aktualisierung von Matches in verschiedenen Tournament-Phasen
+/// ERWEITERT: Verarbeitet auch Dart-Statistiken aus WebSocket-Nachrichten
 /// </summary>
 public class HubMatchProcessingService
 {
@@ -22,6 +23,7 @@ public class HubMatchProcessingService
     /// <summary>
     /// Verarbeitet Match-Updates vom Hub und wendet sie auf die entsprechenden Matches an
     /// Unterstützt alle Match-Typen: Group, Finals, Winner Bracket, Loser Bracket
+    /// ERWEITERT: Verarbeitet auch Dart-Statistiken
     /// </summary>
     public bool ProcessHubMatchUpdate(HubMatchUpdateEventArgs e, out string? errorMessage)
     {
@@ -42,6 +44,50 @@ public class HubMatchProcessingService
             }
 
             debugWindow?.AddDebugMessage($"✅ Tournament class found: {tournamentClass.Name}", "SUCCESS");
+
+            // ✅ NEU: Verarbeite Dart-Statistiken
+            if (e.Source == "hub-match-result" && !string.IsNullOrEmpty(e.Notes))
+            {
+                debugWindow?.AddDebugMessage($"📊 Processing dart statistics for class {tournamentClass.Name}", "STATISTICS");
+                try
+                {
+                    tournamentClass.ProcessMatchStatistics(e);
+                    debugWindow?.AddDebugMessage($"✅ Dart statistics processed successfully", "SUCCESS");
+                }
+                catch (Exception statsEx)
+                {
+                    debugWindow?.AddDebugMessage($"❌ Error processing dart statistics: {statsEx.Message}", "ERROR");
+                    // Weiter mit normalem Match-Processing
+                }
+            }
+
+            // ✅ NEU: Auch für websocket-direct Source verarbeiten (erweiterte Statistiken)
+            if ((e.Source == "websocket-direct" || e.Source == "hub-websocket-direct") && !string.IsNullOrEmpty(e.Notes))
+            {
+                debugWindow?.AddDebugMessage($"📊 Processing enhanced dart statistics for class {tournamentClass.Name}", "STATISTICS");
+                try
+                {
+                    // Prüfe ob es sich um erweiterte JSON-Statistiken handelt
+                    if (e.Notes.TrimStart().StartsWith("{"))
+                    {
+                        debugWindow?.AddDebugMessage($"🔍 Detected enhanced JSON statistics format", "STATISTICS");
+                        debugWindow?.AddDebugMessage($"📊 Processing dartScoringResult data", "STATISTICS");
+                        tournamentClass.ProcessMatchStatistics(e);
+                        debugWindow?.AddDebugMessage($"✅ Enhanced dart statistics processed successfully", "SUCCESS");
+                    }
+                    else
+                    {
+                        debugWindow?.AddDebugMessage($"🔍 Using legacy notes-based statistics processing", "STATISTICS");
+                        tournamentClass.ProcessMatchStatistics(e);
+                        debugWindow?.AddDebugMessage($"✅ Legacy dart statistics processed successfully", "SUCCESS");
+                    }
+                }
+                catch (Exception statsEx)
+                {
+                    debugWindow?.AddDebugMessage($"❌ Error processing enhanced dart statistics: {statsEx.Message}", "ERROR");
+                    // Weiter mit normalem Match-Processing
+                }
+            }
 
             // Suche das Match in verschiedenen Bereichen
             var matchResult = FindMatch(tournamentClass, e);

@@ -72,7 +72,7 @@ public class Group : INotifyPropertyChanged
 
         // Bestimme ob Sets verwendet werden sollen
         bool usesSets = gameRules?.PlayWithSets ?? false;
-        System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: usesSets = {usesSets} (from GameRules.PlayWithSets)");
+        //System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: usesSets = {usesSets} (from GameRules.PlayWithSets)");
 
         // Generate all possible combinations (round robin)
         // Bei Round Robin spielt jeder gegen jeden - KEINE Freilose nötig!
@@ -94,7 +94,7 @@ public class Group : INotifyPropertyChanged
                 // Stelle sicher, dass UUID gültig ist
                 match.EnsureUniqueId();
                 
-                System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1.Name} vs {match.Player2.Name}, UsesSets = {match.UsesSets}, UUID = {match.UniqueId}");
+                //System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1.Name} vs {match.Player2.Name}, UsesSets = {match.UsesSets}, UUID = {match.UniqueId}");
                 Matches.Add(match);
             }
         }
@@ -103,7 +103,7 @@ public class Group : INotifyPropertyChanged
         // Bei Round Robin spielt jeder gegen jeden, daher sind keine Freilose erforderlich.
 
         MatchesGenerated = true;
-        System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: Generated {Matches.Count} matches with UsesSets = {usesSets}, all with UUIDs");
+        //System.Diagnostics.Debug.WriteLine($"GenerateRoundRobinMatches: Generated {Matches.Count} matches with UsesSets = {usesSets}, all with UUIDs");
         
         // WICHTIG: Benachrichtige über Änderungen in der Matches-Collection
         // Dies ist wichtig für die UI-Aktualisierung
@@ -120,7 +120,7 @@ public class Group : INotifyPropertyChanged
         Matches.Clear();
         int matchId = 1;
 
-        System.Diagnostics.Debug.WriteLine($"GenerateMatches: Starting match generation for group '{Name}' with {Players.Count} players");
+        //System.Diagnostics.Debug.WriteLine($"GenerateMatches: Starting match generation for group '{Name}' with {Players.Count} players");
 
         // Round-Robin: Jeder gegen jeden
         for (int i = 0; i < Players.Count; i++)
@@ -140,7 +140,7 @@ public class Group : INotifyPropertyChanged
                 // Stelle sicher, dass die UUID gültig ist
                 match.EnsureUniqueId();
                 
-                System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name} (UUID: {match.UniqueId})");
+                //System.Diagnostics.Debug.WriteLine($"  Created match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name} (UUID: {match.UniqueId})");
                 Matches.Add(match);
             }
         }
@@ -148,7 +148,7 @@ public class Group : INotifyPropertyChanged
         // Bei ungerader Spielerzahl: Bye-Matches erstellen
         if (Players.Count % 2 == 1)
         {
-            System.Diagnostics.Debug.WriteLine($"GenerateMatches: Creating bye matches for odd number of players ({Players.Count})");
+            //System.Diagnostics.Debug.WriteLine($"GenerateMatches: Creating bye matches for odd number of players ({Players.Count})");
             
             foreach (var player in Players)
             {
@@ -172,24 +172,24 @@ public class Group : INotifyPropertyChanged
                 // Stelle sicher, dass die UUID gültig ist
                 byeMatch.EnsureUniqueId();
                 
-                System.Diagnostics.Debug.WriteLine($"  Created bye match {byeMatch.Id}: {byeMatch.Player1?.Name} (bye) (UUID: {byeMatch.UniqueId})");
+                //System.Diagnostics.Debug.WriteLine($"  Created bye match {byeMatch.Id}: {byeMatch.Player1?.Name} (bye) (UUID: {byeMatch.UniqueId})");
                 Matches.Add(byeMatch);
             }
         }
 
-        System.Diagnostics.Debug.WriteLine($"? Generated {Matches.Count} matches for group '{Name}' - all with valid UUIDs");
+        //System.Diagnostics.Debug.WriteLine($"? Generated {Matches.Count} matches for group '{Name}' - all with valid UUIDs");
         
         // Log alle Match-UUIDs für Debugging
-        foreach (var match in Matches)
-        {
-            System.Diagnostics.Debug.WriteLine($"   Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name ?? "BYE"} (UUID: {match.UniqueId})");
-        }
+        //foreach (var match in Matches)
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"   Match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name ?? "BYE"} (UUID: {match.UniqueId})");
+        //}
     }
 
     public void UpdateMatchDisplaySettings(GameRules gameRules)
     {
         bool usesSets = gameRules.PlayWithSets;
-        System.Diagnostics.Debug.WriteLine($"UpdateMatchDisplaySettings: Updating {Matches.Count} matches to UsesSets = {usesSets}");
+        //System.Diagnostics.Debug.WriteLine($"UpdateMatchDisplaySettings: Updating {Matches.Count} matches to UsesSets = {usesSets}");
         
         foreach (var match in Matches)
         {
@@ -206,7 +206,7 @@ public class Group : INotifyPropertyChanged
     /// </summary>
     public void EnsureMatchEventSubscriptions()
     {
-        System.Diagnostics.Debug.WriteLine($"EnsureMatchEventSubscriptions: Ensuring events for {Matches.Count} matches in group {Name}");
+        //System.Diagnostics.Debug.WriteLine($"EnsureMatchEventSubscriptions: Ensuring events for {Matches.Count} matches in group {Name}");
         
         foreach (var match in Matches)
         {
@@ -219,7 +219,7 @@ public class Group : INotifyPropertyChanged
         
         // Also trigger collection changed to refresh any bound UI elements
         OnPropertyChanged(nameof(Matches));
-        System.Diagnostics.Debug.WriteLine($"EnsureMatchEventSubscriptions: Completed for group {Name}");
+        //System.Diagnostics.Debug.WriteLine($"EnsureMatchEventSubscriptions: Completed for group {Name}");
     }
 
     /// <summary>
@@ -227,7 +227,7 @@ public class Group : INotifyPropertyChanged
     /// </summary>
     public GroupCompletionStatus CheckCompletionStatus()
     {
-        System.Diagnostics.Debug.WriteLine($"=== CheckCompletionStatus for group {Name} START ===");
+        //System.Diagnostics.Debug.WriteLine($"=== CheckCompletionStatus for group {Name} START ===");
         
         if (!MatchesGenerated)
         {
@@ -250,17 +250,17 @@ public class Group : INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"    - InProgress: {inProgressMatches}");
         System.Diagnostics.Debug.WriteLine($"    - NotStarted: {notStartedMatches}");
 
-        // Detaillierte Aufschlüsselung für Debugging
-        foreach (var match in Matches)
-        {
-            System.Diagnostics.Debug.WriteLine($"    Match {match.Id}: {match.Player1?.Name ?? "null"} vs {match.Player2?.Name ?? "null"} - Status: {match.Status}");
-        }
+        //// Detaillierte Aufschlüsselung für Debugging
+        //foreach (var match in Matches)
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"    Match {match.Id}: {match.Player1?.Name ?? "null"} vs {match.Player2?.Name ?? "null"} - Status: {match.Status}");
+        //}
 
         bool isComplete = finishedMatches == totalMatches;
         string message = isComplete ? "Alle Spiele beendet" : $"{notStartedMatches + inProgressMatches} Spiele offen";
 
-        System.Diagnostics.Debug.WriteLine($"  Group {Name}: Complete = {isComplete}");
-        System.Diagnostics.Debug.WriteLine($"=== CheckCompletionStatus for group {Name} END ===");
+        //System.Diagnostics.Debug.WriteLine($"  Group {Name}: Complete = {isComplete}");
+        //System.Diagnostics.Debug.WriteLine($"=== CheckCompletionStatus for group {Name} END ===");
 
         return new GroupCompletionStatus(isComplete, message, finishedMatches, totalMatches);
     }
@@ -270,7 +270,7 @@ public class Group : INotifyPropertyChanged
     /// </summary>
     public void RepairMatchStatuses()
     {
-        System.Diagnostics.Debug.WriteLine($"=== RepairMatchStatuses for group {Name} START ===");
+        //System.Diagnostics.Debug.WriteLine($"=== RepairMatchStatuses for group {Name} START ===");
         
         int repairedCount = 0;
         
@@ -282,7 +282,7 @@ public class Group : INotifyPropertyChanged
             // Fall 1: Match hat einen Winner aber Status ist nicht Finished
             if (match.Winner != null && match.Status != MatchStatus.Finished && match.Status != MatchStatus.Bye)
             {
-                System.Diagnostics.Debug.WriteLine($"  Repairing match {match.Id}: Has winner but status is {originalStatus}");
+                //System.Diagnostics.Debug.WriteLine($"  Repairing match {match.Id}: Has winner but status is {originalStatus}");
                 match.Status = MatchStatus.Finished;
                 wasRepaired = true;
             }
@@ -292,13 +292,13 @@ public class Group : INotifyPropertyChanged
             {
                 if (match.Player1 != null && match.Player2 == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Repairing bye match {match.Id}: Setting Player1 as winner");
+                    //System.Diagnostics.Debug.WriteLine($"  Repairing bye match {match.Id}: Setting Player1 as winner");
                     match.Winner = match.Player1;
                     wasRepaired = true;
                 }
                 else if (match.Player1 == null && match.Player2 != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Repairing bye match {match.Id}: Setting Player2 as winner");
+                    //System.Diagnostics.Debug.WriteLine($"  Repairing bye match {match.Id}: Setting Player2 as winner");
                     match.Winner = match.Player2;
                     wasRepaired = true;
                 }
@@ -308,7 +308,7 @@ public class Group : INotifyPropertyChanged
             if (match.Winner == null && match.Status != MatchStatus.Bye && 
                 ((match.Player1Sets > 0 || match.Player2Sets > 0) || (match.Player1Legs > 0 || match.Player2Legs > 0)))
             {
-                System.Diagnostics.Debug.WriteLine($"  Repairing match {match.Id}: Has score data but no winner");
+                //System.Diagnostics.Debug.WriteLine($"  Repairing match {match.Id}: Has score data but no winner");
                 
                 // Bestimme Winner basierend auf Sets oder Legs
                 if (match.UsesSets && (match.Player1Sets > 0 || match.Player2Sets > 0))
@@ -346,7 +346,7 @@ public class Group : INotifyPropertyChanged
             if (wasRepaired)
             {
                 repairedCount++;
-                System.Diagnostics.Debug.WriteLine($"  Repaired match {match.Id}: {originalStatus} -> {match.Status}, Winner: {match.Winner?.Name ?? "none"}");
+                //System.Diagnostics.Debug.WriteLine($"  Repaired match {match.Id}: {originalStatus} -> {match.Status}, Winner: {match.Winner?.Name ?? "none"}");
                 
                 // Force PropertyChanged notification
                 match.ForcePropertyChanged(nameof(match.Status));
@@ -362,8 +362,8 @@ public class Group : INotifyPropertyChanged
             OnPropertyChanged(nameof(Matches));
         }
         
-        System.Diagnostics.Debug.WriteLine($"  Repaired {repairedCount} matches in group {Name}");
-        System.Diagnostics.Debug.WriteLine($"=== RepairMatchStatuses for group {Name} END ===");
+        //System.Diagnostics.Debug.WriteLine($"  Repaired {repairedCount} matches in group {Name}");
+        //System.Diagnostics.Debug.WriteLine($"=== RepairMatchStatuses for group {Name} END ===");
     }
 
     public List<PlayerStanding> GetStandings()

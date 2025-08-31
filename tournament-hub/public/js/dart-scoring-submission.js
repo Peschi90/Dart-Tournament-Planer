@@ -12,7 +12,7 @@ class DartScoringSubmission {
         this.submissionInProgress = false;
         this.acknowledgmentReceived = false;
         this.acknowledgmentTimeout = null;
-        
+
         console.log('📤 [DART-SUBMISSION] Dart Scoring Submission module initialized');
     }
 
@@ -22,7 +22,7 @@ class DartScoringSubmission {
     async initialize() {
         try {
             console.log('🔌 [DART-SUBMISSION] Initializing WebSocket connection...');
-            
+
             // Verwende bereits bestehende Socket-Verbindung vom Core
             if (this.core.socket && this.core.socket.connected) {
                 this.socket = this.core.socket;
@@ -31,7 +31,7 @@ class DartScoringSubmission {
                 console.log('✅ [DART-SUBMISSION] Using existing socket connection');
                 return true;
             }
-            
+
             // Fallback: Erstelle neue Socket-Verbindung
             this.socket = io('/', {
                 transports: ['websocket', 'polling'],
@@ -41,10 +41,10 @@ class DartScoringSubmission {
 
             await this.waitForConnection();
             this.setupSubmissionHandlers();
-            
+
             console.log('✅ [DART-SUBMISSION] WebSocket connection established');
             return true;
-            
+
         } catch (error) {
             console.error('❌ [DART-SUBMISSION] Failed to initialize WebSocket:', error);
             return false;
@@ -144,22 +144,37 @@ class DartScoringSubmission {
 
             // Generiere erweiterte Match-Ergebnisse mit Statistiken
             const enhancedMatchResult = this.generateEnhancedMatchResult();
-            
+
             console.log('📊 [DART-SUBMISSION] Generated enhanced match result:', enhancedMatchResult);
 
-            // Sende über WebSocket mit callback
+            // ✅ KORRIGIERT: Sende nur das dartScoringResult-Objekt direkt
             const submissionData = {
                 tournamentId: this.core.matchData.tournamentId,
                 matchId: this.core.matchData.uniqueId || this.core.matchData.matchId,
-                result: enhancedMatchResult,
                 classId: this.core.matchData.classId || 1,
                 className: this.core.matchData.className || 'Unknown',
-                
+
+                // ✅ NEU: Sende das dartScoringResult direkt als Hauptinhalt
+                dartScoringResult: enhancedMatchResult.dartScoringResult,
+
+                // Standard Match Result für Kompatibilität
+                result: {
+                    player1Sets: enhancedMatchResult.player1Sets,
+                    player2Sets: enhancedMatchResult.player2Sets,
+                    player1Legs: enhancedMatchResult.player1Legs,
+                    player2Legs: enhancedMatchResult.player2Legs,
+                    winner: enhancedMatchResult.winner,
+                    winnerPlayerNumber: enhancedMatchResult.winnerPlayerNumber,
+                    notes: enhancedMatchResult.notes,
+                    submittedVia: enhancedMatchResult.submittedVia,
+                    timestamp: enhancedMatchResult.timestamp
+                },
+
                 // Enhanced submission metadata
                 submissionType: 'enhanced-dart-scoring',
                 hasStatistics: true,
                 submissionTimestamp: new Date().toISOString(),
-                
+
                 // Match identification für bessere Verarbeitung
                 matchIdentification: {
                     uniqueId: this.core.matchData.uniqueId,
@@ -169,12 +184,13 @@ class DartScoringSubmission {
             };
 
             console.log('📡 [DART-SUBMISSION] Sending enhanced result via WebSocket...');
+            console.log('📊 [DART-SUBMISSION] dartScoringResult structure:', enhancedMatchResult.dartScoringResult);
 
             // Sende mit Promise-basiertem Ansatz und Timeout
             const result = await this.sendWithAcknowledgment(submissionData);
-            
+
             console.log('✅ [DART-SUBMISSION] Enhanced match result submitted successfully');
-            
+
             return {
                 success: true,
                 message: 'Match-Ergebnis mit Statistiken erfolgreich übertragen',
@@ -200,7 +216,7 @@ class DartScoringSubmission {
     sendWithAcknowledgment(submissionData) {
         return new Promise((resolve, reject) => {
             console.log('📨 [DART-SUBMISSION] Sending data and waiting for acknowledgment...');
-            
+
             // Setup timeout for acknowledgment
             this.acknowledgmentTimeout = setTimeout(() => {
                 console.warn('⏰ [DART-SUBMISSION] Acknowledgment timeout');
@@ -232,7 +248,7 @@ class DartScoringSubmission {
 
         if (response && response.success) {
             console.log('✅ [DART-SUBMISSION] Callback confirmed successful submission');
-            
+
             if (this.acknowledgmentResolve) {
                 this.acknowledgmentResolve(response);
                 this.acknowledgmentResolve = null;
@@ -240,9 +256,9 @@ class DartScoringSubmission {
             }
         } else {
             console.error('❌ [DART-SUBMISSION] Callback indicated failure:', response);
-            
+
             if (this.acknowledgmentReject) {
-                this.acknowledgmentReject(new Error(response?.message || 'Server callback indicated failure'));
+                this.acknowledgmentReject(new Error(response ? .message || 'Server callback indicated failure'));
                 this.acknowledgmentResolve = null;
                 this.acknowledgmentReject = null;
             }
@@ -259,14 +275,14 @@ class DartScoringSubmission {
         }
 
         this.acknowledgmentReceived = true;
-        
+
         if (this.acknowledgmentTimeout) {
             clearTimeout(this.acknowledgmentTimeout);
             this.acknowledgmentTimeout = null;
         }
 
         console.log('✅ [DART-SUBMISSION] Submission acknowledgment processed:', data.message);
-        
+
         // Resolve promise if callback approach didn't work
         if (this.acknowledgmentResolve && data.success) {
             this.acknowledgmentResolve(data);
@@ -285,7 +301,7 @@ class DartScoringSubmission {
         }
 
         console.error('❌ [DART-SUBMISSION] Submission error handled:', error);
-        
+
         if (this.acknowledgmentReject) {
             this.acknowledgmentReject(new Error(error.error || error.message || 'Unknown submission error'));
             this.acknowledgmentResolve = null;
@@ -299,22 +315,22 @@ class DartScoringSubmission {
     generateEnhancedMatchResult() {
         // Nutze das Statistics-System für erweiterte Daten
         const baseMatchResult = this.stats.generateMatchResult();
-        
+
         // Erweitere mit zusätzlichen Dart Scoring spezifischen Daten
         const enhancedResult = {
             ...baseMatchResult,
-            
+
             // Enhanced submission metadata
             submissionMetadata: {
                 submittedVia: 'AdvancedDartScoring',
                 submissionType: 'enhanced-websocket',
                 version: '2.0.0',
                 submissionTimestamp: new Date().toISOString(),
-                
+
                 // Match tracking info
                 matchDuration: this.stats.statistics.matchStatistics.matchDuration,
                 totalThrows: this.stats.statistics.player1.totalThrows + this.stats.statistics.player2.totalThrows,
-                
+
                 // Quality metrics
                 hasDetailedStats: true,
                 has180s: (this.stats.statistics.player1.maximums.length + this.stats.statistics.player2.maximums.length) > 0,
@@ -325,8 +341,8 @@ class DartScoringSubmission {
             // Technical WebSocket info
             webSocketSubmission: {
                 enabled: true,
-                socketId: this.socket?.id,
-                connectionType: this.socket?.io?.engine?.transport?.name || 'unknown',
+                socketId: this.socket ? .id,
+                connectionType: this.socket ? .io ? .engine ? .transport ? .name || 'unknown',
                 submissionMethod: 'enhanced-dart-scoring-websocket',
                 reliability: 'high-with-acknowledgment'
             },
@@ -355,39 +371,38 @@ class DartScoringSubmission {
     }
 
     /**
-     * Handle successful submission and navigate back
+     * Handle successful submission - show completion message (no redirect)
      */
     async handleSuccessfulSubmission(result) {
         try {
             console.log('🎉 [DART-SUBMISSION] Handling successful submission...');
-            
+
             // Show success message
             if (this.ui) {
                 this.ui.showMessage('✅ Match-Ergebnis erfolgreich übertragen!', 'success');
-                
+
                 // Show statistics summary
                 const stats = this.stats.getCurrentStatistics();
                 let statsMessage = `📊 Statistiken: ${stats.player1.name} ${stats.player1.average} vs ${stats.player2.name} ${stats.player2.average}`;
-                
+
                 if (stats.player1.maximums + stats.player2.maximums > 0) {
                     statsMessage += ` | 180er: ${stats.player1.maximums + stats.player2.maximums}`;
                 }
-                
+
                 if (stats.player1.highFinishes + stats.player2.highFinishes > 0) {
                     statsMessage += ` | High Finishes: ${stats.player1.highFinishes + stats.player2.highFinishes}`;
                 }
-                
+
                 this.ui.showMessage(statsMessage, 'success');
+
+                // ✅ NEU: Zeige Match-beendet Nachricht anstatt Weiterleitung
+                this.ui.showMatchCompletedMessage();
             }
 
             // Stop statistics tracking
             this.stats.stopTracking();
 
-            // Wait a moment for user to see the success message
-            await this.delay(3000);
-
-            // Navigate back to tournament page
-            this.navigateBackToTournament();
+            console.log('✅ [DART-SUBMISSION] Match completed successfully - no redirect');
 
         } catch (error) {
             console.error('❌ [DART-SUBMISSION] Error in post-submission handling:', error);
@@ -400,10 +415,10 @@ class DartScoringSubmission {
     navigateBackToTournament() {
         try {
             console.log('🔄 [DART-SUBMISSION] Navigating back to tournament interface...');
-            
+
             const urlParams = new URLSearchParams(window.location.search);
             const tournamentId = urlParams.get('tournament') || urlParams.get('t');
-            
+
             if (tournamentId) {
                 const tournamentUrl = `/tournament-interface.html?tournament=${tournamentId}`;
                 console.log(`🔗 [DART-SUBMISSION] Redirecting to: ${tournamentUrl}`);
@@ -412,7 +427,7 @@ class DartScoringSubmission {
                 console.warn('⚠️ [DART-SUBMISSION] No tournament ID found, going to dashboard');
                 window.location.href = '/dashboard.html';
             }
-            
+
         } catch (error) {
             console.error('❌ [DART-SUBMISSION] Error navigating back:', error);
             // Fallback: go to dashboard
@@ -466,7 +481,7 @@ class DartScoringSubmission {
      */
     async forceSubmitEnhancedMatchResult() {
         console.warn('🔧 [DART-SUBMISSION] FORCE SUBMIT - Ignoring game finished check!');
-        
+
         if (this.submissionInProgress) {
             console.warn('⚠️ [DART-SUBMISSION] Submission already in progress');
             return {
@@ -500,40 +515,56 @@ class DartScoringSubmission {
 
             // Generiere erweiterte Match-Ergebnisse mit Statistiken
             const enhancedMatchResult = this.generateEnhancedMatchResult();
-            
+
             console.log('📊 [DART-SUBMISSION] Generated FORCED enhanced match result:', enhancedMatchResult);
 
-            // Sende über WebSocket mit callback
+            // ✅ KORRIGIERT: Sende nur das dartScoringResult-Objekt direkt (auch bei Force)
             const submissionData = {
                 tournamentId: this.core.matchData.tournamentId,
                 matchId: this.core.matchData.uniqueId || this.core.matchData.matchId,
-                result: enhancedMatchResult,
                 classId: this.core.matchData.classId || 1,
                 className: this.core.matchData.className || 'Unknown',
-                
+
+                // ✅ NEU: Sende das dartScoringResult direkt als Hauptinhalt
+                dartScoringResult: enhancedMatchResult.dartScoringResult,
+
+                // Standard Match Result für Kompatibilität
+                result: {
+                    player1Sets: enhancedMatchResult.player1Sets,
+                    player2Sets: enhancedMatchResult.player2Sets,
+                    player1Legs: enhancedMatchResult.player1Legs,
+                    player2Legs: enhancedMatchResult.player2Legs,
+                    winner: enhancedMatchResult.winner,
+                    winnerPlayerNumber: enhancedMatchResult.winnerPlayerNumber,
+                    notes: enhancedMatchResult.notes,
+                    submittedVia: enhancedMatchResult.submittedVia,
+                    timestamp: enhancedMatchResult.timestamp
+                },
+
                 // Enhanced submission metadata
                 submissionType: 'enhanced-dart-scoring-FORCED',
                 hasStatistics: true,
                 submissionTimestamp: new Date().toISOString(),
-                
+
                 // Match identification für bessere Verarbeitung
                 matchIdentification: {
                     uniqueId: this.core.matchData.uniqueId,
                     numericId: this.core.matchData.matchId || this.core.matchData.id,
                     matchType: this.core.matchData.matchType || 'Unknown'
                 },
-                
+
                 // Force flag
                 forcedSubmission: true
             };
 
             console.log('📡 [DART-SUBMISSION] Sending FORCED enhanced result via WebSocket...');
+            console.log('📊 [DART-SUBMISSION] FORCED dartScoringResult structure:', enhancedMatchResult.dartScoringResult);
 
             // Sende mit Promise-basiertem Ansatz und Timeout
             const result = await this.sendWithAcknowledgment(submissionData);
-            
+
             console.log('✅ [DART-SUBMISSION] FORCED enhanced match result submitted successfully');
-            
+
             return {
                 success: true,
                 message: 'FORCED Match-Ergebnis mit Statistiken erfolgreich übertragen',
@@ -562,7 +593,7 @@ class DartScoringSubmission {
             isConnected: this.isConnected,
             submissionInProgress: this.submissionInProgress,
             acknowledgmentReceived: this.acknowledgmentReceived,
-            socketId: this.socket?.id,
+            socketId: this.socket ? .id,
             canSubmit: this.canSubmit().canSubmit
         };
     }

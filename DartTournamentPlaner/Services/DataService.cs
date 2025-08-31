@@ -1,6 +1,8 @@
 using System.IO;
 using Newtonsoft.Json;
 using DartTournamentPlaner.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DartTournamentPlaner.Services;
 
@@ -27,6 +29,12 @@ public class DataService
                     foreach (var tournamentClass in data.TournamentClasses)
                     {
                         CleanupDuplicatePhases(tournamentClass);
+                        
+                        // ? NEU: Validiere und repariere Statistiken nach dem Laden
+                        tournamentClass.ValidateAndRepairStatistics();
+                        
+                        Console.WriteLine($"? [DATA-SERVICE] Statistics loaded for class {tournamentClass.Name}: " +
+                            $"{tournamentClass.PlayerStatisticsData.Count} players");
                     }
                     
                     // ?? UUID-SYSTEM: Validiere und repariere UUIDs nach dem Laden
@@ -479,6 +487,138 @@ public class DataService
         {
             Console.WriteLine($"? [DATA-SERVICE] Error validating UUIDs after loading: {ex.Message}");
             Console.WriteLine($"?? [DATA-SERVICE] Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    /// <summary>
+    /// Lädt ein Turnier aus einer JSON-Datei
+    /// ERWEITERT: Lädt auch Spieler-Statistiken
+    /// </summary>
+    /// <param name="filePath">Pfad zur JSON-Datei</param>
+    /// <returns>Das geladene TournamentData-Objekt oder null bei Fehler</returns>
+    public TournamentData? LoadTournamentFromFile(string filePath)
+    {
+        try
+        {
+            if (!File.Exists(filePath))
+            {
+                System.Diagnostics.Debug.WriteLine($"Tournament file not found: {filePath}");
+                return null;
+            }
+
+            var json = File.ReadAllText(filePath);
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
+                AllowTrailingCommas = true,
+                WriteIndented = true
+            };
+
+            var tournamentData = System.Text.Json.JsonSerializer.Deserialize<TournamentData>(json, options);
+            
+            if (tournamentData != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"? Tournament loaded successfully from: {filePath}");
+                
+                // Post-Processing für alle TournamentClasses
+                foreach (var tournamentClass in tournamentData.TournamentClasses)
+                {
+                    // ? NEU: Validiere und repariere Statistiken
+                    tournamentClass.ValidateAndRepairStatistics();
+                    
+                    System.Diagnostics.Debug.WriteLine($"Tournament class processed: {tournamentClass.Name} " +
+                        $"(Groups: {tournamentClass.Groups.Count}, " +
+                        $"Phases: {tournamentClass.Phases.Count}, " +
+                        $"Statistics: {tournamentClass.PlayerStatisticsData.Count})");
+                }
+            }
+
+            return tournamentData;
+        }
+        catch (System.Text.Json.JsonException jsonEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"JSON parsing error: {jsonEx.Message}");
+            System.Windows.MessageBox.Show($"Die Turnier-Datei konnte nicht gelesen werden.\n\nFehler: {jsonEx.Message}", "JSON-Fehler", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading tournament: {ex.Message}");
+            System.Windows.MessageBox.Show($"Das Turnier konnte nicht geladen werden.\n\nFehler: {ex.Message}", "Ladefehler", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Speichert ein Turnier in eine JSON-Datei
+    /// ERWEITERT: Speichert auch Spieler-Statistiken
+    /// </summary>
+    /// <param name="tournamentData">Das zu speichernde TournamentData-Objekt</param>
+    /// <param name="filePath">Pfad zur JSON-Datei</param>
+    /// <returns>True bei Erfolg, False bei Fehler</returns>
+    public bool SaveTournamentToFile(TournamentData tournamentData, string filePath)
+    {
+        try
+        {
+            // ? NEU: Vor dem Speichern alle Statistiken synchronisieren
+            foreach (var tournamentClass in tournamentData.TournamentClasses)
+            {
+                // Synchronisiere aktuelle Statistiken vom Manager zu den JSON-Daten
+                try
+                {
+                    var statsManager = tournamentClass.StatisticsManager;
+                    tournamentClass.PlayerStatisticsData.Clear();
+                    
+                    foreach (var playerStats in statsManager.PlayerStatistics)
+                    {
+                        tournamentClass.PlayerStatisticsData[playerStats.Key] = playerStats.Value;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"[DATA-SERVICE] Synced {tournamentClass.PlayerStatisticsData.Count} player statistics for class {tournamentClass.Name}");
+                }
+                catch (Exception statsEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[DATA-SERVICE] Error syncing statistics for {tournamentClass.Name}: {statsEx.Message}");
+                }
+            }
+
+            var options = new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+
+            // Erstelle Backup falls Datei existiert
+            if (File.Exists(filePath))
+            {
+                var backupPath = filePath.Replace(".json", $"_backup_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+                File.Copy(filePath, backupPath, true);
+                System.Diagnostics.Debug.WriteLine($"Backup created: {backupPath}");
+            }
+
+            var json = System.Text.Json.JsonSerializer.Serialize(tournamentData, options);
+            File.WriteAllText(filePath, json);
+
+            System.Diagnostics.Debug.WriteLine($"? Tournament saved successfully to: {filePath}");
+            System.Diagnostics.Debug.WriteLine($"   Classes: {tournamentData.TournamentClasses.Count}");
+            
+            // Debug: Statistik-Info
+            var totalStats = tournamentData.TournamentClasses.Sum(tc => tc.PlayerStatisticsData.Count);
+            if (totalStats > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"   Player Statistics: {totalStats} total across all classes");
+            }
+            
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error saving tournament: {ex.Message}");
+            System.Windows.MessageBox.Show($"Das Turnier konnte nicht gespeichert werden.\n\nFehler: {ex.Message}", "Speicherfehler", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return false;
         }
     }
 }

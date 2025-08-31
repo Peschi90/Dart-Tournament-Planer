@@ -1,10 +1,15 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using DartTournamentPlaner.Models.Statistics;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Services.Statistics;
 
 namespace DartTournamentPlaner.Models;
 
@@ -18,8 +23,9 @@ namespace DartTournamentPlaner.Models;
 /// - KnockoutBracketGenerator: K.O.-Turnierbaum-Generierung
 /// - TournamentTreeRenderer: UI-Rendering für Turnierbäume
 /// - ByeMatchManager: Freilos-Verwaltung
+/// - PlayerStatisticsManager: Spieler-Statistiken-Verwaltung ✅ NEU
 /// </summary>
-public class TournamentClass : INotifyPropertyChanged
+public partial class TournamentClass : INotifyPropertyChanged
 {
     // Manager-Instanzen für spezialisierte Funktionen
     private readonly TournamentPhaseManager _phaseManager;
@@ -31,6 +37,9 @@ public class TournamentClass : INotifyPropertyChanged
     private string _name = "Platin";        // Name der Klasse (z.B. Platin, Gold, etc.)
     private GameRules _gameRules = new GameRules(); // Spielregeln für diese Klasse
     private TournamentPhase? _currentPhase; // Aktuelle Phase des Turniers
+
+    // ✅ NEU: Statistik-Manager für Spielerdaten
+    private PlayerStatisticsManager? _statisticsManager;
 
     /// <summary>
     /// Eindeutige Identifikations-ID der Turnierklasse
@@ -151,7 +160,7 @@ public class TournamentClass : INotifyPropertyChanged
     { 
         get 
         {
-            System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups getter called for {Name}");
+            //System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups getter called for {Name}");
             
             // NEUE STRATEGIE: Stelle sicher dass GroupPhase existiert (nach JSON-Loading)
             _phaseManager.EnsureGroupPhaseExists();
@@ -159,12 +168,12 @@ public class TournamentClass : INotifyPropertyChanged
             // WICHTIG: Erst schauen ob direkt Groups auf TournamentClass-Ebene vorhanden sind (für Legacy/Loading)
             if (_directGroups != null && _directGroups.Count > 0)
             {
-                System.Diagnostics.Debug.WriteLine($"  Using direct groups collection with {_directGroups.Count} groups");
+                //System.Diagnostics.Debug.WriteLine($"  Using direct groups collection with {_directGroups.Count} groups");
                 
-                // Einmalige Migration: Kopiere direkte Groups in die aktuelle Phase
+                // Einmalige Migration: Kopiere directe Groups in die aktuelle Phase
                 if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase && CurrentPhase.Groups.Count == 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  Migrating {_directGroups.Count} groups to CurrentPhase");
+                    //System.Diagnostics.Debug.WriteLine($"  Migrating {_directGroups.Count} groups to CurrentPhase");
                     foreach (var group in _directGroups)
                     {
                         CurrentPhase.Groups.Add(group);
@@ -172,7 +181,7 @@ public class TournamentClass : INotifyPropertyChanged
                     
                     // Nach der Migration directe Groups leeren
                     _directGroups.Clear();
-                    System.Diagnostics.Debug.WriteLine($"  Migration completed, cleared direct groups");
+                    //System.Diagnostics.Debug.WriteLine($"  Migration completed, cleared direct groups");
                 }
                 
                 return CurrentPhase?.Groups ?? new ObservableCollection<Group>();
@@ -181,7 +190,7 @@ public class TournamentClass : INotifyPropertyChanged
             // Wenn aktuelle Phase die Gruppenphase ist, gib deren Groups zurück
             if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
-                System.Diagnostics.Debug.WriteLine($"  Current phase is GroupPhase, returning {CurrentPhase.Groups.Count} groups");
+                //System.Diagnostics.Debug.WriteLine($"  Current phase is GroupPhase, returning {CurrentPhase.Groups.Count} groups");
                 return CurrentPhase.Groups;
             }
             
@@ -190,11 +199,11 @@ public class TournamentClass : INotifyPropertyChanged
             
             if (groupPhase?.Groups != null)
             {
-                System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {groupPhase.Groups.Count} groups");
+                //System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {groupPhase.Groups.Count} groups");
                 return groupPhase.Groups;
             }
             
-            System.Diagnostics.Debug.WriteLine($"  ERROR: No GroupPhase found after EnsureGroupPhaseExists - this should not happen!");
+            //System.Diagnostics.Debug.WriteLine($"  ERROR: No GroupPhase found after EnsureGroupPhaseExists - this should not happen!");
             // Fallback: Notfall-GroupPhase erstellen wenn alle anderen Strategien fehlschlagen
             var emergencyGroupPhase = new TournamentPhase
             {
@@ -209,7 +218,7 @@ public class TournamentClass : INotifyPropertyChanged
         }
         set 
         {
-            System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups setter called for {Name} with {value?.Count ?? 0} groups");
+            //System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups setter called for {Name} with {value?.Count ?? 0} groups");
             
             // Für JSON-Deserialisierung: Speichere Groups temporär in direkter Collection
             _directGroups = value ?? new ObservableCollection<Group>();
@@ -217,7 +226,7 @@ public class TournamentClass : INotifyPropertyChanged
             // Wenn bereits eine CurrentPhase existiert, kopiere sofort
             if (CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase && CurrentPhase.Groups.Count == 0)
             {
-                System.Diagnostics.Debug.WriteLine($"  Immediately copying {_directGroups.Count} groups to CurrentPhase");
+                //System.Diagnostics.Debug.WriteLine($"  Immediately copying {_directGroups.Count} groups to CurrentPhase");
                 CurrentPhase.Groups.Clear();
                 foreach (var group in _directGroups)
                 {
@@ -247,7 +256,7 @@ public class TournamentClass : INotifyPropertyChanged
     /// </summary>
     public TournamentClass()
     {
-        System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor START ===");
+        //System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor START ===");
         
         // WICHTIG: Initialisiere Manager-Instanzen ZUERST
         _phaseManager = new TournamentPhaseManager(this);
@@ -267,9 +276,9 @@ public class TournamentClass : INotifyPropertyChanged
         }
         
         // Stattdessen: Verwende eine Lazy Initialization-Strategie über EnsureGroupPhaseExists()
-        System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Phases collection initialized, count = {Phases.Count}");
+        //System.Diagnostics.Debug.WriteLine($"TournamentClass Constructor: Phases collection initialized, count = {Phases.Count}");
         
-        System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor END ===");
+        //System.Diagnostics.Debug.WriteLine($"=== TournamentClass Constructor END ===");
     }
 
     #region Phase Management - Delegiert an TournamentPhaseManager
@@ -407,7 +416,7 @@ public class TournamentClass : INotifyPropertyChanged
     /// <returns>True wenn erfolgreich</returns>
     public bool ProcessMatchResult(KnockoutMatch completedMatch)
     {
-        System.Diagnostics.Debug.WriteLine($"=== ProcessMatchResult START for match {completedMatch.Id} ===");
+       System.Diagnostics.Debug.WriteLine($"=== ProcessMatchResult START for match {completedMatch.Id} ===");
         
         try
         {
@@ -473,14 +482,19 @@ public class TournamentClass : INotifyPropertyChanged
     /// </summary>
     public void TriggerUIRefresh()
     {
-        System.Diagnostics.Debug.WriteLine($"TriggerUIRefresh: Firing UIRefreshRequested event");
+        System.Diagnostics.Debug.WriteLine("Triggering UIRefreshRequested event");
         UIRefreshRequested?.Invoke(this, EventArgs.Empty);
         
         // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
         DataChangedEvent?.Invoke(this, EventArgs.Empty);
-
+        
         // WICHTIG: Zusätzlich die PropertyChanged für Bindings feuern
         OnPropertyChanged(nameof(CurrentPhase));
+        
+        // ✅ VEREINFACHT: Nur noch eine Datenquelle für Statistiken
+        OnPropertyChanged(nameof(PlayerStatisticsData));
+        
+        System.Diagnostics.Debug.WriteLine($"Triggered UI refresh including statistics for class {Name}");
     }
 
     /// <summary>
@@ -527,6 +541,140 @@ public class TournamentClass : INotifyPropertyChanged
     }
 
     #endregion
+
+    /// <summary>
+    /// Manager für Spieler-Statistiken dieser Turnierklasse
+    /// ✅ KORRIGIERT: Komplett von JSON-Serialisierung ausgeschlossen
+    /// </summary>
+    [JsonIgnore]
+    public PlayerStatisticsManager StatisticsManager
+    {
+        get
+        {
+            if (_statisticsManager == null)
+            {
+                // ✅ KORRIGIERT: Manager verwendet PlayerStatisticsData DIREKT als Datenquelle
+                _statisticsManager = new PlayerStatisticsManager(Name, PlayerStatisticsData);
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Created StatisticsManager for {Name} with direct data reference");
+            }
+            return _statisticsManager;
+        }
+    }
+
+    /// <summary>
+    /// Spieler-Statistiken für diese Turnierklasse
+    /// ✅ VEREINFACHT: Einzige Datenquelle für Statistiken (JSON + Runtime)
+    /// </summary>
+    [JsonPropertyName("PlayerStatistics")]
+    public Dictionary<string, PlayerStatistics> PlayerStatisticsData { get; set; } = new();
+
+    /// <summary>
+    /// ✅ NEU: Verarbeitet WebSocket Match-Updates für Statistiken
+    /// Wird vom HubMatchProcessingService aufgerufen
+    /// </summary>
+    /// <param name="matchUpdate">Das Match-Update vom WebSocket</param>
+    public void ProcessMatchStatistics(HubMatchUpdateEventArgs matchUpdate)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Processing match statistics for class {Name}");
+            
+            // ✅ VEREINFACHT: Manager arbeitet direkt mit PlayerStatisticsData
+            StatisticsManager.ProcessWebSocketMatchResult(matchUpdate);
+            
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Match statistics processed successfully for class {Name}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Error processing match statistics: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Gibt die Statistiken eines bestimmten Spielers zurück
+    /// </summary>
+    /// <param name="playerName">Name des Spielers</param>
+    /// <returns>Spieler-Statistiken oder null</returns>
+    public PlayerStatistics? GetPlayerStatistics(string playerName)
+    {
+        return StatisticsManager.GetPlayerStatistics(playerName);
+    }
+
+    /// <summary>
+    /// ✅ NEU: Gibt alle Spieler mit Statistiken zurück
+    /// </summary>
+    /// <returns>Liste aller Spielernamen mit Statistiken</returns>
+    public List<string> GetPlayersWithStatistics()
+    {
+        return StatisticsManager.GetAllPlayerNames();
+    }
+
+    /// <summary>
+    /// ✅ NEU: Gibt eine Statistik-Zusammenfassung für diese Klasse zurück
+    /// </summary>
+    /// <returns>Zusammenfassung aller Statistiken</returns>
+    public StatisticsSummary GetStatisticsSummary()
+    {
+        return StatisticsManager.GetStatisticsSummary();
+    }
+
+    /// <summary>
+    /// ✅ NEU: Löscht alle Statistiken (für Reset-Funktionen)
+    /// </summary>
+    public void ClearAllStatistics()
+    {
+        StatisticsManager.ClearAllStatistics();
+        System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Cleared all statistics for class {Name}");
+    }
+
+    /// <summary>
+    /// ✅ VEREINFACHT: Validiert und repariert Statistiken nach JSON-Loading
+    /// </summary>
+    public void ValidateAndRepairStatistics()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Validating and repairing statistics for class: {Name}");
+
+            if (PlayerStatisticsData.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Found {PlayerStatisticsData.Count} player statistics in JSON data");
+                
+                // ✅ VEREINFACHT: Validiere jede PlayerStatistics-Instanz
+                foreach (var kvp in PlayerStatisticsData.ToList())
+                {
+                    var playerName = kvp.Key;
+                    var playerStats = kvp.Value;
+                    
+                    // Stelle sicher dass PlayerName korrekt gesetzt ist
+                    if (string.IsNullOrEmpty(playerStats.PlayerName))
+                    {
+                        playerStats.PlayerName = playerName;
+                    }
+                    
+                    // Stelle sicher dass berechnete Eigenschaften aktualisiert sind
+                    playerStats.RecalculateStatistics();
+                    
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Validated statistics for player: {playerName} " +
+                        $"({playerStats.TotalMatches} matches, {playerStats.OverallAverage:F1} avg, {playerStats.TotalMaximums} max, {playerStats.TotalHighFinishes} HF)");
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Successfully validated statistics for {PlayerStatisticsData.Count} players");
+                
+                // ✅ NEU: Trigger PropertyChanged für UI-Updates
+                StatisticsManager.TriggerPropertyChanged(nameof(StatisticsManager.PlayerStatistics));
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[TOURNAMENT-CLASS] No player statistics found in JSON data");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Error validating statistics: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Stack trace: {ex.StackTrace}");
+        }
+    }
 
     public override string ToString()
     {

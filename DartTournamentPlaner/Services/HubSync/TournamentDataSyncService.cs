@@ -190,9 +190,12 @@ public class TournamentDataSyncService
                     {
                         id = 1,
                         name = "Standard Regel",
-                        gamePoints = tournamentClass.GameRules.GamePoints,
+                        gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
+                        startingScore = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
                         gameMode = tournamentClass.GameRules.GameMode.ToString(),
                         finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                        doubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut,
+                        singleOut = tournamentClass.GameRules.FinishMode == FinishMode.SingleOut,
                         setsToWin = tournamentClass.GameRules.SetsToWin,
                         legsToWin = tournamentClass.GameRules.LegsToWin,
                         legsPerSet = tournamentClass.GameRules.LegsPerSet,
@@ -202,7 +205,11 @@ public class TournamentDataSyncService
                         classId = tournamentClass.Id,
                         className = tournamentClass.Name,
                         matchType = "Group",
-                        isDefault = true
+                        isDefault = true,
+                        // ✅ NEU: Dart Scoring spezifische Daten
+                        dartScoringReady = true,
+                        gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                        finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode)
                     },
                     createdAt = match.CreatedAt,
                     startedAt = match.StartTime,
@@ -228,6 +235,7 @@ public class TournamentDataSyncService
         gameRulesArray.Add(finalsGameRules);
 
         _debugLog($"🏆 [SYNC] Finals GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
+        _debugLog($"🏆 [SYNC] Finals GameRules ID: {finalsGameRules.GetType().GetProperty("id")?.GetValue(finalsGameRules)}", "SYNC");
 
         foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
         {
@@ -264,9 +272,12 @@ public class TournamentDataSyncService
                 {
                     id = $"{tournamentClass.Id}_Finals",
                     name = $"{tournamentClass.Name} Finalrunde",
-                    gamePoints = tournamentClass.GameRules.GamePoints,
+                    gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
+                    startingScore = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
                     gameMode = tournamentClass.GameRules.GameMode.ToString(),
                     finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                    doubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut,
+                    singleOut = tournamentClass.GameRules.FinishMode == FinishMode.SingleOut,
                     setsToWin = tournamentClass.GameRules.SetsToWin,
                     legsToWin = tournamentClass.GameRules.LegsToWin,
                     legsPerSet = tournamentClass.GameRules.LegsPerSet,
@@ -277,6 +288,9 @@ public class TournamentDataSyncService
                     className = tournamentClass.Name,
                     matchType = "Finals",
                     isDefault = false,
+                    dartScoringReady = true,
+                    gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                    finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
                     // ✅ NEU: Finals-spezifische Metadaten
                     finalsSpecific = new
                     {
@@ -363,9 +377,12 @@ public class TournamentDataSyncService
                     {
                         id = gameRuleId,
                         name = $"{tournamentClass.Name} {GetWinnerBracketRoundName(round)}",
-                        gamePoints = tournamentClass.GameRules.GamePoints,
+                        gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
+                        startingScore = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
                         gameMode = tournamentClass.GameRules.GameMode.ToString(),
                         finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                        doubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut,
+                        singleOut = tournamentClass.GameRules.FinishMode == FinishMode.SingleOut,
                         setsToWin = setsToWin,
                         legsToWin = legsToWin,
                         legsPerSet = legsPerSet,
@@ -377,6 +394,9 @@ public class TournamentDataSyncService
                         matchType = $"Knockout-WB-{round}",
                         round = round.ToString(),
                         isDefault = false,
+                        dartScoringReady = true,
+                        gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                        finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
                         // ✅ NEU: Round-spezifische Metadaten
                         roundSpecific = new
                         {
@@ -465,9 +485,12 @@ public class TournamentDataSyncService
                     {
                         id = gameRuleId,
                         name = $"{tournamentClass.Name} {GetLoserBracketRoundName(round)}",
-                        gamePoints = tournamentClass.GameRules.GamePoints,
+                        gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
+                        startingScore = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode),
                         gameMode = tournamentClass.GameRules.GameMode.ToString(),
                         finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+                        doubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut,
+                        singleOut = tournamentClass.GameRules.FinishMode == FinishMode.SingleOut,
                         setsToWin = setsToWin,
                         legsToWin = legsToWin,
                         legsPerSet = legsPerSet,
@@ -479,6 +502,9 @@ public class TournamentDataSyncService
                         matchType = $"Knockout-LB-{round}",
                         round = round.ToString(),
                         isDefault = false,
+                        dartScoringReady = true,
+                        gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                        finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
                         // ✅ NEU: Round-spezifische Metadaten
                         roundSpecific = new
                         {
@@ -520,13 +546,21 @@ public class TournamentDataSyncService
 
     private object CreateGameRulesObject(TournamentClass tournamentClass)
     {
+        // ✅ KORRIGIERT: Korrekte GameMode-Mapping für JavaScript/HTML Frontend
+        var gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode);
+        var isDoubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut;
+        
         return new
         {
             id = 1,
             name = "Standard Regel",
-            gamePoints = tournamentClass.GameRules.GamePoints,
+            // ✅ NEU: Korrekte Frontend-Mapping-Eigenschaften
+            gamePoints = gamePoints,
+            startingScore = gamePoints,  // Zusätzliches Mapping für Frontend
             gameMode = tournamentClass.GameRules.GameMode.ToString(),
             finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+            doubleOut = isDoubleOut,  // Boolean für Frontend
+            singleOut = !isDoubleOut, // Inverse für Kompatibilität
             setsToWin = tournamentClass.GameRules.SetsToWin,
             legsToWin = tournamentClass.GameRules.LegsToWin,
             legsPerSet = tournamentClass.GameRules.LegsPerSet,
@@ -536,19 +570,34 @@ public class TournamentDataSyncService
             classId = tournamentClass.Id,
             className = tournamentClass.Name,
             matchType = "Group",
-            isDefault = true
+            isDefault = true,
+            // ✅ NEU: Frontend-Kompatibilität für Dart Scoring
+            dartScoringCompatibility = new
+            {
+                gamePointsNumber = gamePoints,
+                gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
+                requiresDoubleOut = isDoubleOut,
+                formatDescription = GetFormatDescription(tournamentClass.GameRules)
+            }
         };
     }
 
     private object CreateFinalsGameRulesObject(TournamentClass tournamentClass)
     {
+        var gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode);
+        var isDoubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut;
+        
         return new
         {
             id = $"{tournamentClass.Id}_Finals",
             name = $"{tournamentClass.Name} Finalrunde",
-            gamePoints = tournamentClass.GameRules.GamePoints,
+            gamePoints = gamePoints,
+            startingScore = gamePoints,
             gameMode = tournamentClass.GameRules.GameMode.ToString(),
             finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+            doubleOut = isDoubleOut,
+            singleOut = !isDoubleOut,
             setsToWin = tournamentClass.GameRules.SetsToWin,
             legsToWin = tournamentClass.GameRules.LegsToWin,
             legsPerSet = tournamentClass.GameRules.LegsPerSet,
@@ -558,7 +607,15 @@ public class TournamentDataSyncService
             classId = tournamentClass.Id,
             className = tournamentClass.Name,
             matchType = "Finals",
-            isDefault = false
+            isDefault = false,
+            dartScoringCompatibility = new
+            {
+                gamePointsNumber = gamePoints,
+                gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
+                requiresDoubleOut = isDoubleOut,
+                formatDescription = GetFormatDescription(tournamentClass.GameRules)
+            }
         };
     }
 
@@ -566,14 +623,19 @@ public class TournamentDataSyncService
     {
         var (setsToWin, legsToWin) = GetEscalatedRulesForWinnerBracket(round, tournamentClass.GameRules);
         var legsPerSet = GetLegsPerSetForRound(round, tournamentClass.GameRules);
+        var gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode);
+        var isDoubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut;
 
         return new
         {
             id = $"{tournamentClass.Id}_WB_{round}",
             name = $"{tournamentClass.Name} {GetWinnerBracketRoundName(round)}",
-            gamePoints = tournamentClass.GameRules.GamePoints,
+            gamePoints = gamePoints,
+            startingScore = gamePoints,
             gameMode = tournamentClass.GameRules.GameMode.ToString(),
             finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+            doubleOut = isDoubleOut,
+            singleOut = !isDoubleOut,
             setsToWin = setsToWin,
             legsToWin = legsToWin,
             legsPerSet = legsPerSet,
@@ -582,7 +644,15 @@ public class TournamentDataSyncService
             className = tournamentClass.Name,
             matchType = $"Knockout-WB-{round}",
             round = round.ToString(),
-            isDefault = false
+            isDefault = false,
+            dartScoringCompatibility = new
+            {
+                gamePointsNumber = gamePoints,
+                gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
+                requiresDoubleOut = isDoubleOut,
+                formatDescription = $"{GetGameTypeString(tournamentClass.GameRules.GameMode)} {GetFinishTypeString(tournamentClass.GameRules.FinishMode)}, First to {setsToWin} Sets ({legsPerSet} Legs per Set)"
+            }
         };
     }
 
@@ -590,14 +660,19 @@ public class TournamentDataSyncService
     {
         var (setsToWin, legsToWin) = GetLoserBracketRules(round, tournamentClass.GameRules);
         var legsPerSet = GetLegsPerSetForRound(round, tournamentClass.GameRules);
+        var gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode);
+        var isDoubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut;
 
         return new
         {
             id = $"{tournamentClass.Id}_LB_{round}",
             name = $"{tournamentClass.Name} {GetLoserBracketRoundName(round)}",
-            gamePoints = tournamentClass.GameRules.GamePoints,
+            gamePoints = gamePoints,
+            startingScore = gamePoints,
             gameMode = tournamentClass.GameRules.GameMode.ToString(),
             finishMode = tournamentClass.GameRules.FinishMode.ToString(),
+            doubleOut = isDoubleOut,
+            singleOut = !isDoubleOut,
             setsToWin = setsToWin,
             legsToWin = legsToWin,
             legsPerSet = legsPerSet,
@@ -606,7 +681,15 @@ public class TournamentDataSyncService
             className = tournamentClass.Name,
             matchType = $"Knockout-LB-{round}",
             round = round.ToString(),
-            isDefault = false
+            isDefault = false,
+            dartScoringCompatibility = new
+            {
+                gamePointsNumber = gamePoints,
+                gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
+                finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
+                requiresDoubleOut = isDoubleOut,
+                formatDescription = $"{GetGameTypeString(tournamentClass.GameRules.GameMode)} {GetFinishTypeString(tournamentClass.GameRules.FinishMode)}, First to {setsToWin} Sets ({legsPerSet} Legs per Set)"
+            }
         };
     }
 
@@ -699,4 +782,45 @@ public class TournamentDataSyncService
             KnockoutRound.LoserFinal => "K.O. Loser Final",
             _ => $"K.O. Loser Runde {(int)round}"
         };
+
+    // ✅ NEU: GameMode-zu-Punkte Mapping für Frontend-Kompatibilität
+    private int GetGamePointsFromGameMode(GameMode gameMode) =>
+        gameMode switch
+        {
+            GameMode.Points301 => 301,
+            GameMode.Points401 => 401,
+            GameMode.Points501 => 501,
+            _ => 501 // Default fallback
+        };
+
+    // ✅ NEU: GameMode-zu-String Mapping für Frontend
+    private string GetGameTypeString(GameMode gameMode) =>
+        gameMode switch
+        {
+            GameMode.Points301 => "301",
+            GameMode.Points401 => "401", 
+            GameMode.Points501 => "501",
+            _ => "501"
+        };
+
+    // ✅ NEU: FinishMode-zu-String Mapping für Frontend
+    private string GetFinishTypeString(FinishMode finishMode) =>
+        finishMode switch
+        {
+            FinishMode.SingleOut => "SingleOut",
+            FinishMode.DoubleOut => "DoubleOut",
+            _ => "DoubleOut"
+        };
+
+    // ✅ NEU: Format-Beschreibung für Benutzeroberfläche
+    private string GetFormatDescription(GameRules gameRules)
+    {
+        var gameType = GetGameTypeString(gameRules.GameMode);
+        var finishType = GetFinishTypeString(gameRules.FinishMode);
+        var setsFormat = gameRules.PlayWithSets ? 
+            $"First to {gameRules.SetsToWin} Sets ({gameRules.LegsPerSet} Legs per Set)" :
+            $"First to {gameRules.LegsToWin} Legs";
+        
+        return $"{gameType} {finishType}, {setsFormat}";
+    }
 }

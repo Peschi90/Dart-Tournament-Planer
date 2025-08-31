@@ -8,7 +8,7 @@ class DartScoringMain {
         this.ui = new DartScoringUI();
         this.stats = new DartScoringStats(this.core, this.ui);
         this.submission = new DartScoringSubmission(this.core, this.ui, this.stats); // ✅ NEU: WebSocket Submission
-        
+
         console.log('🚀 [DART-MAIN] Dart Scoring Main initialized with enhanced submission');
     }
 
@@ -67,27 +67,27 @@ class DartScoringMain {
     async initializeSubmissionSystem() {
         try {
             console.log('📤 [DART-MAIN] Initializing WebSocket submission system...');
-            
+
             const initialized = await this.submission.initialize();
-            
+
             if (initialized) {
                 console.log('✅ [DART-MAIN] WebSocket submission system ready');
-                
+
                 // Show connection status
                 if (this.ui) {
                     this.ui.showMessage('✅ WebSocket-Verbindung für erweiterte Übertragung bereit', 'success');
                 }
             } else {
                 console.warn('⚠️ [DART-MAIN] WebSocket submission not available, using fallback');
-                
+
                 if (this.ui) {
                     this.ui.showMessage('⚠️ WebSocket-Verbindung nicht verfügbar - verwende Standard-Übertragung', 'warning');
                 }
             }
-            
+
         } catch (error) {
             console.error('❌ [DART-MAIN] Failed to initialize submission system:', error);
-            
+
             if (this.ui) {
                 this.ui.showMessage('⚠️ Erweiterte Übertragung nicht verfügbar', 'warning');
             }
@@ -100,23 +100,23 @@ class DartScoringMain {
     setupEnhancedSubmission() {
         // ✅ NEU: Override core's submitMatchResult with enhanced WebSocket submission
         const originalSubmitMatchResult = this.core.submitMatchResult.bind(this.core);
-        
-        this.core.submitMatchResult = async () => {
+
+        this.core.submitMatchResult = async() => {
             console.log('📤 [DART-MAIN] Using enhanced WebSocket submission with statistics');
-            
+
             try {
                 // Prüfe ob WebSocket Submission möglich ist
                 const submissionStatus = this.submission.getSubmissionStatus();
-                
+
                 if (submissionStatus.canSubmit && submissionStatus.isConnected) {
                     console.log('🌐 [DART-MAIN] Using WebSocket submission with enhanced statistics');
-                    
+
                     // Show progress
                     this.submission.showSubmissionProgress('📤 Übertrage Ergebnis mit Statistiken...');
-                    
+
                     // Use enhanced WebSocket submission
                     const result = await this.submission.submitEnhancedMatchResult();
-                    
+
                     if (result.success) {
                         // Handle successful submission (includes navigation back)
                         await this.submission.handleSuccessfulSubmission(result);
@@ -125,7 +125,7 @@ class DartScoringMain {
                         // WebSocket failed, try fallback
                         console.warn('⚠️ [DART-MAIN] WebSocket submission failed, trying standard fallback');
                         this.submission.showSubmissionProgress('⚠️ WebSocket fehlgeschlagen, verwende Standard-Übertragung...');
-                        
+
                         // Use statistics-enhanced fallback
                         return await this.stats.submitMatchResult();
                     }
@@ -133,25 +133,23 @@ class DartScoringMain {
                     // Use statistics-enhanced fallback
                     console.log('📊 [DART-MAIN] WebSocket not available, using enhanced statistics fallback');
                     this.submission.showSubmissionProgress('📊 Verwende erweiterte Statistik-Übertragung...');
-                    
+
                     const result = await this.stats.submitMatchResult();
-                    
+
                     if (result.success) {
-                        // Navigate back manually since WebSocket handler is not available
-                        setTimeout(() => {
-                            this.submission.navigateBackToTournament();
-                        }, 3000);
+                        // ✅ NEU: Show completion message instead of navigate back
+                        this.ui.showMatchCompletedMessage();
                     }
-                    
+
                     return result;
                 }
-                
+
             } catch (error) {
                 console.error('❌ [DART-MAIN] Enhanced submission failed, trying final fallback:', error);
-                
+
                 // Final fallback to original method
                 this.submission.showSubmissionProgress('❌ Erweiterte Übertragung fehlgeschlagen, verwende Standard-Methode...');
-                
+
                 try {
                     return await originalSubmitMatchResult();
                 } catch (fallbackError) {
@@ -225,13 +223,13 @@ class DartScoringMain {
     async triggerManualSubmission() {
         try {
             console.log('🔧 [DART-MAIN] Manual submission triggered');
-            
+
             if (!this.core.gameState.isGameFinished) {
                 throw new Error('Match ist noch nicht beendet');
             }
-            
+
             return await this.core.submitMatchResult();
-            
+
         } catch (error) {
             console.error('❌ [DART-MAIN] Manual submission failed:', error);
             return {
@@ -259,28 +257,28 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 // Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async() => {
     console.log('📄 [DART-MAIN] DOM loaded, initializing enhanced dart scoring app...');
-    
+
     try {
         window.dartScoringApp = new DartScoringMain();
         const success = await window.dartScoringApp.initialize();
-        
+
         if (success) {
             console.log('🎉 [DART-MAIN] Enhanced dart scoring app initialized successfully!');
-            
+
             // Debug information in console
             console.log('🔍 [DART-MAIN] Debug Info:');
             console.log('   Statistics:', window.dartScoringApp.getCurrentStatistics());
             console.log('   Submission Status:', window.dartScoringApp.getSubmissionStatus());
-            
+
             // Global debug functions
             window.debugDartScoring = {
                 getStats: () => window.dartScoringApp.getCurrentStatistics(),
                 getSubmissionStatus: () => window.dartScoringApp.getSubmissionStatus(),
                 triggerSubmission: () => window.dartScoringApp.triggerManualSubmission(),
                 // ✅ NEU: Force Submit für Debugging
-                forceSubmit: async () => {
+                forceSubmit: async() => {
                     console.warn('🔧 [DEBUG] Force submitting match result...');
                     try {
                         const result = await window.dartScoringApp.submission.forceSubmitEnhancedMatchResult();
@@ -322,7 +320,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 }
             };
-            
+
             console.log('🔧 [DART-MAIN] Enhanced debug functions available:');
             console.log('   window.debugDartScoring.getStats()');
             console.log('   window.debugDartScoring.getSubmissionStatus()');

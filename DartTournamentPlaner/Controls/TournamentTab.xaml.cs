@@ -60,6 +60,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             
             _uiManager?.UpdateUI();
             
+            // ✅ NEU: Aktualisiere Statistik-View mit der neuen Tournament Class
+            UpdateStatisticsTab();
+            
             // Handle specific phase updates
             if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
@@ -316,6 +319,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             _uiManager?.UpdateMatchesView(SelectedGroup);
             
+            // ✅ NEU: Aktualisiere Statistiken bei Match-Änderungen
+            Dispatcher.BeginInvoke(() => UpdateStatisticsTab(), DispatcherPriority.Background);
+            
             if (sender is Match match && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
             {
                 var parentWindow = Window.GetWindow(this);
@@ -464,6 +470,12 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 else if (selectedTab.Name == "GroupPhaseTabItem" && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
                 {
                     _uiManager?.UpdateMatchesView(SelectedGroup);
+                }
+                // ✅ NEU: Aktualisiere Statistiken wenn Statistik-Tab ausgewählt wird
+                else if (selectedTab.Name == "StatisticsTabItem" || selectedTab.Header?.ToString()?.Contains("Statistik") == true)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics tab selected, updating with class: {TournamentClass?.Name}");
+                    Dispatcher.BeginInvoke(() => UpdateStatisticsTab(), DispatcherPriority.DataBind);
                 }
                 
                 _uiManager?.UpdatePhaseDisplay();
@@ -655,5 +667,97 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         // This method is kept for backward compatibility
         // The actual logic is now handled by the EventHandlers class
         // which calculates the next IDs dynamically
+    }
+
+    /// <summary>
+    /// ✅ NEU: Aktualisiert die Statistik-Ansicht
+    /// </summary>
+    private void UpdateStatisticsTab()
+    {
+        try
+        {
+            if (TournamentClass == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] No TournamentClass available for statistics");
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Updating statistics tab for class: {TournamentClass.Name}");
+
+            // ✅ KORRIGIERT: Finde StatisticsView im Control-Tree
+            PlayerStatisticsView? statisticsView = null;
+
+            // Suche nach PlayerStatisticsView in den Tabs
+            if (MainTabControl?.Items != null)
+            {
+                foreach (TabItem tab in MainTabControl.Items)
+                {
+                    // Prüfe direkt auf Content
+                    if (tab.Content is PlayerStatisticsView psv)
+                    {
+                        statisticsView = psv;
+                        break;
+                    }
+                    
+                    // Suche in Container
+                    statisticsView = FindStatisticsViewInContainer(tab.Content);
+                    if (statisticsView != null) break;
+                }
+            }
+
+            if (statisticsView != null)
+            {
+                // Validiere und repariere Statistiken falls nötig
+                TournamentClass.ValidateAndRepairStatistics();
+
+                // Aktualisiere die statistik-View
+                statisticsView.TournamentClass = TournamentClass;
+
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics tab updated successfully with class: {TournamentClass.Name}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] PlayerStatisticsView not found in control tree");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Error updating statistics tab: {ex.Message}");
+            MessageBox.Show($"Fehler beim Aktualisieren der Statistiken: {ex.Message}", "Statistik-Fehler", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Rekursive Suche nach PlayerStatisticsView in Container-Elementen
+    /// </summary>
+    private PlayerStatisticsView? FindStatisticsViewInContainer(object? container)
+    {
+        if (container == null) return null;
+
+        if (container is PlayerStatisticsView statisticsView)
+        {
+            return statisticsView;
+        }
+
+        if (container is Panel panel)
+        {
+            foreach (var child in panel.Children)
+            {
+                var result = FindStatisticsViewInContainer(child);
+                if (result != null) return result;
+            }
+        }
+
+        if (container is ContentControl contentControl)
+        {
+            return FindStatisticsViewInContainer(contentControl.Content);
+        }
+
+        if (container is Decorator decorator)
+        {
+            return FindStatisticsViewInContainer(decorator.Child);
+        }
+
+        return null;
     }
 }
