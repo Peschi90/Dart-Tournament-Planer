@@ -1,9 +1,23 @@
-﻿/**
+/**
  * Dart Scoring Main Module
  * Main application logic and initialization
  */
 class DartScoringMain {
     constructor() {
+        // Check if all required classes are available
+        if (typeof DartScoringCore === 'undefined') {
+            throw new Error('DartScoringCore is not loaded');
+        }
+        if (typeof DartScoringUI === 'undefined') {
+            throw new Error('DartScoringUI is not loaded');
+        }
+        if (typeof DartScoringStats === 'undefined') {
+            throw new Error('DartScoringStats is not loaded');
+        }
+        if (typeof DartScoringSubmission === 'undefined') {
+            throw new Error('DartScoringSubmission is not loaded');
+        }
+
         this.core = new DartScoringCore();
         this.ui = new DartScoringUI();
         this.stats = new DartScoringStats(this.core, this.ui);
@@ -260,7 +274,18 @@ window.addEventListener('unhandledrejection', (event) => {
 document.addEventListener('DOMContentLoaded', async() => {
     console.log('📄 [DART-MAIN] DOM loaded, initializing enhanced dart scoring app...');
 
+    // Wait a bit for all scripts to be fully loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     try {
+        // Check if all required dependencies are loaded
+        const requiredClasses = ['DartScoringCore', 'DartScoringUI', 'DartScoringStats', 'DartScoringSubmission'];
+        const missingClasses = requiredClasses.filter(className => typeof window[className] === 'undefined');
+
+        if (missingClasses.length > 0) {
+            throw new Error(`Missing required classes: ${missingClasses.join(', ')}`);
+        }
+
         window.dartScoringApp = new DartScoringMain();
         const success = await window.dartScoringApp.initialize();
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dart Scoring WebSocket Submission Module
  * Handles enhanced match result submission with statistics via WebSocket
  */
@@ -258,7 +258,7 @@ class DartScoringSubmission {
             console.error('❌ [DART-SUBMISSION] Callback indicated failure:', response);
 
             if (this.acknowledgmentReject) {
-                this.acknowledgmentReject(new Error(response ? .message || 'Server callback indicated failure'));
+                this.acknowledgmentReject(new Error((response && response.message) || 'Server callback indicated failure'));
                 this.acknowledgmentResolve = null;
                 this.acknowledgmentReject = null;
             }
@@ -341,8 +341,8 @@ class DartScoringSubmission {
             // Technical WebSocket info
             webSocketSubmission: {
                 enabled: true,
-                socketId: this.socket ? .id,
-                connectionType: this.socket ? .io ? .engine ? .transport ? .name || 'unknown',
+                socketId: this.socket && this.socket.id,
+                connectionType: (this.socket && this.socket.io && this.socket.io.engine && this.socket.io.engine.transport && this.socket.io.engine.transport.name) || 'unknown',
                 submissionMethod: 'enhanced-dart-scoring-websocket',
                 reliability: 'high-with-acknowledgment'
             },
@@ -593,7 +593,7 @@ class DartScoringSubmission {
             isConnected: this.isConnected,
             submissionInProgress: this.submissionInProgress,
             acknowledgmentReceived: this.acknowledgmentReceived,
-            socketId: this.socket ? .id,
+            socketId: this.socket && this.socket.id,
             canSubmit: this.canSubmit().canSubmit
         };
     }

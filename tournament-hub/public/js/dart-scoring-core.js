@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dart Scoring Core Module
  * Handles dart game logic, scoring calculations, and game state management
  */
@@ -40,7 +40,7 @@ class DartScoringCore {
      */
     async initialize(matchId, tournamentId) {
         try {
-            console.log('🔄 [DART-CORE] Initializing dart scoring...', { matchId, tournamentId });
+            console.log('🔧 [DART-CORE] Initializing dart scoring...', { matchId, tournamentId });
 
             // Connect to Socket.IO
             this.socket = io();
@@ -80,7 +80,7 @@ class DartScoringCore {
             this.matchData = data.match;
             this.gameRules = data.gameRules;
 
-            console.log('📄 [DART-CORE] Match data loaded:', {
+            console.log('📊 [DART-CORE] Match data loaded:', {
                 match: this.matchData.displayName,
                 gameMode: this.gameRules.gameMode,
                 legsToWin: this.gameRules.legsToWin,
@@ -103,15 +103,15 @@ class DartScoringCore {
         this.gameState.player1.score = startingScore;
         this.gameState.player2.score = startingScore;
 
-        // ✅ NEU: Tracking für Leg- und Set-Startspieler
+        // 🎮 NEU: Tracking für Leg- und Set-Startspieler
         this.gameState.legStartPlayer = 1; // Wer das aktuelle Leg gestartet hat
         this.gameState.setStartPlayer = 1; // Wer das aktuelle Set gestartet hat
         this.gameState.currentPlayer = 1;
 
-        console.log('🎮 [DART-CORE] Game state initialized:', {
+        console.log('🎲 [DART-CORE] Game state initialized:', {
             startingScore,
-            gameMode: this.gameRules ? .gameMode,
-            doubleOut: this.gameRules ? .doubleOut,
+            gameMode: this.gameRules && this.gameRules.gameMode,
+            doubleOut: this.gameRules && this.gameRules.doubleOut,
             legStartPlayer: this.gameState.legStartPlayer,
             setStartPlayer: this.gameState.setStartPlayer
         });
@@ -154,7 +154,7 @@ class DartScoringCore {
             const currentPlayer = this.getCurrentPlayer();
             const newScore = currentPlayer.score - throwScore;
 
-            // ✅ ERWEITERT: Bestimme aktuellen Spieler VOR Änderungen
+            // 🔥 ERWEITERT: Bestimme aktuellen Spieler VOR Änderungen
             const throwingPlayerNumber = this.gameState.currentPlayer;
 
             console.log('🎯 [DART-CORE] Processing throw:', {
@@ -165,7 +165,7 @@ class DartScoringCore {
                 newScore
             });
 
-            // Bestimme welcher Dart der letzte war (für Double-Out)
+            // Bestimme welcher Dart der letzte war (f�r Double-Out)
             let lastDartScore = 0;
             if (dart3 > 0) lastDartScore = dart3;
             else if (dart2 > 0) lastDartScore = dart2;
@@ -177,7 +177,7 @@ class DartScoringCore {
 
                 // Record bust throw
                 const throwEntry = {
-                    player: throwingPlayerNumber, // ✅ KORRIGIERT: Spieler VOR Wechsel
+                    player: throwingPlayerNumber, // 🔧 KORRIGIERT: Spieler VOR Wechsel
                     darts: [dart1, dart2, dart3],
                     total: throwScore,
                     previousScore: currentPlayer.score,
@@ -196,14 +196,14 @@ class DartScoringCore {
                 return {
                     success: true,
                     type: 'bust',
-                    message: 'Überworfen! Nächster Spieler ist dran.',
-                    bustedPlayer: throwingPlayerNumber // ✅ NEU: Info über überworfenen Spieler
+                    message: '�berworfen! N�chster Spieler ist dran.',
+                    bustedPlayer: throwingPlayerNumber // 🆕 NEU: Info über überworfenen Spieler
                 };
             }
 
             // Check for finish
             if (newScore === 0) {
-                console.log('🎉 [DART-CORE] Leg finished by player', throwingPlayerNumber);
+                console.log('🏆 [DART-CORE] Leg finished by player', throwingPlayerNumber);
 
                 // Update score
                 currentPlayer.score = newScore;
@@ -217,7 +217,7 @@ class DartScoringCore {
                     newScore: 0,
                     isWinning: true,
                     lastDart: lastDartScore,
-                    doubleOut: this.gameRules ? .doubleOut && this.isValidDouble(lastDartScore),
+                    doubleOut: this.gameRules && this.gameRules.doubleOut && this.isValidDouble(lastDartScore),
                     timestamp: new Date()
                 };
 
@@ -235,7 +235,7 @@ class DartScoringCore {
                     success: true,
                     type: 'leg_won',
                     message: `${this.getPlayerName(throwingPlayerNumber)} gewinnt das Leg!`,
-                    winner: throwingPlayerNumber // ✅ NEU: Explizite Winner-Info
+                    winner: throwingPlayerNumber // 🆕 NEU: Explizite Winner-Info
                 };
             }
 
@@ -320,22 +320,22 @@ class DartScoringCore {
     isBust(newScore, lastDart) {
         if (newScore < 0) return true;
 
-        // Double out rule - NEU: Erweiterte Double-Out-Logik
-        if (this.gameRules ? .doubleOut && newScore === 0) {
+        // Double out rule - 🆕 NEU: Erweiterte Double-Out-Logik
+        if (this.gameRules && this.gameRules.doubleOut && newScore === 0) {
             // Prüfe ob der letzte Dart ein gültiges Double war
             // Vereinfachte Logik: Gerade Zahlen 2-40 oder Bullseye (50) gelten als Double
             const validDoubles = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 50];
 
             if (!validDoubles.includes(lastDart)) {
-                console.log(`🚫 [DART-CORE] Double-Out required but last dart ${lastDart} is not a valid double`);
-                return true; // Bust - kein gültiges Double
+                console.log(`🔴 [DART-CORE] Double-Out required but last dart ${lastDart} is not a valid double`);
+                return true; // Bust - kein g�ltiges Double
             } else {
                 console.log(`✅ [DART-CORE] Valid double finish with ${lastDart}`);
             }
         }
 
         // Can't finish on 1 with double out
-        if (this.gameRules ? .doubleOut && newScore === 1) {
+        if (this.gameRules && this.gameRules.doubleOut && newScore === 1) {
             console.log(`🚫 [DART-CORE] Can't finish on 1 with double-out rule`);
             return true;
         }
@@ -344,22 +344,22 @@ class DartScoringCore {
     }
 
     /**
-     * Count how many darts were actually used - ✅ KORRIGIERT für Average
+     * Count how many darts were actually used - 🔧 KORRIGIERT für Average
      */
     countDartsUsed(dart1, dart2, dart3) {
-        // ✅ NEU: Für Average-Berechnung zählen wir immer alle 3 Darts eines Wurfs
+        // 🆕 NEU: Für Average-Berechnung zählen wir immer alle 3 Darts eines Wurfs
         // auch wenn weniger geworfen wurden (wie im echten Dart)
         let actualDartsThrown = 0;
 
         // Zähle tatsächlich geworfene Darts
-        if (dart1 > 0 || dart1 === 0) actualDartsThrown++; // 0 = Miss zählt als geworfener Dart
+        if (dart1 > 0 || dart1 === 0) actualDartsThrown++; // 0 = Miss z�hlt als geworfener Dart
         if (dart2 > 0 || dart2 === 0) actualDartsThrown++;
         if (dart3 > 0 || dart3 === 0) actualDartsThrown++;
 
         // Für Average: Immer 3 Darts pro Wurf zählen (Standard im Dart-Sport)
         const dartsForAverage = 3;
 
-        console.log(`🎯 [DART-CORE] Darts thrown: ${actualDartsThrown}, counted for average: ${dartsForAverage} from [${dart1}, ${dart2}, ${dart3}]`);
+        console.log(`📊 [DART-CORE] Darts thrown: ${actualDartsThrown}, counted for average: ${dartsForAverage} from [${dart1}, ${dart2}, ${dart3}]`);
         return dartsForAverage;
     }
 
@@ -385,25 +385,25 @@ class DartScoringCore {
         if (!this.matchData) return `Spieler ${playerNumber}`;
 
         if (playerNumber === 1) {
-            return this.matchData.player1 ? .name || 'Spieler 1';
+            return this.matchData.player1 && this.matchData.player1.name || 'Spieler 1';
         } else {
-            return this.matchData.player2 ? .name || 'Spieler 2';
+            return this.matchData.player2 && this.matchData.player2.name || 'Spieler 2';
         }
     }
 
     /**
-     * Calculate player average - ✅ KORRIGIERT: Match Average = (Gesamtpunkte / Gesamtdarts) * 3
+     * Calculate player average - 🔧 KORRIGIERT: Match Average = (Gesamtpunkte / Gesamtdarts) * 3
      */
     getPlayerAverage(playerNumber) {
         const player = playerNumber === 1 ? this.gameState.player1 : this.gameState.player2;
 
         if (player.totalThrows === 0) return 0;
 
-        // ✅ KORRIGIERT: Match Average = (Gesamtpunkte / Gesamtdarts) * 3
+        // 🔧 KORRIGIERT: Match Average = (Gesamtpunkte / Gesamtdarts) * 3
         // Beispiel: 300 Punkte mit 6 Darts = (300/6)*3 = 150 Average
         const average = (player.totalScore / player.totalThrows) * 3;
 
-        console.log(`📊 [DART-CORE] Player ${playerNumber} average: ${player.totalScore} points / ${player.totalThrows} darts * 3 = ${average.toFixed(1)}`);
+        console.log(`📈 [DART-CORE] Player ${playerNumber} average: ${player.totalScore} points / ${player.totalThrows} darts * 3 = ${average.toFixed(1)}`);
 
         return Math.round(average * 10) / 10; // Runde auf 1 Dezimalstelle
     }
@@ -416,12 +416,12 @@ class DartScoringCore {
             if (this.gameState.throwHistory.length === 0) {
                 return {
                     success: false,
-                    message: 'Keine Würfe zum Rückgängigmachen vorhanden'
+                    message: 'Keine W�rfe zum R�ckg�ngigmachen vorhanden'
                 };
             }
 
             const lastThrow = this.gameState.throwHistory[0];
-            console.log('↺ [DART-CORE] Undoing throw:', lastThrow);
+            console.log('↩️ [DART-CORE] Undoing throw:', lastThrow);
 
             // Remove from history
             this.gameState.throwHistory.shift();
@@ -449,7 +449,7 @@ class DartScoringCore {
 
             return {
                 success: true,
-                message: 'Letzter Wurf rückgängig gemacht',
+                message: 'Letzter Wurf r�ckg�ngig gemacht',
                 gameState: this.gameState
             };
 
@@ -457,7 +457,7 @@ class DartScoringCore {
             console.error('❌ [DART-CORE] Error undoing throw:', error);
             return {
                 success: false,
-                message: 'Fehler beim Rückgängigmachen'
+                message: 'Fehler beim R�ckg�ngigmachen'
             };
         }
     }
@@ -474,7 +474,7 @@ class DartScoringCore {
         this.gameState.player1.score = startingScore;
         this.gameState.player2.score = startingScore;
 
-        // ✅ NEU: Anwurf-Wechsel für neues Leg
+        // 🆕 NEU: Anwurf-Wechsel für neues Leg
         // Der Spieler der das letzte Leg NICHT gestartet hat, startet das neue Leg
         this.gameState.legStartPlayer = this.gameState.legStartPlayer === 1 ? 2 : 1;
         this.gameState.currentPlayer = this.gameState.legStartPlayer;
@@ -485,7 +485,7 @@ class DartScoringCore {
         // Clear throw history for this leg (keep overall history)
         this.gameState.throwHistory = [];
 
-        console.log('🔄 [DART-CORE] New leg - start player switched:', {
+        console.log('🎯 [DART-CORE] New leg - start player switched:', {
             legStartPlayer: this.gameState.legStartPlayer,
             currentPlayer: this.gameState.currentPlayer
         });
@@ -503,11 +503,11 @@ class DartScoringCore {
     checkGameCompletion() {
         const currentPlayer = this.getCurrentPlayer();
 
-        // ✅ KORRIGIERT: Verwende tatsächliche Game Rules statt fest codierte Werte
-        const legsToWin = this.gameRules ? .legsToWinSet || this.gameRules ? .legsToWin || 2;
-        const setsToWin = this.gameRules ? .setsToWin || 1;
+        // 🔧 KORRIGIERT: Verwende tatsächliche Game Rules statt fest codierte Werte
+        const legsToWin = (this.gameRules && this.gameRules.legsToWinSet) || (this.gameRules && this.gameRules.legsToWin) || 2;
+        const setsToWin = (this.gameRules && this.gameRules.setsToWin) || 1;
 
-        console.log('🔍 [DART-CORE] Checking game completion:', {
+        console.log('🏁 [DART-CORE] Checking game completion:', {
             currentPlayerLegs: currentPlayer.legs,
             legsToWin: legsToWin,
             currentPlayerSets: currentPlayer.sets,
@@ -515,11 +515,11 @@ class DartScoringCore {
             gameRules: this.gameRules
         });
 
-        // ✅ KORRIGIERT: Prüfe Match-Ende wenn nur ein Set gespielt wird (First to X Legs)
+        // 🔧 KORRIGIERT: Prüfe Match-Ende wenn nur ein Set gespielt wird (First to X Legs)
         if (setsToWin === 1 && currentPlayer.legs >= legsToWin) {
-            // ✅ NEU: Setze isGameFinished auf true für Legs-only Matches
+            // 🆕 NEU: Setze isGameFinished auf true für Legs-only Matches
             this.gameState.isGameFinished = true;
-            console.log('🥇 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(First to', legsToWin, 'legs) - Game finished!');
+            console.log('🏆 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(First to', legsToWin, 'legs) - Game finished!');
 
             return {
                 type: 'match_won',
@@ -542,13 +542,13 @@ class DartScoringCore {
             otherPlayer.legs = 0;
             this.gameState.currentSet++;
 
-            console.log('🏆 [DART-CORE] Set won by player', this.gameState.currentPlayer);
+            console.log('📈 [DART-CORE] Set won by player', this.gameState.currentPlayer);
 
             // Check if player won the match (Sets-based)
             if (currentPlayer.sets >= setsToWin) {
-                // ✅ NEU: Setze isGameFinished auf true für Sets-based Matches
+                // 🆕 NEU: Setze isGameFinished auf true für Sets-based Matches
                 this.gameState.isGameFinished = true;
-                console.log('🥇 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(Sets-based) - Game finished!');
+                console.log('🏆 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(Sets-based) - Game finished!');
 
                 return {
                     type: 'match_won',
@@ -669,7 +669,7 @@ class DartScoringCore {
 
         // Listen for external match updates
         this.socket.on('matchUpdated', (data) => {
-            console.log('📡 [DART-CORE] External match update received:', data);
+            console.log('🔄 [DART-CORE] External match update received:', data);
             // Handle external updates if needed
         });
     }
@@ -732,14 +732,14 @@ class DartScoringCore {
 
             return {
                 success: true,
-                message: 'Match-Ergebnis erfolgreich übermittelt'
+                message: 'Match-Ergebnis erfolgreich �bermittelt'
             };
 
         } catch (error) {
             console.error('❌ [DART-CORE] Error submitting match result:', error);
             return {
                 success: false,
-                message: `Fehler beim Übermitteln: ${error.message}`
+                message: `Fehler beim �bermitteln: ${error.message}`
             };
         }
     }

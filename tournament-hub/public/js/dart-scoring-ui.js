@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Dart Scoring UI Module
  * Handles user interface updates and interactions
  */
@@ -7,9 +7,9 @@ class DartScoringUI {
         this.core = null;
         this.elements = {};
         this.isInitialized = false;
-        this.keyboard = null; // ✅ NEU: Keyboard-Instanz
+        this.keyboard = null; // 🆕 NEU: Keyboard-Instanz
 
-        console.log('🎨 [DART-UI] Dart Scoring UI initialized');
+        console.log('🎯 [DART-UI] Dart Scoring UI initialized');
     }
 
     /**
@@ -19,14 +19,14 @@ class DartScoringUI {
         this.core = core;
         this.cacheElements();
         this.setupEventListeners();
-        
-        // ✅ NEU: Initialize keyboard module
+
+        // 🆕 NEU: Initialize keyboard module
         this.keyboard = new DartScoringKeyboard(this);
         this.keyboard.initialize();
-        
+
         this.isInitialized = true;
 
-        console.log('✅ [DART-UI] UI initialized with core and keyboard module');
+        console.log('🎯 [DART-UI] UI initialized with core and keyboard module');
     }
 
     /**
@@ -103,12 +103,12 @@ class DartScoringUI {
             newLegBtn: document.getElementById('newLegBtn'),
             finishMatchBtn: document.getElementById('finishMatchBtn'),
 
-            // ✅ NEU: Match Statistics Modal Elements
+            // 📊 NEU: Match Statistics Modal Elements
             matchStatsModal: document.getElementById('matchStatsModal'),
             matchStatsContent: document.getElementById('matchStatsContent'),
             submitMatchResultBtn: document.getElementById('submitMatchResultBtn'),
 
-            // ✅ NEU: Match Finished Display Elements
+            // 🏁 NEU: Match Finished Display Elements
             matchFinishedDisplay: document.getElementById('matchFinishedDisplay'),
             backToTournamentFinal: document.getElementById('backToTournamentFinal'),
 
@@ -142,7 +142,7 @@ class DartScoringUI {
         this.elements.newLegBtn.addEventListener('click', () => this.handleNewLeg());
         this.elements.finishMatchBtn.addEventListener('click', () => this.handleFinishMatch());
 
-        // ✅ NEU: Match Statistics Modal
+        // 📊 NEU: Match Statistics Modal
         this.elements.submitMatchResultBtn.addEventListener('click', () => this.handleSubmitMatchResult());
         this.elements.backToTournamentFinal.addEventListener('click', () => this.navigateBackToTournament());
 
@@ -152,7 +152,7 @@ class DartScoringUI {
         // Navigation
         this.setupNavigation();
 
-        console.log('🎧 [DART-UI] Event listeners setup complete');
+        console.log('✅ [DART-UI] Event listeners setup complete');
     }
 
     /**
@@ -183,7 +183,7 @@ class DartScoringUI {
             });
         });
 
-        console.log('🎯 [DART-UI] Keypad listeners setup complete');
+        console.log('⌨️ [DART-UI] Keypad listeners setup complete');
     }
 
     /**
@@ -202,7 +202,7 @@ class DartScoringUI {
         this.setActiveMultiplier(1);
         this.updateKeypadState();
 
-        console.log('🎯 [DART-UI] Keypad initialized');
+        console.log('🔢 [DART-UI] Keypad initialized');
     }
 
     /**
@@ -246,7 +246,7 @@ class DartScoringUI {
      * Handle multiplier input (Single=1, Double=2, Triple=3)
      */
     handleMultiplierInput(multiplier) {
-        // Verhindere Multiplier-Änderung nach Leg-Ende
+        // Verhindere Multiplier-�nderung nach Leg-Ende
         if (this.core && this.core.gameState && this.core.gameState.isGameFinished) {
             return;
         }
@@ -325,7 +325,7 @@ class DartScoringUI {
         this.updateDartDisplay(dartIndex, dartResult);
         this.updateThrowTotal();
 
-        // ✅ ERWEITERT: Prüfe BUST nach JEDEM Dart (nicht nur am Ende)
+        // 🔧 ERWEITERT: Prüfe BUST nach JEDEM Dart (nicht nur am Ende)
         if (this.isBustWithCurrentDarts()) {
             console.log('💥 [DART-UI] BUST detected after dart', dartIndex + 1);
 
@@ -335,7 +335,7 @@ class DartScoringUI {
 
             setTimeout(() => {
                 this.handleEarlyBust();
-            }, 300); // Kurze Verzögerung damit User den Dart sieht
+            }, 300); // Kurze Verz�gerung damit User den Dart sieht
 
             return; // Stoppe weitere Verarbeitung
         }
@@ -383,7 +383,7 @@ class DartScoringUI {
      */
     handleAutoFinish() {
         if (!this.canFinishWithCurrentDarts()) {
-            // Prüfe auch auf BUST bei früher Eingabe
+            // Pr�fe auch auf BUST bei fr�her Eingabe
             if (this.isBustWithCurrentDarts()) {
                 this.handleEarlyBust();
                 return;
@@ -391,9 +391,9 @@ class DartScoringUI {
             return;
         }
 
-        const dart1 = this.keypadState.darts[0] ? .score || 0;
-        const dart2 = this.keypadState.darts[1] ? .score || 0;
-        const dart3 = this.keypadState.darts[2] ? .score || 0;
+        const dart1 = (this.keypadState.darts[0] && this.keypadState.darts[0].score) || 0;
+        const dart2 = (this.keypadState.darts[1] && this.keypadState.darts[1].score) || 0;
+        const dart3 = (this.keypadState.darts[2] && this.keypadState.darts[2].score) || 0;
 
         const result = this.core.processThrow(dart1, dart2, dart3);
 
@@ -411,7 +411,7 @@ class DartScoringUI {
                 this.showVictoryModal(result);
             }, 3000);
 
-            console.log('🎉 [DART-UI] Auto-finish detected and processed');
+            console.log('🎯 [DART-UI] Auto-finish detected and processed');
         }
     }
 
@@ -437,14 +437,14 @@ class DartScoringUI {
 
             if (!lastDart) return false;
 
-            // Prüfe Double-Out-Regel
-            if (this.core.gameRules ? .doubleOut) {
+            // Pr�fe Double-Out-Regel
+            if (this.core.gameRules && this.core.gameRules.doubleOut) {
                 const isValidDouble = this.core.isValidDouble(lastDart.score);
-                console.log(`🎯 [DART-UI] Double-Out check: ${lastDart.display} (${lastDart.score}) is valid double: ${isValidDouble}`);
+                console.log(`🔍 [DART-UI] Double-Out check: ${lastDart.display} (${lastDart.score}) is valid double: ${isValidDouble}`);
                 return isValidDouble;
             }
 
-            // Single-Out: Jeder Dart außer Miss ist gültig
+            // Single-Out: Jeder Dart au�er Miss ist g�ltig
             return lastDart.score > 0;
         }
 
@@ -474,7 +474,7 @@ class DartScoringUI {
         }
 
         // Prüfe Double-Out Regel für Score 1
-        if (this.core.gameRules ? .doubleOut && newScore === 1) {
+        if (this.core.gameRules && this.core.gameRules.doubleOut && newScore === 1) {
             console.log(`💥 [DART-UI] Early BUST detected: Can't finish on 1 with double-out`);
             return true;
         }
@@ -486,13 +486,13 @@ class DartScoringUI {
      * Handle early bust detection
      */
     handleEarlyBust() {
-        // ✅ KORRIGIERT: Bestimme Spieler VOR processThrow
+        // 🔧 KORRIGIERT: Bestimme Spieler VOR processThrow
         const bustedPlayerNumber = this.core.gameState.currentPlayer;
         const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
 
-        const dart1 = this.keypadState.darts[0] ? .score || 0;
-        const dart2 = this.keypadState.darts[1] ? .score || 0;
-        const dart3 = this.keypadState.darts[2] ? .score || 0;
+        const dart1 = (this.keypadState.darts[0] && this.keypadState.darts[0].score) || 0;
+        const dart2 = (this.keypadState.darts[1] && this.keypadState.darts[1].score) || 0;
+        const dart3 = (this.keypadState.darts[2] && this.keypadState.darts[2].score) || 0;
 
         console.log('💥 [DART-UI] Processing early BUST for player', bustedPlayerNumber, 'with darts:', [dart1, dart2, dart3]);
 
@@ -504,7 +504,7 @@ class DartScoringUI {
             this.updateThrowHistory();
             this.updateGameStatus();
 
-            // ✅ KORRIGIERT: Zeige BUSTED Animation mit korrektem Spieler
+            // 🔧 KORRIGIERT: Zeige BUSTED Animation mit korrektem Spieler
             const animationResult = {
                 ...result,
                 bustedPlayer: bustedPlayerNumber,
@@ -660,7 +660,7 @@ class DartScoringUI {
         this.elements.currentLegDisplay.textContent = gameState.currentLeg;
 
         // Update Set display - nur anzeigen wenn Sets aktiviert
-        const setsToWin = gameRules ? .setsToWin || 0;
+        const setsToWin = gameRules.setsToWin || 0;
         if (setsToWin > 1) {
             this.elements.currentSetDisplay.textContent = gameState.currentSet;
             this.elements.currentSetContainer.style.display = 'block';
@@ -672,7 +672,7 @@ class DartScoringUI {
         const startingScore = this.core.getStartingScore();
         let modeText = startingScore.toString();
 
-        if (gameRules ? .doubleOut) {
+        if (gameRules.doubleOut) {
             modeText += ' D.Out';
         }
 
@@ -731,7 +731,7 @@ class DartScoringUI {
         this.enableKeypad();
         this.updateKeypadState();
 
-        console.log('🎯 [DART-UI] Keypad reset for new throw');
+        console.log('🔄 [DART-UI] Keypad reset for new throw');
     }
 
     /**
@@ -748,7 +748,7 @@ class DartScoringUI {
             btn.classList.add('disabled');
         });
 
-        // ✅ NEU: Disable keyboard module
+        // 🆕 NEU: Disable keyboard module
         this.disableKeyboard();
 
         console.log('🚫 [DART-UI] All inputs disabled');
@@ -764,7 +764,7 @@ class DartScoringUI {
             btn.classList.remove('disabled');
         });
 
-        // ✅ NEU: Enable keyboard module
+        // 🆕 NEU: Enable keyboard module
         this.enableKeyboard();
 
         console.log('✅ [DART-UI] All inputs enabled for new leg');
@@ -830,17 +830,17 @@ class DartScoringUI {
         const gameState = this.core.gameState;
         const gameRules = this.core.gameRules;
 
-        // ✅ ERWEITERT: Match-Regeln in der Meta-Anzeige
-        const legsToWin = gameRules ? .legsToWinSet || gameRules ? .legsToWin || 2;
-        const setsToWin = gameRules ? .setsToWin || 1;
+        // 🔧 ERWEITERT: Match-Regeln in der Meta-Anzeige
+        const legsToWin = gameRules.legsToWinSet || gameRules.legsToWin || 2;
+        const setsToWin = gameRules.setsToWin || 1;
         const startingScore = this.core.getStartingScore();
-        const doubleOut = gameRules ? .doubleOut ? ' D.Out' : '';
+        const doubleOut = gameRules.doubleOut ? ' D.Out' : '';
 
         let rulesText = '';
         if (setsToWin > 1) {
-            // Best of Sets Format: "Best of 5 Sets • First to 3 Legs per Set"
+            // Best of Sets Format: "Best of 5 Sets � First to 3 Legs per Set"
             const totalSets = (setsToWin * 2) - 1; // Best of X berechnen
-            rulesText = `Best of ${totalSets} Sets • First to ${legsToWin} Legs`;
+            rulesText = `Best of ${totalSets} Sets � First to ${legsToWin} Legs`;
         } else {
             // First to Legs Format: "First to 3 Legs"
             rulesText = `First to ${legsToWin} Legs`;
@@ -851,8 +851,8 @@ class DartScoringUI {
         this.elements.gameMeta.textContent = `${startingScore}${doubleOut} • ${rulesText} • Leg ${gameState.currentLeg} • Set ${gameState.currentSet}`;
 
         // Update player names
-        this.elements.player1Name.textContent = match.player1 ? .name || 'Spieler 1';
-        this.elements.player2Name.textContent = match.player2 ? .name || 'Spieler 2';
+        this.elements.player1Name.textContent = match.player1.name || 'Spieler 1';
+        this.elements.player2Name.textContent = match.player2.name || 'Spieler 2';
 
         // Initialize keypad
         this.initializeKeypad();
@@ -863,7 +863,7 @@ class DartScoringUI {
         // Show game container
         this.showGame();
 
-        console.log('📄 [DART-UI] Match display updated with rules:', rulesText);
+        console.log('📊 [DART-UI] Match display updated with rules:', rulesText);
     }
 
     /**
@@ -956,9 +956,9 @@ class DartScoringUI {
         }
 
         // Extract scores from darts
-        const dart1 = this.keypadState.darts[0] ? .score || 0;
-        const dart2 = this.keypadState.darts[1] ? .score || 0;
-        const dart3 = this.keypadState.darts[2] ? .score || 0;
+        const dart1 = (this.keypadState.darts[0] && this.keypadState.darts[0].score) || 0;
+        const dart2 = (this.keypadState.darts[1] && this.keypadState.darts[1].score) || 0;
+        const dart3 = (this.keypadState.darts[2] && this.keypadState.darts[2].score) || 0;
 
         console.log(`🎯 [DART-UI] Confirming throw with ${dartsThrown} darts:`, [dart1, dart2, dart3]);
 
@@ -1001,9 +1001,9 @@ class DartScoringUI {
     showWinAnimation(result) {
         const playerName = this.core.getPlayerName(this.core.gameState.currentPlayer);
         const lastDart = this.getLastThrownDart();
-        const isDoubleOut = this.core.gameRules ? .doubleOut;
+        const isDoubleOut = this.core.gameRules.doubleOut;
 
-        this.elements.winMessage.textContent = '🎉 CHECKOUT! 🎉';
+        this.elements.winMessage.textContent = '🏆 CHECKOUT! 🏆';
 
         let detailsHtml = `<strong>${playerName}</strong> gewinnt das Leg!<br>`;
         if (lastDart && lastDart.display !== 'Miss') {
@@ -1018,7 +1018,7 @@ class DartScoringUI {
 
         this.playWinSound();
 
-        console.log('🎉 [DART-UI] Win animation displayed');
+        console.log('🏆 [DART-UI] Win animation displayed');
     }
 
     /**
@@ -1026,7 +1026,7 @@ class DartScoringUI {
      */
     hideWinAnimation() {
         this.elements.winAnimation.classList.add('hidden');
-        console.log('🎯 [DART-UI] Win animation hidden');
+        console.log('🙈 [DART-UI] Win animation hidden');
     }
 
     /**
@@ -1042,7 +1042,7 @@ class DartScoringUI {
      * Show BUSTED animation for overshot
      */
     showBustedAnimation(result) {
-        // ✅ KORRIGIERT: Bestimme Spieler VOR Spielerwechsel
+        // 🔧 KORRIGIERT: Bestimme Spieler VOR Spielerwechsel
         // Der Spieler der sich überworfen hat ist noch der aktuelle Spieler
         // (processThrow wechselt erst NACH der BUST-Verarbeitung)
         const bustedPlayerNumber = this.core.gameState.currentPlayer;
@@ -1064,7 +1064,7 @@ class DartScoringUI {
      */
     hideBustedAnimation() {
         this.elements.bustedAnimation.classList.add('hidden');
-        console.log('🎯 [DART-UI] BUSTED animation hidden');
+        console.log('🙈 [DART-UI] BUSTED animation hidden');
     }
 
     /**
@@ -1165,7 +1165,7 @@ class DartScoringUI {
         this.updateKeypadState();
         this.updateThrowTotal();
 
-        console.log(`🎯 [DART-UI] Undid dart ${lastDartIndex + 1}`);
+        console.log(`⏪ [DART-UI] Undid dart ${lastDartIndex + 1}`);
     }
 
     /**
@@ -1185,10 +1185,10 @@ class DartScoringUI {
     }
 
     /**
-     * Handle new leg start - ✅ GEÄNDERT: Behandle Match-Ende anders
+     * Handle new leg start - 🔧 GEÄNDERT: Behandle Match-Ende anders
      */
     handleNewLeg() {
-        // ✅ NEU: Prüfe ob Match beendet ist und zeige Statistiken statt neues Leg zu starten
+        // 🆕 NEU: Prüfe ob Match beendet ist und zeige Statistiken statt neues Leg zu starten
         if (this.core.gameState.isGameFinished) {
             console.log('🏁 [DART-UI] Match is finished - showing statistics instead of new leg');
             this.handleFinishMatch(); // Zeigt Statistik-Modal
@@ -1208,12 +1208,12 @@ class DartScoringUI {
             this.updateGameStatus();
             this.showMessage(result.message, 'success');
 
-            console.log('🎯 [DART-UI] New leg started - inputs re-enabled');
+            console.log('🆕 [DART-UI] New leg started - inputs re-enabled');
         }
     }
 
     /**
-     * Handle match finish - ✅ GEÄNDERT: Zeige Statistik-Modal statt direkte Übertragung
+     * Handle match finish - 🔧 GEÄNDERT: Zeige Statistik-Modal statt direkte Übertragung
      */
     async handleFinishMatch() {
         try {
@@ -1232,7 +1232,7 @@ class DartScoringUI {
     }
 
     /**
-     * ✅ NEU: Handle submit match result from statistics modal
+     * 📤 NEU: Handle submit match result from statistics modal
      */
     async handleSubmitMatchResult() {
         try {
@@ -1240,10 +1240,10 @@ class DartScoringUI {
 
             // Disable the button to prevent double-clicks
             this.elements.submitMatchResultBtn.disabled = true;
-            this.elements.submitMatchResultBtn.textContent = 'Übertrage...';
+            this.elements.submitMatchResultBtn.textContent = '�bertrage...';
 
             // Show submission progress
-            this.showMessage('� Übertrage Match-Ergebnis mit Statistiken...', 'info');
+            this.showMessage('📤 Übertrage Match-Ergebnis mit Statistiken...', 'info');
 
             // Use enhanced submission system
             const result = await this.core.submitMatchResult();
@@ -1291,7 +1291,7 @@ class DartScoringUI {
 
                         if (entry.isWinning) {
                             entryClass = 'style="background: #c6f6d5;"';
-                            statusIcon = '🎉';
+                            statusIcon = '🏆';
                         } else if (entry.isBust) {
                             entryClass = 'style="background: #fed7d7;"';
                             statusIcon = '💥';
@@ -1321,18 +1321,18 @@ class DartScoringUI {
             if (result.gameResult.type === 'set_won') {
                 message += `<br><br>🏆 <strong>Set gewonnen!</strong>`;
                 const newStartPlayerName = this.core.getPlayerName(result.gameResult.newSetStartPlayer);
-                message += `<br><small>Nächstes Set startet: <strong>${newStartPlayerName}</strong></small>`;
+                message += `<br><small>N�chstes Set startet: <strong>${newStartPlayerName}</strong></small>`;
                 
             } else if (result.gameResult.type === 'match_won') {
-                message += `<br><br>🥇 <strong>Match gewonnen!</strong>`;
+                message += `<br><br>🎯 <strong>Match gewonnen!</strong>`;
                 
-                // ✅ KORRIGIERT: Prüfe isGameFinished Flag für korrekte Button-Anzeige
+                // 🔧 KORRIGIERT: Prüfe isGameFinished Flag für korrekte Button-Anzeige
                 if (this.core.gameState.isGameFinished) {
-                    // ✅ NEU: Bei Match-Ende zeige "Statistiken anzeigen" statt direkter Submit
+                    // 🆕 NEU: Bei Match-Ende zeige "Statistiken anzeigen" statt direkter Submit
                     this.elements.newLegBtn.textContent = 'Statistiken anzeigen';
                     this.elements.finishMatchBtn.style.display = 'none';
                     
-                    console.log('✅ [DART-UI] Match is finished - showing "Statistiken anzeigen" button');
+                    console.log('📊 [DART-UI] Match is finished - showing "Statistiken anzeigen" button');
                 } else {
                     // Fallback: Zeige beide Buttons wenn Flag nicht gesetzt
                     this.elements.newLegBtn.textContent = 'Neues Leg starten';
@@ -1349,7 +1349,7 @@ class DartScoringUI {
                     const submissionStatus = window.dartScoringApp.getSubmissionStatus();
                     
                     if (submissionStatus.isConnected) {
-                        message += '<br><br><div style="color: #28a745; font-size: 0.9em;">🌐 WebSocket-Verbindung bereit für erweiterte Übertragung</div>';
+                        message += '<br><br><div style="color: #28a745; font-size: 0.9em;">🔗 WebSocket-Verbindung bereit für erweiterte Übertragung</div>';
                     } else {
                         message += '<br><br><div style="color: #ffc107; font-size: 0.9em;">⚠️ Standard-Übertragung wird verwendet</div>';
                     }
@@ -1357,7 +1357,7 @@ class DartScoringUI {
             }
         } else {
             const nextStartPlayerName = this.core.getPlayerName(this.core.gameState.legStartPlayer === 1 ? 2 : 1);
-            message += `<br><small>Nächstes Leg startet: <strong>${nextStartPlayerName}</strong></small>`;
+            message += `<br><small>N�chstes Leg startet: <strong>${nextStartPlayerName}</strong></small>`;
         }
 
         this.elements.victoryMessage.innerHTML = message;
@@ -1377,19 +1377,19 @@ class DartScoringUI {
         
         // Player 1 Stats
         summary += `<strong>${stats.player1.name}:</strong><br>`;
-        summary += `• Average: ${stats.player1.average}<br>`;
-        if (stats.player1.maximums > 0) summary += `• 180er: ${stats.player1.maximums}<br>`;
-        if (stats.player1.highFinishes > 0) summary += `• High Finishes (≥100): ${stats.player1.highFinishes}<br>`;
-        if (stats.player1.score26 > 0) summary += `• 26er Scores: ${stats.player1.score26}<br>`;
-        summary += `• Checkouts: ${stats.player1.checkouts}<br><br>`;
+        summary += `� Average: ${stats.player1.average}<br>`;
+        if (stats.player1.maximums > 0) summary += `� 180er: ${stats.player1.maximums}<br>`;
+        if (stats.player1.highFinishes > 0) summary += `� High Finishes (=100): ${stats.player1.highFinishes}<br>`;
+        if (stats.player1.score26 > 0) summary += `� 26er Scores: ${stats.player1.score26}<br>`;
+        summary += `� Checkouts: ${stats.player1.checkouts}<br><br>`;
         
         // Player 2 Stats
         summary += `<strong>${stats.player2.name}:</strong><br>`;
-        summary += `• Average: ${stats.player2.average}<br>`;
-        if (stats.player2.maximums > 0) summary += `• 180er: ${stats.player2.maximums}<br>`;
-        if (stats.player2.highFinishes > 0) summary += `• High Finishes (≥100): ${stats.player2.highFinishes}<br>`;
-        if (stats.player2.score26 > 0) summary += `• 26er Scores: ${stats.player2.score26}<br>`;
-        summary += `• Checkouts: ${stats.player2.checkouts}<br>`;
+        summary += `� Average: ${stats.player2.average}<br>`;
+        if (stats.player2.maximums > 0) summary += `� 180er: ${stats.player2.maximums}<br>`;
+        if (stats.player2.highFinishes > 0) summary += `� High Finishes (=100): ${stats.player2.highFinishes}<br>`;
+        if (stats.player2.score26 > 0) summary += `� 26er Scores: ${stats.player2.score26}<br>`;
+        summary += `� Checkouts: ${stats.player2.checkouts}<br>`;
         
         summary += '</div>';
         
@@ -1406,7 +1406,7 @@ class DartScoringUI {
     }
 
     /**
-     * ✅ NEU: Show match statistics modal
+     * 📊 NEU: Show match statistics modal
      */
     showMatchStatisticsModal() {
         try {
@@ -1423,7 +1423,7 @@ class DartScoringUI {
             // Show modal
             this.elements.matchStatsModal.classList.remove('hidden');
             
-            console.log('📊 [DART-UI] Match statistics modal displayed');
+            console.log('✅ [DART-UI] Match statistics modal displayed');
             
         } catch (error) {
             console.error('❌ [DART-UI] Error showing match statistics modal:', error);
@@ -1432,25 +1432,25 @@ class DartScoringUI {
     }
 
     /**
-     * ✅ NEU: Hide match statistics modal
+     * ❌ NEU: Hide match statistics modal
      */
     hideMatchStatisticsModal() {
         this.elements.matchStatsModal.classList.add('hidden');
     }
 
     /**
-     * ✅ NEU: Show match finished display
+     * 🏁 NEU: Show match finished display
      */
     showMatchFinishedDisplay() {
         this.elements.matchFinishedDisplay.classList.remove('hidden');
     }
 
     /**
-     * ✅ NEU: Generate match statistics content
+     * 📊 NEU: Generate match statistics content
      */
     generateMatchStatisticsContent() {
         if (!window.dartScoringApp || !window.dartScoringApp.stats) {
-            return '<p>Statistiken nicht verfügbar</p>';
+            return '<p>Statistiken nicht verf�gbar</p>';
         }
         
         try {
@@ -1492,7 +1492,7 @@ class DartScoringUI {
             // Player 1 Stats
             content += `
                 <div class="player-stats-section ${winner === 1 ? 'winner-highlight' : ''}">
-                    <h3>${winner === 1 ? '👑 ' : ''}${stats.player1.name}</h3>
+                    <h3>${winner === 1 ? '🏆 ' : ''}${stats.player1.name}</h3>
                     <div class="stats-row">
                         <span class="stats-label">Match Average:</span>
                         <span class="stats-value">${stats.player1.average}</span>
@@ -1503,7 +1503,7 @@ class DartScoringUI {
                 const avgLegAvg = fullStats.player1.legAverages.reduce((sum, leg) => sum + leg.average, 0) / fullStats.player1.legAverages.length;
                 content += `
                     <div class="stats-row">
-                        <span class="stats-label">⌀ Leg Average:</span>
+                        <span class="stats-label">? Leg Average:</span>
                         <span class="stats-value">${avgLegAvg.toFixed(1)}</span>
                     </div>
                     <div class="stats-row">
@@ -1537,7 +1537,7 @@ class DartScoringUI {
             if (stats.player1.highFinishes > 0) {
                 content += `
                     <div class="stats-row">
-                        <span class="stats-label">High Finishes (≥100):</span>
+                        <span class="stats-label">High Finishes (=100):</span>
                         <span class="stats-value">${stats.player1.highFinishes}</span>
                     </div>`;
             }
@@ -1560,7 +1560,7 @@ class DartScoringUI {
             // Player 2 Stats
             content += `
                 <div class="player-stats-section ${winner === 2 ? 'winner-highlight' : ''}">
-                    <h3>${winner === 2 ? '👑 ' : ''}${stats.player2.name}</h3>
+                    <h3>${winner === 2 ? '🏆 ' : ''}${stats.player2.name}</h3>
                     <div class="stats-row">
                         <span class="stats-label">Match Average:</span>
                         <span class="stats-value">${stats.player2.average}</span>
@@ -1571,7 +1571,7 @@ class DartScoringUI {
                 const avgLegAvg = fullStats.player2.legAverages.reduce((sum, leg) => sum + leg.average, 0) / fullStats.player2.legAverages.length;
                 content += `
                     <div class="stats-row">
-                        <span class="stats-label">⌀ Leg Average:</span>
+                        <span class="stats-label">? Leg Average:</span>
                         <span class="stats-value">${avgLegAvg.toFixed(1)}</span>
                     </div>
                     <div class="stats-row">
@@ -1605,7 +1605,7 @@ class DartScoringUI {
             if (stats.player2.highFinishes > 0) {
                 content += `
                     <div class="stats-row">
-                        <span class="stats-label">High Finishes (≥100):</span>
+                        <span class="stats-label">High Finishes (=100):</span>
                         <span class="stats-value">${stats.player2.highFinishes}</span>
                     </div>`;
             }
@@ -1634,25 +1634,25 @@ class DartScoringUI {
             
             content += `
                 <div style="margin-top: 20px; text-align: center; color: #4a5568;">
-                    <p><strong>Match-Übersicht:</strong></p>
+                    <p><strong>Match-�bersicht:</strong></p>
                     <p>Gesamte Darts geworfen: ${totalThrows}`;
             
-            if (totalMaximums > 0) content += ` • 180er: ${totalMaximums}`;
-            if (totalHighFinishes > 0) content += ` • High Finishes: ${totalHighFinishes}`;
-            if (total26Scores > 0) content += ` • 26er Scores: ${total26Scores}`;
+            if (totalMaximums > 0) content += ` � 180er: ${totalMaximums}`;
+            if (totalHighFinishes > 0) content += ` � High Finishes: ${totalHighFinishes}`;
+            if (total26Scores > 0) content += ` � 26er Scores: ${total26Scores}`;
             
             content += '</p></div>';
 
             return content;
             
         } catch (error) {
-            console.error('❌ [DART-UI] Error generating statistics content:', error);
-            return '<p>❌ Fehler beim Laden der Statistiken</p>';
+            console.error('? [DART-UI] Error generating statistics content:', error);
+            return '<p>? Fehler beim Laden der Statistiken</p>';
         }
     }
 
     /**
-     * ✅ NEU: Navigate back to tournament
+     * ? NEU: Navigate back to tournament
      */
     navigateBackToTournament() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1686,11 +1686,11 @@ class DartScoringUI {
     }
 
     /**
-     * ✅ NEU: Show match completed message instead of redirect
+     * ? NEU: Show match completed message instead of redirect
      */
     showMatchCompletedMessage() {
         try {
-            console.log('🏁 [DART-UI] Showing match completed message');
+            console.log('💬 [DART-UI] Showing match completed message');
 
             // Hide game interface
             this.elements.gameContainer.classList.add('hidden');
@@ -1703,26 +1703,26 @@ class DartScoringUI {
                 <div class="completion-content">
                     <div class="completion-header">
                         <h2>🏁 Match beendet</h2>
-                        <p class="completion-subtitle">Das Ergebnis wurde erfolgreich übertragen</p>
+                        <p class="completion-subtitle">Das Ergebnis wurde erfolgreich �bertragen</p>
                     </div>
                     
                     <div class="completion-message">
-                        <div class="success-icon">✅</div>
-                        <h3>Übertragung erfolgreich!</h3>
-                        <p>Das Match-Ergebnis und alle Statistiken wurden erfolgreich zum Tournament Hub übertragen.</p>
+                        <div class="success-icon">?</div>
+                        <h3>�bertragung erfolgreich!</h3>
+                        <p>Das Match-Ergebnis und alle Statistiken wurden erfolgreich zum Tournament Hub �bertragen.</p>
                     </div>
 
                     <div class="completion-actions">
                         <p><strong>Die Seite kann nun geschlossen werden.</strong></p>
-                        <small>Oder nutzen Sie den Button unten, um zum Tournament zurückzukehren.</small>
+                        <small>Oder nutzen Sie den Button unten, um zum Tournament zur�ckzukehren.</small>
                     </div>
 
                     <div class="completion-buttons">
                         <button id="close-window-btn" class="btn btn-primary">
-                            🔒 Fenster schließen
+                            🚪 Fenster schließen
                         </button>
                         <button id="back-to-tournament-btn" class="btn btn-secondary">
-                            ↩️ Zurück zum Tournament
+                            🔙 Zurück zum Tournament
                         </button>
                     </div>
                 </div>
@@ -1902,19 +1902,19 @@ class DartScoringUI {
             const backBtn = document.getElementById('back-to-tournament-btn');
 
             closeBtn.addEventListener('click', () => {
-                console.log('🔒 [DART-UI] User requested window close');
+                console.log('🚪 [DART-UI] User requested window close');
                 window.close();
             });
 
             backBtn.addEventListener('click', () => {
-                console.log('↩️ [DART-UI] User requested back to tournament');
+                console.log('🔙 [DART-UI] User requested back to tournament');
                 this.navigateBackToTournament();
             });
 
-            console.log('✅ [DART-UI] Match completion message shown');
+            console.log('? [DART-UI] Match completion message shown');
 
         } catch (error) {
-            console.error('❌ [DART-UI] Error showing completion message:', error);
+            console.error('? [DART-UI] Error showing completion message:', error);
             // Fallback: show simple alert
             alert('🏁 Match beendet!\n\nDas Ergebnis wurde erfolgreich übertragen.\nDie Seite kann nun geschlossen werden.');
         }
@@ -1941,14 +1941,14 @@ class DartScoringUI {
             this.resetKeypad();
         }
         
-        console.log('🎯 [DART-UI] Game interface shown with keypad ready');
+        console.log('🎮 [DART-UI] Game interface shown with keypad ready');
     }
 
     /**
      * Handle keyboard shortcuts
      */
     /**
-     * ✅ GEÄNDERT: Delegate keyboard functionality to separate module
+     * ? GE�NDERT: Delegate keyboard functionality to separate module
      */
     setupKeyboardShortcuts() {
         // Keyboard functionality is now handled by the DartScoringKeyboard module
@@ -1957,7 +1957,7 @@ class DartScoringUI {
     }
 
     /**
-     * ✅ NEU: Keyboard control methods for external keyboard module
+     * ? NEU: Keyboard control methods for external keyboard module
      */
     enableKeyboard() {
         if (this.keyboard) {
@@ -1998,12 +1998,12 @@ class DartScoringUI {
         this.setupKeyboardShortcuts(); // Delegate to keyboard module
         this.setupResponsive();
         
-        // ✅ NEU: Log keyboard help for debugging
+        // ? NEU: Log keyboard help for debugging
         if (this.keyboard) {
-            console.log('📋 [DART-UI] Available keyboard shortcuts:', this.getKeyboardHelpText());
+            console.log('❓ [DART-UI] Available keyboard shortcuts:', this.getKeyboardHelpText());
         }
         
-        console.log('🎨 [DART-UI] UI initialization complete with keyboard module');
+        console.log('✅ [DART-UI] UI initialization complete with keyboard module');
     }
 }
 
@@ -2014,4 +2014,4 @@ if (typeof module !== 'undefined' && module.exports) {
     window.DartScoringUI = DartScoringUI;
 }
 
-console.log('🎨 [DART-UI] Dart Scoring UI module loaded');
+console.log('📱 [DART-UI] Dart Scoring UI module loaded');

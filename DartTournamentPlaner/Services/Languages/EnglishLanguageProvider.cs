@@ -336,8 +336,8 @@ public class EnglishLanguageProvider : ILanguageProvider
             ["Seconds"] = "Seconds",
             ["ShowOnlyActiveClassesText"] = "Show only classes with active groups",
             ["OverviewInfoText"] = "Live tournament display for all classes with automatic switching",
-            ["InvalidClassInterval"] = "Invalid class interval. Please enter a number = 1.",
-            ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number = 1.",
+            ["InvalidClassInterval"] = "Invalid class interval. Please enter a number ≥ 1.",
+            ["InvalidSubTabInterval"] = "Invalid sub-tab interval. Please enter a number ≥ 1.",
 
             // Turnierübersicht Texte
             ["TournamentName"] = "🎯 Tournament:",
@@ -622,7 +622,222 @@ public class EnglishLanguageProvider : ILanguageProvider
             ["APINotRunning"] = "API is not running. Start the API first.",
             ["APIURLNotAvailable"] = "API URL is not available.",
             ["ErrorOpeningBrowser"] = "Error opening browser",
-            ["Success"] = "Success"
+            ["Success"] = "Success",
+
+            // ========================================
+            // TOURNAMENT HUB TRANSLATIONS - NEW
+            // ========================================
+
+            // Tournament Hub Menu
+            ["TournamentHub"] = "🎯 Tournament Hub",
+            ["RegisterWithHub"] = "🏁 Register with Hub",
+            ["UnregisterFromHub"] = "📴 Unregister from Hub",
+            ["ShowJoinUrl"] = "📱 Show Join URL",
+            ["ManualSync"] = "🔄 Manual Synchronization",
+            ["HubSettings"] = "⚙️ Hub Settings",
+
+            // Hub Status Translations
+            ["HubStatus"] = "Hub Status",
+            ["HubConnected"] = "Connected",
+            ["HubDisconnected"] = "Disconnected",
+            ["HubConnecting"] = "Connecting...",
+            ["HubReconnecting"] = "Reconnecting...",
+            ["HubError"] = "Error",
+            ["HubSyncing"] = "Synchronizing...",
+            ["HubSyncComplete"] = "Sync Complete",
+            ["HubWebSocket"] = "WebSocket",
+            ["HubHTTP"] = "HTTP",
+
+            // Hub Registration and Management
+            ["RegisterTournamentTitle"] = "Register Tournament with Hub",
+            ["RegisterTournamentSuccess"] = "🎯 Tournament successfully registered with Hub!\n\nTournament ID: {0}\nJoin URL: {1}\n\nYou can send this URL to players.",
+            ["RegisterTournamentError"] = "❌ Tournament could not be registered with Hub.",
+            ["UnregisterTournamentTitle"] = "Unregister Tournament",
+            ["UnregisterTournamentConfirm"] = "Really unregister tournament '{0}' from Hub?",
+            ["UnregisterTournamentSuccess"] = "Tournament successfully unregistered from Hub.",
+            ["UnregisterTournamentError"] = "Error unregistering: {0}",
+            ["NoTournamentRegistered"] = "No tournament registered with Hub.",
+
+            // Hub Synchronization
+            ["SyncWithHub"] = "Synchronize with Hub",
+            ["SyncSuccess"] = "Tournament successfully synchronized with Hub!",
+            ["SyncError"] = "Error synchronizing with Hub.",
+            ["ManualSyncError"] = "Error during manual sync: {0}",
+            ["AutoSyncEnabled"] = "Automatic synchronization enabled",
+            ["AutoSyncDisabled"] = "Automatic synchronization disabled",
+
+            // Join URL Functions
+            ["JoinUrlTitle"] = "Tournament Join URL",
+            ["JoinUrlMessage"] = "Tournament ID: {0}\n\nJoin URL:\n{1}\n\nYou can send this URL to players.",
+            ["JoinUrlError"] = "Error displaying Join URL: {0}",
+            ["JoinUrlCopied"] = "Join URL copied to clipboard",
+
+            // Hub Settings
+            ["HubSettingsTitle"] = "Hub Settings",
+            ["HubSettingsPrompt"] = "Enter the Tournament Hub URL:",
+            ["HubUrlUpdated"] = "Hub URL updated:\n{0}",
+            ["HubSettingsError"] = "Error with Hub settings: {0}",
+            ["InvalidHubUrl"] = "Invalid Hub URL. Please enter a complete URL.",
+
+            // WebSocket Connection
+            ["WebSocketConnecting"] = "Establishing WebSocket connection...",
+            ["WebSocketConnected"] = "WebSocket connection established",
+            ["WebSocketDisconnected"] = "WebSocket connection disconnected",
+            ["WebSocketError"] = "WebSocket error: {0}",
+            ["WebSocketReconnecting"] = "WebSocket reconnecting...",
+            ["WebSocketReconnected"] = "WebSocket reconnection successful",
+            ["WebSocketMaxRetriesReached"] = "Maximum WebSocket connection attempts reached",
+
+            // Match Updates from Hub
+            ["MatchUpdateReceived"] = "Match update received",
+            ["MatchUpdateProcessed"] = "Match {0} successfully updated",
+            ["MatchUpdateError"] = "Error processing match update: {0}",
+            ["MatchResultFromHub"] = "Match result received from Hub",
+            ["InvalidMatchUpdate"] = "Invalid match update received",
+
+            // Tournament Data Sync
+            ["TournamentDataSyncing"] = "Synchronizing tournament data...",
+            ["TournamentDataSynced"] = "Tournament data successfully synchronized",
+            ["TournamentDataSyncError"] = "Error synchronizing tournament data: {0}",
+            ["SendingTournamentData"] = "Sending tournament data...",
+            ["TournamentDataSent"] = "Tournament data successfully sent",
+
+            // Hub Debug Console
+            ["HubDebugConsole"] = "Tournament Hub Debug Console",
+            ["DebugConsoleTitle"] = "Hub Debug Console",
+            ["DebugConsoleReady"] = "Ready for debugging...",
+            ["DebugConsoleStarted"] = "Tournament Hub Debug Console started",
+            ["DebugConsoleClear"] = "Clear Debug Console",
+            ["DebugConsoleClearConfirm"] = "Do you want to clear all debug messages?",
+            ["DebugConsoleCleared"] = "Debug Console cleared",
+            ["DebugConsoleSave"] = "Save Debug Log",
+            ["DebugConsoleSaved"] = "Debug log saved at: {0}",
+            ["DebugConsoleSaveError"] = "Error saving: {0}",
+            ["DebugConsoleClose"] = "Close",
+            ["AutoScrollEnabled"] = "Auto-scroll enabled",
+            ["AutoScrollDisabled"] = "Auto-scroll disabled",
+            ["MessagesCount"] = "Messages: {0}",
+
+            // Hub Connection Status Details
+            ["ConnectionStatusUpdated"] = "Connection status updated",
+            ["HubServiceStatus"] = "Hub Service Status",
+            ["LastSyncTime"] = "Last synchronization: {0}",
+            ["NextSyncIn"] = "Next synchronization in: {0}",
+            ["ConnectionQuality"] = "Connection Quality",
+            ["ConnectionStable"] = "Stable",
+            ["ConnectionUnstable"] = "Unstable",
+            ["ConnectionPoor"] = "Poor",
+
+            // Hub Heartbeat
+            ["HeartbeatSent"] = "Heartbeat sent",
+            ["HeartbeatReceived"] = "Heartbeat received",
+            ["HeartbeatError"] = "Heartbeat error: {0}",
+            ["HeartbeatTimeout"] = "Heartbeat timeout",
+
+            // Tournament ID and Client Info
+            ["TournamentId"] = "Tournament ID",
+            ["ClientType"] = "Client Type",
+            ["TournamentPlanner"] = "Tournament Planner",
+            ["ClientVersion"] = "Client Version",
+            ["ConnectedAt"] = "Connected since",
+            ["ClientId"] = "Client ID",
+
+            // Subscription Management
+            ["SubscribingToTournament"] = "Subscribing to tournament updates...",
+            ["SubscribedToTournament"] = "Tournament updates successfully subscribed",
+            ["UnsubscribingFromTournament"] = "Cancelling tournament updates subscription...",
+            ["UnsubscribedFromTournament"] = "Tournament updates subscription successfully cancelled",
+            ["SubscriptionError"] = "Subscription error: {0}",
+
+            // Hub Service Messages
+            ["HubServiceStarted"] = "Hub Service started",
+            ["HubServiceStopped"] = "Hub Service stopped",
+            ["HubServiceInitialized"] = "Hub Service initialized",
+            ["HubServiceError"] = "Hub Service error: {0}",
+            ["HubServiceRestarting"] = "Hub Service restarting...",
+
+            // Network and Connection
+            ["NetworkError"] = "Network error: {0}",
+            ["ConnectionTimeout"] = "Connection timeout",
+            ["ConnectionRefused"] = "Connection refused",
+            ["ServerNotReachable"] = "Server not reachable",
+            ["InternetConnectionRequired"] = "Internet connection required",
+
+            // Tournament Hub URL Validation
+            ["ValidatingHubUrl"] = "Validating Hub URL...",
+            ["HubUrlValid"] = "Hub URL is valid",
+            ["HubUrlInvalid"] = "Hub URL is invalid",
+            ["HubUrlNotReachable"] = "Hub URL not reachable",
+            ["DefaultHubUrl"] = "Use default Hub URL",
+
+            // Status Bar Messages for Hub
+            ["HubStatusConnected"] = "Hub: Connected",
+            ["HubStatusDisconnected"] = "Hub: Disconnected",
+            ["HubStatusConnecting"] = "Hub: Connecting...",
+            ["HubStatusError"] = "Hub: Error",
+            ["HubStatusSyncing"] = "Hub: Sync...",
+            ["HubStatusReady"] = "Hub: Ready",
+
+            // Tournament Registration Details
+            ["GeneratingTournamentId"] = "Generating Tournament ID...",
+            ["TournamentIdGenerated"] = "Tournament ID generated: {0}",
+            ["RegisteringWithServer"] = "Registering with server...",
+            ["ServerRegistrationComplete"] = "Server registration complete",
+            ["ObtainingJoinUrl"] = "Obtaining Join URL...",
+            ["JoinUrlObtained"] = "Join URL obtained: {0}",
+
+            // Error Categories for Debug Console
+            ["InfoMessage"] = "Info",
+            ["WarningMessage"] = "Warning",
+            ["ErrorMessage"] = "Error",
+            ["SuccessMessage"] = "Success",
+            ["WebSocketMessage"] = "WebSocket",
+            ["SyncMessage"] = "Sync",
+            ["TournamentMessage"] = "Tournament",
+            ["MatchMessage"] = "Match",
+            ["MatchResultMessage"] = "Match Result",
+
+            // Advanced Hub Features
+            ["HubStatistics"] = "Hub Statistics",
+            ["ConnectedClients"] = "Connected Clients: {0}",
+            ["ActiveTournaments"] = "Active Tournaments: {0}",
+            ["TotalMatches"] = "Total Matches: {0}",
+            ["DataTransferred"] = "Data Transferred: {0}",
+            ["UptimeInfo"] = "Uptime: {0}",
+
+            // Hub Configuration
+            ["HubConfiguration"] = "Hub Configuration",
+            ["AutoReconnect"] = "Automatic Reconnection",
+            ["ReconnectInterval"] = "Reconnection Interval",
+            ["MaxReconnectAttempts"] = "Maximum Reconnection Attempts",
+            ["SyncInterval"] = "Synchronization Interval",
+            ["HeartbeatInterval"] = "Heartbeat Interval",
+
+            // Feature Flags and Capabilities
+            ["HubFeatures"] = "Hub Features",
+            ["RealTimeUpdates"] = "Real-time Updates",
+            ["MatchStreaming"] = "Match Streaming",
+            ["StatisticsSync"] = "Statistics Synchronization",
+            ["MultiDeviceSupport"] = "Multi-device Support",
+            ["OfflineMode"] = "Offline Mode",
+
+            // User Experience Messages
+            ["PleaseWait"] = "Please wait...",
+            ["ProcessingRequest"] = "Processing request...",
+            ["AlmostDone"] = "Almost done...",
+            ["OperationCompleted"] = "Operation completed",
+            ["OperationCancelled"] = "Operation cancelled",
+            ["TryAgain"] = "Try again",
+            ["CheckConnection"] = "Check connection",
+
+            // Tournament Hub Service Lifecycle
+            ["ServiceInitializing"] = "Service initializing...",
+            ["ServiceReady"] = "Service ready",
+            ["ServiceShuttingDown"] = "Service shutting down...",
+            ["ServiceShutdown"] = "Service shutdown",
+            ["ServiceRestarted"] = "Service restarted",
+            ["ServiceHealthy"] = "Service is healthy",
+            ["ServiceUnhealthy"] = "Service is unhealthy"
         };
     }
 }
