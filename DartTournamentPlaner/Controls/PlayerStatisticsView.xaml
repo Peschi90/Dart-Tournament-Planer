@@ -92,34 +92,34 @@
 
         <!-- Titel und Zusammenfassung -->
         <StackPanel Grid.Row="0" Orientation="Vertical" Margin="10">
-            <TextBlock Text="📊 Spieler-Statistiken" FontSize="24" FontWeight="Bold" 
+            <TextBlock x:Name="TitleTextBlock" Text="📊 Spieler-Statistiken" FontSize="24" FontWeight="Bold" 
                        Foreground="#007BFF" HorizontalAlignment="Center" Margin="0,10"/>
             
             <!-- Klassen-Zusammenfassung -->
             <Border Style="{StaticResource StatCardStyle}" HorizontalAlignment="Center" MinWidth="600">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                     <StackPanel Margin="10">
-                        <TextBlock Text="Spieler" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="PlayersHeaderText" Text="Spieler" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.TotalPlayers}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                     <StackPanel Margin="10">
-                        <TextBlock Text="Matches" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="MatchesHeaderText" Text="Matches" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.TotalMatches}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                     <StackPanel Margin="10">
-                        <TextBlock Text="Legs" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="LegsHeaderText" Text="Legs" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.TotalLegs}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                     <StackPanel Margin="10">
-                        <TextBlock Text="180er" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="MaximumsHeaderText" Text="180er" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.TotalMaximums}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                     <StackPanel Margin="10">
-                        <TextBlock Text="High Finishes" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="HighFinishesHeaderText" Text="High Finishes" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.TotalHighFinishes}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                     <StackPanel Margin="10">
-                        <TextBlock Text="⌀ Average" Style="{StaticResource StatHeaderStyle}"/>
+                        <TextBlock x:Name="AverageHeaderText" Text="⌀ Average" Style="{StaticResource StatHeaderStyle}"/>
                         <TextBlock Text="{Binding Summary.AverageOverallAverage, StringFormat=F1}" Style="{StaticResource StatValueStyle}"/>
                     </StackPanel>
                 </StackPanel>
@@ -150,7 +150,19 @@
             </Button>
             
             <TextBlock Text="{Binding Players.Count}" Margin="20,0,5,0" VerticalAlignment="Center" FontWeight="Bold"/>
-            <TextBlock Text="Spieler mit Statistiken" VerticalAlignment="Center"/>
+            <TextBlock x:Name="PlayersWithStatsText" Text="Spieler mit Statistiken" VerticalAlignment="Center"/>
+            
+            <!-- ✅ NEU: Sortierung -->
+            <TextBlock x:Name="SortByText" Text="Sortieren nach:" Margin="20,0,5,0" VerticalAlignment="Center" FontWeight="Bold"/>
+            <ComboBox x:Name="SortComboBox" Margin="5,0" VerticalAlignment="Center" 
+                      SelectionChanged="SortComboBox_SelectionChanged" SelectedIndex="1" MinWidth="120">
+                <ComboBoxItem x:Name="SortByNameItem" Content="Name"/>
+                <ComboBoxItem x:Name="SortByAverageItem" Content="Average"/>
+                <ComboBoxItem x:Name="SortByMatchesItem" Content="Spiele"/>
+                <ComboBoxItem x:Name="SortByWinRateItem" Content="Sieg-Quote"/>
+                <ComboBoxItem x:Name="SortByMaximumsItem" Content="180er"/>
+                <ComboBoxItem x:Name="SortByHighFinishesItem" Content="High Finishes"/>
+            </ComboBox>
         </StackPanel>
 
         <!-- ✅ NEU: Übersichtliche DataGrid-Tabelle -->
@@ -158,7 +170,7 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <DataGrid x:Name="PlayersDataGrid" ItemsSource="{Binding Players}" Margin="5">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="🎯 Spieler" Binding="{Binding PlayerName}" Width="150" FontWeight="Bold">
+                        <DataGridTextColumn x:Name="PlayerColumn" Header="🎯 Spieler" Binding="{Binding PlayerName}" Width="150" FontWeight="Bold">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Foreground" Value="#2563EB"/>
@@ -167,7 +179,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Matches" Binding="{Binding MatchRecord}" Width="120">
+                        <DataGridTextColumn x:Name="MatchesColumn" Header="Matches" Binding="{Binding MatchRecord}" Width="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -175,7 +187,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Gewinnrate" Binding="{Binding MatchWinRateFormatted}" Width="100">
+                        <DataGridTextColumn x:Name="WinRateColumn" Header="Gewinnrate" Binding="{Binding MatchWinRateFormatted}" Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -185,7 +197,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="⌀ Average" Binding="{Binding OverallAverageFormatted}" Width="100">
+                        <DataGridTextColumn x:Name="AverageColumn" Header="⌀ Average" Binding="{Binding OverallAverageFormatted}" Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -195,7 +207,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Bester Average" Binding="{Binding BestAverageFormatted}" Width="110">
+                        <DataGridTextColumn x:Name="BestAverageColumn" Header="Bester Average" Binding="{Binding BestAverageFormatted}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -205,7 +217,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="180er" Binding="{Binding TotalMaximums}" Width="80">
+                        <DataGridTextColumn x:Name="MaximumsColumn" Header="180er" Binding="{Binding TotalMaximums}" Width="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -215,7 +227,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="High Finishes" Binding="{Binding TotalHighFinishes}" Width="100">
+                        <DataGridTextColumn x:Name="HighFinishesColumn" Header="High Finishes" Binding="{Binding TotalHighFinishes}" Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -225,7 +237,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Höchstes HF" Binding="{Binding HighestHighFinish}" Width="110">
+                        <DataGridTextColumn x:Name="HighestFinishColumn" Header="Höchstes HF" Binding="{Binding HighestHighFinish}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -235,7 +247,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="26er" Binding="{Binding TotalScore26}" Width="80">
+                        <DataGridTextColumn x:Name="Score26Column" Header="26er" Binding="{Binding TotalScore26}" Width="80">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
@@ -245,7 +257,7 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <DataGridTextColumn Header="Letztes Match" Binding="{Binding LastMatchFormatted}" Width="100">
+                        <DataGridTextColumn x:Name="LastMatchColumn" Header="Letztes Match" Binding="{Binding LastMatchFormatted}" Width="100">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>

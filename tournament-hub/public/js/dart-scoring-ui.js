@@ -8,6 +8,7 @@ class DartScoringUI {
         this.elements = {};
         this.isInitialized = false;
         this.keyboard = null; // 🆕 NEU: Keyboard-Instanz
+        this.animations = null; // 🆕 NEU: Animations-Instanz
 
         console.log('🎯 [DART-UI] Dart Scoring UI initialized');
     }
@@ -24,9 +25,25 @@ class DartScoringUI {
         this.keyboard = new DartScoringKeyboard(this);
         this.keyboard.initialize();
 
+        // 🆕 NEU: Initialize animations module
+        if (typeof DartScoringAnimations !== 'undefined') {
+            this.animations = new DartScoringAnimations(this);
+            this.animations.initialize();
+        } else {
+            console.warn('⚠️ [DART-UI] DartScoringAnimations module not available');
+        }
+
+        // 🏁 NEU: Initialize completion module
+        if (typeof DartScoringCompletion !== 'undefined') {
+            this.completion = new DartScoringCompletion();
+            console.log('🏁 [DART-UI] Completion module initialized');
+        } else {
+            console.warn('⚠️ [DART-UI] DartScoringCompletion not found - completion handling disabled');
+        }
+
         this.isInitialized = true;
 
-        console.log('🎯 [DART-UI] UI initialized with core and keyboard module');
+        console.log('🎯 [DART-UI] UI initialized with core, keyboard, animations and completion modules');
     }
 
     /**
@@ -246,7 +263,7 @@ class DartScoringUI {
      * Handle multiplier input (Single=1, Double=2, Triple=3)
      */
     handleMultiplierInput(multiplier) {
-        // Verhindere Multiplier-�nderung nach Leg-Ende
+        // Verhindere Multiplier-Änderung nach Leg-Ende
         if (this.core && this.core.gameState && this.core.gameState.isGameFinished) {
             return;
         }
@@ -335,7 +352,7 @@ class DartScoringUI {
 
             setTimeout(() => {
                 this.handleEarlyBust();
-            }, 300); // Kurze Verz�gerung damit User den Dart sieht
+            }, 300); // Kurze Verzögerung damit User den Dart sieht
 
             return; // Stoppe weitere Verarbeitung
         }
@@ -383,7 +400,7 @@ class DartScoringUI {
      */
     handleAutoFinish() {
         if (!this.canFinishWithCurrentDarts()) {
-            // Pr�fe auch auf BUST bei fr�her Eingabe
+            // Prüfe auch auf BUST bei früher Eingabe
             if (this.isBustWithCurrentDarts()) {
                 this.handleEarlyBust();
                 return;
@@ -437,14 +454,14 @@ class DartScoringUI {
 
             if (!lastDart) return false;
 
-            // Pr�fe Double-Out-Regel
+            // Prüfe Double-Out-Regel
             if (this.core.gameRules && this.core.gameRules.doubleOut) {
                 const isValidDouble = this.core.isValidDouble(lastDart.score);
                 console.log(`🔍 [DART-UI] Double-Out check: ${lastDart.display} (${lastDart.score}) is valid double: ${isValidDouble}`);
                 return isValidDouble;
             }
 
-            // Single-Out: Jeder Dart au�er Miss ist g�ltig
+            // Single-Out: Jeder Dart außer Miss ist gültig
             return lastDart.score > 0;
         }
 
@@ -525,6 +542,13 @@ class DartScoringUI {
      * Show BUSTED animation for specific player
      */
     showBustedAnimationForPlayer(playerNumber, playerName) {
+        const playerElement = playerNumber === 1 ? this.elements.player1Section : this.elements.player2Section;
+
+        // 🎬 NEU: Use animations module for bust animation
+        if (this.animations) {
+            this.animations.animateBust(playerElement);
+        }
+
         this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
         this.elements.bustedDetails.innerHTML = `<strong>${playerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
 
@@ -550,6 +574,11 @@ class DartScoringUI {
             displayElement.textContent = dartResult.display;
             displayElement.classList.add('entered');
             displayElement.classList.remove('active');
+
+            // 🎬 NEU: Use animations module for dart entry animation
+            if (this.animations) {
+                this.animations.animateDartEntry(displayElement, dartResult.score);
+            }
         }
 
         // Set next dart as active
@@ -575,6 +604,16 @@ class DartScoringUI {
             .reduce((sum, dart) => sum + dart.score, 0);
 
         this.elements.throwTotal.textContent = total;
+
+        // 🎬 NEU: Use animations module for throw total animation
+        if (this.animations) {
+            this.animations.animateThrowTotal(this.elements.throwTotal, total);
+
+            // 🎬 Special animation for maximum (180)
+            if (total === 180) {
+                this.animations.animateMaximum(this.elements.throwTotal);
+            }
+        }
 
         // Color coding for total
         if (total > 180) {
@@ -659,9 +698,24 @@ class DartScoringUI {
         // Update Leg display
         this.elements.currentLegDisplay.textContent = gameState.currentLeg;
 
-        // Update Set display - nur anzeigen wenn Sets aktiviert
+        // 🔧 KORRIGIERT: Bessere Set-Display Logik für Round Robin Finals
+        // Update Set display - nur anzeigen wenn tatsächlich Sets gespielt werden
         const setsToWin = gameRules.setsToWin || 0;
-        if (setsToWin > 1) {
+        const legsToWin = gameRules.legsToWinSet || gameRules.legsToWin || 2;
+
+        // � KORRIGIERT: Prüfe playWithSets Flag für Round Robin Finals
+        // Das playWithSets Flag ist entscheidend, nicht nur setsToWin!
+        const isReallySetsBased = (gameRules.playWithSets === true) && (setsToWin > 1);
+
+        console.log('🎮 [DART-UI] Set display logic:', {
+            setsToWin,
+            legsToWin,
+            playWithSets: gameRules.playWithSets,
+            isReallySetsBased,
+            matchType: this.core.matchData ? (this.core.matchData.matchType || this.core.matchData.type) : 'unknown'
+        });
+
+        if (isReallySetsBased) {
             this.elements.currentSetDisplay.textContent = gameState.currentSet;
             this.elements.currentSetContainer.style.display = 'block';
         } else {
@@ -824,31 +878,66 @@ class DartScoringUI {
      * Update match display with loaded data
      */
     updateMatchDisplay() {
-        if (!this.core || !this.core.matchData) return;
+            if (!this.core || !this.core.matchData) return;
 
-        const match = this.core.matchData;
-        const gameState = this.core.gameState;
-        const gameRules = this.core.gameRules;
+            const match = this.core.matchData;
+            const gameState = this.core.gameState;
+            const gameRules = this.core.gameRules;
 
-        // 🔧 ERWEITERT: Match-Regeln in der Meta-Anzeige
-        const legsToWin = gameRules.legsToWinSet || gameRules.legsToWin || 2;
-        const setsToWin = gameRules.setsToWin || 1;
-        const startingScore = this.core.getStartingScore();
-        const doubleOut = gameRules.doubleOut ? ' D.Out' : '';
+            // 🔧 ERWEITERTE DEBUGGING: Zeige alle verfügbaren Game Rules Information
+            console.log('🎮 [DART-UI] Game Rules Debug Info:', {
+                'Core gameRules': this.core.gameRules,
+                'Match gameRules': match.gameRules || match.GameRules || match.gameRulesUsed,
+                'Match Type': match.matchType || match.type,
+                'Match Class': match.classId || match.class,
+                'Match Name': match.displayName || match.name,
+                'Raw Match Data': match
+            });
 
-        let rulesText = '';
-        if (setsToWin > 1) {
-            // Best of Sets Format: "Best of 5 Sets � First to 3 Legs per Set"
-            const totalSets = (setsToWin * 2) - 1; // Best of X berechnen
-            rulesText = `Best of ${totalSets} Sets � First to ${legsToWin} Legs`;
-        } else {
-            // First to Legs Format: "First to 3 Legs"
-            rulesText = `First to ${legsToWin} Legs`;
-        }
+            // 🚨 KORRIGIERT: Bessere Game Rules Erkennung für Round Robin Finals
+            let effectiveGameRules = gameRules;
 
-        // Update header
-        this.elements.gameTitle.textContent = `🎯 ${match.displayName}`;
-        this.elements.gameMeta.textContent = `${startingScore}${doubleOut} • ${rulesText} • Leg ${gameState.currentLeg} • Set ${gameState.currentSet}`;
+            // Prüfe ob Match spezifische Rules vorhanden sind, die anders sind
+            if (match.gameRules || match.GameRules || match.gameRulesUsed) {
+                const matchSpecificRules = match.gameRules || match.GameRules || match.gameRulesUsed;
+
+                // Vergleiche die Rules
+                const coreRulesStr = JSON.stringify(gameRules);
+                const matchRulesStr = JSON.stringify(matchSpecificRules);
+
+                if (coreRulesStr !== matchRulesStr) {
+                    console.warn('🚨 [DART-UI] Game Rules Mismatch detected!');
+                    console.log('🎮 [DART-UI] Core loaded rules:', gameRules);
+                    console.log('🎮 [DART-UI] Match specific rules:', matchSpecificRules);
+
+                    // Verwende Match-spezifische Rules wenn verfügbar
+                    effectiveGameRules = matchSpecificRules;
+                    console.log('✅ [DART-UI] Using match-specific game rules instead of core rules');
+                }
+            }
+
+            // 🔧 ERWEITERT: Match-Regeln in der Meta-Anzeige mit korrigierten Rules
+            const legsToWin = effectiveGameRules.legsToWinSet || effectiveGameRules.legsToWin || 2;
+            const setsToWin = effectiveGameRules.setsToWin || 1;
+            const startingScore = this.getStartingScoreFromRules(effectiveGameRules);
+            const doubleOut = effectiveGameRules.doubleOut ? ' D.Out' : '';
+
+            // � KORRIGIERT: Prüfe playWithSets Flag für Round Robin Finals
+            const isReallySetsBased = (effectiveGameRules.playWithSets === true) && (setsToWin > 1);
+
+            let rulesText = '';
+            if (isReallySetsBased) {
+                // Best of Sets Format: "Best of 5 Sets • First to 3 Legs per Set"
+                const totalSets = (setsToWin * 2) - 1; // Best of X berechnen
+                rulesText = `Best of ${totalSets} Sets • First to ${legsToWin} Legs`;
+            } else {
+                // 🔧 KORRIGIERT: Nur Legs Format für Round Robin Finals: "First to 3 Legs"
+                rulesText = `First to ${legsToWin} Legs`;
+            }
+
+            // Update header
+            this.elements.gameTitle.textContent = `🎯 ${match.displayName}`;
+            this.elements.gameMeta.textContent = `${startingScore}${doubleOut} • ${rulesText} • Leg ${gameState.currentLeg}${isReallySetsBased ? ` • Set ${gameState.currentSet}` : ''}`;
 
         // Update player names
         this.elements.player1Name.textContent = match.player1.name || 'Spieler 1';
@@ -863,7 +952,38 @@ class DartScoringUI {
         // Show game container
         this.showGame();
 
-        console.log('📊 [DART-UI] Match display updated with rules:', rulesText);
+        console.log('📊 [DART-UI] Match display updated with effective rules:', {
+            rulesText,
+            effectiveGameRules,
+            startingScore,
+            legsToWin,
+            setsToWin,
+            playWithSets: effectiveGameRules.playWithSets,
+            isReallySetsBased,
+            doubleOut: effectiveGameRules.doubleOut
+        });
+    }
+
+    /**
+     * 🆕 NEU: Get starting score from specific game rules
+     */
+    getStartingScoreFromRules(gameRules) {
+        if (!gameRules) return 501;
+
+        switch (gameRules.gameMode) {
+            case 'Game301':
+                return 301;
+            case 'Game401':
+                return 401;
+            case 'Game501':
+                return 501;
+            case 'Game701':
+                return 701;
+            case 'Game1001':
+                return 1001;
+            default:
+                return 501;
+        }
     }
 
     /**
@@ -873,6 +993,10 @@ class DartScoringUI {
         if (!this.core) return;
 
         const gameState = this.core.gameState;
+
+        // Store previous scores for animations
+        const previousPlayer1Score = this.elements.player1Score.textContent ? parseInt(this.elements.player1Score.textContent) : gameState.player1.score;
+        const previousPlayer2Score = this.elements.player2Score.textContent ? parseInt(this.elements.player2Score.textContent) : gameState.player2.score;
 
         // Update scores and stats in side panels
         this.elements.player1Score.textContent = gameState.player1.score;
@@ -885,9 +1009,29 @@ class DartScoringUI {
         this.elements.player2Sets.textContent = gameState.player2.sets;
         this.elements.player2Average.textContent = this.core.getPlayerAverage(2).toFixed(1);
 
+        // 🎬 NEU: Animate score changes
+        if (this.animations) {
+            if (gameState.player1.score !== previousPlayer1Score) {
+                this.animations.animateScoreUpdate(this.elements.player1Score, gameState.player1.score, previousPlayer1Score);
+                this.animations.animateScoreUpdate(this.elements.player1DisplayScore, gameState.player1.score, previousPlayer1Score);
+            }
+            if (gameState.player2.score !== previousPlayer2Score) {
+                this.animations.animateScoreUpdate(this.elements.player2Score, gameState.player2.score, previousPlayer2Score);
+                this.animations.animateScoreUpdate(this.elements.player2DisplayScore, gameState.player2.score, previousPlayer2Score);
+            }
+        }
+
         // Update active player highlighting in side panels
+        const previousActivePlayer = document.querySelector('.player-section.active');
+        const newActivePlayer = gameState.currentPlayer === 1 ? this.elements.player1Section : this.elements.player2Section;
+
         this.elements.player1Section.classList.toggle('active', gameState.currentPlayer === 1);
         this.elements.player2Section.classList.toggle('active', gameState.currentPlayer === 2);
+
+        // 🎬 NEU: Animate player switch
+        if (this.animations && previousActivePlayer !== newActivePlayer) {
+            this.animations.animatePlayerSwitch(newActivePlayer, previousActivePlayer);
+        }
 
         // Update finish suggestions
         this.updateFinishSuggestions();
@@ -1002,6 +1146,12 @@ class DartScoringUI {
         const playerName = this.core.getPlayerName(this.core.gameState.currentPlayer);
         const lastDart = this.getLastThrownDart();
         const isDoubleOut = this.core.gameRules.doubleOut;
+        const playerElement = this.core.gameState.currentPlayer === 1 ? this.elements.player1Section : this.elements.player2Section;
+
+        // 🎬 NEU: Use animations module for checkout animation
+        if (this.animations && lastDart) {
+            this.animations.animateCheckout(playerElement, lastDart.score);
+        }
 
         this.elements.winMessage.textContent = '🏆 CHECKOUT! 🏆';
 
@@ -1047,6 +1197,12 @@ class DartScoringUI {
         // (processThrow wechselt erst NACH der BUST-Verarbeitung)
         const bustedPlayerNumber = this.core.gameState.currentPlayer;
         const bustedPlayerName = this.core.getPlayerName(bustedPlayerNumber);
+        const playerElement = bustedPlayerNumber === 1 ? this.elements.player1Section : this.elements.player2Section;
+
+        // 🎬 NEU: Use animations module for bust animation
+        if (this.animations) {
+            this.animations.animateBust(playerElement);
+        }
 
         this.elements.bustedMessage.textContent = '💥 BUSTED! 💥';
         this.elements.bustedDetails.innerHTML = `<strong>${bustedPlayerName}</strong> hat sich überworfen!<br>Nächster Spieler ist dran.`;
@@ -1240,7 +1396,7 @@ class DartScoringUI {
 
             // Disable the button to prevent double-clicks
             this.elements.submitMatchResultBtn.disabled = true;
-            this.elements.submitMatchResultBtn.textContent = '�bertrage...';
+            this.elements.submitMatchResultBtn.textContent = 'Übertrage...';
 
             // Show submission progress
             this.showMessage('📤 Übertrage Match-Ergebnis mit Statistiken...', 'info');
@@ -1315,13 +1471,22 @@ class DartScoringUI {
     showVictoryModal(result) {
         const playerName = this.core.getPlayerName(this.core.gameState.currentPlayer);
         
+        // 🔧 KORRIGIERT: Prüfe playWithSets Flag für korrekte Message-Anzeige
+        const isReallySetsBased = (this.core.gameRules.playWithSets === true) && (this.core.gameRules.setsToWin > 1);
+        
         let message = `<strong>${playerName}</strong> gewinnt das Leg!`;
 
         if (result.gameResult) {
             if (result.gameResult.type === 'set_won') {
-                message += `<br><br>🏆 <strong>Set gewonnen!</strong>`;
-                const newStartPlayerName = this.core.getPlayerName(result.gameResult.newSetStartPlayer);
-                message += `<br><small>N�chstes Set startet: <strong>${newStartPlayerName}</strong></small>`;
+                // 🔧 NEU: Zeige nur Set-Information bei echten Sets-basierten Matches
+                if (isReallySetsBased) {
+                    message += `<br><br>🏆 <strong>Set gewonnen!</strong>`;
+                    const newStartPlayerName = this.core.getPlayerName(result.gameResult.newSetStartPlayer);
+                    message += `<br><small>Nächstes Set startet: <strong>${newStartPlayerName}</strong></small>`;
+                } else {
+                    // Für Legs-only Matches (z.B. Round Robin Finals): Keine Set-Information
+                    console.log('🎯 [DART-UI] Legs-only match - skipping set information in victory modal');
+                }
                 
             } else if (result.gameResult.type === 'match_won') {
                 message += `<br><br>🎯 <strong>Match gewonnen!</strong>`;
@@ -1357,7 +1522,7 @@ class DartScoringUI {
             }
         } else {
             const nextStartPlayerName = this.core.getPlayerName(this.core.gameState.legStartPlayer === 1 ? 2 : 1);
-            message += `<br><small>N�chstes Leg startet: <strong>${nextStartPlayerName}</strong></small>`;
+            message += `<br><small>Nächstes Leg startet: <strong>${nextStartPlayerName}</strong></small>`;
         }
 
         this.elements.victoryMessage.innerHTML = message;
@@ -1377,19 +1542,19 @@ class DartScoringUI {
         
         // Player 1 Stats
         summary += `<strong>${stats.player1.name}:</strong><br>`;
-        summary += `� Average: ${stats.player1.average}<br>`;
-        if (stats.player1.maximums > 0) summary += `� 180er: ${stats.player1.maximums}<br>`;
-        if (stats.player1.highFinishes > 0) summary += `� High Finishes (=100): ${stats.player1.highFinishes}<br>`;
-        if (stats.player1.score26 > 0) summary += `� 26er Scores: ${stats.player1.score26}<br>`;
-        summary += `� Checkouts: ${stats.player1.checkouts}<br><br>`;
+        summary += `📊 Average: ${stats.player1.average}<br>`;
+        if (stats.player1.maximums > 0) summary += `🎯 180er: ${stats.player1.maximums}<br>`;
+        if (stats.player1.highFinishes > 0) summary += `🔥 High Finishes (≥100): ${stats.player1.highFinishes}<br>`;
+        if (stats.player1.score26 > 0) summary += `⭐ 26er Scores: ${stats.player1.score26}<br>`;
+        summary += `✅ Checkouts: ${stats.player1.checkouts}<br><br>`;
         
         // Player 2 Stats
         summary += `<strong>${stats.player2.name}:</strong><br>`;
-        summary += `� Average: ${stats.player2.average}<br>`;
-        if (stats.player2.maximums > 0) summary += `� 180er: ${stats.player2.maximums}<br>`;
-        if (stats.player2.highFinishes > 0) summary += `� High Finishes (=100): ${stats.player2.highFinishes}<br>`;
-        if (stats.player2.score26 > 0) summary += `� 26er Scores: ${stats.player2.score26}<br>`;
-        summary += `� Checkouts: ${stats.player2.checkouts}<br>`;
+        summary += `📊 Average: ${stats.player2.average}<br>`;
+        if (stats.player2.maximums > 0) summary += `🎯 180er: ${stats.player2.maximums}<br>`;
+        if (stats.player2.highFinishes > 0) summary += `🔥 High Finishes (≥100): ${stats.player2.highFinishes}<br>`;
+        if (stats.player2.score26 > 0) summary += `⭐ 26er Scores: ${stats.player2.score26}<br>`;
+        summary += `✅ Checkouts: ${stats.player2.checkouts}<br>`;
         
         summary += '</div>';
         
@@ -1450,7 +1615,7 @@ class DartScoringUI {
      */
     generateMatchStatisticsContent() {
         if (!window.dartScoringApp || !window.dartScoringApp.stats) {
-            return '<p>Statistiken nicht verf�gbar</p>';
+            return '<p>Statistiken nicht verfügbar</p>';
         }
         
         try {
@@ -1634,12 +1799,12 @@ class DartScoringUI {
             
             content += `
                 <div style="margin-top: 20px; text-align: center; color: #4a5568;">
-                    <p><strong>Match-�bersicht:</strong></p>
+                    <p><strong>Match-Übersicht:</strong></p>
                     <p>Gesamte Darts geworfen: ${totalThrows}`;
             
-            if (totalMaximums > 0) content += ` � 180er: ${totalMaximums}`;
-            if (totalHighFinishes > 0) content += ` � High Finishes: ${totalHighFinishes}`;
-            if (total26Scores > 0) content += ` � 26er Scores: ${total26Scores}`;
+            if (totalMaximums > 0) content += ` • 180er: ${totalMaximums}`;
+            if (totalHighFinishes > 0) content += ` • High Finishes: ${totalHighFinishes}`;
+            if (total26Scores > 0) content += ` • 26er Scores: ${total26Scores}`;
             
             content += '</p></div>';
 
@@ -1686,236 +1851,14 @@ class DartScoringUI {
     }
 
     /**
-     * ? NEU: Show match completed message instead of redirect
+     * 🏁 NEU: Show match completed message - delegated to completion module
      */
     showMatchCompletedMessage() {
-        try {
-            console.log('💬 [DART-UI] Showing match completed message');
-
-            // Hide game interface
-            this.elements.gameContainer.classList.add('hidden');
-
-            // Create completion message container
-            const completionContainer = document.createElement('div');
-            completionContainer.id = 'match-completion-container';
-            completionContainer.className = 'completion-container';
-            completionContainer.innerHTML = `
-                <div class="completion-content">
-                    <div class="completion-header">
-                        <h2>🏁 Match beendet</h2>
-                        <p class="completion-subtitle">Das Ergebnis wurde erfolgreich �bertragen</p>
-                    </div>
-                    
-                    <div class="completion-message">
-                        <div class="success-icon">?</div>
-                        <h3>�bertragung erfolgreich!</h3>
-                        <p>Das Match-Ergebnis und alle Statistiken wurden erfolgreich zum Tournament Hub �bertragen.</p>
-                    </div>
-
-                    <div class="completion-actions">
-                        <p><strong>Die Seite kann nun geschlossen werden.</strong></p>
-                        <small>Oder nutzen Sie den Button unten, um zum Tournament zur�ckzukehren.</small>
-                    </div>
-
-                    <div class="completion-buttons">
-                        <button id="close-window-btn" class="btn btn-primary">
-                            🚪 Fenster schließen
-                        </button>
-                        <button id="back-to-tournament-btn" class="btn btn-secondary">
-                            🔙 Zurück zum Tournament
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            // Add completion styles
-            const style = document.createElement('style');
-            style.textContent = `
-                .completion-container {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 10000;
-                    animation: fadeIn 0.5s ease-in;
-                }
-
-                .completion-content {
-                    background: white;
-                    padding: 40px;
-                    border-radius: 20px;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                    text-align: center;
-                    max-width: 500px;
-                    width: 90%;
-                    animation: slideInUp 0.6s ease-out;
-                }
-
-                .completion-header h2 {
-                    color: #2d3748;
-                    margin-bottom: 10px;
-                    font-size: 2.2em;
-                }
-
-                .completion-subtitle {
-                    color: #718096;
-                    margin-bottom: 30px;
-                    font-size: 1.1em;
-                }
-
-                .completion-message {
-                    background: #f7fafc;
-                    padding: 30px;
-                    border-radius: 15px;
-                    margin-bottom: 30px;
-                }
-
-                .success-icon {
-                    font-size: 4em;
-                    margin-bottom: 20px;
-                    animation: bounce 1s infinite;
-                }
-
-                .completion-message h3 {
-                    color: #38a169;
-                    margin-bottom: 15px;
-                    font-size: 1.5em;
-                }
-
-                .completion-message p {
-                    color: #4a5568;
-                    line-height: 1.6;
-                }
-
-                .completion-actions {
-                    margin-bottom: 30px;
-                }
-
-                .completion-actions p {
-                    color: #2d3748;
-                    font-size: 1.2em;
-                    margin-bottom: 10px;
-                }
-
-                .completion-actions small {
-                    color: #718096;
-                }
-
-                .completion-buttons {
-                    display: flex;
-                    gap: 15px;
-                    justify-content: center;
-                    flex-wrap: wrap;
-                }
-
-                .completion-buttons .btn {
-                    padding: 15px 30px;
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 1.1em;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    min-width: 180px;
-                }
-
-                .btn-primary {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                }
-
-                .btn-primary:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-                }
-
-                .btn-secondary {
-                    background: #e2e8f0;
-                    color: #4a5568;
-                }
-
-                .btn-secondary:hover {
-                    background: #cbd5e0;
-                    transform: translateY(-2px);
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-
-                @keyframes slideInUp {
-                    from {
-                        transform: translateY(30px);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateY(0);
-                        opacity: 1;
-                    }
-                }
-
-                @keyframes bounce {
-                    0%, 20%, 53%, 80%, 100% {
-                        transform: translate3d(0,0,0);
-                    }
-                    40%, 43% {
-                        transform: translate3d(0, -20px, 0);
-                    }
-                    70% {
-                        transform: translate3d(0, -10px, 0);
-                    }
-                    90% {
-                        transform: translate3d(0, -4px, 0);
-                    }
-                }
-
-                @media (max-width: 600px) {
-                    .completion-content {
-                        padding: 30px 20px;
-                        margin: 20px;
-                    }
-                    
-                    .completion-buttons {
-                        flex-direction: column;
-                        align-items: center;
-                    }
-                    
-                    .completion-buttons .btn {
-                        width: 100%;
-                        max-width: 280px;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-
-            // Add to page
-            document.body.appendChild(completionContainer);
-
-            // Add event listeners
-            const closeBtn = document.getElementById('close-window-btn');
-            const backBtn = document.getElementById('back-to-tournament-btn');
-
-            closeBtn.addEventListener('click', () => {
-                console.log('🚪 [DART-UI] User requested window close');
-                window.close();
-            });
-
-            backBtn.addEventListener('click', () => {
-                console.log('🔙 [DART-UI] User requested back to tournament');
-                this.navigateBackToTournament();
-            });
-
-            console.log('? [DART-UI] Match completion message shown');
-
-        } catch (error) {
-            console.error('? [DART-UI] Error showing completion message:', error);
-            // Fallback: show simple alert
+        if (this.completion) {
+            this.completion.showMatchCompletedMessage();
+        } else {
+            // Fallback if completion module not available
+            console.warn('⚠️ [DART-UI] Completion module not available - showing fallback');
             alert('🏁 Match beendet!\n\nDas Ergebnis wurde erfolgreich übertragen.\nDie Seite kann nun geschlossen werden.');
         }
     }
@@ -1948,7 +1891,7 @@ class DartScoringUI {
      * Handle keyboard shortcuts
      */
     /**
-     * ? GE�NDERT: Delegate keyboard functionality to separate module
+     * 📝 GEÄNDERT: Delegate keyboard functionality to separate module
      */
     setupKeyboardShortcuts() {
         // Keyboard functionality is now handled by the DartScoringKeyboard module
@@ -1982,7 +1925,7 @@ class DartScoringUI {
      * Setup responsive behavior
      */
     setupResponsive() {
-        let resizeTimer;
+               let resizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
@@ -2003,7 +1946,26 @@ class DartScoringUI {
             console.log('❓ [DART-UI] Available keyboard shortcuts:', this.getKeyboardHelpText());
         }
         
-        console.log('✅ [DART-UI] UI initialization complete with keyboard module');
+        console.log('✅ [DART-UI] UI initialization complete with keyboard and animations modules');
+    }
+
+    /**
+     * 🧹 NEU: Cleanup method for animations, keyboard and completion modules
+     */
+    cleanup() {
+        if (this.animations) {
+            this.animations.cleanup();
+        }
+        
+        if (this.keyboard) {
+            this.keyboard.cleanup();
+        }
+
+        if (this.completion) {
+            this.completion.cleanup();
+        }
+        
+        console.log('🧹 [DART-UI] UI cleaned up');
     }
 }
 

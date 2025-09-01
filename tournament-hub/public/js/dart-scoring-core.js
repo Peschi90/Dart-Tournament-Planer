@@ -80,12 +80,39 @@ class DartScoringCore {
             this.matchData = data.match;
             this.gameRules = data.gameRules;
 
+            // 🚨 KORRIGIERT: Prüfe auf Match-spezifische Game Rules für Round Robin Finals
+            if (this.matchData && (this.matchData.gameRules || this.matchData.GameRules || this.matchData.gameRulesUsed)) {
+                const matchSpecificRules = this.matchData.gameRules || this.matchData.GameRules || this.matchData.gameRulesUsed;
+
+                console.log('🎮 [DART-CORE] Match has specific game rules:', matchSpecificRules);
+                console.log('🎮 [DART-CORE] API returned game rules:', data.gameRules);
+
+                // Vergleiche die Rules - wenn unterschiedlich, verwende Match-spezifische
+                const apiRulesStr = JSON.stringify(data.gameRules);
+                const matchRulesStr = JSON.stringify(matchSpecificRules);
+
+                if (apiRulesStr !== matchRulesStr) {
+                    console.warn('🚨 [DART-CORE] Game Rules Mismatch - using match-specific rules!');
+                    console.log('🎮 [DART-CORE] API rules:', data.gameRules);
+                    console.log('🎮 [DART-CORE] Match rules:', matchSpecificRules);
+
+                    // Überschreibe die API Game Rules mit Match-spezifischen
+                    this.gameRules = matchSpecificRules;
+                    console.log('✅ [DART-CORE] Applied match-specific game rules');
+                } else {
+                    console.log('✅ [DART-CORE] API and match rules are identical');
+                }
+            }
+
             console.log('📊 [DART-CORE] Match data loaded:', {
                 match: this.matchData.displayName,
+                matchType: this.matchData.matchType || this.matchData.type,
                 gameMode: this.gameRules.gameMode,
                 legsToWin: this.gameRules.legsToWin,
+                legsToWinSet: this.gameRules.legsToWinSet,
                 setsToWin: this.gameRules.setsToWin,
-                doubleOut: this.gameRules.doubleOut
+                doubleOut: this.gameRules.doubleOut,
+                finalGameRulesUsed: this.gameRules
             });
 
         } catch (error) {
@@ -165,7 +192,7 @@ class DartScoringCore {
                 newScore
             });
 
-            // Bestimme welcher Dart der letzte war (f�r Double-Out)
+            // Bestimme welcher Dart der letzte war (für Double-Out)
             let lastDartScore = 0;
             if (dart3 > 0) lastDartScore = dart3;
             else if (dart2 > 0) lastDartScore = dart2;
@@ -196,7 +223,7 @@ class DartScoringCore {
                 return {
                     success: true,
                     type: 'bust',
-                    message: '�berworfen! N�chster Spieler ist dran.',
+                    message: 'Überworfen! Nächster Spieler ist dran.',
                     bustedPlayer: throwingPlayerNumber // 🆕 NEU: Info über überworfenen Spieler
                 };
             }
@@ -328,7 +355,7 @@ class DartScoringCore {
 
             if (!validDoubles.includes(lastDart)) {
                 console.log(`🔴 [DART-CORE] Double-Out required but last dart ${lastDart} is not a valid double`);
-                return true; // Bust - kein g�ltiges Double
+                return true; // Bust - kein gültiges Double
             } else {
                 console.log(`✅ [DART-CORE] Valid double finish with ${lastDart}`);
             }
@@ -352,7 +379,7 @@ class DartScoringCore {
         let actualDartsThrown = 0;
 
         // Zähle tatsächlich geworfene Darts
-        if (dart1 > 0 || dart1 === 0) actualDartsThrown++; // 0 = Miss z�hlt als geworfener Dart
+        if (dart1 > 0 || dart1 === 0) actualDartsThrown++; // 0 = Miss zählt als geworfener Dart
         if (dart2 > 0 || dart2 === 0) actualDartsThrown++;
         if (dart3 > 0 || dart3 === 0) actualDartsThrown++;
 
@@ -416,7 +443,7 @@ class DartScoringCore {
             if (this.gameState.throwHistory.length === 0) {
                 return {
                     success: false,
-                    message: 'Keine W�rfe zum R�ckg�ngigmachen vorhanden'
+                    message: 'Keine Würfe zum Rückgängigmachen vorhanden'
                 };
             }
 
@@ -449,7 +476,7 @@ class DartScoringCore {
 
             return {
                 success: true,
-                message: 'Letzter Wurf r�ckg�ngig gemacht',
+                message: 'Letzter Wurf rückgängig gemacht',
                 gameState: this.gameState
             };
 
@@ -457,7 +484,7 @@ class DartScoringCore {
             console.error('❌ [DART-CORE] Error undoing throw:', error);
             return {
                 success: false,
-                message: 'Fehler beim R�ckg�ngigmachen'
+                message: 'Fehler beim Rückgängigmachen'
             };
         }
     }
@@ -504,22 +531,31 @@ class DartScoringCore {
         const currentPlayer = this.getCurrentPlayer();
 
         // 🔧 KORRIGIERT: Verwende tatsächliche Game Rules statt fest codierte Werte
-        const legsToWin = (this.gameRules && this.gameRules.legsToWinSet) || (this.gameRules && this.gameRules.legsToWin) || 2;
-        const setsToWin = (this.gameRules && this.gameRules.setsToWin) || 1;
+        // Prüfe auch auf Match-spezifische Rules (wichtig für Round Robin Finals)
+        const effectiveGameRules = this.gameRules;
+        const legsToWin = effectiveGameRules.legsToWinSet || effectiveGameRules.legsToWin || 2;
+        const setsToWin = effectiveGameRules.setsToWin || 1;
 
-        console.log('🏁 [DART-CORE] Checking game completion:', {
+        // � KORRIGIERT: Prüfe playWithSets Flag für Round Robin Finals
+        // Das playWithSets Flag ist entscheidend, nicht nur setsToWin!
+        const isReallySetsBased = (effectiveGameRules.playWithSets === true) && (setsToWin > 1);
+
+        console.log('🏁 [DART-CORE] Checking game completion with effective rules:', {
             currentPlayerLegs: currentPlayer.legs,
             legsToWin: legsToWin,
             currentPlayerSets: currentPlayer.sets,
             setsToWin: setsToWin,
-            gameRules: this.gameRules
+            playWithSets: effectiveGameRules.playWithSets,
+            isReallySetsBased: isReallySetsBased,
+            effectiveGameRules: effectiveGameRules,
+            matchType: this.matchData ? (this.matchData.matchType || this.matchData.type) : 'unknown'
         });
 
-        // 🔧 KORRIGIERT: Prüfe Match-Ende wenn nur ein Set gespielt wird (First to X Legs)
-        if (setsToWin === 1 && currentPlayer.legs >= legsToWin) {
+        // 🔧 KORRIGIERT: Prüfe Match-Ende für "nur Legs" Matches (Round Robin Finals)
+        if (!isReallySetsBased && currentPlayer.legs >= legsToWin) {
             // 🆕 NEU: Setze isGameFinished auf true für Legs-only Matches
             this.gameState.isGameFinished = true;
-            console.log('🏆 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(First to', legsToWin, 'legs) - Game finished!');
+            console.log('🏆 [DART-CORE] Match won by player', this.gameState.currentPlayer, '(First to', legsToWin, 'legs only) - Game finished!');
 
             return {
                 type: 'match_won',
@@ -528,8 +564,8 @@ class DartScoringCore {
             };
         }
 
-        // Check if player won the set (Sets-based matches)
-        if (currentPlayer.legs >= legsToWin) {
+        // Check if player won the set (Sets-based matches only)
+        if (isReallySetsBased && currentPlayer.legs >= legsToWin) {
             currentPlayer.sets++;
 
             // Set-Anwurf-Logik
@@ -732,14 +768,14 @@ class DartScoringCore {
 
             return {
                 success: true,
-                message: 'Match-Ergebnis erfolgreich �bermittelt'
+                message: 'Match-Ergebnis erfolgreich übermittelt'
             };
 
         } catch (error) {
             console.error('❌ [DART-CORE] Error submitting match result:', error);
             return {
                 success: false,
-                message: `Fehler beim �bermitteln: ${error.message}`
+                message: `Fehler beim Übermitteln: ${error.message}`
             };
         }
     }

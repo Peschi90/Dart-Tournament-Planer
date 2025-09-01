@@ -550,7 +550,7 @@ class DartScoringStats {
 
         notes.push('Submitted via Advanced Dart Scoring');
 
-        return notes.join(' � ');
+        return notes.join(' • ');
     }
 
     /**

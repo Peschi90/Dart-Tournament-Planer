@@ -599,19 +599,17 @@ public partial class MainWindow : Window
             await _hubService.SyncTournamentAsync(_tournamentService.GetTournamentData());
             
             var joinUrl = _hubService.GetJoinUrl();
-            var title = _localizationService.GetString("Success") ?? "Erfolgreich";
-            var message = $"🎯 Tournament erfolgreich beim Hub registriert!\n\n" +
-                         $"Tournament ID: {_hubService.GetCurrentTournamentId()}\n" +
-                         $"Join URL: {joinUrl}\n\n" +
-                         $"Diese URL können Sie an Spieler senden.";
+            var title = _localizationService.GetString("Success");
+            var message = _localizationService.GetString("RegisterTournamentSuccess", 
+                _hubService.GetCurrentTournamentId(), joinUrl);
             
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             System.Windows.Clipboard.SetText(joinUrl);
         }
         else
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = "❌ Tournament konnte nicht beim Hub registriert werden.";
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("RegisterTournamentError");
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
@@ -622,14 +620,15 @@ public partial class MainWindow : Window
         {
             if (!_hubService.IsRegisteredWithHub)
             {
-                var infoTitle = _localizationService.GetString("Information") ?? "Information";
-                var infoMessage = "Kein Tournament beim Hub registriert.";
+                var infoTitle = _localizationService.GetString("Information");
+                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
                 MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var confirmTitle = "Tournament entregistrieren";
-            var confirmMessage = $"Tournament '{_hubService.GetCurrentTournamentId()}' wirklich vom Hub entregistrieren?";
+            var confirmTitle = _localizationService.GetString("UnregisterTournamentTitle");
+            var confirmMessage = _localizationService.GetString("UnregisterTournamentConfirm", 
+                _hubService.GetCurrentTournamentId());
             
             var result = MessageBox.Show(confirmMessage, confirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question);
             
@@ -637,15 +636,15 @@ public partial class MainWindow : Window
             {
                 await _hubService.UnregisterTournamentAsync();
                 
-                var title = _localizationService.GetString("Success") ?? "Erfolgreich";
-                var message = "Tournament erfolgreich vom Hub entregistriert.";
+                var title = _localizationService.GetString("Success");
+                var message = _localizationService.GetString("UnregisterTournamentSuccess");
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Entregistrieren: {ex.Message}";
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("UnregisterTournamentError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -656,8 +655,8 @@ public partial class MainWindow : Window
         {
             if (!_hubService.IsRegisteredWithHub)
             {
-                var infoTitle = _localizationService.GetString("Information") ?? "Information";
-                var infoMessage = "Kein Tournament beim Hub registriert.";
+                var infoTitle = _localizationService.GetString("Information");
+                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
                 MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -665,20 +664,20 @@ public partial class MainWindow : Window
             var success = await _hubService.SyncTournamentAsync(_tournamentService.GetTournamentData());
             
             var title = success ?
-                (_localizationService.GetString("Success") ?? "Erfolgreich") :
-                (_localizationService.GetString("Error") ?? "Fehler");
+                _localizationService.GetString("Success") :
+                _localizationService.GetString("Error");
             
             var message = success ?
-                "Tournament erfolgreich mit Hub synchronisiert!" :
-                "Fehler beim Synchronisieren mit Hub.";
+                _localizationService.GetString("SyncSuccess") :
+                _localizationService.GetString("SyncError");
             
             MessageBox.Show(message, title, MessageBoxButton.OK, 
                 success ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim manuellen Sync: {ex.Message}";
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("ManualSyncError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -689,26 +688,25 @@ public partial class MainWindow : Window
         {
             if (string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
             {
-                var infoTitle = _localizationService.GetString("Information") ?? "Information";
-                var infoMessage = "Kein Tournament beim Hub registriert.";
+                var infoTitle = _localizationService.GetString("Information");
+                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
                 MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             var joinUrl = _hubService.GetJoinUrl();
             
-            var dialogTitle = "Tournament Join URL";
-            var dialogMessage = $"Tournament ID: {_hubService.GetCurrentTournamentId()}\n\n" +
-                               $"Join URL:\n{joinUrl}\n\n" +
-                               $"Diese URL können Sie an Spieler senden.";
+            var dialogTitle = _localizationService.GetString("JoinUrlTitle");
+            var dialogMessage = _localizationService.GetString("JoinUrlMessage", 
+                _hubService.GetCurrentTournamentId(), joinUrl);
             
             MessageBox.Show(dialogMessage, dialogTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             System.Windows.Clipboard.SetText(joinUrl);
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Anzeigen der Join-URL: {ex.Message}";
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("JoinUrlError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -720,8 +718,8 @@ public partial class MainWindow : Window
             var currentHubUrl = _hubService.TournamentHubService.HubUrl;
             
             var input = Microsoft.VisualBasic.Interaction.InputBox(
-                "Geben Sie die Tournament Hub URL ein:",
-                "Hub-Einstellungen",
+                _localizationService.GetString("HubSettingsPrompt"),
+                _localizationService.GetString("HubSettingsTitle"),
                 currentHubUrl
             );
             
@@ -729,15 +727,15 @@ public partial class MainWindow : Window
             {
                 _hubService.UpdateHubUrl(input);
                 
-                var title = _localizationService.GetString("Success") ?? "Erfolgreich";
-                var message = $"Hub-URL aktualisiert:\n{input}";
+                var title = _localizationService.GetString("Success");
+                var message = _localizationService.GetString("HubUrlUpdated", input);
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler bei den Hub-Einstellungen: {ex.Message}";
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("HubSettingsError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -757,14 +755,16 @@ public partial class MainWindow : Window
             else
             {
                 globalDebugWindow?.Show();
-                globalDebugWindow?.AddDebugMessage("🔍 Debug Console geöffnet via MainWindow", "INFO");
+                globalDebugWindow?.AddDebugMessage(_localizationService.GetString("DebugConsoleStarted"), "INFO");
                 System.Diagnostics.Debug.WriteLine("🔍 Global Debug Console opened via MainWindow");
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ Error toggling Hub Debug Console: {ex.Message}");
-            MessageBox.Show($"Fehler beim Öffnen der Debug Console: {ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("HubSettingsError", ex.Message);
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 }

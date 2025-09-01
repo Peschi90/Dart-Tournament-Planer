@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Models.Statistics;
 using DartTournamentPlaner.Services.Statistics;
+using DartTournamentPlaner.Services;
 
 namespace DartTournamentPlaner.Controls;
 
@@ -19,11 +20,16 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
     private StatisticsSummary _summary = new();
     private ObservableCollection<PlayerStatisticsDisplayModel> _players = new();
     private string _debugMessage = "";
+    private LocalizationService? _localizationService;
 
     public PlayerStatisticsView()
     {
         InitializeComponent();
         DataContext = this;
+        
+        // Try to get localization service from App
+        _localizationService = App.LocalizationService;
+        UpdateTranslations();
     }
 
     /// <summary>
@@ -80,6 +86,83 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// ✅ NEU: Aktualisiert alle Übersetzungen der UI-Elemente
+    /// </summary>
+    public void UpdateTranslations()
+    {
+        if (_localizationService == null) return;
+
+        try
+        {
+            // Titel
+            if (TitleTextBlock != null)
+                TitleTextBlock.Text = $"📊 {_localizationService.GetString("PlayerStatistics")}_";
+
+            // Summary Headers
+            if (PlayersHeaderText != null)
+                PlayersHeaderText.Text = _localizationService.GetString("Players");
+            if (MatchesHeaderText != null)
+                MatchesHeaderText.Text = _localizationService.GetString("TotalMatches");
+            if (LegsHeaderText != null)
+                LegsHeaderText.Text = _localizationService.GetString("Legs");
+            if (MaximumsHeaderText != null)
+                MaximumsHeaderText.Text = _localizationService.GetString("TotalMaximums");
+            if (HighFinishesHeaderText != null)
+                HighFinishesHeaderText.Text = _localizationService.GetString("HighFinishes");
+            if (AverageHeaderText != null)
+                AverageHeaderText.Text = $"⌀ {_localizationService.GetString("OverallAverage")}";
+            
+            // Buttons und Aktionen
+            if (RefreshButton != null)
+                RefreshButton.Content = $"🔄 {_localizationService.GetString("RefreshStatistics")}";
+            if (PlayersWithStatsText != null)
+                PlayersWithStatsText.Text = _localizationService.GetString("PlayersText");
+            if (SortByText != null)
+                SortByText.Text = $"{_localizationService.GetString("SortBy")}:";
+
+            // Sortierung ComboBox Items
+            if (SortByNameItem != null)
+                SortByNameItem.Content = _localizationService.GetString("SortByName");
+            if (SortByAverageItem != null)
+                SortByAverageItem.Content = _localizationService.GetString("SortByAverage");
+            if (SortByMatchesItem != null)
+                SortByMatchesItem.Content = _localizationService.GetString("SortByMatches");
+            if (SortByWinRateItem != null)
+                SortByWinRateItem.Content = _localizationService.GetString("SortByWinRate");
+            if (SortByMaximumsItem != null)
+                SortByMaximumsItem.Content = _localizationService.GetString("SortByMaximums");
+            if (SortByHighFinishesItem != null)
+                SortByHighFinishesItem.Content = _localizationService.GetString("SortByHighFinishes");
+
+            // DataGrid Column Headers
+            if (PlayerColumn != null)
+                PlayerColumn.Header = $"🎯 {_localizationService.GetString("PlayerHeader")}";
+            if (MatchesColumn != null)
+                MatchesColumn.Header = _localizationService.GetString("TotalMatches");
+            if (WinRateColumn != null)
+                WinRateColumn.Header = _localizationService.GetString("MatchWinRate");
+            if (AverageColumn != null)
+                AverageColumn.Header = $"⌀ {_localizationService.GetString("OverallAverage")}";
+            if (BestAverageColumn != null)
+                BestAverageColumn.Header = _localizationService.GetString("BestAverage");
+            if (MaximumsColumn != null)
+                MaximumsColumn.Header = _localizationService.GetString("TotalMaximums");
+            if (HighFinishesColumn != null)
+                HighFinishesColumn.Header = _localizationService.GetString("HighFinishes");
+            if (HighestFinishColumn != null)
+                HighestFinishColumn.Header = _localizationService.GetString("HighestFinish");
+            if (Score26Column != null)
+                Score26Column.Header = _localizationService.GetString("TotalScore26");
+            if (LastMatchColumn != null)
+                LastMatchColumn.Header = _localizationService.GetString("LastMatchDate");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS-VIEW] Error updating translations: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Lädt die Statistiken von der aktuellen Turnierklasse
     /// </summary>
     private void LoadStatistics()
@@ -91,7 +174,7 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine("[STATS-VIEW] No tournament class set, clearing statistics");
                 Summary = new StatisticsSummary();
                 Players.Clear();
-                DebugMessage = "Keine Turnierklasse ausgewählt";
+                DebugMessage = _localizationService?.GetString("NoStatisticsAvailable") ?? "Keine Turnierklasse ausgewählt";
                 return;
             }
 
@@ -109,7 +192,7 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine("[STATS-VIEW] No statistics manager available");
                 Summary = new StatisticsSummary();
                 Players.Clear();
-                DebugMessage = $"StatisticsManager nicht verfügbar (JSON: {jsonDataCount} Spieler)";
+                DebugMessage = _localizationService?.GetString("StatisticsNotEnabled") ?? $"StatisticsManager nicht verfügbar (JSON: {jsonDataCount} Spieler)";
                 return;
             }
 
@@ -151,7 +234,9 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
             SortPlayers(PlayerStatisticsSortType.Average);
 
             // ✅ NEU: Debug-Information für UI
-            DebugMessage = $"JSON: {jsonDataCount}, Manager: {managerCount}, Angezeigt: {Players.Count} - {DateTime.Now:HH:mm:ss}";
+            var loadingMessage = _localizationService?.GetString("StatisticsLoading") ?? "Wird geladen...";
+            var updatedMessage = _localizationService?.GetString("StatisticsUpdated") ?? "Statistiken aktualisiert";
+            DebugMessage = $"JSON: {jsonDataCount}, Manager: {managerCount}, {_localizationService?.GetString("ShowAllPlayers") ?? "Angezeigt"}: {Players.Count} - {DateTime.Now:HH:mm:ss}";
 
             System.Diagnostics.Debug.WriteLine($"[STATS-VIEW] Statistics loaded successfully: {Players.Count} players displayed");
         }
@@ -159,7 +244,8 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
         {
             System.Diagnostics.Debug.WriteLine($"[STATS-VIEW] Error loading statistics: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"[STATS-VIEW] Stack trace: {ex.StackTrace}");
-            DebugMessage = $"Fehler: {ex.Message}";
+            var errorMessage = _localizationService?.GetString("ErrorLoadingStatistics") ?? "Fehler: {0}";
+            DebugMessage = string.Format(errorMessage, ex.Message);
         }
     }
 

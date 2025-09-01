@@ -343,6 +343,56 @@ document.addEventListener('DOMContentLoaded', async() => {
                         matchData: window.dartScoringApp.core.matchData,
                         gameRules: window.dartScoringApp.core.gameRules
                     };
+                },
+                // 🆕 NEU: Game Rules Debug Function
+                debugGameRules: () => {
+                    const core = window.dartScoringApp.core;
+                    const match = core.matchData;
+                    const coreRules = core.gameRules;
+
+                    console.log('🎮 [DEBUG] Complete Game Rules Analysis:');
+                    console.log('🎮 [DEBUG] Core gameRules:', coreRules);
+                    console.log('🎮 [DEBUG] Match.gameRules:', match.gameRules);
+                    console.log('🎮 [DEBUG] Match.GameRules:', match.GameRules);
+                    console.log('🎮 [DEBUG] Match.gameRulesUsed:', match.gameRulesUsed);
+                    console.log('🎮 [DEBUG] Match Type:', match.matchType || match.type);
+                    console.log('🎮 [DEBUG] Match Class:', match.classId || match.class);
+                    console.log('🎮 [DEBUG] Full Match Data:', match);
+
+                    // Test Rule Application
+                    const legsToWin = coreRules.legsToWinSet || coreRules.legsToWin || 2;
+                    const setsToWin = coreRules.setsToWin || 1;
+                    const startingScore = core.getStartingScore();
+                    const doubleOut = coreRules.doubleOut;
+
+                    console.log('🎮 [DEBUG] Applied Rules:', {
+                        legsToWin,
+                        setsToWin,
+                        startingScore,
+                        doubleOut,
+                        gameMode: coreRules.gameMode
+                    });
+
+                    return {
+                        coreRules,
+                        matchRules: {
+                            gameRules: match.gameRules,
+                            GameRules: match.GameRules,
+                            gameRulesUsed: match.gameRulesUsed
+                        },
+                        matchInfo: {
+                            matchType: match.matchType || match.type,
+                            classId: match.classId || match.class,
+                            displayName: match.displayName || match.name
+                        },
+                        appliedRules: {
+                            legsToWin,
+                            setsToWin,
+                            startingScore,
+                            doubleOut,
+                            gameMode: coreRules.gameMode
+                        }
+                    };
                 }
             };
 
@@ -353,6 +403,7 @@ document.addEventListener('DOMContentLoaded', async() => {
             console.log('   window.debugDartScoring.forceSubmit() // ⚠️ Debugging only');
             console.log('   window.debugDartScoring.setGameFinished(true/false) // ⚠️ Testing only');
             console.log('   window.debugDartScoring.getDebugInfo() // Complete state');
+            console.log('   window.debugDartScoring.debugGameRules() // 🆕 Game Rules Analysis');
         }
     } catch (error) {
         console.error('❌ [DART-MAIN] Failed to start enhanced app:', error);

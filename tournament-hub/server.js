@@ -205,7 +205,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 server.listen(PORT, HOST, () => {
     const protocol = HTTPS_ENABLED ? 'HTTPS' : 'HTTP';
     const wsProtocolDisplay = HTTPS_ENABLED ? 'WSS' : 'WS';
-    
+
     console.log(`🚀 Tournament Hub PRODUCTION Server started (Modular Architecture)`);
     console.log(`📍 ${protocol} Server: ${protocol.toLowerCase()}://dtp.i3ull3t.de:${PORT}`);
     console.log(`🔌 WebSocket Server: ${wsProtocolDisplay.toLowerCase()}://dtp.i3ull3t.de:${PORT}`);
@@ -214,7 +214,7 @@ server.listen(PORT, HOST, () => {
     console.log(`📊 Health Check: https://dtp.i3ull3t.de:${PORT}/api/health`);
     console.log(`✅ PRODUCTION Server is ready for online access!`);
     console.log(`🌍 Server binding to ${HOST}:${PORT} for external access`);
-    
+
     // Start HTTP redirect server after main server is running
     startHttpRedirectServer();
 });
@@ -232,7 +232,7 @@ function startHttpRedirectServer() {
     setTimeout(() => {
         if (HTTPS_ENABLED && HTTP_PORT !== PORT && !process.env.DISABLE_HTTP_REDIRECT) {
             console.log(`🔄 [HTTP-REDIRECT] Starting HTTP redirect server on port ${HTTP_PORT}...`);
-            
+
             const httpApp = express();
             httpApp.get('*', (req, res) => {
                 const httpsUrl = `https://dtp.i3ull3t.de:${PORT}${req.url}`;
@@ -240,9 +240,9 @@ function startHttpRedirectServer() {
                 console.log(`🔄 [HTTP-REDIRECT] Redirecting ${clientIP} to ${httpsUrl}`);
                 res.redirect(301, httpsUrl);
             });
-            
+
             const httpServer = http.createServer(httpApp);
-            
+
             httpServer.on('error', (error) => {
                 if (error.code === 'EADDRINUSE') {
                     console.error(`❌ [HTTP-REDIRECT] Port ${HTTP_PORT} is already in use`);
@@ -250,7 +250,7 @@ function startHttpRedirectServer() {
                     console.error(`❌ [HTTP-REDIRECT] Server error:`, error);
                 }
             });
-            
+
             httpServer.listen(HTTP_PORT, HOST, () => {
                 console.log(`🔄 HTTP Redirect Server: http://dtp.i3ull3t.de:${HTTP_PORT} -> https://dtp.i3ull3t.de:${PORT}`);
             });

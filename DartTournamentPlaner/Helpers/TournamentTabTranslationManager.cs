@@ -15,6 +15,7 @@ public class TournamentTabTranslationManager
     public TabItem? GroupPhaseTabItem { get; set; }
     public TabItem? FinalsTabItem { get; set; }
     public TabItem? KnockoutTabItem { get; set; }
+    public TabItem? StatisticsTabItem { get; set; }
     public Button? ConfigureRulesButton { get; set; }
     public Button? AddGroupButton { get; set; }
     public Button? RemoveGroupButton { get; set; }
@@ -62,10 +63,10 @@ public class TournamentTabTranslationManager
             FinalsTabItem.Header = _localizationService.GetString("FinalsTab");
         if (KnockoutTabItem != null)
             KnockoutTabItem.Header = _localizationService.GetString("KnockoutTab");
-        if (GamesTabItem != null)
-            GamesTabItem.Header = _localizationService.GetString("Matches");
-        if (TableTabItem != null)
-            TableTabItem.Header = _localizationService.GetString("Standings");
+        
+        // ✅ NEU: Statistiken-Tab
+        if (StatisticsTabItem != null)
+            StatisticsTabItem.Header = _localizationService.GetString("StatisticsTab");
     }
 
     private void UpdateButtonTexts()

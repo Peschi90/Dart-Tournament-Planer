@@ -70,8 +70,8 @@ class DartScoringKeyboard {
             'p': 20
         };
 
-        if (numberMap[e.key.toLowerCase()]) {
-            this.ui.handleNumberInput(numberMap[e.key.toLowerCase()]);
+        if (numberMap[e.key]) {
+            this.ui.handleNumberInput(numberMap[e.key]);
         }
 
         // Handle multipliers (both uppercase and lowercase)
@@ -84,8 +84,7 @@ class DartScoringKeyboard {
             case 'd': // Double
                 this.ui.handleMultiplierInput(2);
                 break;
-            case 'T':
-            case 't': // Triple
+            case 'T': // Triple
                 this.ui.handleMultiplierInput(3);
                 break;
         }

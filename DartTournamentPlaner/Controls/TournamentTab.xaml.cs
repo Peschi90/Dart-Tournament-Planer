@@ -710,6 +710,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 // Validiere und repariere Statistiken falls nötig
                 TournamentClass.ValidateAndRepairStatistics();
 
+                // ✅ NEU: Update translations first
+                statisticsView.UpdateTranslations();
+
                 // Aktualisiere die statistik-View
                 statisticsView.TournamentClass = TournamentClass;
 
@@ -723,7 +726,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Error updating statistics tab: {ex.Message}");
-            MessageBox.Show($"Fehler beim Aktualisieren der Statistiken: {ex.Message}", "Statistik-Fehler", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var title = _localizationService.GetString("Error");
+            var message = _localizationService.GetString("ErrorLoadingStatistics", ex.Message);
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 

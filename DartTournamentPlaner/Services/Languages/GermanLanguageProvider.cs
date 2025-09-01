@@ -627,12 +627,12 @@ public class GermanLanguageProvider : ILanguageProvider
             // ========================================
 
             // Tournament Hub Menü
-            ["TournamentHub"] = "🎯 Tournament Hub",
-            ["RegisterWithHub"] = "🏁 Bei Hub registrieren",
-            ["UnregisterFromHub"] = "📴 Vom Hub entregistrieren",
-            ["ShowJoinUrl"] = "📱 Join-URL anzeigen",
-            ["ManualSync"] = "🔄 Manuell synchronisieren",
-            ["HubSettings"] = "⚙️ Hub-Einstellungen",
+            ["TournamentHub"] = "Tournament Hub",
+            ["RegisterWithHub"] = "Bei Hub registrieren",
+            ["UnregisterFromHub"] = "Vom Hub entregistrieren",
+            ["ShowJoinUrl"] = "Join-URL anzeigen",
+            ["ManualSync"] = "Manuell synchronisieren",
+            ["HubSettings"] = "Hub-Einstellungen",
 
             // Hub Status Übersetzungen
             ["HubStatus"] = "Hub Status",
@@ -835,7 +835,260 @@ public class GermanLanguageProvider : ILanguageProvider
             ["ServiceShutdown"] = "Service heruntergefahren",
             ["ServiceRestarted"] = "Service neugestartet",
             ["ServiceHealthy"] = "Service ist gesund",
-            ["ServiceUnhealthy"] = "Service ist nicht gesund"
+            ["ServiceUnhealthy"] = "Service ist nicht gesund",
+
+            // ========================================
+            // KO-TAB ÜBERSETZUNGEN - NEU
+            // ========================================
+
+            // KO-Tab Header und Navigation
+            ["KOTab"] = "KO-Runde",
+            ["StatisticsTab"] = "Statistiken",
+            ["KOPhaseTab"] = "KO-Phase",
+            ["WinnerBracketTab"] = "Winner Bracket",
+            ["LoserBracketTab"] = "Loser Bracket",
+            ["KOParticipantsTab"] = "KO-Teilnehmer",
+            ["BracketOverviewTab"] = "Bracket-Übersicht",
+            ["TreeViewTab"] = "Turnierturm",
+
+            // KO-Phase Status und Meldungen
+            ["KOPhaseNotActive"] = "KO-Phase ist nicht aktiv",
+            ["KOPhaseWaitingForGroupCompletion"] = "Warten auf Abschluss der Gruppenphase",
+            ["KOPhaseReady"] = "KO-Phase bereit",
+            ["KOPhaseInProgress"] = "KO-Phase läuft",
+            ["KOPhaseComplete"] = "KO-Phase abgeschlossen",
+            ["GenerateKOBracket"] = "KO-Bracket generieren",
+            ["KOBracketGenerated"] = "KO-Bracket wurde erfolgreich generiert!",
+            ["ErrorGeneratingKOBracket"] = "Fehler beim Generieren des KO-Brackets:",
+            ["NoQualifiedPlayersForKO"] = "Keine qualifizierten Spieler für die KO-Phase gefunden.",
+            ["InsufficientPlayersForKO"] = "Nicht genügend Spieler für die KO-Phase (mindestens 2 erforderlich).",
+            
+            // KO-Match Status und Aktionen
+            ["KOMatchPending"] = "Ausstehend",
+            ["KOMatchInProgress"] = "Läuft",
+            ["KOMatchFinished"] = "Beendet",
+            ["KOMatchBye"] = "Freilos",
+            ["NextRound"] = "Nächste Runde",
+            ["AdvanceWinner"] = "Sieger weiterleiten",
+            ["EliminateLoser"] = "Verlierer eliminieren",
+            ["WinnerAdvancesTo"] = "Sieger qualifiziert sich für: {0}",
+            ["LoserMovesToLB"] = "Verlierer ins Loser Bracket: {0}",
+            ["WaitingForPreviousMatch"] = "Warten auf vorheriges Spiel",
+            
+            // KO-Bracket Struktur
+            ["Round1"] = "1. Runde",
+            ["Round2"] = "2. Runde", 
+            ["Round3"] = "3. Runde",
+            ["Quarterfinals"] = "Viertelfinale",
+            ["Semifinals"] = "Halbfinale",
+            ["Finals"] = "Finale",
+            ["GrandFinals"] = "Grand Final",
+            ["ThirdPlacePlayoff"] = "Spiel um Platz 3",
+            ["WinnerBracketFinal"] = "Winner Bracket Finale",
+            ["LoserBracketFinal"] = "Loser Bracket Finale",
+            
+            // KO-Teilnehmer und Seeding
+            ["QualifiedFromGroup"] = "Qualifiziert aus Gruppe {0}",
+            ["SeedPosition"] = "Setzlistenplatz {0}",
+            ["HighestSeed"] = "Höchste Setzung",
+            ["LowestSeed"] = "Niedrigste Setzung",
+            ["RandomSeeding"] = "Zufällige Setzung",
+            ["GroupWinners"] = "Gruppensieger",
+            ["GroupRunners"] = "Gruppenzweite",
+            ["BestThirds"] = "Beste Drittplatzierte",
+            
+            // KO-Bracket Actions und Buttons
+            ["ResetKOBracket"] = "KO-Bracket zurücksetzen",
+            ["ResetKOBracketConfirm"] = "Möchten Sie das KO-Bracket wirklich zurücksetzen?\n\n⚠️ Alle KO-Spiele werden gelöscht!\nDie qualifizierten Spieler bleiben erhalten.",
+            ["KOBracketReset"] = "KO-Bracket wurde zurückgesetzt!",
+            ["ExpandAllMatches"] = "Alle Spiele aufklappen",
+            ["CollapseAllMatches"] = "Alle Spiele einklappen",
+            ["ShowBracketTree"] = "Bracket-Baum anzeigen",
+            ["ShowMatchList"] = "Spiele-Liste anzeigen",
+            ["ExportBracket"] = "Bracket exportieren",
+            ["PrintBracket"] = "Bracket drucken",
+            
+            // Double Elimination spezifische Begriffe
+            ["WinnerBracket"] = "Winner Bracket",
+            ["LoserBracket"] = "Loser Bracket",
+            ["WinnerBracketMatches"] = "Winner Bracket Spiele",
+            ["LoserBracketMatches"] = "Loser Bracket Spiele",
+            ["UpperBracket"] = "Oberes Bracket",
+            ["LowerBracket"] = "Unteres Bracket",
+            ["ConsolationBracket"] = "Trostbracket",
+            ["EliminationMatch"] = "Eliminierungsspiel",
+            ["ConsolationMatch"] = "Trostspiel",
+            
+            // KO-Match Informationen
+            ["MatchDuration"] = "Spieldauer: {0}",
+            ["MatchStarted"] = "Spiel gestartet: {0}",
+            ["MatchFinished"] = "Spiel beendet: {0}",
+            ["ElapsedTime"] = "Vergangene Zeit: {0}",
+            ["EstimatedDuration"] = "Geschätzte Dauer: {0}",
+            ["QualificationPath"] = "Qualifikationsweg: {0}",
+            
+            // ========================================
+            // STATISTIKEN-TAB ÜBERSETZUNGEN - NEU
+            // ========================================
+            
+            // Statistiken Tab Header
+            ["PlayerStatistics"] = "Spieler-Statistiken",
+            ["TournamentStatistics"] = "Turnier-Statistiken",
+            ["StatisticsOverview"] = "Statistik-Übersicht",
+            ["PlayerRankings"] = "Spieler-Rangliste",
+            ["PerformanceAnalysis"] = "Leistungsanalyse",
+            ["StatisticsSummary"] = "Statistik-Zusammenfassung",
+            ["DetailedStats"] = "Detaillierte Statistiken",
+            
+            // Statistik-Kategorien
+            ["MatchStatistics"] = "Match-Statistiken",
+            ["ScoreStatistics"] = "Punkte-Statistiken", 
+            ["AccuracyStatistics"] = "Genauigkeits-Statistiken",
+            ["FinishStatistics"] = "Finish-Statistiken",
+            ["ConsistencyStats"] = "Konsistenz-Statistiken",
+            ["ProgressionStats"] = "Fortschritts-Statistiken",
+            
+            // Spieler-Statistik Werte
+            ["TotalMatches"] = "Gesamt Spiele",
+            ["MatchesWon"] = "Siege",
+            ["MatchesLost"] = "Niederlagen",
+            ["MatchWinRate"] = "Sieg-Quote",
+            ["OverallAverage"] = "Gesamt-Average",
+            ["TournamentAverage"] = "Turnier-Average",
+            ["BestAverage"] = "Bester Average",
+            ["WorstAverage"] = "Schlechtester Average",
+            ["HighestLegAverage"] = "Höchster Leg-Average",
+            ["AverageScorePerDart"] = "Durchschnitt pro Pfeil",
+            
+            // Finish-Statistiken
+            ["TotalCheckouts"] = "Gesamt Checkouts",
+            ["CheckoutRate"] = "Checkout-Quote",
+            ["HighFinishes"] = "High Finishes",
+            ["TotalHighFinishes"] = "Gesamt High Finishes",
+            ["HighestFinish"] = "Höchstes Finish",
+            ["HighestFinishScore"] = "Höchstes Finish",
+            ["AverageCheckout"] = "Durchschnittliches Checkout",
+            ["CheckoutAccuracy"] = "Checkout-Genauigkeit",
+            ["FewestDartsToFinish"] = "Wenigste Pfeile zum Finish",
+            ["AverageDartsPerCheckout"] = "∅ Pfeile pro Checkout",
+            ["FastestCheckout"] = "Schnellstes Checkout",
+            
+            // Score-Statistiken 
+            ["TotalMaximums"] = "180er",
+            ["MaximumsPerGame"] = "180er pro Spiel",
+            ["Score26"] = "26er",
+            ["TotalScore26"] = "Gesamt 26er",
+            ["Score26PerGame"] = "26er pro Spiel",
+            ["HighScores"] = "Hohe Scores",
+            ["ScoreDistribution"] = "Score-Verteilung",
+            ["Above100Average"] = "Über 100 Average",
+            ["Above80Average"] = "Über 80 Average",
+            ["Above60Average"] = "Über 60 Average",
+            
+            // Zeit-basierte Statistiken
+            ["LastMatchDate"] = "Letztes Spiel",
+            ["FirstMatchDate"] = "Erstes Spiel",
+            ["TotalPlayingTime"] = "Gesamt Spielzeit",
+            ["AverageMatchDuration"] = "Durchschnittliche Spieldauer",
+            ["LongestMatch"] = "Längstes Spiel",
+            ["ShortestMatch"] = "Kürzestes Spiel",
+            ["PlayingDays"] = "Spieltage",
+            ["MatchesPerDay"] = "Spiele pro Tag",
+            
+            // Turnier-Kontext Statistiken
+            ["GroupPhaseStats"] = "Gruppenphase-Statistiken",
+            ["FinalsStats"] = "Final-Statistiken", 
+            ["KOPhaseStats"] = "KO-Phasen-Statistiken",
+            ["OverallTournamentStats"] = "Gesamt-Turnier-Statistiken",
+            ["PhaseComparison"] = "Phasen-Vergleich",
+            ["PerformanceByPhase"] = "Leistung nach Phase",
+            
+            // Statistik-Sortierung und Filter
+            ["SortBy"] = "Sortieren nach",
+            ["SortByName"] = "Name",
+            ["SortByAverage"] = "Average",
+            ["SortByMatches"] = "Spiele",
+            ["SortByWinRate"] = "Sieg-Quote",
+            ["SortByMaximums"] = "180er",
+            ["SortByHighFinishes"] = "High Finishes",
+            ["SortByCheckouts"] = "Checkouts",
+            ["FilterPlayers"] = "Spieler filtern",
+            ["ShowAllPlayers"] = "Alle Spieler anzeigen",
+            ["ShowTopPlayers"] = "Top-Spieler anzeigen",
+            ["MinimumMatches"] = "Mindest-Spielanzahl",
+            
+            // Statistik-Aktionen
+            ["RefreshStatistics"] = "Statistiken aktualisieren",
+            ["ExportStatistics"] = "Statistiken exportieren",
+            ["PrintStatistics"] = "Statistiken drucken",
+            ["ResetStatistics"] = "Statistiken zurücksetzen",
+            ["SaveStatistics"] = "Statistiken speichern",
+            ["LoadStatistics"] = "Statistiken laden",
+            ["CompareToAverage"] = "Mit Durchschnitt vergleichen",
+            
+            // Statistik-Meldungen
+            ["NoStatisticsAvailable"] = "Keine Statistiken verfügbar",
+            ["StatisticsLoading"] = "Statistiken werden geladen...",
+            ["StatisticsUpdated"] = "Statistiken aktualisiert",
+            ["ErrorLoadingStatistics"] = "Fehler beim Laden der Statistiken: {0}",
+            ["StatisticsNotEnabled"] = "Statistiken sind nicht aktiviert",
+            ["InsufficientDataForStats"] = "Ungenügend Daten für Statistiken",
+            
+            // Detail-Ansichten
+            ["PlayerDetails"] = "Spieler-Details für {0}",
+            ["MatchHistory"] = "Spiel-Historie",
+            ["ScoreHistory"] = "Score-Historie",
+            ["PerformanceTrend"] = "Leistungstrend",
+            ["StrengthsWeaknesses"] = "Stärken & Schwächen",
+            ["RecentPerformance"] = "Aktuelle Leistung",
+            ["CareerHighlights"] = "Karriere-Höhepunkte",
+            
+            // Vergleichs-Features
+            ["ComparePlayer"] = "Spieler vergleichen",
+            ["PlayerComparison"] = "Spieler-Vergleich",
+            ["CompareWith"] = "Vergleichen mit",
+            ["ComparisonResult"] = "Vergleichsergebnis",
+            ["BetterThan"] = "Besser als {0}",
+            ["WorseThan"] = "Schlechter als {0}",
+            ["SimilarTo"] = "Ähnlich zu {0}",
+            
+            // Ranking und Positionen
+            ["CurrentRank"] = "Aktuelle Position",
+            ["RankByAverage"] = "Position nach Average",
+            ["RankByWinRate"] = "Position nach Sieg-Quote",
+            ["RankByMatches"] = "Position nach Spielen",
+            ["TopPerformer"] = "Top-Performer",
+            ["RankingChange"] = "Positionsänderung",
+            ["MovedUp"] = "Aufgestiegen um {0}",
+            ["MovedDown"] = "Abgestiegen um {0}",
+            ["NoChange"] = "Keine Änderung",
+            
+            // Statistik-Tooltips und Hilfe
+            ["AverageTooltip"] = "Durchschnittliche Punkte pro 3 Pfeile",
+            ["WinRateTooltip"] = "Prozentsatz der gewonnenen Spiele",
+            ["MaximumsTooltip"] = "Anzahl der 180-Punkte-Würfe",
+            ["HighFinishesTooltip"] = "Checkouts über 100 Punkte",
+            ["CheckoutRateTooltip"] = "Prozentsatz erfolgreicher Checkout-Versuche",
+            ["ConsistencyTooltip"] = "Gleichmäßigkeit der Leistung",
+            
+            // Erweiterte Statistik-Features
+            ["TrendAnalysis"] = "Trend-Analyse",
+            ["PerformanceGraph"] = "Leistungsdiagramm",
+            ["StatisticalSignificance"] = "Statistische Signifikanz",
+            ["ConfidenceInterval"] = "Konfidenzintervall",
+            ["StandardDeviation"] = "Standardabweichung",
+            ["Correlation"] = "Korrelation",
+            ["Regression"] = "Regression",
+            ["PredictiveAnalysis"] = "Vorhersage-Analyse",
+            
+            // Debug und Entwickler-Info
+            ["DebugStatistics"] = "Debug-Statistiken",
+            ["StatisticsDebugInfo"] = "Statistik Debug-Info",
+            ["DataIntegrity"] = "Daten-Integrität",
+            ["ValidationStatus"] = "Validierungs-Status",
+            ["LastUpdate"] = "Letzte Aktualisierung",
+            ["DataSource"] = "Datenquelle",
+            ["RecordCount"] = "Anzahl Datensätze"
         };
     }
 }

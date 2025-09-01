@@ -63,7 +63,7 @@ public class WebSocketMessageHandler
                         HandleErrorMessage(message);
                         break;
                     default:
-                        _debugLog($"❓ [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
+                        _debugLog($"❌ [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
                         break;
                 }
             }
