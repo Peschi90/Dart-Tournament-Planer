@@ -294,6 +294,11 @@ public class WebSocketMessageHandler
         var notes = ExtractStringValue(result, "notes", "Notes") ?? "";
         var status = ExtractStringValue(result, "status", "Status") ?? "Finished";
 
+        // ✅ NEU: Stelle sicher, dass die komplette Nachricht mit statistics in Notes gespeichert wird
+        // Das PlayerStatisticsManager benötigt Zugriff auf die kompletten Daten
+        var completeNotes = JsonSerializer.Serialize(message, new JsonSerializerOptions { WriteIndented = false });
+        _debugLog($"📊 [WS-MESSAGE] Complete message saved to Notes for statistics processing", "MATCH_RESULT");
+
         // Erweiterte Class-ID Extraktion
         var classId = ExtractIntValue(result, "classId", "ClassId") ??
                       ExtractIntValue(matchUpdateElement, "classId", "ClassId") ??
@@ -331,9 +336,9 @@ public class WebSocketMessageHandler
             Player1Legs = player1Legs,
             Player2Legs = player2Legs,
             Status = status,
-            Notes = notes,
+            Notes = completeNotes, // ✅ NEU: Komplette Nachricht für Statistik-Verarbeitung
             UpdatedAt = DateTime.Now,
-            Source = isMatchResult ? "hub-match-result" : "hub-websocket-direct",
+            Source = isMatchResult ? "hub-match-result" : "websocket-direct", // ✅ KORRIGIERT
             GroupId = groupId,
             GroupName = groupName,
             MatchType = matchType,

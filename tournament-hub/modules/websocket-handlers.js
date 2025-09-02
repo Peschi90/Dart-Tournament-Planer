@@ -16,17 +16,17 @@ class WebSocketHandlers {
     async handleWebSocketMessage(ws, clientId, message) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         console.log(`🔄 [WebSocket-Direct] ===== PROCESSING MESSAGE =====`);
         console.log(`🔄 [WebSocket-Direct] Client ID: ${clientId}`);
         console.log(`🔄 [WebSocket-Direct] Raw Message:`, JSON.stringify(message, null, 2));
-        
+
         // Behandle sowohl direkte Messages als auch Messages mit 'data' Wrapper
         const actualMessage = message.data || message;
         const messageType = actualMessage.type || message.type;
-        
+
         console.log(`🎯 [WebSocket-Direct] Extracted message type: ${messageType}`);
-        
+
         try {
             switch (messageType) {
                 case 'subscribe-tournament':
@@ -34,33 +34,33 @@ class WebSocketHandlers {
                     if (typeof actualMessage.data === 'string') {
                         tournamentId = actualMessage.data;
                     } else {
-                        tournamentId = actualMessage.tournamentId || actualMessage.data?.tournamentId;
+                        tournamentId = actualMessage.tournamentId || (actualMessage.data && actualMessage.data.tournamentId);
                     }
                     this.handleTournamentSubscription(ws, clientId, tournamentId);
                     break;
-                    
+
                 case 'register-planner':
-                    const plannerTournamentId = actualMessage.tournamentId || actualMessage.data?.tournamentId;
-                    const plannerInfo = actualMessage.plannerInfo || actualMessage.data?.plannerInfo;
+                    const plannerTournamentId = actualMessage.tournamentId || (actualMessage.data && actualMessage.data.tournamentId);
+                    const plannerInfo = actualMessage.plannerInfo || (actualMessage.data && actualMessage.data.plannerInfo);
                     this.handlePlannerRegistration(ws, clientId, plannerTournamentId, plannerInfo);
                     break;
-                    
+
                 case 'submit-match-result':
                     this.handleMatchResultSubmission(ws, clientId, actualMessage);
                     break;
-                    
+
                 case 'heartbeat':
                     this.handleHeartbeat(ws, clientId);
                     break;
-                    
+
                 case 'match-update-acknowledged':
                     this.handleMatchUpdateAcknowledgment(ws, clientId, message.data || message);
                     break;
-                    
+
                 case 'match-update-error':
                     this.handleMatchUpdateError(ws, clientId, message.data || message);
                     break;
-                    
+
                 default:
                     console.log(`❓ [WebSocket-Direct] Unknown message type: ${messageType}`);
                     ws.send(JSON.stringify({
@@ -77,7 +77,7 @@ class WebSocketHandlers {
                 timestamp: new Date().toISOString()
             }));
         }
-        
+
         console.log(`🔄 [WebSocket-Direct] ===== MESSAGE PROCESSING COMPLETE =====`);
     }
 
@@ -87,13 +87,13 @@ class WebSocketHandlers {
             console.log(`❌ [WebSocket-Direct] Tournament subscription failed - missing client or tournamentId`);
             return;
         }
-        
+
         console.log(`🎯 [WebSocket-Direct] Client ${clientId} subscribing to tournament: ${tournamentId}`);
-        
+
         client.tournamentId = tournamentId;
-        
+
         const tournament = this.tournamentRegistry.getTournament(tournamentId);
-        
+
         const responseData = {
             type: 'subscription-confirmed',
             tournamentId: tournamentId,
@@ -107,22 +107,22 @@ class WebSocketHandlers {
                 matches: tournament.matches
             } : null
         };
-        
+
         ws.send(JSON.stringify(responseData));
-        
+
         console.log(`✅ [WebSocket-Direct] Tournament subscription confirmed for ${clientId}`);
     }
 
     handlePlannerRegistration(ws, clientId, tournamentId, plannerInfo) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         console.log(`🏁 [WebSocket-Direct] Planner registration for client ${clientId}`);
-        
+
         client.tournamentId = tournamentId;
         client.isPlannerClient = true;
         client.plannerInfo = plannerInfo;
-        
+
         const responseData = {
             type: 'planner-registration-confirmed',
             success: true,
@@ -130,22 +130,41 @@ class WebSocketHandlers {
             message: 'Tournament Planner registration successful',
             timestamp: new Date().toISOString()
         };
-        
+
         ws.send(JSON.stringify(responseData));
-        
+
         console.log(`✅ [WebSocket-Direct] Planner registration confirmed for ${clientId}`);
     }
 
     handleMatchResultSubmission(ws, clientId, message) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         console.log(`🎯 [WebSocket-Direct] ===== MATCH RESULT SUBMISSION =====`);
         console.log(`🎯 [WebSocket-Direct] Client: ${clientId}`);
         console.log(`🎯 [WebSocket-Direct] Raw message:`, JSON.stringify(message, null, 2));
-        
+
         const { tournamentId, matchId, result } = message;
-        
+
+        // NEU: Überprüfe verfügbare Statistik-Datenstrukturen
+        console.log(`📊 [WebSocket-Direct] ===== STATISTICS DATA ANALYSIS =====`);
+        console.log(`📊 [WebSocket-Direct] Full result object:`, JSON.stringify(result, null, 2));
+        console.log(`📊 [WebSocket-Direct] Full message object (first 3000 chars):`, JSON.stringify(message, null, 2).substr(0, 3000));
+        console.log(`📊 [WebSocket-Direct] Available statistics data structures:`);
+        console.log(`   result.dartScoringResult: ${result && result.dartScoringResult ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+        console.log(`   message.dartScoringResult: ${message.dartScoringResult ? 'AVAILABLE' : 'NOT AVAILABLE'}`);
+        if (result && result.dartScoringResult) {
+            console.log(`   dartScoringResult.player1Stats:`, result.dartScoringResult.player1Stats ? 'AVAILABLE' : 'NOT AVAILABLE');
+            console.log(`   dartScoringResult.player2Stats:`, result.dartScoringResult.player2Stats ? 'AVAILABLE' : 'NOT AVAILABLE');
+            console.log(`   dartScoringResult content:`, JSON.stringify(result.dartScoringResult, null, 2));
+        }
+        if (message.dartScoringResult) {
+            console.log(`   message dartScoringResult.player1Stats:`, message.dartScoringResult.player1Stats ? 'AVAILABLE' : 'NOT AVAILABLE');
+            console.log(`   message dartScoringResult.player2Stats:`, message.dartScoringResult.player2Stats ? 'AVAILABLE' : 'NOT AVAILABLE');
+            console.log(`   message dartScoringResult content:`, JSON.stringify(message.dartScoringResult, null, 2));
+        }
+        console.log(`📊 [WebSocket-Direct] ======================================`);
+
         if (!tournamentId || !matchId || !result) {
             ws.send(JSON.stringify({
                 type: 'match-result-error',
@@ -154,34 +173,34 @@ class WebSocketHandlers {
             }));
             return;
         }
-        
+
         // KORRIGIERT: Extrahiere Class-Information aus Message und Result
         console.log(`📊 [WebSocket-Direct] Class-ID Analysis:`);
         console.log(`   Message classId: ${message.classId}`);
         console.log(`   Message className: ${message.className}`);
         console.log(`   Result classId: ${result.classId}`);
         console.log(`   Result className: ${result.className}`);
-        console.log(`   GameRules classId: ${result.gameRulesUsed?.classId}`);
-        console.log(`   GameRules className: ${result.gameRulesUsed?.className}`);
-        
+        console.log(`   GameRules classId: ${result.gameRulesUsed && result.gameRulesUsed.classId}`);
+        console.log(`   GameRules className: ${result.gameRulesUsed && result.gameRulesUsed.className}`);
+
         // ERWEITERT: Vollständige Class-Information für Tournament Planner
         const enhancedResult = {
             ...result,
             // Class-Information aus verschiedenen Quellen
-            classId: message.classId || result.classId || result.gameRulesUsed?.classId || 1,
-            className: message.className || result.className || result.gameRulesUsed?.className || 'Unbekannte Klasse',
+            classId: message.classId || result.classId || (result.gameRulesUsed && result.gameRulesUsed.classId) || 1,
+            className: message.className || result.className || (result.gameRulesUsed && result.gameRulesUsed.className) || 'Unbekannte Klasse',
             // Zusätzliche Metadaten
             submissionSource: 'websocket-direct',
             submissionTimestamp: new Date().toISOString(),
             originalMessageClassId: message.classId,
             originalMessageClassName: message.className
         };
-        
+
         console.log(`📋 [WebSocket-Direct] Enhanced result for Tournament Planner:`);
         console.log(`   Final classId: ${enhancedResult.classId}`);
         console.log(`   Final className: ${enhancedResult.className}`);
         console.log(`   Enhanced result:`, JSON.stringify(enhancedResult, null, 2));
-        
+
         // Process match result
         this.matchService.submitMatchResult(tournamentId, matchId, enhancedResult)
             .then(success => {
@@ -196,11 +215,11 @@ class WebSocketHandlers {
                         message: `Match result submitted successfully for ${enhancedResult.className}`,
                         timestamp: new Date().toISOString()
                     }));
-                    
+
                     console.log(`✅ [WebSocket-Direct] Match result submitted for ${enhancedResult.className} (ID: ${enhancedResult.classId})`);
-                    
+
                     // Broadcast to other clients with enhanced class information
-                    this.broadcastMatchUpdate(tournamentId, matchId, enhancedResult);
+                    this.broadcastMatchUpdate(tournamentId, matchId, enhancedResult, message);
                 } else {
                     ws.send(JSON.stringify({
                         type: 'match-result-error',
@@ -221,32 +240,32 @@ class WebSocketHandlers {
                     timestamp: new Date().toISOString()
                 }));
             });
-            
+
         console.log(`🎯 [WebSocket-Direct] ===== MATCH RESULT SUBMISSION COMPLETE =====`);
     }
 
     handleHeartbeat(ws, clientId) {
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         client.lastHeartbeat = new Date();
-        
+
         const responseData = {
             type: 'heartbeat-ack',
             clientId: clientId,
             timestamp: new Date().toISOString(),
             message: 'Heartbeat acknowledged'
         };
-        
+
         ws.send(JSON.stringify(responseData));
     }
 
     handleMatchUpdateAcknowledgment(ws, clientId, message) {
         console.log(`📬 [WebSocket-Direct] Client ${clientId} acknowledged match update`);
-        
+
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         if (!client.matchUpdateStats) {
             client.matchUpdateStats = {
                 totalReceived: 0,
@@ -254,17 +273,17 @@ class WebSocketHandlers {
                 errors: 0
             };
         }
-        
+
         client.matchUpdateStats.totalReceived++;
         client.matchUpdateStats.lastAcknowledged = new Date();
     }
 
     handleMatchUpdateError(ws, clientId, message) {
         console.log(`❌ [WebSocket-Direct] Client ${clientId} reported match update error`);
-        
+
         const client = this.websocketClients.get(clientId);
         if (!client) return;
-        
+
         if (!client.matchUpdateStats) {
             client.matchUpdateStats = {
                 totalReceived: 0,
@@ -272,7 +291,7 @@ class WebSocketHandlers {
                 errors: 0
             };
         }
-        
+
         client.matchUpdateStats.errors++;
     }
 
@@ -290,7 +309,7 @@ class WebSocketHandlers {
             tournamentId: null,
             isPlannerClient: false
         });
-        
+
         console.log(`🔌 [WebSocket-Direct] Client connected: ${clientId} from ${clientIP}`);
     }
 
@@ -307,28 +326,119 @@ class WebSocketHandlers {
     // Broadcasting
     // ========================
 
-    broadcastMatchUpdate(tournamentId, matchId, result) {
-        console.log(`📡 [WebSocket-Direct] ===== BROADCASTING MATCH UPDATE =====`);
-        console.log(`📡 [WebSocket-Direct] Tournament: ${tournamentId}, Match: ${matchId}`);
-        console.log(`📡 [WebSocket-Direct] Result data:`, JSON.stringify(result, null, 2));
-        
-        // KORRIGIERT: Hole Match-Informationen aus Tournament Registry für korrekte Class-ID
-        const tournament = this.tournamentRegistry.getTournament(tournamentId);
-        if (!tournament) {
-            console.error(`❌ [WebSocket-Direct] Tournament not found for broadcasting: ${tournamentId}`);
-            return;
-        }
-        
-        // Finde das Match in den Tournament-Daten um Class-ID zu erhalten
-        const matches = tournament.matches || [];
-        const originalMatch = matches.find(m => 
-            String(m.id) === String(matchId) || 
-            String(m.matchId) === String(matchId)
-        );
-        
-        if (!originalMatch) {
-            console.error(`❌ [WebSocket-Direct] Match not found in tournament data: ${matchId}`);
-            console.log(`📋 [WebSocket-Direct] Available matches: ${matches.map(m => `${m.id}/${m.matchId} (Class: ${m.classId})`).join(', ')}`);
+    broadcastMatchUpdate(tournamentId, matchId, result, originalMessage = null) {
+            console.log(`📡 [WebSocket-Direct] ===== BROADCASTING MATCH UPDATE =====`);
+            console.log(`📡 [WebSocket-Direct] Tournament: ${tournamentId}, Match: ${matchId}`);
+            console.log(`📡 [WebSocket-Direct] Result data:`, JSON.stringify(result, null, 2));
+
+            // KORRIGIERT: Extrahiere strukturierte Statistiken direkt aus dartScoringResult
+            const extractStatisticsFromSubmission = (result, message) => {
+                console.log(`📊 [WebSocket-Direct] ===== EXTRACTING STATISTICS =====`);
+                console.log(`📊 [WebSocket-Direct] Input result:`, JSON.stringify(result, null, 2));
+                console.log(`📊 [WebSocket-Direct] Input message (dartScoringResult):`, (message && message.dartScoringResult) ? 'FOUND' : 'NOT FOUND');
+
+                // ROBUST: Prüfe BEIDE Quellen für dartScoringResult - NULL-SAFE
+                let dartScoringResult = (result && result.dartScoringResult) || (message && message.dartScoringResult);
+                console.log(`📊 [WebSocket-Direct] dartScoringResult source:`,
+                    (result && result.dartScoringResult) ? 'result.dartScoringResult' :
+                    (message && message.dartScoringResult) ? 'message.dartScoringResult' : 'NOT FOUND');
+
+                if (!dartScoringResult) {
+                    console.log(`📊 [WebSocket-Direct] No dartScoringResult found in either location, checking alternative locations...`);
+                    console.log(`📊 [WebSocket-Direct] result keys:`, Object.keys(result || {}));
+                    console.log(`📊 [WebSocket-Direct] message keys:`, Object.keys(message || {}));
+
+                    // Check if there's any statistics data at the root level - NULL-SAFE
+                    if ((result && result.player1Stats) || (result && result.player2Stats)) {
+                        console.log(`📊 [WebSocket-Direct] Found stats at root level in result!`);
+                        dartScoringResult = {
+                            player1Stats: result.player1Stats,
+                            player2Stats: result.player2Stats,
+                            matchDuration: result.matchDuration,
+                            gameRules: result.gameRules
+                        };
+                    } else if ((message && message.player1Stats) || (message && message.player2Stats)) {
+                        console.log(`📊 [WebSocket-Direct] Found stats at root level in message!`);
+                        dartScoringResult = {
+                            player1Stats: message.player1Stats,
+                            player2Stats: message.player2Stats,
+                            matchDuration: message.matchDuration,
+                            gameRules: message.gameRules
+                        };
+                    } else {
+                        console.log(`📊 [WebSocket-Direct] Using fallback structure`);
+                        return {
+                            player1: { name: (result && result.player1Name) || (message && message.player1Name) || 'Player 1', average: null, scores180: 0, highFinishes: 0, highFinishScores: [], scores26: 0 },
+                            player2: { name: (result && result.player2Name) || (message && message.player2Name) || 'Player 2', average: null, scores180: 0, highFinishes: 0, highFinishScores: [], scores26: 0 },
+                            match: { duration: null, format: null }
+                        };
+                    }
+                }
+
+                console.log(`📊 [WebSocket-Direct] dartScoringResult found:`, JSON.stringify(dartScoringResult, null, 2));
+                const stats = {
+                    player1: {
+                        name: dartScoringResult.player1Stats && dartScoringResult.player1Stats.name,
+                        average: dartScoringResult.player1Stats && dartScoringResult.player1Stats.average,
+                        scores180: dartScoringResult.player1Stats && dartScoringResult.player1Stats.maximums || 0,
+                        highFinishes: dartScoringResult.player1Stats && dartScoringResult.player1Stats.highFinishes || 0,
+                        highFinishScores: dartScoringResult.player1Stats && dartScoringResult.player1Stats.highFinishDetails || [],
+                        scores26: dartScoringResult.player1Stats && dartScoringResult.player1Stats.score26Count || 0,
+                        checkouts: dartScoringResult.player1Stats && dartScoringResult.player1Stats.checkouts || 0,
+                        totalThrows: dartScoringResult.player1Stats && dartScoringResult.player1Stats.totalThrows || 0,
+                        totalScore: dartScoringResult.player1Stats && dartScoringResult.player1Stats.totalScore || 0
+                    },
+                    player2: {
+                        name: dartScoringResult.player2Stats && dartScoringResult.player2Stats.name,
+                        average: dartScoringResult.player2Stats && dartScoringResult.player2Stats.average,
+                        scores180: dartScoringResult.player2Stats && dartScoringResult.player2Stats.maximums || 0,
+                        highFinishes: dartScoringResult.player2Stats && dartScoringResult.player2Stats.highFinishes || 0,
+                        highFinishScores: dartScoringResult.player2Stats && dartScoringResult.player2Stats.highFinishDetails || [],
+                        scores26: dartScoringResult.player2Stats && dartScoringResult.player2Stats.score26Count || 0,
+                        checkouts: dartScoringResult.player2Stats && dartScoringResult.player2Stats.checkouts || 0,
+                        totalThrows: dartScoringResult.player2Stats && dartScoringResult.player2Stats.totalThrows || 0,
+                        totalScore: dartScoringResult.player2Stats && dartScoringResult.player2Stats.totalScore || 0
+                    },
+                    match: {
+                        duration: dartScoringResult.matchDuration,
+                        format: dartScoringResult.gameRules && `${dartScoringResult.gameRules.startingScore} ${dartScoringResult.gameRules.doubleOut ? 'Double-Out' : 'Single-Out'}`,
+                        totalThrows: dartScoringResult.player1Stats && dartScoringResult.player2Stats ?
+                            (dartScoringResult.player1Stats.totalThrows + dartScoringResult.player2Stats.totalThrows) : null,
+                        startTime: dartScoringResult.startTime,
+                        endTime: dartScoringResult.endTime
+                    }
+                };
+
+                console.log(`📊 [WebSocket-Direct] Extracted structured statistics from dartScoringResult:`, JSON.stringify(stats, null, 2));
+                return stats;
+            };
+
+            const structuredStatistics = extractStatisticsFromSubmission(result, originalMessage);
+            console.log(`📊 [WebSocket-Direct] Raw notes (for reference):`, result.notes);
+            console.log(`📊 [WebSocket-Direct] Final structured statistics:`, JSON.stringify(structuredStatistics, null, 2));
+
+            // Die strukturierten Statistiken sind jetzt direkt verfügbar
+            const finalStatistics = structuredStatistics;
+
+            console.log(`📊 [WebSocket-Direct] Final statistics to send:`, JSON.stringify(finalStatistics, null, 2));
+
+            // KORRIGIERT: Hole Match-Informationen aus Tournament Registry für korrekte Class-ID
+            const tournament = this.tournamentRegistry.getTournament(tournamentId);
+            if (!tournament) {
+                console.error(`❌ [WebSocket-Direct] Tournament not found for broadcasting: ${tournamentId}`);
+                return;
+            }
+
+            // Finde das Match in den Tournament-Daten um Class-ID zu erhalten
+            const matches = tournament.matches || [];
+            const originalMatch = matches.find(m =>
+                String(m.id) === String(matchId) ||
+                String(m.matchId) === String(matchId)
+            );
+
+            if (!originalMatch) {
+                console.error(`❌ [WebSocket-Direct] Match not found in tournament data: ${matchId}`);
+                console.log(`📋 [WebSocket-Direct] Available matches: ${matches.map(m => `${m.id}/${m.matchId} (Class: ${m.classId})`).join(', ')}`);
             return;
         }
         
@@ -368,7 +478,7 @@ class WebSocketHandlers {
         
         console.log(`📊 [WebSocket-Direct] Enhanced match update:`, JSON.stringify(matchUpdate, null, 2));
         
-        // Broadcast to WebSocket clients
+        // Broadcast to WebSocket clients - MIT strukturierten Statistiken
         this.websocketClients.forEach((client, clientId) => {
             if (client.tournamentId === tournamentId && client.ws.readyState === 1) {
                 try {
@@ -376,6 +486,7 @@ class WebSocketHandlers {
                         type: 'tournament-match-updated',
                         tournamentId: tournamentId,
                         matchUpdate: matchUpdate,
+                        statistics: finalStatistics,  // NEU: Strukturierte Statistiken
                         timestamp: new Date().toISOString(),
                         source: 'websocket-direct',
                         // KORRIGIERT: Match result highlight für Tournament Planner
@@ -386,7 +497,7 @@ class WebSocketHandlers {
                     };
                     
                     client.ws.send(JSON.stringify(message));
-                    console.log(`📤 [WebSocket-Direct] Message sent to client ${clientId} with Class: ${className} (ID: ${classId})`);
+                    console.log(`📤 [WebSocket-Direct] Message sent to client ${clientId} with Class: ${className} (ID: ${classId}) including statistics`);
                 } catch (error) {
                     console.error(`❌ [WebSocket-Direct] Error sending to client ${clientId}:`, error);
                     this.removeClient(clientId);
@@ -400,6 +511,7 @@ class WebSocketHandlers {
             tournamentId,
             matchId,
             result: matchUpdate.result,
+            statistics: finalStatistics,  // NEU: Strukturierte Statistiken
             timestamp: new Date().toISOString(),
             source: 'websocket-direct-bridge',
             // KORRIGIERT: Class-Information für Socket.IO
@@ -410,8 +522,46 @@ class WebSocketHandlers {
         
         this.io.to(`tournament-${tournamentId}`).emit('tournament-match-updated', socketIOMessage);
         
+        // An alle Planer senden - MIT strukturierten Statistiken
+        const plannerMessage = {
+            type: 'match_update',
+            tournamentId,
+            matchId,
+            result,
+            statistics: finalStatistics,  // NEU: Strukturierte Statistiken für Planer
+            classId: classId,
+            className: className
+        };
+        
+        console.log(`📡 [WebSocket-Direct] Sending to PLANNER:`, JSON.stringify(plannerMessage, null, 2));
+        this.broadcastToPlanner(plannerMessage);
+        
         console.log(`📡 [WebSocket-Direct] Broadcasting complete for Match ${matchId} in ${className} (Class ID: ${classId})`);
         console.log(`📡 [WebSocket-Direct] ===== BROADCASTING COMPLETE =====`);
+    }
+    
+    // ========================
+    // Planner Broadcasting
+    // ========================
+    
+    broadcastToPlanner(message) {
+        console.log(`📋 [WebSocket-Direct] Broadcasting to all planner clients`);
+        
+        let plannerClientCount = 0;
+        this.websocketClients.forEach((client, clientId) => {
+            if (client.isPlannerClient && client.ws.readyState === 1) {
+                try {
+                    client.ws.send(JSON.stringify(message));
+                    plannerClientCount++;
+                    console.log(`📤 [WebSocket-Direct] Message sent to planner client ${clientId}`);
+                } catch (error) {
+                    console.error(`❌ [WebSocket-Direct] Error sending to planner ${clientId}:`, error);
+                    this.removeClient(clientId);
+                }
+            }
+        });
+        
+        console.log(`📋 [WebSocket-Direct] Broadcast sent to ${plannerClientCount} planner clients`);
     }
 }
 

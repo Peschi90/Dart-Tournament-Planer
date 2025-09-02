@@ -52,6 +52,7 @@ class SocketIOHandlers {
             
             // Match result submission
             socket.on('submit-match-result', async (data) => {
+                console.log(`🚨🔥 [Socket.IO] SUBMIT-MATCH-RESULT EVENT RECEIVED from ${socket.id} - SERVER IS ONLINE!`);
                 await this.handleMatchResultSubmission(socket, data);
             });
             
@@ -219,15 +220,43 @@ class SocketIOHandlers {
 
     async handleMatchResultSubmission(socket, data) {
         try {
-            console.log(`?? [Socket.IO] ===== MATCH RESULT SUBMISSION =====`);
-            console.log(`?? [Socket.IO] Client: ${socket.id}`);
-            console.log(`?? [Socket.IO] Data:`, JSON.stringify(data, null, 2));
+            console.log(`🚨🔥 [Socket.IO] ===== MATCH RESULT SUBMISSION ONLINE =====`);
+            console.log(`🚨🔥 [Socket.IO] Client: ${socket.id}`);
+            console.log(`🚨🔥 [Socket.IO] Data:`, JSON.stringify(data, null, 2));
             
             const { tournamentId, matchId, result, classId, className } = data;
             
-            // KORRIGIERT: Class-Information aus verschiedenen Quellen extrahieren
-            let finalClassId = classId || result?.classId || 1;
-            let finalClassName = className || result?.className || 'Unbekannte Klasse';
+            // DEBUG: Prüfe dartScoringResult in verschiedenen Stellen
+            console.log(`🚨📊 [DEBUG-STATS] Checking for dartScoringResult in data:`);
+            console.log(`🚨📊 [DEBUG-STATS] data.dartScoringResult:`, data.dartScoringResult ? 'FOUND' : 'MISSING');
+            console.log(`🚨📊 [DEBUG-STATS] result object exists:`, result ? 'YES' : 'NO');
+            if (result) {
+                console.log(`🚨📊 [DEBUG-STATS] result.dartScoringResult:`, (result && result.dartScoringResult) ? 'FOUND' : 'MISSING');
+            }
+            
+            // ROBUST: Extrahiere dartScoringResult aus verschiedenen Quellen
+            let dartScoringResult = null;
+            
+            // Priorisiere Top-Level dartScoringResult
+            if (data.dartScoringResult) {
+                dartScoringResult = data.dartScoringResult;
+                console.log(`?? [DEBUG-STATS] Using top-level dartScoringResult`);
+            }
+            // Fallback: dartScoringResult im result Objekt
+            else if (result && result.dartScoringResult) {
+                dartScoringResult = result.dartScoringResult;
+                console.log(`?? [DEBUG-STATS] Using result.dartScoringResult`);
+            }
+            
+            if (dartScoringResult) {
+                console.log(`?? [DEBUG-STATS] Statistics extracted:`, JSON.stringify(dartScoringResult, null, 2));
+            } else {
+                console.log(`?? [DEBUG-STATS] No dartScoringResult found in submission`);
+            }
+            
+            // KORRIGIERT: Class-Information aus verschiedenen Quellen extrahieren (ohne optional chaining)
+            let finalClassId = classId || (result && result.classId) || 1;
+            let finalClassName = className || (result && result.className) || 'Unbekannte Klasse';
             
             // ERWEITERT: Wenn Class-Info fehlt, aus Tournament-Daten holen
             if ((!finalClassId || finalClassId === 1) && !finalClassName.includes('Klasse')) {
@@ -249,20 +278,27 @@ class SocketIOHandlers {
             
             // KORRIGIERT: Erweitere Result-Objekt mit Class-Information
             const enhancedResult = {
-                ...result,
+                ...(result || {}),
                 classId: finalClassId,
                 className: finalClassName,
                 submittedVia: 'Socket.IO',
                 submittedAt: new Date().toISOString()
             };
             
+            // ROBUST: Füge dartScoringResult hinzu wenn vorhanden
+            if (dartScoringResult) {
+                enhancedResult.dartScoringResult = dartScoringResult;
+                console.log(`?? [DEBUG-STATS] Added dartScoringResult to enhancedResult`);
+            }
+            
             console.log(`?? [Socket.IO] Enhanced result with class info:`, {
                 originalClassId: classId,
                 originalClassName: className,
-                resultClassId: result?.classId,
-                resultClassName: result?.className,
+                resultClassId: (result && result.classId),
+                resultClassName: (result && result.className),
                 finalClassId: finalClassId,
-                finalClassName: finalClassName
+                finalClassName: finalClassName,
+                hasDartScoringResult: !!dartScoringResult
             });
             
             const success = await this.matchService.submitMatchResult(tournamentId, matchId, enhancedResult);
@@ -283,6 +319,12 @@ class SocketIOHandlers {
                     className: finalClassName,
                     matchResultHighlight: true
                 };
+                
+                // ROBUST: Füge dartScoringResult auch auf Top-Level hinzu
+                if (dartScoringResult) {
+                    broadcastData.dartScoringResult = dartScoringResult;
+                    console.log(`?? [DEBUG-STATS] Added dartScoringResult to broadcast data`);
+                }
                 
                 console.log(`?? [Socket.IO] Broadcasting match update for ${finalClassName} (Class ID: ${finalClassId})`);
                 
@@ -318,7 +360,7 @@ class SocketIOHandlers {
                 
                 // Also broadcast via direct WebSocket if available
                 if (this.websocketHandlers) {
-                    // KORRIGIERT: �bergebe erweiterte Result-Daten mit Class-Info
+                    // KORRIGIERT: �bergebe erweiterte Result-Daten mit Class-Info
                     this.websocketHandlers.broadcastMatchUpdate(tournamentId, matchId, enhancedResult);
                 }
                 
@@ -488,17 +530,17 @@ class SocketIOHandlers {
                 return;
             }
             
-            // Join match-specific rooms (beide ID-Typen f�r Compatibility)
+            // Join match-specific rooms (beide ID-Typen f�r Compatibility)
             const rooms = [];
             
-            // UUID-basierte R�ume (bevorzugt)
+            // UUID-basierte R�ume (bevorzugt)
             if (match.uniqueId) {
                 const uuidMatchRoom = `match_${tournamentId}_${match.uniqueId}`;
                 socket.join(uuidMatchRoom);
                 rooms.push(uuidMatchRoom);
             }
             
-            // Legacy numerische ID-R�ume (Backwards-Compatibility)
+            // Legacy numerische ID-R�ume (Backwards-Compatibility)
             const numericMatchRoom = `match_${tournamentId}_${match.matchId || match.id || match.Id}`;
             socket.join(numericMatchRoom);
             rooms.push(numericMatchRoom);
@@ -620,7 +662,7 @@ class SocketIOHandlers {
                 matchId: match.matchId || match.id || match.Id,
                 tournamentId: tournamentId,
                 tournamentName: tournament.name,
-                // Zus�tzliche Match-Informationen
+                // Zus�tzliche Match-Informationen
                 matchType: match.matchType || 'Unknown',
                 bracketType: match.bracketType || null,
                 round: match.round || null,

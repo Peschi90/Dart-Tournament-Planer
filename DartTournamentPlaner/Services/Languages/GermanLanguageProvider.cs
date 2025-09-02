@@ -965,6 +965,7 @@ public class GermanLanguageProvider : ILanguageProvider
             ["CheckoutRate"] = "Checkout-Quote",
             ["HighFinishes"] = "High Finishes",
             ["TotalHighFinishes"] = "Gesamt High Finishes",
+            ["HighFinishScores"] = "HF Scores",
             ["HighestFinish"] = "Höchstes Finish",
             ["HighestFinishScore"] = "Höchstes Finish",
             ["AverageCheckout"] = "Durchschnittliches Checkout",
@@ -977,13 +978,19 @@ public class GermanLanguageProvider : ILanguageProvider
             ["TotalMaximums"] = "180er",
             ["MaximumsPerGame"] = "180er pro Spiel",
             ["Score26"] = "26er",
-            ["TotalScore26"] = "Gesamt 26er",
+            ["TotalScore26"] = "26er",
             ["Score26PerGame"] = "26er pro Spiel",
             ["HighScores"] = "Hohe Scores",
             ["ScoreDistribution"] = "Score-Verteilung",
             ["Above100Average"] = "Über 100 Average",
             ["Above80Average"] = "Über 80 Average",
             ["Above60Average"] = "Über 60 Average",
+            
+            // ✅ NEU: Erweiterte Effizienz-Statistiken
+            ["FastestMatch"] = "Schnellstes Match",
+            ["FewestThrowsInMatch"] = "Wenigste Würfe",
+            ["FastestMatchTooltip"] = "Kürzeste Spieldauer über alle Matches (MM:SS)",
+            ["FewestThrowsTooltip"] = "Wenigste Würfe in einem Match (beste Wurf-Effizienz)",
             
             // Zeit-basierte Statistiken
             ["LastMatchDate"] = "Letztes Spiel",
@@ -1070,6 +1077,8 @@ public class GermanLanguageProvider : ILanguageProvider
             ["HighFinishesTooltip"] = "Checkouts über 100 Punkte",
             ["CheckoutRateTooltip"] = "Prozentsatz erfolgreicher Checkout-Versuche",
             ["ConsistencyTooltip"] = "Gleichmäßigkeit der Leistung",
+            ["FastestMatchTooltip"] = "Kürzeste Spieldauer über alle Matches (MM:SS)",
+            ["FewestThrowsTooltip"] = "Wenigste Würfe in einem Match (beste Wurf-Effizienz)",
             
             // Erweiterte Statistik-Features
             ["TrendAnalysis"] = "Trend-Analyse",
@@ -1088,7 +1097,111 @@ public class GermanLanguageProvider : ILanguageProvider
             ["ValidationStatus"] = "Validierungs-Status",
             ["LastUpdate"] = "Letzte Aktualisierung",
             ["DataSource"] = "Datenquelle",
-            ["RecordCount"] = "Anzahl Datensätze"
+            ["RecordCount"] = "Anzahl Datensätze",
+
+            // ========================================
+            // WEBSOCKET STATISTIK-EXTRAKTION - NEU
+            // ========================================
+            
+            // Statistik-Extraktion Meldungen
+            ["ProcessingMatchUpdate"] = "Verarbeite Match-Update für Klasse {0}",
+            ["SkippingNonMatchResult"] = "Überspringe Nicht-Match-Ergebnis Update: {0}",
+            ["ProcessingTopLevelStats"] = "Verarbeite Top-Level-Spieler-Statistiken für {0} vs {1}",
+            ["ProcessingSimpleStats"] = "Verarbeite einfache Spieler-Statistiken für {0} vs {1}",
+            ["ProcessingEnhancedStats"] = "Verarbeite erweiterte Dart-Statistiken für {0} vs {1}",
+            ["FallbackNotesExtraction"] = "Fallback auf Notes-basierte Statistik-Extraktion",
+            ["ErrorProcessingMatchResult"] = "Fehler beim Verarbeiten des Match-Ergebnisses: {0}",
+            
+            // JSON-Parsing Meldungen
+            ["ProcessingJSONFromNotes"] = "Verarbeite JSON aus Notes-Feld für Top-Level-Statistiken",
+            ["NoJSONDataFound"] = "Keine JSON-Daten in Notes für Top-Level-Statistiken gefunden",
+            ["AvailableTopLevelProperties"] = "Verfügbare Top-Level-Properties: {0}",
+            ["NoTopLevelStatsFound"] = "Keine Top-Level-Statistiken in JSON-Struktur gefunden",
+            ["FoundTopLevelStats"] = "Top-Level-Statistiken in JSON gefunden",
+            
+            // Spieler-Daten Extraktion
+            ["ExtractedPlayer1"] = "Player1 extrahiert: Avg {0}, 180er: {1}, HF: {2}, 26er: {3}",
+            ["ExtractedPlayer2"] = "Player2 extrahiert: Avg {0}, 180er: {1}, HF: {2}, 26er: {3}",
+            ["MatchDuration"] = "Match-Dauer: {0}",
+            ["ParsedDuration"] = "Dauer geparst: {0} Minuten",
+            ["MatchFormat"] = "Match-Format: {0}",
+            
+            // Spielernamen Extraktion
+            ["FoundPlayer1NameFromResult"] = "player1Name aus matchUpdate.result gefunden: {0}",
+            ["FoundPlayer2NameFromResult"] = "player2Name aus matchUpdate.result gefunden: {0}",
+            ["UsingFallbackPlayerNames"] = "Verwende Fallback-Spielernamen-Extraktion",
+            ["FallbackPlayerNames"] = "Fallback-Spielernamen: {0}, {1}",
+            ["FinalExtractedStats"] = "Final extrahierte Statistiken: {0} vs {1}",
+            ["ErrorParsingTopLevelStats"] = "Fehler beim Parsen der Top-Level-Spieler-Statistiken: {0}",
+            
+            // High Finish Scores Extraktion
+            ["ExtractedHighFinishScores"] = "High Finish Scores extrahiert: [{0}]",
+            ["NoPlayerNameFound"] = "Kein Spielername für Player {0} gefunden, verwende Fallback",
+            ["ErrorExtractingPlayerName"] = "Fehler beim Extrahieren des Spielernamens: {0}",
+            ["FoundPlayerNameInResult"] = "player{0}Name in matchUpdate.result gefunden: {1}",
+            
+            // Statistik-Verarbeitung Erfolg
+            ["SuccessfullyProcessedSimpleStats"] = "Einfache Statistiken erfolgreich verarbeitet für {0} und {1}",
+            ["SuccessfullyProcessedEnhancedStats"] = "Erweiterte Statistiken erfolgreich verarbeitet für {0} und {1}",
+            ["ErrorProcessingSimpleStats"] = "Fehler beim Verarbeiten einfacher Statistiken: {0}",
+            ["ErrorProcessingEnhancedStats"] = "Fehler beim Verarbeiten erweiterter Statistiken: {0}",
+            
+            // Gewinner-Bestimmung
+            ["WinnerDetermined"] = "Gewinner bestimmt: {0} (Sets: {1}-{2}, Legs: {3}-{4})",
+            ["ErrorDeterminingWinner"] = "Fehler beim Bestimmen des Gewinners:",
+            
+            // Erweiterte Statistik-Extraktion - NEU
+            ["ExtractedEnhancedDetails"] = "{0} high finish details extrahiert",
+            ["MatchDurationMs"] = "Match-Dauer: {0}ms = {1}",
+            ["MatchDurationString"] = "Match-Dauer String: {0}",
+            ["ExtractedStartTime"] = "Startzeit: {0}",
+            ["ExtractedEndTime"] = "Endzeit: {0}",
+            ["ExtractedTotalThrows"] = "Gesamtwürfe: {0}",
+            ["ExtractedCheckouts"] = "Checkouts extrahiert: {0}",
+            ["ExtractedTotalScore"] = "Gesamtpunktzahl extrahiert: {0}",
+            ["ExtractedHighFinishDetails"] = "{0} High Finish Details extrahiert",
+            ["GameRulesExtracted"] = "Spielregeln extrahiert: {0}, Double Out: {1}, Startpunktzahl: {2}",
+            ["VersionInfoExtracted"] = "Version: {0}, Eingereicht via: {1}",
+            ["DurationFormatted"] = "Dauer formatiert: {0}ms = {1}",
+            
+            // Match-Dauer Formatierung
+            ["DurationSeconds"] = "{0} Sekunden",
+            ["DurationMinutes"] = "{0:D2}:{1:D2} Minuten",
+            ["DurationHours"] = "{0}:{1:D2}:{2:D2} Stunden",
+            
+            // Erweiterte Player-Statistiken
+            ["PlayerStatsValidation"] = "Spieler-Daten Validierung: {0} (Avg: {1}, Throws: {2}, Score: {3}, Checkouts: {4})",
+            ["DetailedStatsMerge"] = "Detaillierte Statistiken zusammengeführt: Checkouts: {0}, TotalThrows: {1}, TotalScore: {2}",
+            ["RealDataUsage"] = "Verwende echte Daten: Throws: {0}, Score: {1}, Checkouts: {2}",
+            
+            // High Finish Details Verarbeitung
+            ["HighFinishDetailsParsed"] = "High Finish Details geparst: Finish {0}, Darts: [{1}], Zeitstempel: {2}",
+            ["HighFinishScoresExtracted"] = "High Finish Scores extrahiert: [{0}]",
+            ["CheckoutDetailsCreated"] = "Checkout Details erstellt: {0} Checkouts",
+            
+            // Match-Metadaten
+            ["MatchMetadataExtracted"] = "Match-Metadaten extrahiert: Format {0}, Start {1}, Ende {2}, Dauer {3}ms",
+            ["GameModeDetected"] = "Spielmodus erkannt: {0}",
+            ["SubmissionInfoExtracted"] = "Übertragungsinfo extrahiert: {0} v{1}",
+            
+            // Statistik-Berechnung
+            ["StatisticsCalculated"] = "Statistiken berechnet für {0}: Avg {1}, {2} Würfe, {3} Punkte",
+            ["PerformanceMetrics"] = "Leistungsmetriken: Durchschnitt pro Wurf: {0:F1}, HF-Rate: {1:F2}, Maximum-Rate: {2:F2}",
+            ["DetailListsSizes"] = "Detail-Listen Größen: {0} HF, {1} Max, {2} Score26, {3} Checkouts",
+
+            // Direkte WebSocket-Extraktion - NEU
+            ["DirectWebSocketExtraction"] = "Direkte WebSocket-Statistik-Extraktion",
+            ["NoValidJSONInWebSocket"] = "Keine gültigen JSON-Daten in WebSocket-Nachricht gefunden",
+            ["ProcessingDirectWebSocketStats"] = "Verarbeite direkte WebSocket-Statistiken",
+            ["NoDirectStatsFound"] = "Keine direkten Statistiken in WebSocket-Nachricht gefunden",
+            ["FoundDirectStatsInWebSocket"] = "Direkte Statistiken in WebSocket-Nachricht gefunden",
+            ["NoValidDirectWebSocketData"] = "Keine gültigen direkten WebSocket-Statistikdaten gefunden",
+            ["DirectWebSocketExtractionSuccess"] = "Direkte WebSocket-Extraktion erfolgreich: {0} vs {1}",
+            ["ErrorParsingDirectWebSocketStats"] = "Fehler beim Parsen direkter WebSocket-Statistiken: {0}",
+            ["DirectWebSocketPlayer1"] = "Direkter WebSocket Player1: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
+            ["DirectWebSocketPlayer2"] = "Direkter WebSocket Player2: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
+            ["DirectWebSocketMatchDuration"] = "Direkte WebSocket Match-Dauer: {0}ms = {1}",
+            ["ProcessingDirectWebSocketStatsFor"] = "Verarbeite direkte WebSocket-Statistiken für {0} vs {1}"
         };
     }
 }

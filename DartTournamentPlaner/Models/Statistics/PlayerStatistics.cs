@@ -391,6 +391,20 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// ? NEU: Schnellstes Match (kürzeste Spieldauer)
+    /// </summary>
+    [JsonIgnore]
+    public TimeSpan FastestMatch => MatchStatistics.Count > 0 && MatchStatistics.Any(m => m.MatchDuration > TimeSpan.Zero) ? 
+        MatchStatistics.Where(m => m.MatchDuration > TimeSpan.Zero).Min(m => m.MatchDuration) : TimeSpan.Zero;
+
+    /// <summary>
+    /// ? NEU: Wenigste Würfe in einem Match (beste Wurf-Effizienz pro Match)
+    /// </summary>
+    [JsonIgnore]
+    public int FewestThrowsInMatch => MatchStatistics.Count > 0 && MatchStatistics.Any(m => m.TotalThrows > 0) ? 
+        MatchStatistics.Where(m => m.TotalThrows > 0).Min(m => m.TotalThrows) : 0;
+
+    /// <summary>
     /// Letztes gespieltes Match
     /// </summary>
     [JsonIgnore]
@@ -447,6 +461,8 @@ public class PlayerStatistics : INotifyPropertyChanged
         OnPropertyChanged(nameof(TotalThrows));
         OnPropertyChanged(nameof(AverageThrowsPerLeg));
         OnPropertyChanged(nameof(BestLegEfficiency));
+        OnPropertyChanged(nameof(FastestMatch)); // ? NEU
+        OnPropertyChanged(nameof(FewestThrowsInMatch)); // ? NEU
         OnPropertyChanged(nameof(LastMatchDate));
         OnPropertyChanged(nameof(FirstMatchDate));
     }

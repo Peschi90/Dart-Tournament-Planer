@@ -237,6 +237,17 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
+                        <DataGridTextColumn x:Name="HighFinishScoresColumn" Header="HF Scores" Binding="{Binding HighFinishScores}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#0891B2"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
                         <DataGridTextColumn x:Name="HighestFinishColumn" Header="Höchstes HF" Binding="{Binding HighestHighFinish}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -253,6 +264,28 @@
                                     <Setter Property="TextAlignment" Value="Center"/>
                                     <Setter Property="Foreground" Value="#EF4444"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <!-- ✅ NEU: Schnellstes Match -->
+                        <DataGridTextColumn x:Name="FastestMatchColumn" Header="Schnellstes Match" Binding="{Binding FastestMatchFormatted}" Width="120">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#059669"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        
+                        <!-- ✅ NEU: Wenigste Würfe -->
+                        <DataGridTextColumn x:Name="FewestThrowsColumn" Header="Wenigste Würfe" Binding="{Binding FewestThrowsInMatch}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#7C2D12"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>

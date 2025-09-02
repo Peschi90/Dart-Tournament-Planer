@@ -50,7 +50,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
 
     /// <summary>
     /// ✅ ERWEITERT: Extrahiert umfangreiche Dart-Statistiken aus WebSocket-Nachrichten
-    /// Verarbeitet nun auch dartScoringResult-Daten für detaillierte Statistiken
+    /// Verarbeitet nun auch direkte statistics-Daten aus der WebSocket-Nachricht UND dartScoringResult-Daten und playerStatistics für detaillierte Statistiken
     /// </summary>
     public void ProcessWebSocketMatchResult(HubMatchUpdateEventArgs matchUpdate)
     {
@@ -64,7 +64,34 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                 return;
             }
 
-            // ✅ NEU: Versuche zuerst erweiterte dartScoringResult-Daten zu extrahieren
+            // ✅ NEU: Versuche zuerst direkte WebSocket statistics-Extraktion
+            var directStats = ExtractDirectWebSocketStatistics(matchUpdate);
+            if (directStats != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STATS] Processing direct WebSocket statistics for {directStats.Player1Name} vs {directStats.Player2Name}");
+                ProcessSimpleStatistics(matchUpdate, directStats);
+                return;
+            }
+
+            // ✅ NEU: Versuche zuerst neue top-level statistics-Struktur zu extrahieren
+            var topLevelStats = ExtractTopLevelPlayerStatistics(matchUpdate);
+            if (topLevelStats != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STATS] Processing top-level player statistics for {topLevelStats.Player1Name} vs {topLevelStats.Player2Name}");
+                ProcessSimpleStatistics(matchUpdate, topLevelStats);
+                return;
+            }
+
+            // ✅ Versuche playerStatistics-Struktur zu extrahieren
+            var simpleStats = ExtractSimplePlayerStatistics(matchUpdate);
+            if (simpleStats != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STATS] Processing simple player statistics for {simpleStats.Player1Name} vs {simpleStats.Player2Name}");
+                ProcessSimpleStatistics(matchUpdate, simpleStats);
+                return;
+            }
+
+            // ✅ Versuche erweiterte dartScoringResult-Daten zu extrahieren
             var enhancedStats = ExtractEnhancedDartStatistics(matchUpdate);
             if (enhancedStats != null)
             {
@@ -84,7 +111,569 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ✅ NEU: Extrahiert erweiterte Dart-Statistiken direkt aus dartScoringResult
+    /// ✅ NEU: Extrahiert Statistiken direkt aus der WebSocket-Nachricht (statistics property)
+    /// Diese Methode verarbeitet die statistics-Sektion direkt aus der WebSocket-Nachricht, nicht aus Notes
+    /// </summary>
+    private SimplePlayerStatistics? ExtractDirectWebSocketStatistics(HubMatchUpdateEventArgs matchUpdate)
+    {
+        try
+        {
+            // ✅ NEU: Parse die komplette WebSocket-Nachricht aus Notes
+            if (string.IsNullOrEmpty(matchUpdate.Notes) || !matchUpdate.Notes.TrimStart().StartsWith("{"))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No valid JSON data found in WebSocket message");
+                return null;
+            }
+
+            var jsonData = JsonDocument.Parse(matchUpdate.Notes);
+            var root = jsonData.RootElement;
+            
+            System.Diagnostics.Debug.WriteLine("[STATS] Processing direct WebSocket statistics");
+
+            // ✅ Suche nach statistics Property auf Root-Level
+            if (!root.TryGetProperty("statistics", out var statistics))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No direct statistics found in WebSocket message");
+                return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine("[STATS] Found direct statistics in WebSocket message");
+
+            var simpleStats = new SimplePlayerStatistics();
+            bool hasValidData = false;
+
+            // ✅ Extrahiere Player1 Daten
+            if (statistics.TryGetProperty("player1", out var player1Data))
+            {
+                simpleStats.Player1Stats = ParseSimplePlayerData(player1Data);
+                
+                if (IsValidPlayerData(simpleStats.Player1Stats))
+                {
+                    hasValidData = true;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Direct WebSocket Player1: {simpleStats.Player1Stats.Name} - Avg {simpleStats.Player1Stats.Average}, 180s: {simpleStats.Player1Stats.Scores180}, HF: {simpleStats.Player1Stats.HighFinishes}, 26s: {simpleStats.Player1Stats.Scores26}, Checkouts: {simpleStats.Player1Stats.Checkouts}");
+                }
+            }
+
+            // ✅ Extrahiere Player2 Daten  
+            if (statistics.TryGetProperty("player2", out var player2Data))
+            {
+                simpleStats.Player2Stats = ParseSimplePlayerData(player2Data);
+                
+                if (IsValidPlayerData(simpleStats.Player2Stats))
+                {
+                    hasValidData = true;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Direct WebSocket Player2: {simpleStats.Player2Stats.Name} - Avg {simpleStats.Player2Stats.Average}, 180s: {simpleStats.Player2Stats.Scores180}, HF: {simpleStats.Player2Stats.HighFinishes}, 26s: {simpleStats.Player2Stats.Scores26}, Checkouts: {simpleStats.Player2Stats.Checkouts}");
+                }
+            }
+
+            if (!hasValidData)
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No valid direct WebSocket statistics data found");
+                return null;
+            }
+
+            // ✅ Extrahiere Match-Metadaten
+            if (statistics.TryGetProperty("match", out var matchData))
+            {
+                // Duration als Millisekunden
+                if (matchData.TryGetProperty("duration", out var duration))
+                {
+                    if (duration.ValueKind == JsonValueKind.Number)
+                    {
+                        var milliseconds = duration.GetInt64();
+                        simpleStats.MatchDuration = TimeSpan.FromMilliseconds(milliseconds);
+                        simpleStats.MatchDurationString = FormatDuration(simpleStats.MatchDuration);
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Direct WebSocket match duration: {milliseconds}ms = {simpleStats.MatchDurationString}");
+                    }
+                }
+                
+                if (matchData.TryGetProperty("format", out var format))
+                {
+                    simpleStats.MatchFormat = format.GetString() ?? "Unknown";
+                }
+
+                if (matchData.TryGetProperty("startTime", out var startTime))
+                {
+                    if (DateTime.TryParse(startTime.GetString(), out var parsedStartTime))
+                    {
+                        simpleStats.StartTime = parsedStartTime;
+                    }
+                }
+
+                if (matchData.TryGetProperty("endTime", out var endTime))
+                {
+                    if (DateTime.TryParse(endTime.GetString(), out var parsedEndTime))
+                    {
+                        simpleStats.EndTime = parsedEndTime;
+                    }
+                }
+
+                if (matchData.TryGetProperty("totalThrows", out var totalThrows))
+                {
+                    simpleStats.TotalThrows = totalThrows.GetInt32();
+                }
+            }
+
+            // ✅ Spielernamen aus matchUpdate.result extrahieren
+            if (root.TryGetProperty("matchUpdate", out var matchUpdate_El) && 
+                matchUpdate_El.TryGetProperty("result", out var resultEl))
+            {
+                if (resultEl.TryGetProperty("player1Name", out var player1Name))
+                {
+                    simpleStats.Player1Name = player1Name.GetString() ?? simpleStats.Player1Stats.Name;
+                }
+
+                if (resultEl.TryGetProperty("player2Name", out var player2Name))
+                {
+                    simpleStats.Player2Name = player2Name.GetString() ?? simpleStats.Player2Stats.Name;
+                }
+            }
+
+            // Fallback auf Namen aus statistics falls nicht in result gefunden
+            if (string.IsNullOrEmpty(simpleStats.Player1Name))
+            {
+                simpleStats.Player1Name = simpleStats.Player1Stats.Name;
+            }
+            if (string.IsNullOrEmpty(simpleStats.Player2Name))
+            {
+                simpleStats.Player2Name = simpleStats.Player2Stats.Name;
+            }
+
+            // Bestimme Gewinner
+            DetermineWinnerForSimpleStats(matchUpdate, simpleStats);
+
+            System.Diagnostics.Debug.WriteLine($"[STATS] Direct WebSocket extraction successful: {simpleStats.Player1Name} vs {simpleStats.Player2Name}");
+            return simpleStats;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error parsing direct WebSocket statistics: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Extrahiert Statistiken aus der neuen top-level "statistics" Struktur
+    /// Verarbeitet die Struktur mit statistics.player1/player2 und matchUpdate.result.player1Name/player2Name
+    /// </summary>
+    private SimplePlayerStatistics? ExtractTopLevelPlayerStatistics(HubMatchUpdateEventArgs matchUpdate)
+    {
+        try
+        {
+            JsonElement result;
+            
+            if (!string.IsNullOrEmpty(matchUpdate.Notes) && matchUpdate.Notes.TrimStart().StartsWith("{"))
+            {
+                var jsonData = JsonDocument.Parse(matchUpdate.Notes);
+                result = jsonData.RootElement;
+                System.Diagnostics.Debug.WriteLine("[STATS] Processing JSON from Notes field for top-level statistics");
+                
+                // ✅ NEU: Debug-Ausgabe der verfügbaren Properties
+                if (result.ValueKind == JsonValueKind.Object)
+                {
+                    var properties = new List<string>();
+                    foreach (var property in result.EnumerateObject())
+                    {
+                        properties.Add(property.Name);
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Available top-level properties: {string.Join(", ", properties)}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No JSON data found in Notes for top-level statistics");
+                return null;
+            }
+
+            // Suche nach top-level statistics Property
+            if (!result.TryGetProperty("statistics", out var statistics))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No top-level statistics found in JSON structure");
+                return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine("[STATS] Found top-level statistics in JSON");
+
+            var simpleStats = new SimplePlayerStatistics();
+            bool hasValidData = false;
+
+            // Extrahiere Player1 Daten
+            if (statistics.TryGetProperty("player1", out var player1Data))
+            {
+                simpleStats.Player1Stats = ParseSimplePlayerData(player1Data);
+                
+                // ✅ NEU: Prüfe ob die Daten gültig sind (nicht alle null/0)
+                if (IsValidPlayerData(simpleStats.Player1Stats))
+                {
+                    hasValidData = true;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Extracted valid Player1: Avg {simpleStats.Player1Stats.Average}, 180s: {simpleStats.Player1Stats.Scores180}, HF: {simpleStats.Player1Stats.HighFinishes}, 26s: {simpleStats.Player1Stats.Scores26}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Player1 data is empty/null: Avg {simpleStats.Player1Stats.Average}, 180s: {simpleStats.Player1Stats.Scores180}, HF: {simpleStats.Player1Stats.HighFinishes}, 26s: {simpleStats.Player1Stats.Scores26}");
+                }
+            }
+
+            // Extrahiere Player2 Daten  
+            if (statistics.TryGetProperty("player2", out var player2Data))
+            {
+                simpleStats.Player2Stats = ParseSimplePlayerData(player2Data);
+                
+                // ✅ NEU: Prüfe ob die Daten gültig sind (nicht alle null/0)
+                if (IsValidPlayerData(simpleStats.Player2Stats))
+                {
+                    hasValidData = true;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Extracted valid Player2: Avg {simpleStats.Player2Stats.Average}, 180s: {simpleStats.Player2Stats.Scores180}, HF: {simpleStats.Player2Stats.HighFinishes}, 26s: {simpleStats.Player2Stats.Scores26}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Player2 data is empty/null: Avg {simpleStats.Player2Stats.Average}, 180s: {simpleStats.Player2Stats.Scores180}, HF: {simpleStats.Player2Stats.HighFinishes}, 26s: {simpleStats.Player2Stats.Scores26}");
+                }
+            }
+
+            // ✅ NEU: Wenn keine gültigen Statistik-Daten vorhanden sind, gib null zurück für Fallback
+            if (!hasValidData)
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No valid statistics data found in top-level structure, will fallback to notes parsing");
+                return null;
+            }
+
+            // Extrahiere Match-Metadaten
+            if (statistics.TryGetProperty("match", out var matchData))
+            {
+                // ✅ NEU: Duration als Millisekunden
+                if (matchData.TryGetProperty("duration", out var duration))
+                {
+                    if (duration.ValueKind == JsonValueKind.Number)
+                    {
+                        var milliseconds = duration.GetInt64();
+                        simpleStats.MatchDuration = TimeSpan.FromMilliseconds(milliseconds);
+                        simpleStats.MatchDurationString = FormatDuration(simpleStats.MatchDuration);
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Match duration: {milliseconds}ms = {simpleStats.MatchDurationString}");
+                    }
+                    else if (duration.ValueKind == JsonValueKind.String)
+                    {
+                        var durationStr = duration.GetString() ?? "0 min";
+                        simpleStats.MatchDurationString = durationStr;
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Match duration string: {durationStr}");
+                        
+                        // Versuche Duration zu parsen (z.B. "0 minutes", "15 min")
+                        var match = System.Text.RegularExpressions.Regex.Match(durationStr, @"(\d+)\s*(min|minutes?)");
+                        if (match.Success && int.TryParse(match.Groups[1].Value, out int minutes))
+                        {
+                            simpleStats.MatchDuration = TimeSpan.FromMinutes(minutes);
+                            System.Diagnostics.Debug.WriteLine($"[STATS] Parsed duration: {minutes} minutes");
+                        }
+                    }
+                }
+                
+                if (matchData.TryGetProperty("format", out var format))
+                {
+                    simpleStats.MatchFormat = format.GetString() ?? "Unknown";
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Match format: {simpleStats.MatchFormat}");
+                }
+
+                // ✅ NEU: Start- und End-Zeit
+                if (matchData.TryGetProperty("startTime", out var startTime))
+                {
+                    if (DateTime.TryParse(startTime.GetString(), out var parsedStartTime))
+                    {
+                        simpleStats.StartTime = parsedStartTime;
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Start time: {simpleStats.StartTime}");
+                    }
+                }
+
+                if (matchData.TryGetProperty("endTime", out var endTime))
+                {
+                    if (DateTime.TryParse(endTime.GetString(), out var parsedEndTime))
+                    {
+                        simpleStats.EndTime = parsedEndTime;
+                        System.Diagnostics.Debug.WriteLine($"[STATS] End time: {simpleStats.EndTime}");
+                    }
+                }
+
+                // ✅ NEU: Total Throws
+                if (matchData.TryGetProperty("totalThrows", out var totalThrows))
+                {
+                    simpleStats.TotalThrows = totalThrows.GetInt32();
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Total throws: {simpleStats.TotalThrows}");
+                }
+            }
+
+            // ✅ NEU: Extrahiere Spielernamen aus matchUpdate.result
+            if (result.TryGetProperty("matchUpdate", out var matchUpdate_El) && 
+                matchUpdate_El.TryGetProperty("result", out var resultEl))
+            {
+                if (resultEl.TryGetProperty("player1Name", out var player1Name))
+                {
+                    simpleStats.Player1Name = player1Name.GetString() ?? "Player 1";
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Found player1Name from matchUpdate.result: {simpleStats.Player1Name}");
+                }
+
+                if (resultEl.TryGetProperty("player2Name", out var player2Name))
+                {
+                    simpleStats.Player2Name = player2Name.GetString() ?? "Player 2";
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Found player2Name from matchUpdate.result: {simpleStats.Player2Name}");
+                }
+            }
+
+            // Fallback: Versuche Spielernamen aus verschiedenen Pfaden zu extrahieren
+            if (string.IsNullOrEmpty(simpleStats.Player1Name) || string.IsNullOrEmpty(simpleStats.Player2Name))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] Using fallback player name extraction");
+                simpleStats.Player1Name = GetPlayerNameFromMatch(matchUpdate, 1);
+                simpleStats.Player2Name = GetPlayerNameFromMatch(matchUpdate, 2);
+                System.Diagnostics.Debug.WriteLine($"[STATS] Fallback player names: {simpleStats.Player1Name}, {simpleStats.Player2Name}");
+            }
+
+            // Bestimme Gewinner basierend auf Match-Update Ergebnis
+            DetermineWinnerForSimpleStats(matchUpdate, simpleStats);
+
+            System.Diagnostics.Debug.WriteLine($"[STATS] Final extracted statistics with valid data: {simpleStats.Player1Name} vs {simpleStats.Player2Name}");
+            return simpleStats;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error parsing top-level player statistics: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Prüft ob PlayerData gültige (nicht leere/null) Statistiken enthält mit neuen Feldern
+    /// </summary>
+    private bool IsValidPlayerData(SimplePlayerData playerData)
+    {
+        // Prüfe ob mindestens ein Wert gesetzt ist (nicht 0 oder null)
+        return playerData.Average > 0 ||
+               playerData.Scores180 > 0 ||
+               playerData.HighFinishes > 0 ||
+               playerData.Scores26 > 0 ||
+               playerData.Checkouts > 0 ||  // ✅ NEU
+               playerData.TotalThrows > 0 || // ✅ NEU
+               playerData.TotalScore > 0 ||  // ✅ NEU
+               (playerData.HighFinishScores?.Count > 0) ||
+               (playerData.HighFinishDetails?.Count > 0); // ✅ NEU
+    }
+
+    /// <summary>
+    /// ✅ NEU: Parst einfache Spieler-Statistiken aus JSON mit erweiterten Daten
+    /// Unterstützt nun auch detaillierte highFinishScores, totalThrows, totalScore und checkouts
+    /// </summary>
+    private SimplePlayerData ParseSimplePlayerData(JsonElement playerData)
+    {
+        var data = new SimplePlayerData();
+
+        // Name (falls verfügbar)
+        if (playerData.TryGetProperty("name", out var name))
+        {
+            data.Name = name.GetString() ?? "";
+        }
+
+        // Average
+        if (playerData.TryGetProperty("average", out var avg))
+        {
+            if (avg.ValueKind == JsonValueKind.Number)
+            {
+                data.Average = avg.GetDouble();
+            }
+            else if (avg.ValueKind == JsonValueKind.String)
+            {
+                if (double.TryParse(avg.GetString(), System.Globalization.NumberStyles.Float, 
+                    System.Globalization.CultureInfo.InvariantCulture, out double avgValue))
+                {
+                    data.Average = avgValue;
+                }
+            }
+            else if (avg.ValueKind == JsonValueKind.Null)
+            {
+                data.Average = 0.0; // Handle null values
+            }
+        }
+
+        // 180er Scores
+        if (playerData.TryGetProperty("scores180", out var scores180))
+        {
+            data.Scores180 = scores180.GetInt32();
+        }
+
+        // High Finishes Anzahl
+        if (playerData.TryGetProperty("highFinishes", out var highFinishes))
+        {
+            data.HighFinishes = highFinishes.GetInt32();
+        }
+
+        // ✅ NEU: High Finish Scores Array mit Details
+        if (playerData.TryGetProperty("highFinishScores", out var highFinishScores) && 
+            highFinishScores.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var highFinishElement in highFinishScores.EnumerateArray())
+            {
+                var highFinishDetail = new HighFinishDetail();
+                
+                if (highFinishElement.TryGetProperty("finish", out var finish))
+                    highFinishDetail.Finish = finish.GetInt32();
+                
+                if (highFinishElement.TryGetProperty("remainingScore", out var remaining))
+                    highFinishDetail.RemainingScore = remaining.GetInt32();
+                
+                if (highFinishElement.TryGetProperty("timestamp", out var timestamp))
+                {
+                    if (DateTime.TryParse(timestamp.GetString(), out var parsedTime))
+                        highFinishDetail.Timestamp = parsedTime;
+                    else
+                        highFinishDetail.Timestamp = DateTime.Now;
+                }
+
+                if (highFinishElement.TryGetProperty("darts", out var darts) && darts.ValueKind == JsonValueKind.Array)
+                {
+                    highFinishDetail.Darts = darts.EnumerateArray().Select(d => d.GetInt32()).ToList();
+                }
+
+                data.HighFinishDetails.Add(highFinishDetail);
+                
+                // Auch in die einfache Liste für Rückwärtskompatibilität
+                data.HighFinishScores.Add(highFinishDetail.Finish);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[STATS] Extracted {data.HighFinishDetails.Count} high finish details: [{string.Join(", ", data.HighFinishScores)}]");
+        }
+
+        // 26er Scores Anzahl
+        if (playerData.TryGetProperty("scores26", out var scores26))
+        {
+            data.Scores26 = scores26.GetInt32();
+        }
+
+        // ✅ NEU: Checkouts Anzahl
+        if (playerData.TryGetProperty("checkouts", out var checkouts))
+        {
+            data.Checkouts = checkouts.GetInt32();
+        }
+
+        // ✅ NEU: Total Throws
+        if (playerData.TryGetProperty("totalThrows", out var totalThrows))
+        {
+            data.TotalThrows = totalThrows.GetInt32();
+        }
+
+        // ✅ NEU: Total Score
+        if (playerData.TryGetProperty("totalScore", out var totalScore))
+        {
+            data.TotalScore = totalScore.GetInt32();
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// ✅ NEU: Extrahiert einfache playerStatistics aus WebSocket-Nachrichten (legacy Notes-basiert mit neuen Spielernamen)
+    /// Verarbeitet sowohl die alte Struktur mit player1/player2 als auch neue Spielernamen-Extraktion
+    /// </summary>
+    private SimplePlayerStatistics? ExtractSimplePlayerStatistics(HubMatchUpdateEventArgs matchUpdate)
+    {
+        try
+        {
+            JsonElement result;
+            
+            if (!string.IsNullOrEmpty(matchUpdate.Notes) && matchUpdate.Notes.TrimStart().StartsWith("{"))
+            {
+                var jsonData = JsonDocument.Parse(matchUpdate.Notes);
+                result = jsonData.RootElement;
+                System.Diagnostics.Debug.WriteLine("[STATS] Processing JSON from Notes field for simple player statistics");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No JSON data found in Notes for simple player statistics");
+                return null;
+            }
+
+            // Suche nach playerStatistics Property
+            if (!result.TryGetProperty("playerStatistics", out var playerStats))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No playerStatistics found in JSON structure");
+                return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine("[STATS] Found playerStatistics in JSON");
+
+            var simpleStats = new SimplePlayerStatistics();
+
+            // Extrahiere Player1 Daten
+            if (playerStats.TryGetProperty("player1", out var player1Data))
+            {
+                simpleStats.Player1Stats = ParseSimplePlayerData(player1Data);
+                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player1: Avg {simpleStats.Player1Stats.Average}, 180s: {simpleStats.Player1Stats.Scores180}, HF: {simpleStats.Player1Stats.HighFinishes}");
+            }
+
+            // Extrahiere Player2 Daten  
+            if (playerStats.TryGetProperty("player2", out var player2Data))
+            {
+                simpleStats.Player2Stats = ParseSimplePlayerData(player2Data);
+                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player2: Avg {simpleStats.Player2Stats.Average}, 180s: {simpleStats.Player2Stats.Scores180}, HF: {simpleStats.Player2Stats.HighFinishes}");
+            }
+
+            // Extrahiere Match-Metadaten
+            if (playerStats.TryGetProperty("match", out var matchData))
+            {
+                if (matchData.TryGetProperty("duration", out var duration))
+                {
+                    var durationStr = duration.GetString() ?? "0 min";
+                    simpleStats.MatchDurationString = durationStr;
+                    
+                    // Versuche Duration zu parsen (z.B. "15 min")
+                    var match = System.Text.RegularExpressions.Regex.Match(durationStr, @"(\d+)\s*(min|minutes?)");
+                    if (match.Success && int.TryParse(match.Groups[1].Value, out int minutes))
+                    {
+                        simpleStats.MatchDuration = TimeSpan.FromMinutes(minutes);
+                    }
+                }
+                
+                if (matchData.TryGetProperty("format", out var format))
+                {
+                    simpleStats.MatchFormat = format.GetString() ?? "Unknown";
+                }
+            }
+
+            // ✅ ERWEITERT: Versuche zuerst Spielernamen aus der neuen matchUpdate.result Struktur zu extrahieren
+            if (result.TryGetProperty("matchUpdate", out var matchUpdate_El) && 
+                matchUpdate_El.TryGetProperty("result", out var resultEl))
+            {
+                if (resultEl.TryGetProperty("player1Name", out var player1Name))
+                {
+                    simpleStats.Player1Name = player1Name.GetString() ?? "Player 1";
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Found player1Name from matchUpdate.result: {simpleStats.Player1Name}");
+                }
+
+                if (resultEl.TryGetProperty("player2Name", out var player2Name))
+                {
+                    simpleStats.Player2Name = player2Name.GetString() ?? "Player 2";
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Found player2Name from matchUpdate.result: {simpleStats.Player2Name}");
+                }
+            }
+
+            // Bestimme Spielernamen aus Match-Update (Fallback)
+            if (string.IsNullOrEmpty(simpleStats.Player1Name) || string.IsNullOrEmpty(simpleStats.Player2Name))
+            {
+                simpleStats.Player1Name = GetPlayerNameFromMatch(matchUpdate, 1);
+                simpleStats.Player2Name = GetPlayerNameFromMatch(matchUpdate, 2);
+                System.Diagnostics.Debug.WriteLine($"[STATS] Using fallback player name extraction: {simpleStats.Player1Name}, {simpleStats.Player2Name}");
+            }
+
+            // Bestimme Gewinner basierend auf Match-Update Ergebnis
+            DetermineWinnerForSimpleStats(matchUpdate, simpleStats);
+
+            return simpleStats;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error parsing simple player statistics: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Extrahiert erweiterte Dart-Statistiken direkt aus dartScoringResult mit neuen Daten
     /// </summary>
     private EnhancedDartStatistics? ExtractEnhancedDartStatistics(HubMatchUpdateEventArgs matchUpdate)
     {
@@ -151,18 +740,48 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player2: {enhancedStats.Player2Name}, Avg: {enhancedStats.Player2Stats.Average}");
             }
 
-            // Extrahiere Match-Metadaten
+            // ✅ ERWEITERT: Match-Metadaten mit neuen Feldern
             if (dartScoring.TryGetProperty("matchDuration", out var duration))
             {
-                enhancedStats.MatchDuration = TimeSpan.FromMilliseconds(duration.GetDouble());
-                System.Diagnostics.Debug.WriteLine($"[STATS] Match duration: {enhancedStats.MatchDuration}");
+                var durationMs = duration.GetInt64();
+                enhancedStats.MatchDuration = TimeSpan.FromMilliseconds(durationMs);
+                System.Diagnostics.Debug.WriteLine($"[STATS] Match duration: {durationMs}ms = {FormatDuration(enhancedStats.MatchDuration)}");
             }
 
             if (dartScoring.TryGetProperty("startTime", out var startTime))
-                enhancedStats.StartTime = DateTime.Parse(startTime.GetString() ?? DateTime.Now.ToString());
+            {
+                if (DateTime.TryParse(startTime.GetString(), out var parsedStartTime))
+                {
+                    enhancedStats.StartTime = parsedStartTime;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] Start time: {enhancedStats.StartTime}");
+                }
+            }
 
             if (dartScoring.TryGetProperty("endTime", out var endTime))
-                enhancedStats.EndTime = DateTime.Parse(endTime.GetString() ?? DateTime.Now.ToString());
+            {
+                if (DateTime.TryParse(endTime.GetString(), out var parsedEndTime))
+                {
+                    enhancedStats.EndTime = parsedEndTime;
+                    System.Diagnostics.Debug.WriteLine($"[STATS] End time: {enhancedStats.EndTime}");
+                }
+            }
+
+            // ✅ NEU: Game Rules
+            if (dartScoring.TryGetProperty("gameRules", out var gameRules))
+            {
+                if (gameRules.TryGetProperty("gameMode", out var gameMode))
+                    enhancedStats.GameMode = gameMode.GetString() ?? "";
+                if (gameRules.TryGetProperty("doubleOut", out var doubleOut))
+                    enhancedStats.DoubleOut = doubleOut.GetBoolean();
+                if (gameRules.TryGetProperty("startingScore", out var startingScore))
+                    enhancedStats.StartingScore = startingScore.GetInt32();
+            }
+
+            // ✅ NEU: Version und Submission Info
+            if (dartScoring.TryGetProperty("version", out var version))
+                enhancedStats.Version = version.GetString() ?? "";
+            if (dartScoring.TryGetProperty("submittedVia", out var submittedVia))
+                enhancedStats.SubmittedVia = submittedVia.GetString() ?? "";
 
             // Bestimme Gewinner basierend auf Legs/Sets
             if (enhancedStats.Player1Stats.Legs > enhancedStats.Player2Stats.Legs)
@@ -377,6 +996,133 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// ✅ NEU: Verarbeitet einfache Statistiken und erstellt PlayerMatchStatistics
+    /// </summary>
+    private void ProcessSimpleStatistics(HubMatchUpdateEventArgs matchUpdate, SimplePlayerStatistics simpleStats)
+    {
+        try
+        {
+            // Erstelle Match-Statistiken für beide Spieler
+            var player1Stats = CreateSimpleMatchStatistics(
+                matchUpdate,
+                simpleStats.Player1Name,
+                simpleStats.Player2Name,
+                simpleStats.Player1Stats,
+                simpleStats.MatchDuration
+            );
+
+            var player2Stats = CreateSimpleMatchStatistics(
+                matchUpdate,
+                simpleStats.Player2Name,
+                simpleStats.Player1Name,
+                simpleStats.Player2Stats,
+                simpleStats.MatchDuration
+            );
+
+            // Füge Statistiken zu den Spieler-Daten hinzu
+            AddOrUpdatePlayerStatistics(simpleStats.Player1Name, player1Stats);
+            AddOrUpdatePlayerStatistics(simpleStats.Player2Name, player2Stats);
+
+            System.Diagnostics.Debug.WriteLine($"[STATS] Successfully processed simple statistics for {simpleStats.Player1Name} and {simpleStats.Player2Name}");
+            
+            OnPropertyChanged(nameof(PlayerStatistics));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error processing simple statistics: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Erstellt PlayerMatchStatistics aus einfachen Daten mit allen neuen Feldern
+    /// </summary>
+    private PlayerMatchStatistics CreateSimpleMatchStatistics(
+        HubMatchUpdateEventArgs matchUpdate,
+        string playerName,
+        string opponentName,
+        SimplePlayerData playerData,
+        TimeSpan matchDuration)
+    {
+        var stats = new PlayerMatchStatistics
+        {
+            MatchId = matchUpdate.MatchUuid ?? matchUpdate.MatchId.ToString(),
+            PlayerName = playerName,
+            Opponent = opponentName,
+            Average = playerData.Average,
+            Legs = GetPlayerLegs(matchUpdate, playerName),
+            Sets = GetPlayerSets(matchUpdate, playerName),
+            TotalThrows = playerData.TotalThrows, // ✅ NEU: Verwende echte Daten
+            TotalScore = playerData.TotalScore,   // ✅ NEU: Verwende echte Daten
+            Maximums = playerData.Scores180,
+            HighFinishes = playerData.HighFinishes,
+            Score26Count = playerData.Scores26,
+            Checkouts = playerData.Checkouts, // ✅ NEU: Verwende echte Checkout-Daten
+            AverageLegAverage = playerData.Average, // Annahme für einfache Struktur
+            MatchDate = matchUpdate.UpdatedAt,
+            IsWinner = IsPlayerWinner(matchUpdate, playerName),
+            MatchType = matchUpdate.MatchType ?? "Unknown",
+            MatchDuration = matchDuration
+        };
+
+        // ✅ ERWEITERT: Verwende echte High Finish Details wenn verfügbar
+        if (playerData.HighFinishDetails.Count > 0)
+        {
+            stats.HighFinishDetails = playerData.HighFinishDetails.ToList();
+            System.Diagnostics.Debug.WriteLine($"[STATS] {playerName}: {playerData.HighFinishDetails.Count} high finishes");
+        }
+        else
+        {
+            // Fallback: Erstelle Detail-Listen aus einfachen Daten für Rückwärtskompatibilität
+            foreach (var finishScore in playerData.HighFinishScores)
+            {
+                stats.HighFinishDetails.Add(new HighFinishDetail
+                {
+                    Finish = finishScore,
+                    RemainingScore = finishScore,
+                    Timestamp = matchUpdate.UpdatedAt,
+                    Darts = new List<int>() // Keine Detail-Darts verfügbar
+                });
+            }
+        }
+
+        // Maximum Details für 180er (vereinfacht)
+        for (int i = 0; i < playerData.Scores180; i++)
+        {
+            stats.MaximumDetails.Add(new MaximumDetail
+            {
+                Total = 180,
+                Timestamp = matchUpdate.UpdatedAt,
+                Darts = new List<int> { 60, 60, 60 } // Standard 180er
+            });
+        }
+
+        // Score26 Details (vereinfacht)
+        for (int i = 0; i < playerData.Scores26; i++)
+        {
+            stats.Score26Details.Add(new Score26Detail
+            {
+                Total = 26,
+                Timestamp = matchUpdate.UpdatedAt,
+                Darts = new List<int> { 20, 6, 0 } // Standard schlechter Wurf
+            });
+        }
+
+        // ✅ NEU: Checkout Details (vereinfacht aus High Finishes)
+        foreach (var highFinish in stats.HighFinishDetails)
+        {
+            stats.CheckoutDetails.Add(new CheckoutDetail
+            {
+                Finish = highFinish.Finish,
+                Darts = highFinish.Darts.ToList(),
+                DoubleOut = false, // Nicht verfügbar in einfacher Struktur
+                Timestamp = highFinish.Timestamp
+            });
+        }
+
+        return stats;
+    }
+
+    /// <summary>
     /// ✅ NEU: Verarbeitet erweiterte Statistiken und erstellt PlayerMatchStatistics
     /// </summary>
     private void ProcessEnhancedStatistics(HubMatchUpdateEventArgs matchUpdate, EnhancedDartStatistics enhancedStats)
@@ -458,15 +1204,99 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
     /// </summary>
     private void ProcessLegacyNotesStatistics(HubMatchUpdateEventArgs matchUpdate)
     {
-        // Parse Notes für erweiterte Statistiken
+        // ✅ NEU: Versuche zuerst Spielernamen aus der neuen JSON-Struktur zu extrahieren
+        string player1Name = "Player 1";
+        string player2Name = "Player 2";
+        
+        // ✅ NEU: Extrahiere auch statistics-Daten parallel
+        SimplePlayerData player1StatsData = new SimplePlayerData();
+        SimplePlayerData player2StatsData = new SimplePlayerData();
+        
+        try
+        {
+            if (!string.IsNullOrEmpty(matchUpdate.Notes) && matchUpdate.Notes.TrimStart().StartsWith("{"))
+            {
+                var jsonData = JsonDocument.Parse(matchUpdate.Notes);
+                var root = jsonData.RootElement;
+
+                // Extrahiere Spielernamen aus matchUpdate.result
+                if (root.TryGetProperty("matchUpdate", out var matchUpdate_El) && 
+                    matchUpdate_El.TryGetProperty("result", out var resultEl))
+                {
+                    if (resultEl.TryGetProperty("player1Name", out var p1Name))
+                    {
+                        player1Name = p1Name.GetString() ?? "Player 1";
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Legacy extraction found player1Name: {player1Name}");
+                    }
+
+                    if (resultEl.TryGetProperty("player2Name", out var p2Name))
+                    {
+                        player2Name = p2Name.GetString() ?? "Player 2";
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Legacy extraction found player2Name: {player2Name}");
+                    }
+                }
+
+                // ✅ NEU: Extrahiere statistics-Daten parallel
+                if (root.TryGetProperty("statistics", out var statistics))
+                {
+                    System.Diagnostics.Debug.WriteLine("[STATS] Found statistics section in legacy processing, extracting data...");
+                    
+                    if (statistics.TryGetProperty("player1", out var p1Stats))
+                    {
+                        player1StatsData = ParseSimplePlayerData(p1Stats);
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Extracted statistics player1: Avg {player1StatsData.Average}, 180s: {player1StatsData.Scores180}, HF: {player1StatsData.HighFinishes}, 26s: {player1StatsData.Scores26}");
+                    }
+                    
+                    if (statistics.TryGetProperty("player2", out var p2Stats))
+                    {
+                        player2StatsData = ParseSimplePlayerData(p2Stats);
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Extracted statistics player2: Avg {player2StatsData.Average}, 180s: {player2StatsData.Scores180}, HF: {player2StatsData.HighFinishes}, 26s: {player2StatsData.Scores26}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error extracting data from JSON: {ex.Message}");
+        }
+
+        // Parse Notes für erweiterte Statistiken aus Text
         var dartStats = ExtractDartStatisticsFromNotes(matchUpdate.Notes);
         if (dartStats == null)
         {
-            System.Diagnostics.Debug.WriteLine("[STATS] No dart statistics found in match update");
-            return;
+            System.Diagnostics.Debug.WriteLine("[STATS] No dart statistics found in match update notes");
+            
+            // ✅ NEU: Fallback - erstelle Statistiken nur aus statistics-Daten wenn keine Notes-Daten vorhanden
+            if (IsValidPlayerData(player1StatsData) || IsValidPlayerData(player2StatsData))
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] Creating statistics from statistics-section only");
+                CreateStatisticsFromStatisticsData(matchUpdate, player1Name, player2Name, player1StatsData, player2StatsData);
+                return;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[STATS] No valid data in either notes or statistics section");
+                return;
+            }
         }
 
-        System.Diagnostics.Debug.WriteLine($"[STATS] Extracted legacy dart statistics: {dartStats.Player1Name} vs {dartStats.Player2Name}");
+        // ✅ NEU: Verwende die extrahierten Spielernamen statt der aus Notes extrahierten
+        if (player1Name != "Player 1")
+        {
+            dartStats.Player1Name = player1Name;
+        }
+        if (player2Name != "Player 2")
+        {
+            dartStats.Player2Name = player2Name;
+        }
+
+        // ✅ NEU: Kombiniere Notes-Daten mit statistics-Daten (statistics haben Priorität bei gültigen Werten)
+        dartStats.Player1Stats = MergePlayerStatistics(dartStats.Player1Stats, player1StatsData);
+        dartStats.Player2Stats = MergePlayerStatistics(dartStats.Player2Stats, player2StatsData);
+
+        System.Diagnostics.Debug.WriteLine($"[STATS] Final merged statistics: {dartStats.Player1Name} vs {dartStats.Player2Name}");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Player1 merged: Avg {dartStats.Player1Stats.Average}, 180s: {dartStats.Player1Stats.Maximums}, HF: {dartStats.Player1Stats.HighFinishes}, 26s: {dartStats.Player1Stats.Score26Count}");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Player2 merged: Avg {dartStats.Player2Stats.Average}, 180s: {dartStats.Player2Stats.Maximums}, HF: {dartStats.Player2Stats.HighFinishes}, 26s: {dartStats.Player2Stats.Score26Count}");
 
         // Erstelle Match-Statistiken für beide Spieler
         var player1Stats = CreateMatchStatistics(
@@ -489,9 +1319,90 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
         AddOrUpdatePlayerStatistics(dartStats.Player1Name, player1Stats);
         AddOrUpdatePlayerStatistics(dartStats.Player2Name, player2Stats);
 
-        System.Diagnostics.Debug.WriteLine($"[STATS] Successfully processed legacy match statistics for {dartStats.Player1Name} and {dartStats.Player2Name}");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Successfully processed merged match statistics for {dartStats.Player1Name} and {dartStats.Player2Name}");
         
         OnPropertyChanged(nameof(PlayerStatistics));
+    }
+
+    /// <summary>
+    /// ✅ NEU: Erstellt Statistiken nur aus statistics-Daten (wenn keine Notes verfügbar)
+    /// </summary>
+    private void CreateStatisticsFromStatisticsData(HubMatchUpdateEventArgs matchUpdate, 
+        string player1Name, string player2Name, 
+        SimplePlayerData player1StatsData, SimplePlayerData player2StatsData)
+    {
+        try
+        {
+            // Bestimme Gewinner
+            player1StatsData.IsWinner = IsPlayerWinner(matchUpdate, player1Name);
+            player2StatsData.IsWinner = IsPlayerWinner(matchUpdate, player2Name);
+
+            // Erstelle Match-Statistiken für beide Spieler
+            var player1Stats = CreateSimpleMatchStatistics(
+                matchUpdate,
+                player1Name,
+                player2Name,
+                player1StatsData,
+                TimeSpan.Zero
+            );
+
+            var player2Stats = CreateSimpleMatchStatistics(
+                matchUpdate,
+                player2Name,
+                player1Name,
+                player2StatsData,
+                TimeSpan.Zero
+            );
+
+            // Füge Statistiken zu den Spieler-Daten hinzu
+            AddOrUpdatePlayerStatistics(player1Name, player1Stats);
+            AddOrUpdatePlayerStatistics(player2Name, player2Stats);
+
+            System.Diagnostics.Debug.WriteLine($"[STATS] Successfully processed statistics-only data for {player1Name} and {player2Name}");
+            
+            OnPropertyChanged(nameof(PlayerStatistics));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error creating statistics from statistics-data: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Kombiniert Notes-basierte Statistiken mit statistics-Daten
+    /// statistics-Daten haben Priorität bei gültigen Werten
+    /// </summary>
+    private DartStatisticsExtract.PlayerStatsExtract MergePlayerStatistics(
+        DartStatisticsExtract.PlayerStatsExtract notesStats, 
+        SimplePlayerData statisticsData)
+    {
+        var merged = new DartStatisticsExtract.PlayerStatsExtract
+        {
+            // Verwende statistics-Werte wenn gültig, sonst Notes-Werte
+            Average = statisticsData.Average > 0 ? statisticsData.Average : notesStats.Average,
+            Maximums = statisticsData.Scores180 > 0 ? statisticsData.Scores180 : notesStats.Maximums,
+            HighFinishes = statisticsData.HighFinishes > 0 ? statisticsData.HighFinishes : notesStats.HighFinishes,
+            Score26Count = statisticsData.Scores26 > 0 ? statisticsData.Scores26 : notesStats.Score26Count,
+            
+            // ✅ NEU: Verwende neue Felder aus statistics wenn verfügbar
+            Checkouts = statisticsData.Checkouts > 0 ? statisticsData.Checkouts : notesStats.Checkouts,
+            TotalThrows = statisticsData.TotalThrows > 0 ? statisticsData.TotalThrows : 0,
+            TotalScore = statisticsData.TotalScore > 0 ? statisticsData.TotalScore : 0,
+            
+            // Behalte Notes-Werte für nicht-statistics-Felder
+            Legs = notesStats.Legs,
+            Sets = notesStats.Sets,
+            Winner = notesStats.Winner
+        };
+
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - Avg: {merged.Average} (notes: {notesStats.Average}, stats: {statisticsData.Average})");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - 180s: {merged.Maximums} (notes: {notesStats.Maximums}, stats: {statisticsData.Scores180})");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - HF: {merged.HighFinishes} (notes: {notesStats.HighFinishes}, stats: {statisticsData.HighFinishes})");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - 26s: {merged.Score26Count} (notes: {notesStats.Score26Count}, stats: {statisticsData.Scores26})");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - Checkouts: {merged.Checkouts} (notes: {notesStats.Checkouts}, stats: {statisticsData.Checkouts})");
+        System.Diagnostics.Debug.WriteLine($"[STATS] Merged stats - TotalThrows: {merged.TotalThrows}, TotalScore: {merged.TotalScore}");
+
+        return merged;
     }
 
     /// <summary>
@@ -513,12 +1424,14 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             public int HighFinishes { get; set; } = 0;
             public int Score26Count { get; set; } = 0;
             public int Checkouts { get; set; } = 0;
+            public int TotalThrows { get; set; } = 0; // ✅ NEU
+            public int TotalScore { get; set; } = 0; // ✅ NEU
             public bool Winner { get; set; } = false;
         }
     }
 
     /// <summary>
-    /// ✅ NEU: Erweiterte Dart-Statistiken aus dartScoringResult
+    /// ✅ ERWEITERT: Erweiterte Dart-Statistiken aus dartScoringResult mit neuen Feldern
     /// </summary>
     internal class EnhancedDartStatistics
     {
@@ -529,6 +1442,15 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
         public TimeSpan MatchDuration { get; set; } = TimeSpan.Zero;
         public DateTime StartTime { get; set; } = DateTime.Now;
         public DateTime EndTime { get; set; } = DateTime.Now;
+        
+        // ✅ NEU: Game Rules
+        public string GameMode { get; set; } = "";
+        public bool DoubleOut { get; set; } = false;
+        public int StartingScore { get; set; } = 501;
+        
+        // ✅ NEU: Submission Info
+        public string Version { get; set; } = "";
+        public string SubmittedVia { get; set; } = "";
     }
 
     /// <summary>
@@ -555,6 +1477,233 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
         public List<Score26Detail> Score26Details { get; set; } = new();
         public List<CheckoutDetail> CheckoutDetails { get; set; } = new();
         public List<LegAverage> LegAverages { get; set; } = new();
+    }
+
+    /// <summary>
+    /// ✅ NEU: Einfache Dart-Statistiken aus playerStatistics (erweitert mit Match-Dauer)
+    /// </summary>
+    internal class SimplePlayerStatistics
+    {
+        public string Player1Name { get; set; } = "";
+        public string Player2Name { get; set; } = "";
+        public SimplePlayerData Player1Stats { get; set; } = new();
+        public SimplePlayerData Player2Stats { get; set; } = new();
+        public TimeSpan MatchDuration { get; set; } = TimeSpan.Zero;
+        public string MatchDurationString { get; set; } = "";
+        public string MatchFormat { get; set; } = "";
+        public DateTime StartTime { get; set; } = DateTime.Now; // ✅ NEU
+        public DateTime EndTime { get; set; } = DateTime.Now; // ✅ NEU
+        public int TotalThrows { get; set; } = 0; // ✅ NEU
+    }
+
+    /// <summary>
+    /// ✅ NEU: Einfache Spieler-Daten aus playerStatistics (erweitert mit neuen Feldern)
+    /// </summary>
+    internal class SimplePlayerData
+    {
+        public string Name { get; set; } = "";
+        public double Average { get; set; } = 0.0;
+        public int Scores180 { get; set; } = 0;
+        public int HighFinishes { get; set; } = 0;
+        public List<int> HighFinishScores { get; set; } = new();
+        public List<HighFinishDetail> HighFinishDetails { get; set; } = new(); // ✅ NEU
+        public int Scores26 { get; set; } = 0;
+        public int Checkouts { get; set; } = 0; // ✅ NEU
+        public int TotalThrows { get; set; } = 0; // ✅ NEU
+        public int TotalScore { get; set; } = 0; // ✅ NEU
+        public bool IsWinner { get; set; } = false;
+    }
+
+    /// <summary>
+    /// ✅ NEU: Hilfsmethoden для einfache Statistik-Extraktion
+    /// </summary>
+    private string GetPlayerNameFromMatch(HubMatchUpdateEventArgs matchUpdate, int playerNumber)
+    {
+        try
+        {
+            // ✅ ERWEITERT: Extrahiere Spielernamen aus Notes JSON wenn verfügbar
+            if (!string.IsNullOrEmpty(matchUpdate.Notes) && matchUpdate.Notes.TrimStart().StartsWith("{"))
+            {
+                var jsonData = JsonDocument.Parse(matchUpdate.Notes);
+                var root = jsonData.RootElement;
+
+                // ✅ NEU: Versuche matchUpdate.result.player1Name/player2Name
+                if (root.TryGetProperty("matchUpdate", out var matchUpdateEl) && 
+                    matchUpdateEl.TryGetProperty("result", out var resultEl))
+                {
+                    if (playerNumber == 1 && resultEl.TryGetProperty("player1Name", out var player1Name))
+                    {
+                        var name = player1Name.GetString();
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[STATS] Found player1Name in matchUpdate.result: {name}");
+                            return name;
+                        }
+                    }
+                    if (playerNumber == 2 && resultEl.TryGetProperty("player2Name", out var player2Name))
+                    {
+                        var name = player2Name.GetString();
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[STATS] Found player2Name in matchUpdate.result: {name}");
+                            return name;
+                        }
+                    }
+                }
+
+                // Versuche verschiedene andere JSON-Strukturen
+                if (root.TryGetProperty("result", out var result))
+                {
+                    if (playerNumber == 1 && result.TryGetProperty("player1Name", out var player1))
+                    {
+                        var name = player1.GetString();
+                        if (!string.IsNullOrEmpty(name)) return name;
+                    }
+                    if (playerNumber == 2 && result.TryGetProperty("player2Name", out var player2))
+                    {
+                        var name = player2.GetString();
+                        if (!string.IsNullOrEmpty(name)) return name;
+                    }
+
+                    // Fallback auf player1/player2 ohne "Name" Suffix
+                    if (playerNumber == 1 && result.TryGetProperty("player1", out var p1))
+                    {
+                        var name = p1.GetString();
+                        if (!string.IsNullOrEmpty(name)) return name;
+                    }
+                    if (playerNumber == 2 && result.TryGetProperty("player2", out var p2))
+                    {
+                        var name = p2.GetString();
+                        if (!string.IsNullOrEmpty(name)) return name;
+                    }
+                }
+
+                // Versuche auch direkt im Root
+                if (playerNumber == 1 && root.TryGetProperty("player1Name", out var rootP1))
+                {
+                    var name = rootP1.GetString();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+                if (playerNumber == 2 && root.TryGetProperty("player2Name", out var rootP2))
+                {
+                    var name = rootP2.GetString();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+
+                // Fallback auf player1/player2 im Root
+                if (playerNumber == 1 && root.TryGetProperty("player1", out var directP1))
+                {
+                    var name = directP1.GetString();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+                if (playerNumber == 2 && root.TryGetProperty("player2", out var directP2))
+                {
+                    var name = directP2.GetString();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[STATS] No player name found for player {playerNumber}, using fallback");
+            return $"Player {playerNumber}";
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error extracting player name: {ex.Message}");
+            return $"Player {playerNumber}";
+        }
+    }
+
+    private void DetermineWinnerForSimpleStats(HubMatchUpdateEventArgs matchUpdate, SimplePlayerStatistics simpleStats)
+    {
+        try
+        {
+            // Bestimme Gewinner basierend auf Legs oder Sets
+            int player1Legs = matchUpdate.Player1Legs;
+            int player2Legs = matchUpdate.Player2Legs;
+            int player1Sets = matchUpdate.Player1Sets;
+            int player2Sets = matchUpdate.Player2Sets;
+
+            if (player1Sets > player2Sets || (player1Sets == player2Sets && player1Legs > player2Legs))
+            {
+                simpleStats.Player1Stats.IsWinner = true;
+                simpleStats.Player2Stats.IsWinner = false;
+                System.Diagnostics.Debug.WriteLine($"[STATS] Winner: {simpleStats.Player1Name} (Sets: {player1Sets}-{player2Sets}, Legs: {player1Legs}-{player2Legs})");
+            }
+            else if (player2Sets > player1Sets || (player1Sets == player2Sets && player2Legs > player1Legs))
+            {
+                simpleStats.Player1Stats.IsWinner = false;
+                simpleStats.Player2Stats.IsWinner = true;
+                System.Diagnostics.Debug.WriteLine($"[STATS] Winner: {simpleStats.Player2Name} (Sets: {player1Sets}-{player2Sets}, Legs: {player1Legs}-{player2Legs})");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[STATS] Error determining winner: {ex.Message}");
+        }
+    }
+
+    private int GetPlayerLegs(HubMatchUpdateEventArgs matchUpdate, string playerName)
+    {
+        try
+        {
+            // ✅ KORRIGIERT: Da wir nicht direkt vergleichen können, verwende Positionslogik
+            if (playerName == GetPlayerNameFromMatch(matchUpdate, 1))
+                return matchUpdate.Player1Legs;
+            else if (playerName == GetPlayerNameFromMatch(matchUpdate, 2))
+                return matchUpdate.Player2Legs;
+        }
+        catch
+        {
+            // Ignoriere Fehler
+        }
+        return 0;
+    }
+
+    private int GetPlayerSets(HubMatchUpdateEventArgs matchUpdate, string playerName)
+    {
+        try
+        {
+            // ✅ KORRIGIERT: Da wir nicht direkt vergleichen können, verwende Positionslogik
+            if (playerName == GetPlayerNameFromMatch(matchUpdate, 1))
+                return matchUpdate.Player1Sets;
+            else if (playerName == GetPlayerNameFromMatch(matchUpdate, 2))
+                return matchUpdate.Player2Sets;
+        }
+        catch
+        {
+            // Ignoriere Fehler
+        }
+        return 0;
+    }
+
+    private bool IsPlayerWinner(HubMatchUpdateEventArgs matchUpdate, string playerName)
+    {
+        try
+        {
+            // ✅ KORRIGIERT: Bestimme Gewinner basierend auf Legs/Sets
+            string player1Name = GetPlayerNameFromMatch(matchUpdate, 1);
+            string player2Name = GetPlayerNameFromMatch(matchUpdate, 2);
+            
+            int player1Legs = matchUpdate.Player1Legs;
+            int player2Legs = matchUpdate.Player2Legs;
+            int player1Sets = matchUpdate.Player1Sets;
+            int player2Sets = matchUpdate.Player2Sets;
+
+            // Bestimme Gewinner
+            bool player1Wins = player1Sets > player2Sets || (player1Sets == player2Sets && player1Legs > player2Legs);
+            bool player2Wins = player2Sets > player1Sets || (player1Sets == player2Sets && player2Legs > player1Legs);
+
+            if (playerName == player1Name && player1Wins)
+                return true;
+            if (playerName == player2Name && player2Wins)
+                return true;
+
+            return false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -815,6 +1964,23 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             MatchDuration = TimeSpan.Zero,
         };
     }
-}
 
-// ✅ NEU: Erweiterte Hilfsklassen für umfangreiche Dart-Statistiken
+    /// <summary>
+    /// ✅ NEU: Formatiert eine TimeSpan-Dauer in ein lesbares Format
+    /// </summary>
+    private string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalMinutes < 1)
+        {
+            return $"{duration.Seconds} Sekunden";
+        }
+        else if (duration.TotalHours < 1)
+        {
+            return $"{duration.Minutes:D2}:{duration.Seconds:D2} Minuten";
+        }
+        else
+        {
+            return $"{(int)duration.TotalHours}:{duration.Minutes:D2}:{duration.Seconds:D2} Stunden";
+        }
+    }
+}

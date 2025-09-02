@@ -149,12 +149,19 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
                 MaximumsColumn.Header = _localizationService.GetString("TotalMaximums");
             if (HighFinishesColumn != null)
                 HighFinishesColumn.Header = _localizationService.GetString("HighFinishes");
+            if (HighFinishScoresColumn != null)
+                HighFinishScoresColumn.Header = _localizationService.GetString("HighFinishScores");
             if (HighestFinishColumn != null)
                 HighestFinishColumn.Header = _localizationService.GetString("HighestFinish");
             if (Score26Column != null)
-                Score26Column.Header = _localizationService.GetString("TotalScore26");
+                Score26Column.Header = _localizationService.GetString("Score26");
             if (LastMatchColumn != null)
                 LastMatchColumn.Header = _localizationService.GetString("LastMatchDate");
+            // ✅ NEU: Spalten-Header für neue Statistiken
+            if (FastestMatchColumn != null)
+                FastestMatchColumn.Header = _localizationService.GetString("FastestMatch");
+            if (FewestThrowsColumn != null)
+                FewestThrowsColumn.Header = _localizationService.GetString("FewestThrowsInMatch");
         }
         catch (Exception ex)
         {
@@ -327,6 +334,13 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     public PlayerStatisticsDisplayModel(PlayerStatistics playerStatistics)
     {
         _playerStatistics = playerStatistics;
+        
+        // NEU: Zuweisung der neuen Eigenschaften im Konstruktor
+        TotalCheckouts = playerStatistics.TotalCheckouts;
+        FewestDartsToFinish = playerStatistics.FewestDartsToFinish;
+        AverageDartsPerCheckout = playerStatistics.AverageDartsPerCheckout;
+        FastestMatch = playerStatistics.FastestMatch; // ✅ NEU
+        FewestThrowsInMatch = playerStatistics.FewestThrowsInMatch; // ✅ NEU
     }
 
     // Basis-Eigenschaften
@@ -340,7 +354,11 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     public double WorstAverage => _playerStatistics.WorstAverage;
     public int TotalMaximums => _playerStatistics.TotalMaximums;
     public int TotalHighFinishes => _playerStatistics.TotalHighFinishes;
-    public int TotalCheckouts => _playerStatistics.TotalCheckouts;
+    public int TotalCheckouts { get; private set; } // ✅ NEU
+    public int FewestDartsToFinish { get; private set; } // ✅ NEU
+    public double AverageDartsPerCheckout { get; private set; } // ✅ NEU
+    public TimeSpan FastestMatch { get; private set; } // ✅ NEU
+    public int FewestThrowsInMatch { get; private set; } // ✅ NEU
     public int TotalScore26 => _playerStatistics.TotalScore26;
 
     // ✅ NEU: Erweiterte Eigenschaften für die Tabelle
@@ -397,7 +415,7 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     /// <summary>
     /// ✅ NEU: Wenigste Darts bis zum Finish
     /// </summary>
-    public string FewestDartsToFinish
+    public string FewestDartsToFinishFormatted
     {
         get
         {
@@ -416,7 +434,7 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     /// <summary>
     /// ✅ NEU: Durchschnittliche Darts pro Checkout
     /// </summary>
-    public string AverageDartsPerCheckout
+    public string AverageDartsPerCheckoutFormatted
     {
         get
         {
@@ -433,6 +451,52 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     }
     
     /// <summary>
+    /// ✅ ERWEITERT: Alle High Finish Scores als durch | getrennte Liste
+    /// </summary>
+    public string HighFinishScores
+    {
+        get
+        {
+            try
+            {
+                var allFinishes = _playerStatistics.MatchStatistics
+                    .SelectMany(m => m.HighFinishDetails)
+                    .Where(hf => hf.Finish > 0)
+                    .Select(hf => hf.Finish)
+                    .OrderByDescending(f => f)
+                    .Distinct()
+                    .ToList();
+                
+                return allFinishes.Any() ? string.Join(" | ", allFinishes) : "-";
+            }
+            catch
+            {
+                return "-";
+            }
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Schnellstes Match formatiert (MM:SS)
+    /// </summary>
+    public string FastestMatchFormatted
+    {
+        get
+        {
+            if (FastestMatch == TimeSpan.Zero) return "-";
+            return FastestMatch.TotalMinutes < 1 ? 
+                $"0:{FastestMatch.Seconds:D2}" : 
+                $"{(int)FastestMatch.TotalMinutes}:{FastestMatch.Seconds:D2}";
+        }
+    }
+
+    /// <summary>
+    /// Formatierte Anzahl der 26er-Details (wird nicht mehr verwendet)
+    /// </summary>
+    public string Score26Details => TotalScore26 > 0 ? 
+        $"{TotalScore26}x 26" : "0";
+
+    /// <summary>
     /// Detaillierte Match-Informationen für Tooltips oder Details-View
     /// </summary>
     public string MatchDetails => $"Gespielte Matches: {TotalMatches}\n" +
@@ -442,11 +506,13 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
                                  $"Beste/Schlechteste: {BestAverageFormatted}/{WorstAverage:F1}\n" +
                                  $"Höchster Leg Average: {HighestLegAverage}\n" +
                                  $"180er: {TotalMaximums}\n" +
-                                 $"High Finishes: {TotalHighFinishes} (Höchstes: {HighestHighFinish})\n" +
-                                 $"26er: {TotalScore26}\n" +
+                                 $"High Finishes: {TotalHighFinishes} (Scores: {HighFinishScores})\n" +
+                                 $"Schlechte Scores (≤26): {TotalScore26}\n" +
                                  $"Checkouts: {TotalCheckouts}\n" +
                                  $"Wenigste Darts/Finish: {FewestDartsToFinish}\n" +
-                                 $"∅ Darts/Checkout: {AverageDartsPerCheckout}";
+                                 $"∅ Darts/Checkout: {AverageDartsPerCheckout}\n" +
+                                 $"Schnellstes Match: {FastestMatchFormatted}\n" +
+                                 $"Wenigste Würfe: {FewestThrowsInMatch}";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
