@@ -57,23 +57,37 @@ public class TournamentTabUIManager
 
     public void UpdateUI()
     {
-        if (_tournamentClass?.Groups != null)
+        try
         {
-            if (GroupsListBox?.ItemsSource != _tournamentClass.Groups)
+            System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateUI() called for {_tournamentClass.Name}");
+            
+            // ✅ KORRIGIERT: Verwende korrekte Methoden
+            UpdatePhaseDisplay();
+            UpdateTournamentOverview();
+            UpdateButtonStates(); // ✅ WICHTIG: Button-States aktualisieren
+            
+            if (GroupsListBox?.SelectedItem is Group selectedGroup)
             {
-                if (GroupsListBox != null)
-                    GroupsListBox.ItemsSource = _tournamentClass.Groups;
+                UpdatePlayersView(selectedGroup);
+                UpdateMatchesView(selectedGroup);
             }
             
-            if (GroupPhaseGroupsList?.ItemsSource != _tournamentClass.Groups)
+            // ✅ Weitere UI-Updates falls verfügbar
+            if (GroupsListBox != null)
             {
-                if (GroupPhaseGroupsList != null)
-                    GroupPhaseGroupsList.ItemsSource = _tournamentClass.Groups;
+                GroupsListBox.ItemsSource = _tournamentClass.Groups;
             }
+            if (GroupPhaseGroupsList != null)
+            {
+                GroupPhaseGroupsList.ItemsSource = _tournamentClass.Groups;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateUI() completed for {_tournamentClass.Name}");
         }
-        
-        UpdateButtonStates();
-        UpdatePhaseDisplay();
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateUI() ERROR: {ex.Message}");
+        }
     }
 
     public void UpdatePlayersView(Group? selectedGroup)
@@ -543,11 +557,24 @@ public class TournamentTabUIManager
         if (RemoveGroupButton != null)
             RemoveGroupButton.IsEnabled = GroupsListBox?.SelectedItem != null;
 
+        // ✅ KORRIGIERT: Reset-Buttons sollten immer aktiviert sein, wenn es Gruppen oder Daten gibt
+        var hasGroups = _tournamentClass.Groups.Count > 0;
         var hasGeneratedMatches = _tournamentClass.Groups.Any(g => g.MatchesGenerated && g.Matches.Count > 0);
         var isInAdvancedPhase = _tournamentClass.CurrentPhase?.PhaseType != TournamentPhaseType.GroupPhase;
+        var hasAnyData = hasGroups || hasGeneratedMatches || isInAdvancedPhase;
         
+        // ✅ Reset Tournament Button: Aktiviert wenn es irgendwelche Daten gibt
         if (ResetTournamentButton != null)
-            ResetTournamentButton.IsEnabled = hasGeneratedMatches || isInAdvancedPhase;
+            ResetTournamentButton.IsEnabled = hasAnyData;
+            
+        // ✅ NEUE LOGIK: Reset Matches Button nur für ausgewählte Gruppe mit generierten Matches
+        var selectedGroup = GroupsListBox?.SelectedItem as Group;
+        if (ResetMatchesButton != null)
+            ResetMatchesButton.IsEnabled = selectedGroup != null && selectedGroup.MatchesGenerated && selectedGroup.Matches.Count > 0;
+            
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: hasGroups={hasGroups}, hasMatches={hasGeneratedMatches}, isAdvanced={isInAdvancedPhase}");
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetTournamentButton.IsEnabled = {ResetTournamentButton?.IsEnabled}");
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetMatchesButton.IsEnabled = {ResetMatchesButton?.IsEnabled}");
     }
 
     private void UpdatePlayerManagementButtons(bool enabled, Group? selectedGroup, bool allowGeneration = true)

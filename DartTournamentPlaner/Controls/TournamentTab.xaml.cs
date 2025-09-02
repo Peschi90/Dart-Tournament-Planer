@@ -270,8 +270,33 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
     public void UpdateTranslations()
     {
-        _translationManager?.UpdateTranslations();
-        _uiManager?.UpdatePlayersView(SelectedGroup);
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] UpdateTranslations() called for {TournamentClass?.Name}");
+            
+            _translationManager?.UpdateTranslations();
+            _uiManager?.UpdateUI(); // ✅ Wichtig: UI aktualisieren inklusive Button-States
+            
+            // ✅ NEU: Statistiken-Tab aktualisieren
+            if (StatisticsView != null && TournamentClass != null)
+            {
+                try
+                {
+                    StatisticsView.TournamentClass = TournamentClass;
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics view updated with class: {TournamentClass.Name}");
+                }
+                catch (Exception statsEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics view update error: {statsEx.Message}");
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] UpdateTranslations() completed for {TournamentClass?.Name}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] UpdateTranslations ERROR: {ex.Message}");
+        }
     }
 
     private void OnTournamentUIRefreshRequested(object? sender, EventArgs e)

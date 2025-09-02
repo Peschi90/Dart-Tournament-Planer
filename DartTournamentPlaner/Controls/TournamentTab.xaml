@@ -443,13 +443,11 @@
                             <Button DockPanel.Dock="Top" Name="ResetMatchesButton" Content="⚠️ Spiele zurücksetzen"
                                     Style="{StaticResource WarningButton}"
                                     Click="ResetMatchesButton_Click"
-                                    IsEnabled="False"
                                     Margin="0,0,0,12"/>
 
                             <Button DockPanel.Dock="Top" Name="ResetTournamentButton" Content="🔄 Turnier zurücksetzen"
                                     Style="{StaticResource DangerButton}"
                                     Click="ResetTournamentButton_Click"
-                                    IsEnabled="False"
                                     Margin="0,0,0,16"/>
                             
                             <!-- Group Management -->
