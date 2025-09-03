@@ -145,6 +145,10 @@ const websocketServer = new WebSocketServer(HTTPS_ENABLED, SSL_KEY_PATH, SSL_CER
 const apiRoutes = createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io, websocketHandlers);
 app.use('/api', apiRoutes);
 
+// Match State Caching API
+const matchStateRoutes = require('./routes/match-state');
+app.use('/api/match-state', matchStateRoutes);
+
 // Static routes
 app.get('/', (req, res) => {
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';

@@ -13,7 +13,7 @@
         Icon="Assets/Images/favicon.ico">
 
     <Window.Resources>
-        <!-- Moderne Gradient-Hintergründe -->
+        <!-- Modern Gradient Backgrounds -->
         <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
             <GradientStop Color="#F8FAFC" Offset="0"/>
             <GradientStop Color="#F1F5F9" Offset="1"/>
@@ -24,7 +24,7 @@
             <GradientStop Color="#F8FAFC" Offset="1"/>
         </LinearGradientBrush>
 
-        <!-- Moderne Schatten-Effekte -->
+        <!-- Modern Shadow Effects -->
         <DropShadowEffect x:Key="CardShadow" 
                           Color="Black" 
                           Direction="270" 
@@ -53,7 +53,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Tab Headers mit modernem Design -->
+                            <!-- Tab Headers with modern design -->
                             <Border Grid.Row="0" 
                                     Background="{StaticResource HeaderGradient}" 
                                     BorderBrush="#E5E7EB" 
@@ -66,7 +66,7 @@
                                          Margin="20,8,20,0"/>
                             </Border>
 
-                            <!-- Content Area mit Schatten -->
+                            <!-- Content Area with shadow -->
                             <Border Grid.Row="1" 
                                     Background="White" 
                                     BorderBrush="#E5E7EB" 
@@ -83,7 +83,7 @@
             </Setter>
         </Style>
 
-        <!-- Modern TabItem Style für Tournament Classes -->
+        <!-- Modern TabItem Style for Tournament Classes -->
         <Style TargetType="TabItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -234,7 +234,7 @@
             </Setter>
         </Style>
 
-        <!-- Moderne MenuBar Style -->
+        <!-- Modern MenuBar Style -->
         <Style TargetType="Menu">
             <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
@@ -308,7 +308,7 @@
             </Setter>
         </Style>
 
-        <!-- Moderne StatusBar Style -->
+        <!-- Modern StatusBar Style -->
         <Style TargetType="StatusBar">
             <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
             <Setter Property="BorderBrush" Value="#E5E7EB"/>
@@ -318,7 +318,7 @@
         </Style>
     </Window.Resources>
 
-    <!-- Hauptinhalt mit modernem Gradient-Hintergrund -->
+    <!-- Main content with modern gradient background -->
     <Border Background="{StaticResource MainBackgroundBrush}">
         <Grid>
             <Grid.RowDefinitions>
@@ -327,48 +327,58 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Menu Bar mit modernem Design -->
+            <!-- Menu Bar with modern design -->
             <Menu Grid.Row="0">
-                <MenuItem Name="FileMenuItem" Header="📁 Datei">
-                    <MenuItem Name="NewMenuItem" Header="🆕 Neu" Click="New_Click"/>
-                    <MenuItem Name="OpenMenuItem" Header="📂 Öffnen" Click="Open_Click"/>
-                    <MenuItem Name="SaveMenuItem" Header="💾 Speichern" Click="Save_Click"/>
-                    <MenuItem Name="SaveAsMenuItem" Header="📄 Speichern unter" Click="SaveAs_Click"/>
+                <MenuItem Name="FileMenuItem" Header="File">
+                    <MenuItem Name="NewMenuItem" Header="New" Click="New_Click"/>
+                    <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click"/>
+                    <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click"/>
+                    <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click"/>
                     <Separator/>
-                    <MenuItem Name="PrintMenuItem" Header="🖨️ Drucken" Click="Print_Click"/>
+                    <MenuItem Name="PrintMenuItem" Header="Print" Click="Print_Click"/>
                     <Separator/>
-                    <MenuItem Name="ExitMenuItem" Header="🚪 Beenden" Click="Exit_Click"/>
+                    <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click"/>
                 </MenuItem>
-                <MenuItem Name="ViewMenuItem" Header="👁️ Ansicht">
-                    <MenuItem Name="OverviewModeMenuItem" Header="📺 Turnier-Übersicht" Click="OverviewMode_Click"/>
+                <MenuItem Name="ViewMenuItem" Header="View">
+                    <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click"/>
                 </MenuItem>
-                <MenuItem Name="ApiMenuItem" Header="🌐 API">
-                    <MenuItem Name="StartApiMenuItem" Header="▶️ API starten" Click="StartApi_Click"/>
-                    <MenuItem Name="StopApiMenuItem" Header="⏹️ API stoppen" Click="StopApi_Click"/>
-                    <MenuItem Name="OpenApiDocsMenuItem" Header="📖 API Dokumentation" Click="OpenApiDocs_Click"/>
+                <MenuItem Name="ApiMenuItem" Header="API">
+                    <MenuItem Name="StartApiMenuItem" Header="Start API" Click="StartApi_Click"/>
+                    <MenuItem Name="StopApiMenuItem" Header="Stop API" Click="StopApi_Click"/>
+                    <MenuItem Name="OpenApiDocsMenuItem" Header="API Documentation" Click="OpenApiDocs_Click"/>
                     <Separator/>
-                    <MenuItem Name="ApiStatusMenuItem" Header="📊 API Status" IsEnabled="False"/>
+                    <MenuItem Name="ApiStatusMenuItem" Header="API Status" IsEnabled="False"/>
                 </MenuItem>
-                <!-- NEU: Tournament Hub Menü -->
-                <MenuItem x:Name="TournamentHubMenuItem" Header="🎯 Tournament Hub">
-                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="🏁 Bei Hub registrieren" Click="RegisterWithHub_Click"/>
-                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="📴 Vom Hub entregistrieren" Click="UnregisterFromHub_Click"/>
+                <!-- Tournament Hub Menu -->
+                <MenuItem x:Name="TournamentHubMenuItem" Header="Tournament Hub">
+                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="Register with Hub" Click="RegisterWithHub_Click"/>
+                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="Unregister from Hub" Click="UnregisterFromHub_Click"/>
                     <Separator/>
-                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="📱 Join-URL anzeigen" Click="ShowJoinUrl_Click"/>
-                    <MenuItem x:Name="ManualSyncMenuItem" Header="🔄 Manuell synchronisieren" Click="ManualSyncWithHub_Click"/>
+                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="Show Join URL" Click="ShowJoinUrl_Click"/>
+                    <MenuItem x:Name="ManualSyncMenuItem" Header="Manual Sync" Click="ManualSyncWithHub_Click"/>
                     <Separator/>
-                    <MenuItem x:Name="HubSettingsMenuItem" Header="⚙️ Hub-Einstellungen" Click="HubSettings_Click"/>
+                    <MenuItem x:Name="HubSettingsMenuItem" Header="Hub Settings" Click="HubSettings_Click"/>
                 </MenuItem>
-                <MenuItem Name="SettingsMenuItem" Header="⚙️ Einstellungen" Click="Settings_Click"/>
-                <MenuItem Name="HelpMenuItem" Header="❓ Hilfe">
-                    <MenuItem Name="HelpContentMenuItem" Header="📖 Hilfe" Click="Help_Click"/>
-                    <MenuItem Name="BugReportMenuItem" Header="🐛 Bug melden" Click="BugReport_Click"/>
+                <!-- License Menu -->
+                <MenuItem x:Name="LicenseMenuItem" Header="License">
+                    <MenuItem x:Name="LicenseStatusMenuItem" Header="License Status" Click="LicenseStatus_Click"/>
                     <Separator/>
-                    <MenuItem Name="AboutMenuItem" Header="ℹ️ Über" Click="About_Click"/>
+                    <MenuItem x:Name="ActivateLicenseMenuItem" Header="Activate License" Click="ActivateLicense_Click"/>
+                    <MenuItem x:Name="LicenseInfoMenuItem" Header="License Information" Click="LicenseInfo_Click" Visibility="Collapsed"/>
+                    <MenuItem x:Name="RemoveLicenseMenuItem" Header="Remove License" Click="RemoveLicense_Click" Visibility="Collapsed"/>
+                    <Separator x:Name="LicenseSeparator" Visibility="Collapsed"/>
+                    <MenuItem x:Name="PurchaseLicenseMenuItem" Header="Purchase License" Click="PurchaseLicense_Click"/>
+                </MenuItem>
+                <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
+                <MenuItem Name="HelpMenuItem" Header="Help">
+                    <MenuItem Name="HelpContentMenuItem" Header="Help" Click="Help_Click"/>
+                    <MenuItem Name="BugReportMenuItem" Header="Report Bug" Click="BugReport_Click"/>
+                    <Separator/>
+                    <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
                 </MenuItem>
             </Menu>
 
-            <!-- Main Content Area mit Card-Design -->
+            <!-- Main Content Area with Card Design -->
             <Border Grid.Row="1" 
                     Background="White" 
                     CornerRadius="12" 
@@ -471,11 +481,11 @@
                     Effect="{StaticResource CardShadow}"
                     Panel.ZIndex="100">
                 <Button Name="DonationButton" 
-                        Content="💝"
-                        ToolTip="Unterstützen Sie die Entwicklung dieses Projekts"
+                        Content="Support"
+                        ToolTip="Support the development of this project"
                         Click="Donation_Click"
                         Width="56" Height="56"
-                        FontSize="37"
+                        FontSize="12"
                         BorderThickness="0"
                         Background="Transparent"
                         Foreground="#FF9800"
@@ -517,7 +527,7 @@
                 </Button>
             </Border>
 
-            <!-- Statusleiste mit Hub- und API-Status-Indikatoren -->
+            <!-- Status bar with Hub and API status indicators -->
             <Border Grid.Row="2" Background="#2C3E50" Padding="10,5">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -530,16 +540,16 @@
                     
                     <!-- Status Text -->
                     <TextBlock x:Name="StatusTextBlock" Grid.Column="0" 
-                               Text="WebSocket-Hub Integration aktiviert" Foreground="White" VerticalAlignment="Center"/>
+                               Text="WebSocket-Hub Integration activated" Foreground="White" VerticalAlignment="Center"/>
                     
-                    <!-- Hub Status Indikator (KLICKBAR für Debug Console) -->
+                    <!-- Hub Status Indicator (CLICKABLE for Debug Console) -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0" 
                                 Cursor="Hand" Background="Transparent"
                                 MouseLeftButtonDown="HubStatus_Click"
-                                ToolTip="Tournament Hub Status - Klicken für Debug Console">
+                                ToolTip="Tournament Hub Status - Click for Debug Console">
                         <Ellipse x:Name="HubStatusIndicator" Width="12" Height="12" 
                                  Fill="#E74C3C" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="HubStatusText" Text="Hub: Verbinde..." 
+                        <TextBlock x:Name="HubStatusText" Text="Hub: Connecting..." 
                                    Foreground="White" VerticalAlignment="Center" FontSize="11"/>
                         <TextBlock x:Name="HubSyncStatus" Text="(WebSocket)" 
                                    Foreground="#3498DB" VerticalAlignment="Center" FontSize="11" Margin="8,0,0,0"/>
@@ -549,18 +559,18 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="20,0">
                         <Ellipse x:Name="ApiStatusIndicator" Width="8" Height="8" 
                                  Fill="#E74C3C" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ApiStatusText" Text="API: Gestoppt" 
+                        <TextBlock x:Name="ApiStatusText" Text="API: Stopped" 
                                    Foreground="White" VerticalAlignment="Center" FontSize="11"/>
                     </StackPanel>
                     
-                    <!-- Letzte Speicherung -->
+                    <!-- Last Saved -->
                     <TextBlock x:Name="LastSavedBlock" Grid.Column="3" 
-                               Text="Gespeichert" Foreground="White" 
+                               Text="Saved" Foreground="White" 
                                VerticalAlignment="Center" Margin="20,0" FontSize="11"/>
                     
-                    <!-- Sprache -->
+                    <!-- Language -->
                     <TextBlock x:Name="LanguageStatusBlock" Grid.Column="4" 
-                               Text="DE" Foreground="White" 
+                               Text="EN" Foreground="White" 
                                VerticalAlignment="Center" FontSize="11" FontWeight="Bold"/>
                 </Grid>
             </Border>

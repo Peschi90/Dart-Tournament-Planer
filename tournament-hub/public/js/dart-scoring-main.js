@@ -17,13 +17,23 @@ class DartScoringMain {
         if (typeof DartScoringSubmission === 'undefined') {
             throw new Error('DartScoringSubmission is not loaded');
         }
+        if (typeof DartScoringCache === 'undefined') {
+            throw new Error('DartScoringCache is not loaded');
+        }
+        if (typeof DartScoringCacheUI === 'undefined') {
+            throw new Error('DartScoringCacheUI is not loaded');
+        }
 
         this.core = new DartScoringCore();
         this.ui = new DartScoringUI();
         this.stats = new DartScoringStats(this.core, this.ui);
         this.submission = new DartScoringSubmission(this.core, this.ui, this.stats); // ✅ NEU: WebSocket Submission
+        
+        // ✅ NEU: Cache System
+        this.cache = new DartScoringCache(this.core);
+        this.cacheUI = new DartScoringCacheUI(this.core, this.ui, this.cache);
 
-        console.log('🚀 [DART-MAIN] Dart Scoring Main initialized with enhanced submission');
+        console.log('🚀 [DART-MAIN] Dart Scoring Main initialized with caching system');
     }
 
     /**
@@ -50,8 +60,14 @@ class DartScoringMain {
                 throw new Error('Failed to initialize dart scoring core');
             }
 
+            // ✅ NEU: Prüfe automatisch auf gespeicherten State und lade wenn verfügbar
+            const autoLoadResult = await this.handleAutoLoad();
+
             // Initialize UI with core
             this.ui.initialize(this.core);
+
+            // ✅ NEU: Initialize Cache UI
+            this.cacheUI.initialize();
 
             // Start statistics tracking
             this.stats.startTracking();
@@ -65,7 +81,13 @@ class DartScoringMain {
             // Setup enhanced match result submission
             this.setupEnhancedSubmission();
 
-            console.log('✅ [DART-MAIN] Application initialized successfully with WebSocket submission');
+            // ✅ NEU: Setup match completion cleanup
+            this.setupMatchCompletionCleanup();
+
+            // Show auto-load result
+            this.showAutoLoadResult(autoLoadResult);
+
+            console.log('✅ [DART-MAIN] Application initialized successfully with caching system');
             return true;
 
         } catch (error) {
@@ -180,41 +202,87 @@ class DartScoringMain {
     }
 
     /**
-     * Show error message to user
+     * Handle automatic loading on start
      */
-    showError(message) {
-        // Create error display
-        const errorContainer = document.createElement('div');
-        errorContainer.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            text-align: center;
-            z-index: 9999;
-            max-width: 500px;
-            margin: 20px;
-        `;
+    async handleAutoLoad() {
+        console.log('🔄 [DART-MAIN] Handling auto-load...');
 
-        errorContainer.innerHTML = `
-            <h2 style="color: #e53e3e; margin-bottom: 15px;">❌ Fehler</h2>
-            <p style="color: #4a5568; margin-bottom: 20px;">${message}</p>
-            <button onclick="history.back()" style="
-                background: #4299e1;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-            ">Zurück</button>
-        `;
+        try {
+            // Check if cached state exists
+            const hasCached = await this.cache.checkForCachedState();
 
-        document.body.appendChild(errorContainer);
+            if (!hasCached) {
+                console.log('📭 [DART-MAIN] No cached state found - starting fresh game');
+                this.cache.startAutoSave();
+                this.cacheUI.updateRestoreButton(false);
+                return { loaded: false, reason: 'no_cache' };
+            }
+
+            console.log('🔍 [DART-MAIN] Cached state found - attempting auto-load');
+
+            // Try to load automatically
+            const loadResult = await this.cache.loadCachedState();
+
+            if (loadResult.success) {
+                console.log('✅ [DART-MAIN] Auto-load successful');
+                this.cache.startAutoSave();
+                this.cacheUI.updateRestoreButton(false);
+                return { 
+                    loaded: true, 
+                    method: 'auto', 
+                    age: loadResult.age,
+                    lastUpdated: loadResult.lastUpdated 
+                };
+            } else {
+                console.warn('⚠️ [DART-MAIN] Auto-load failed, showing manual button');
+                this.cache.startAutoSave();
+                this.cacheUI.updateRestoreButton(true, true);
+                return { loaded: false, reason: 'auto_load_failed', error: loadResult.message };
+            }
+
+        } catch (error) {
+            console.error('❌ [DART-MAIN] Auto-load error:', error);
+            this.cache.startAutoSave();
+            this.cacheUI.updateRestoreButton(true, true);
+            return { loaded: false, reason: 'error', error: error.message };
+        }
+    }
+
+    /**
+     * Setup cleanup when match is completed
+     */
+    setupMatchCompletionCleanup() {
+        // Hook in das submitMatchResult um Cache zu löschen
+        const originalSubmit = this.core.submitMatchResult.bind(this.core);
+        
+        this.core.submitMatchResult = async (...args) => {
+            try {
+                const result = await originalSubmit(...args);
+                
+                // Wenn erfolgreich übertragen, lösche Cache
+                if (result.success) {
+                    console.log('🗑️ [DART-MAIN] Match completed successfully, clearing cache');
+                    await this.cache.clearCachedState();
+                    this.cacheUI.updateRestoreButton(false);
+                }
+                
+                return result;
+            } catch (error) {
+                throw error;
+            }
+        };
+    }
+
+    /**
+     * Show result of auto-load
+     */
+    showAutoLoadResult(result) {
+        if (result.loaded) {
+            const ageText = result.age ? this.cacheUI.formatAge(result.age) : '';
+            this.ui.showMessage(`🔄 Spielstand automatisch wiederhergestellt! ${ageText}`, 'success', 4000);
+        } else if (result.reason === 'auto_load_failed') {
+            this.ui.showMessage('💡 Gespeicherter Spielstand verfügbar - Button zum Wiederherstellen anzeigen', 'info', 3000);
+        }
     }
 
     /**
@@ -229,6 +297,13 @@ class DartScoringMain {
      */
     getSubmissionStatus() {
         return this.submission.getSubmissionStatus();
+    }
+
+    /**
+     * Get cache status
+     */
+    getCacheStatus() {
+        return this.cache.getCacheStatus();
     }
 
     /**
@@ -259,6 +334,8 @@ class DartScoringMain {
     cleanup() {
         this.stats.stopTracking();
         this.submission.cleanup();
+        this.cache.cleanup();
+        this.cacheUI.cleanup();
         this.core.cleanup();
         console.log('🧹 [DART-MAIN] Application cleaned up');
     }
@@ -279,7 +356,7 @@ document.addEventListener('DOMContentLoaded', async() => {
 
     try {
         // Check if all required dependencies are loaded
-        const requiredClasses = ['DartScoringCore', 'DartScoringUI', 'DartScoringStats', 'DartScoringSubmission'];
+        const requiredClasses = ['DartScoringCore', 'DartScoringUI', 'DartScoringStats', 'DartScoringSubmission', 'DartScoringCache', 'DartScoringCacheUI'];
         const missingClasses = requiredClasses.filter(className => typeof window[className] === 'undefined');
 
         if (missingClasses.length > 0) {
@@ -301,7 +378,13 @@ document.addEventListener('DOMContentLoaded', async() => {
             window.debugDartScoring = {
                 getStats: () => window.dartScoringApp.getCurrentStatistics(),
                 getSubmissionStatus: () => window.dartScoringApp.getSubmissionStatus(),
+                getCacheStatus: () => window.dartScoringApp.getCacheStatus(),
                 triggerSubmission: () => window.dartScoringApp.triggerManualSubmission(),
+                // ✅ NEU: Cache Debug Functions
+                checkCache: () => window.dartScoringApp.cache.checkForCachedState(),
+                saveState: () => window.dartScoringApp.cache.saveCurrentState(),
+                loadState: () => window.dartScoringApp.cache.loadCachedState(),
+                clearCache: () => window.dartScoringApp.cache.clearCachedState(),
                 // ✅ NEU: Force Submit für Debugging
                 forceSubmit: async() => {
                     console.warn('🔧 [DEBUG] Force submitting match result...');
@@ -326,6 +409,7 @@ document.addEventListener('DOMContentLoaded', async() => {
                     return {
                         stats: window.dartScoringApp.getCurrentStatistics(),
                         submissionStatus: window.dartScoringApp.getSubmissionStatus(),
+                        cacheStatus: window.dartScoringApp.getCacheStatus(),
                         gameState: {
                             isGameFinished: window.dartScoringApp.core.gameState.isGameFinished,
                             currentPlayer: window.dartScoringApp.core.gameState.currentPlayer,
@@ -399,6 +483,11 @@ document.addEventListener('DOMContentLoaded', async() => {
             console.log('🔧 [DART-MAIN] Enhanced debug functions available:');
             console.log('   window.debugDartScoring.getStats()');
             console.log('   window.debugDartScoring.getSubmissionStatus()');
+            console.log('   window.debugDartScoring.getCacheStatus() // ✅ NEU');
+            console.log('   window.debugDartScoring.checkCache() // ✅ NEU');
+            console.log('   window.debugDartScoring.saveState() // ✅ NEU');
+            console.log('   window.debugDartScoring.loadState() // ✅ NEU');
+            console.log('   window.debugDartScoring.clearCache() // ✅ NEU');
             console.log('   window.debugDartScoring.triggerSubmission()');
             console.log('   window.debugDartScoring.forceSubmit() // ⚠️ Debugging only');
             console.log('   window.debugDartScoring.setGameFinished(true/false) // ⚠️ Testing only');
@@ -417,4 +506,4 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-console.log('🎯 [DART-MAIN] Enhanced Dart Scoring Main module loaded');
+console.log('🎯 [DART-MAIN] Enhanced Dart Scoring Main module with caching loaded');

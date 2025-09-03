@@ -11,6 +11,7 @@ using DartTournamentPlaner.Services;
 using DartTournamentPlaner.ViewModels;
 using DartTournamentPlaner.Views;
 using DartTournamentPlaner.Helpers;
+using DartTournamentPlaner.Services.License; // NEU: License Services
 
 namespace DartTournamentPlaner.Controls;
 
@@ -31,6 +32,10 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     private TournamentTabUIManager? _uiManager;
     private TournamentTabEventHandlers? _eventHandlers;
     private TournamentTabTranslationManager? _translationManager;
+
+    // NEU: License Services für Statistics-Prüfung
+    private LicenseFeatureService? _licenseFeatureService;
+    private Services.License.LicenseManager? _licenseManager;
 
     // Properties
     public TournamentClass TournamentClass
@@ -709,6 +714,21 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
             System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Updating statistics tab for class: {TournamentClass.Name}");
 
+            // NEU: Lizenzprüfung für Statistics Feature
+            var hasStatisticsLicense = CheckStatisticsLicense();
+            
+            if (!hasStatisticsLicense)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics license not available - showing license required control");
+                ShowStatisticsLicenseRequired();
+                return;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics license verified - showing statistics view");
+                ShowStatisticsView();
+            }
+
             // ✅ KORRIGIERT: Finde StatisticsView im Control-Tree
             PlayerStatisticsView? statisticsView = null;
 
@@ -754,6 +774,192 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             var title = _localizationService.GetString("Error");
             var message = _localizationService.GetString("ErrorLoadingStatistics", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    /// <summary>
+    /// NEU: Prüft ob Statistics-Lizenz vorhanden ist
+    /// </summary>
+    private bool CheckStatisticsLicense()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🔍 CheckStatisticsLicense: Starting license check...");
+            
+            // Hole License Services vom MainWindow
+            if (Application.Current.MainWindow is MainWindow mainWindow)
+            {
+                // Verwende Reflection um auf private Felder zuzugreifen
+                var licenseFeatureServiceField = mainWindow.GetType()
+                    .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var licenseManagerField = mainWindow.GetType()
+                    .GetField("_licenseManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+                _licenseFeatureService = licenseFeatureServiceField?.GetValue(mainWindow) as LicenseFeatureService;
+                _licenseManager = licenseManagerField?.GetValue(mainWindow) as Services.License.LicenseManager;
+
+                System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: LicenseFeatureService found: {_licenseFeatureService != null}");
+                System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: LicenseManager found: {_licenseManager != null}");
+
+                if (_licenseFeatureService != null)
+                {
+                    var status = _licenseFeatureService.CurrentStatus;
+                    var hasStatistics = _licenseFeatureService.HasFeature(DartTournamentPlaner.Models.License.LicenseFeatures.STATISTICS);
+                    
+                    System.Diagnostics.Debug.WriteLine($"🔍 Statistics License Check:");
+                    System.Diagnostics.Debug.WriteLine($"   - License Service available: TRUE");
+                    System.Diagnostics.Debug.WriteLine($"   - Status.IsLicensed: {status?.IsLicensed ?? false}");
+                    System.Diagnostics.Debug.WriteLine($"   - Status.IsValid: {status?.IsValid ?? false}");
+                    System.Diagnostics.Debug.WriteLine($"   - HasFeature(STATISTICS): {hasStatistics}");
+                    System.Diagnostics.Debug.WriteLine($"   - ActiveFeatures Count: {status?.ActiveFeatures?.Count ?? 0}");
+                    
+                    if (status?.ActiveFeatures != null && status.ActiveFeatures.Any())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   - Active Features: {string.Join(", ", status.ActiveFeatures)}");
+                    }
+                    
+                    var result = status?.IsLicensed == true && hasStatistics;
+                    System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: Final result: {result}");
+                    return result;
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("❌ CheckStatisticsLicense: MainWindow not found or wrong type");
+            }
+
+            System.Diagnostics.Debug.WriteLine("⚠️ License services not available - allowing statistics access");
+            return true; // Fallback: erlaubt Zugriff wenn Service nicht verfügbar
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error checking statistics license: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ StackTrace: {ex.StackTrace}");
+            return true; // Fallback: erlaubt Zugriff bei Fehlern
+        }
+    }
+
+    /// <summary>
+    /// NEU: Zeigt das Statistics License Required Control
+    /// </summary>
+    private void ShowStatisticsLicenseRequired()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🔒 ShowStatisticsLicenseRequired: Starting...");
+            
+            // Verstecke Statistics View
+            if (StatisticsView != null)
+            {
+                StatisticsView.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine("✅ StatisticsView hidden");
+            }
+
+            // Zeige License Required Control
+            if (StatisticsLicenseControl != null)
+            {
+                StatisticsLicenseControl.Visibility = Visibility.Visible;
+                System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl set to visible");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("❌ StatisticsLicenseControl not found in XAML - trying to create dynamically");
+                
+                // Fallback: Erstelle das Control dynamisch und füge es zum Grid hinzu
+                if (_licenseManager != null && _localizationService != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("🔧 Creating StatisticsLicenseControl dynamically with services...");
+                    
+                    // Finde das Grid des Statistics Tab
+                    var statisticsTabItem = MainTabControl?.Items?.Cast<TabItem>()
+                        .FirstOrDefault(tab => tab.Name == "StatisticsTabItem");
+                    
+                    if (statisticsTabItem?.Content is Grid statisticsGrid)
+                    {
+                        // Prüfe ob bereits ein dynamisches Control existiert
+                        var existingControl = statisticsGrid.Children
+                            .OfType<StatisticsLicenseRequiredControl>()
+                            .FirstOrDefault();
+                            
+                        if (existingControl == null)
+                        {
+                            // Erstelle das License Required Control
+                            var licenseControl = StatisticsLicenseRequiredControl.Create(_localizationService, _licenseManager);
+                            licenseControl.Name = "StatisticsLicenseControl";
+                            
+                            // Füge es zum Grid hinzu
+                            statisticsGrid.Children.Add(licenseControl);
+                            
+                            System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl created dynamically and added to grid");
+                        }
+                        else
+                        {
+                            existingControl.Visibility = Visibility.Visible;
+                            System.Diagnostics.Debug.WriteLine("✅ Existing dynamic StatisticsLicenseControl set to visible");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("❌ Statistics Tab Grid not found");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ Services not available for dynamic creation:");
+                    System.Diagnostics.Debug.WriteLine($"   - LicenseManager: {_licenseManager != null}");
+                    System.Diagnostics.Debug.WriteLine($"   - LocalizationService: {_localizationService != null}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error showing statistics license required: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// NEU: Zeigt die normale Statistics View
+    /// </summary>
+    private void ShowStatisticsView()
+    {
+        try
+        {
+            // Zeige Statistics View
+            if (StatisticsView != null)
+            {
+                StatisticsView.Visibility = Visibility.Visible;
+                System.Diagnostics.Debug.WriteLine("✅ StatisticsView set to visible");
+            }
+
+            // Verstecke License Required Control (falls vorhanden)
+            if (StatisticsLicenseControl != null)
+            {
+                StatisticsLicenseControl.Visibility = Visibility.Collapsed;
+                System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl set to collapsed");
+            }
+            else
+            {
+                // Suche nach dynamisch erstelltem Control
+                var statisticsTabItem = MainTabControl?.Items?.Cast<TabItem>()
+                    .FirstOrDefault(tab => tab.Name == "StatisticsTabItem");
+                
+                if (statisticsTabItem?.Content is Grid statisticsGrid)
+                {
+                    var existingControl = statisticsGrid.Children
+                        .OfType<StatisticsLicenseRequiredControl>()
+                        .FirstOrDefault();
+                    
+                    if (existingControl != null)
+                    {
+                        existingControl.Visibility = Visibility.Collapsed;
+                        System.Diagnostics.Debug.WriteLine("✅ Dynamically created StatisticsLicenseControl set to collapsed");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error showing statistics view: {ex.Message}");
         }
     }
 

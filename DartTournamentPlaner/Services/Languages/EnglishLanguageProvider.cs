@@ -928,7 +928,7 @@ public class EnglishLanguageProvider : ILanguageProvider
             ["ElapsedTime"] = "Elapsed Time: {0}",
             ["EstimatedDuration"] = "Estimated Duration: {0}",
             ["QualificationPath"] = "Qualification Path: {0}",
-            
+
             // ========================================
             // STATISTICS TAB TRANSLATIONS - NEW
             // ========================================
@@ -1092,7 +1092,75 @@ public class EnglishLanguageProvider : ILanguageProvider
             ["ValidationStatus"] = "Validation Status",
             ["LastUpdate"] = "Last Update",
             ["DataSource"] = "Data Source",
-            ["RecordCount"] = "Record Count"
+            ["RecordCount"] = "Record Count",
+
+            // ========================================
+            // LICENSE SYSTEM TRANSLATIONS - NEW
+            // ========================================
+
+            // License Menu
+            ["License"] = "License",
+            ["LicenseStatus"] = "License Status",
+            ["LicenseStatusSubtitle"] = "Overview of your current license status and available features",
+            ["ActivateLicense"] = "Activate License",
+            ["LicenseInfo"] = "License Information",
+            ["LicenseInfoSubtitle"] = "Current license and feature information",
+            ["PurchaseLicense"] = "Purchase License",
+            ["ShowDetails"] = "Show Details",
+            ["ActivatingLicense"] = "Activating license...",
+            ["ValidatingLicense"] = "Validating license...",
+            ["LicenseActivationMessage"] = "Enter your license key:",
+            ["LicenseActivatedSuccessfully"] = "License activated successfully!",
+            ["PurchaseLicenseMessage"] = "Visit our website to purchase a license:",
+            ["RemoveLicense"] = "Remove License",
+            ["RemoveLicenseConfirmation"] = "Do you really want to remove the activated license?",
+            ["LicenseRemovedSuccess"] = "License was successfully removed!",
+            ["LicenseRemoveError"] = "Error removing license.",
+
+            // Purchase License Dialog
+            ["PurchaseLicenseTitle"] = "Purchase License",
+            ["PurchaseLicenseSubtitle"] = "Fill out the form below to request a license",
+            ["FirstName"] = "First Name",
+            ["LastName"] = "Last Name",
+            ["Email"] = "Email Address",
+            ["Company"] = "Company / Organization",
+            ["LicenseType"] = "License Type",
+            ["RequiredActivations"] = "Required Activations",
+            ["RequiredFeatures"] = "Required Features",
+            ["AdditionalMessage"] = "Message / Special Requirements",
+            ["HowDidYouHear"] = "How did you hear about us?",
+            ["SendLicenseRequest"] = "Send License Request",
+            ["ValidationError"] = "Validation Error",
+            ["EmailClientOpened"] = "Email client opened",
+
+            // Spenden-Dialog Übersetzungen
+            ["SupportProject"] = "Support Project",
+            ["SupportProjectTitle"] = "Support Our Project",
+            ["SupportProjectSubtitle"] = "Your donation helps us continue developing Dart Tournament Planner!",
+            ["SelectDonationAmount"] = "Select your donation amount:",
+            ["Skip"] = "Skip",
+            ["DonateViaPayPal"] = "Donate via PayPal",
+            ["ThankYou"] = "Thank You!",
+            ["PayPalOpened"] = "PayPal opened for donation",
+
+            // Print License Dialog
+            ["PrintLicenseRequired"] = "Print License Required",
+            ["PrintLicenseRequiredTitle"] = "Print License Required",
+            ["PrintLicenseRequiredMessage"] = "The print functionality requires a valid license with the 'Enhanced Printing' feature.",
+            ["EnhancedPrintingBenefitsTitle"] = "Enhanced Printing includes:",
+            ["EnhancedPrintingBenefits"] = "- Professional tournament reports\n- Match results and brackets\n- Export to PDF functionality",
+            ["PrintLicenseActionText"] = "Would you like to request a license with the Enhanced Printing feature?",
+            ["RequestLicense"] = "Request License",
+
+            // Statistics License Control
+            ["StatisticsLicenseRequiredTitle"] = "Statistics License Required",
+            ["StatisticsLicenseRequiredMessage"] = "Advanced statistics require a valid license with the 'Statistics' feature and an active Hub connection.",
+            ["StatisticsBenefitsTitle"] = "Statistics Features include:",
+            ["StatisticsBenefits"] = "- Detailed player performance analytics\n- Match history and trends\n- Tournament progression tracking\n- Real-time Hub synchronization\n- Advanced statistical reports",
+            ["HubConnectionRequired"] = "Hub Connection Required",
+            ["HubConnectionRequiredText"] = "Statistics features require an active Tournament Hub connection for real-time data synchronization.",
+            ["StatisticsLicenseActionText"] = "Would you like to request a license with Statistics and Hub features?",
+            ["RequestStatisticsLicense"] = "Request Statistics License",
         };
     }
 }

@@ -1,0 +1,354 @@
+<Window x:Class="DartTournamentPlaner.Views.License.DonationSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Support Project" Height="600" Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <!-- Gradient Backgrounds -->
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FF6B46C1" Offset="0"/>
+            <GradientStop Color="#FF9333EA" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Donation Button Style -->
+        <Style x:Key="DonationButtonStyle" TargetType="RadioButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="border" 
+                                Background="White" 
+                                BorderBrush="#E5E7EB"
+                                BorderThickness="2"
+                                CornerRadius="12"
+                                Padding="20,16"
+                                Margin="4"
+                                Cursor="Hand">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AmountText" 
+                                               Text="{TemplateBinding Content}" 
+                                               FontSize="18" 
+                                               FontWeight="Bold" 
+                                               Foreground="#374151"/>
+                                    <TextBlock x:Name="DescriptionText" 
+                                               Text="{TemplateBinding Tag}" 
+                                               FontSize="12" 
+                                               Foreground="#6B7280"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                                
+                                <Ellipse Grid.Column="1" 
+                                         x:Name="RadioIndicator"
+                                         Width="20" Height="20" 
+                                         Stroke="#D1D5DB" 
+                                         StrokeThickness="2"
+                                         Fill="White"/>
+                                
+                                <Ellipse Grid.Column="1" 
+                                         x:Name="RadioFill"
+                                         Width="10" Height="10" 
+                                         Fill="#9333EA"
+                                         Visibility="Collapsed"/>
+                            </Grid>
+                            
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
+                                                  BlurRadius="8" Opacity="0.08"/>
+                            </Border.Effect>
+                        </Border>
+                        
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#9333EA"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#9333EA" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="12" Opacity="0.25"/>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="AmountText" Property="Foreground" Value="#9333EA"/>
+                            </Trigger>
+                            
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#9333EA"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F3E8FF" Offset="0"/>
+                                            <GradientStop Color="#EDE9FE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="RadioIndicator" Property="Stroke" Value="#9333EA"/>
+                                <Setter TargetName="RadioFill" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="AmountText" Property="Foreground" Value="#6B46C1"/>
+                                <Setter TargetName="DescriptionText" Property="Foreground" Value="#6B46C1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Custom Amount Input Style -->
+        <Style x:Key="CustomAmountStyle" TargetType="TextBox">
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderBrush" Value="#9333EA"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6B46C1"/>
+                                <Setter TargetName="border" Property="Background" Value="#F9FAFB"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#9333EA" Direction="0" ShadowDepth="0" 
+                                                          BlurRadius="8" Opacity="0.3"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#6B46C1"/>
+                                <Setter TargetName="border" Property="Background" Value="#FAFBFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="24,12"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#9333EA" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="20" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Container -->
+    <Border Background="White" 
+            CornerRadius="16" 
+            BorderBrush="#E5E7EB" 
+            BorderThickness="1"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="12" 
+                              BlurRadius="30" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource HeaderGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    Padding="15,0">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="💝" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="TitleText" 
+                               Text="Support Our Project" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,4"/>
+                    <TextBlock x:Name="SubtitleText" 
+                               Text="Your donation helps us continue developing Dart Tournament Planner!" 
+                               FontSize="12" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Opacity="0.9"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" Padding="32,24" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    
+                    <!-- Preset Donation Amounts -->
+                    <TextBlock x:Name="SelectAmountLabel" 
+                               Text="Select your donation amount:" 
+                               FontSize="16" 
+                               FontWeight="SemiBold" 
+                               Foreground="#374151" 
+                               Margin="0,0,0,16"/>
+
+                    <!-- Donation Options Grid -->
+                    <Grid Margin="0,0,0,24">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- Donation options -->
+                        <RadioButton x:Name="Donation1Euro" 
+                                     Grid.Row="0"
+                                     GroupName="DonationAmount" 
+                                     Content="1 EUR" 
+                                     Tag="Buy us a coffee" 
+                                     Style="{StaticResource DonationButtonStyle}"
+                                     Margin="0,0,0,8"/>
+                        
+                        <RadioButton x:Name="Donation2Euro" 
+                                     Grid.Row="1"
+                                     GroupName="DonationAmount" 
+                                     Content="2 EUR" 
+                                     Tag="Small appreciation" 
+                                     Style="{StaticResource DonationButtonStyle}"
+                                     Margin="0,0,0,8"/>
+                        
+                        <RadioButton x:Name="Donation5Euro" 
+                                     Grid.Row="2"
+                                     GroupName="DonationAmount" 
+                                     Content="5 EUR" 
+                                     Tag="Great support!" 
+                                     Style="{StaticResource DonationButtonStyle}"
+                                     IsChecked="True"
+                                     Margin="0,0,0,8"/>
+
+						<RadioButton x:Name="Donation10Euro"
+                                     Grid.Row="3"
+                                     GroupName="DonationAmount"
+                                     Content="10 EUR"
+									 Tag="You are Awesome!"
+                                     Style="{StaticResource DonationButtonStyle}"
+                                     Margin="0,0,0,8" />
+                    </Grid>
+
+                    <!-- No Donation (Small) -->
+                    <Border Background="#F9FAFB" 
+                            BorderBrush="#E5E7EB" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="12,8" 
+                            Margin="0,0,0,16">
+                        <RadioButton x:Name="DonationNone" 
+                                     GroupName="DonationAmount" 
+                                     Content="Continue without donation" 
+                                     FontSize="12" 
+                                     Foreground="#6B7280"
+                                     Background="Transparent"
+                                     BorderThickness="0"/>
+                    </Border>
+
+                    <!-- Info Text -->
+                    <Border Background="#FEF3C7" 
+                            BorderBrush="#F59E0B" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="🎯 Why donate?" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#92400E" 
+                                       Margin="0,0,0,8"/>
+                            <TextBlock x:Name="InfoText" 
+                                       TextWrapping="Wrap" 
+                                       FontSize="12" 
+                                       Foreground="#92400E" 
+                                       LineHeight="18">
+                                <Run Text="- Keeps the software free and open source"/>
+                                <LineBreak/>
+                                <Run Text="- Supports ongoing development and new features"/>
+                                <LineBreak/>
+                                <Run Text="- Helps maintain servers and infrastructure"/>
+                                <LineBreak/>
+                                <Run Text="- Shows appreciation for our work"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Buttons -->
+            <Border Grid.Row="2" 
+                    Background="#F8FAFC" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,1,0,0" 
+                    CornerRadius="0,0,16,16"
+                    Padding="32,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="SkipButton" 
+                            Content="Skip" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Click="SkipButton_Click"/>
+                    
+                    <Button x:Name="DonateButton" 
+                            Content="💝 Donate via PayPal" 
+                            Style="{StaticResource PrimaryButton}" 
+                            Click="DonateButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

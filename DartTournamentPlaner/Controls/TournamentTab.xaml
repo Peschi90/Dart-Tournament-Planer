@@ -888,11 +888,15 @@
                 </Grid>
             </TabItem>
             
-            <!-- ✅ NEU: Statistiken Tab -->
+            <!-- ✅ NEU: Statistiken Tab mit Lizenz-Prüfung -->
             <TabItem Name="StatisticsTabItem" Header="📊 Statistiken">
                 <Grid Margin="20">
-                    <!-- Statistiken-View einbinden -->
+                    <!-- Statistiken-View (wird bei vorhandener Lizenz angezeigt) -->
                     <local:PlayerStatisticsView x:Name="StatisticsView"/>
+                    
+                    <!-- License Required Control (wird bei fehlender Lizenz angezeigt, überlagert Statistics View) -->
+                    <local:StatisticsLicenseRequiredControl x:Name="StatisticsLicenseControl" 
+                                                            Visibility="Collapsed"/>
                 </Grid>
             </TabItem>
         </TabControl>

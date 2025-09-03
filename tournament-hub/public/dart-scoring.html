@@ -1195,6 +1195,52 @@
         .player-display.inactive .player-display-score {
             color: #a0aec0;
         }
+        /* ✅ NEU: Cache Status Indicator Styles */
+        
+        #cacheStatusContainer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 10px;
+        }
+        
+        #cacheStatusIndicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        #cacheRestoreButton {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #f39c12;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: none;
+        }
+        
+        #cacheRestoreButton:hover:not(:disabled) {
+            background: #e67e22;
+            transform: translateY(-1px);
+        }
+        
+        #cacheRestoreButton:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
         /* BUSTED ANIMATION - Rot blinkendes Overlay */
         
         .busted-animation {
@@ -1580,6 +1626,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/fix-optional-chaining.js"></script>
     <script src="/js/dart-scoring-core.js"></script>
+    <script src="/js/dart-scoring-cache.js"></script>
+    <script src="/js/dart-scoring-cache-ui.js"></script>
     <script src="/js/dart-scoring-keyboard.js"></script>
     <script src="/js/dart-scoring-modals.js"></script>
     <script src="/js/dart-scoring-animations.js"></script>

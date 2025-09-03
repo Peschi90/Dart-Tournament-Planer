@@ -1201,7 +1201,75 @@ public class GermanLanguageProvider : ILanguageProvider
             ["DirectWebSocketPlayer1"] = "Direkter WebSocket Player1: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
             ["DirectWebSocketPlayer2"] = "Direkter WebSocket Player2: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
             ["DirectWebSocketMatchDuration"] = "Direkte WebSocket Match-Dauer: {0}ms = {1}",
-            ["ProcessingDirectWebSocketStatsFor"] = "Verarbeite direkte WebSocket-Statistiken für {0} vs {1}"
+            ["ProcessingDirectWebSocketStatsFor"] = "Verarbeite direkte WebSocket-Statistiken für {0} vs {1}",
+
+            // ========================================
+            // LIZENZ-SYSTEM ÜBERSETZUNGEN - NEU
+            // ========================================
+
+            // Lizenz-Menü
+            ["License"] = "Lizenz",
+            ["LicenseStatus"] = "Lizenz-Status",
+            ["LicenseStatusSubtitle"] = "Übersicht über Ihren aktuellen Lizenz-Status und verfügbare Features",
+            ["ActivateLicense"] = "Lizenz aktivieren",
+            ["LicenseInfo"] = "Lizenz-Informationen", 
+            ["LicenseInfoSubtitle"] = "Aktuelle Lizenz- und Feature-Informationen",
+            ["PurchaseLicense"] = "Lizenz kaufen",
+            ["ShowDetails"] = "Details anzeigen",
+            ["ActivatingLicense"] = "Lizenz wird aktiviert...",
+            ["ValidatingLicense"] = "Lizenz wird validiert...",
+            ["LicenseActivationMessage"] = "Geben Sie Ihren Lizenzschlüssel ein:",
+            ["LicenseActivatedSuccessfully"] = "Lizenz erfolgreich aktiviert!",
+            ["PurchaseLicenseMessage"] = "Besuchen Sie unsere Website, um eine Lizenz zu erwerben:",
+            ["RemoveLicense"] = "Lizenz entfernen",
+            ["RemoveLicenseConfirmation"] = "Möchten Sie die aktivierte Lizenz wirklich entfernen?",
+            ["LicenseRemovedSuccess"] = "Lizenz wurde erfolgreich entfernt!",
+            ["LicenseRemoveError"] = "Fehler beim Entfernen der Lizenz.",
+
+            // Übersetzungen für Purchase License Dialog
+            ["PurchaseLicenseTitle"] = "Lizenz kaufen",
+            ["PurchaseLicenseSubtitle"] = "Füllen Sie das Formular aus, um eine Lizenz anzufordern",
+            ["FirstName"] = "Vorname",
+            ["LastName"] = "Nachname",
+            ["Email"] = "E-Mail-Adresse",
+            ["Company"] = "Unternehmen / Organisation",
+            ["LicenseType"] = "Lizenztyp",
+            ["RequiredActivations"] = "Benötigte Aktivierungen",
+            ["RequiredFeatures"] = "Benötigte Features",
+            ["AdditionalMessage"] = "Nachricht / Besondere Anforderungen",
+            ["HowDidYouHear"] = "Wie haben Sie von uns erfahren?",
+            ["SendLicenseRequest"] = "Lizenzanfrage senden",
+            ["ValidationError"] = "Validierungsfehler",
+            ["EmailClientOpened"] = "E-Mail-Client wurde geöffnet",
+            
+            // Spenden-Dialog
+            ["SupportProject"] = "Projekt unterstützen",
+            ["SupportProjectTitle"] = "Unser Projekt unterstützen",
+            ["SupportProjectSubtitle"] = "Ihre Spende hilft uns, Dart Tournament Planner weiterzuentwickeln!",
+            ["SelectDonationAmount"] = "Wählen Sie Ihren Spendenbetrag:",
+            ["Skip"] = "Überspringen",
+            ["DonateViaPayPal"] = "Via PayPal spenden",
+            ["ThankYou"] = "Vielen Dank!",
+            ["PayPalOpened"] = "PayPal geöffnet für Spende",
+
+            // DRUCK LIZENZ
+            ["PrintLicenseRequired"] = "Drucklizenz erforderlich",
+            ["PrintLicenseRequiredTitle"] = "Drucklizenz erforderlich",
+            ["PrintLicenseRequiredMessage"] = "Die Druckfunktionalität erfordert eine gültige Lizenz mit dem 'Enhanced Printing' Feature.",
+            ["EnhancedPrintingBenefitsTitle"] = "Enhanced Printing beinhaltet:",
+            ["EnhancedPrintingBenefits"] = "- Professionelle Turnierberichte\n- Spielergebnisse und Turnierbäume\n- Export zu PDF Funktionalität",
+            ["PrintLicenseActionText"] = "Möchten Sie eine Lizenz mit dem Enhanced Printing Feature anfordern?",
+            ["RequestLicense"] = "Lizenz anfordern",
+
+            // Statistik Lizenz Meldungen
+            ["StatisticsLicenseRequiredTitle"] = "Statistik-Lizenz erforderlich",
+            ["StatisticsLicenseRequiredMessage"] = "Erweiterte Statistiken erfordern eine gültige Lizenz mit dem 'Statistics' Feature und eine aktive Hub-Verbindung.",
+            ["StatisticsBenefitsTitle"] = "Statistik-Features beinhalten:",
+            ["StatisticsBenefits"] = "- Detaillierte Spieler-Performance-Analyse\n- Spielverlauf und Trends\n- Turnier-Fortschritt-Verfolgung\n- Echtzeit-Hub-Synchronisation\n- Erweiterte statistische Berichte",
+            ["HubConnectionRequired"] = "Hub-Verbindung erforderlich",
+            ["HubConnectionRequiredText"] = "Statistik-Features erfordern eine aktive Tournament Hub-Verbindung für Echtzeit-Datensynchronisation.",
+            ["StatisticsLicenseActionText"] = "Möchten Sie eine Lizenz mit Statistik- und Hub-Features anfordern?",
+            ["RequestStatisticsLicense"] = "Statistik-Lizenz anfordern",
         };
     }
 }

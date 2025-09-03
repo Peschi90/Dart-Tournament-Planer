@@ -221,12 +221,20 @@ public class TournamentManagementService
         }
     }
 
-    public void ShowPrintDialog()
+    public void ShowPrintDialog(Window? owner = null, 
+        Services.License.LicenseFeatureService? licenseFeatureService = null, 
+        Services.License.LicenseManager? licenseManager = null)
     {
         try
         {
-            // Hier würde der PrintHelper aufgerufen werden
-            // PrintHelper.ShowPrintDialog(_tournamentClasses, PlatinClass, owner, _localizationService);
+            Helpers.PrintHelper.ShowPrintDialog(
+                _tournamentClasses, 
+                PlatinClass, 
+                owner, 
+                _localizationService,
+                licenseFeatureService,  // Lizenzprüfung
+                licenseManager         // Für Lizenz-Dialog
+            );
         }
         catch (Exception ex)
         {

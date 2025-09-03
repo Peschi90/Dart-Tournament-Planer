@@ -1,7 +1,10 @@
 using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Windows;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Services.License;
 using DartTournamentPlaner.Views;
 
 namespace DartTournamentPlaner.Helpers
@@ -25,18 +28,71 @@ namespace DartTournamentPlaner.Helpers
         }
 
         /// <summary>
-        /// Öffnet den Druckdialog für eine oder mehrere Turnierklassen
+        /// Öffnet den Druckdialog für eine oder mehrere Turnierklassen mit Lizenzprüfung
         /// </summary>
         /// <param name="tournamentClasses">Die verfügbaren Turnierklassen</param>
         /// <param name="selectedTournamentClass">Die initial ausgewählte Turnierklasse</param>
         /// <param name="owner">Das Besitzerfenster für den Dialog</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
+        /// <param name="licenseFeatureService">Service für Lizenzprüfung (optional)</param>
+        /// <param name="licenseManager">Lizenz Manager für Dialog (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
-        public static bool ShowPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, Window? owner = null, LocalizationService? localizationService = null)
+        public static bool ShowPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, 
+            Window? owner = null, LocalizationService? localizationService = null, 
+            DartTournamentPlaner.Services.License.LicenseFeatureService? licenseFeatureService = null, 
+            DartTournamentPlaner.Services.License.LicenseManager? licenseManager = null)
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Starting for {tournamentClasses?.Count ?? 0} tournament classes");
+                
+                // NEU: Lizenzprüfung für Enhanced Printing Feature
+                if (licenseFeatureService != null && licenseManager != null)
+                {
+                    var status = licenseFeatureService.CurrentStatus;
+                    var hasEnhancedPrinting = licenseFeatureService.HasFeature(DartTournamentPlaner.Models.License.LicenseFeatures.ENHANCED_PRINTING);
+                    
+                    System.Diagnostics.Debug.WriteLine($"?? PrintHelper License Check:");
+                    System.Diagnostics.Debug.WriteLine($"   - License Service available: TRUE");
+                    System.Diagnostics.Debug.WriteLine($"   - License Manager available: TRUE");
+                    System.Diagnostics.Debug.WriteLine($"   - Status.IsLicensed: {status?.IsLicensed ?? false}");
+                    System.Diagnostics.Debug.WriteLine($"   - Status.IsValid: {status?.IsValid ?? false}");
+                    System.Diagnostics.Debug.WriteLine($"   - HasFeature(ENHANCED_PRINTING): {hasEnhancedPrinting}");
+                    System.Diagnostics.Debug.WriteLine($"   - ActiveFeatures Count: {status?.ActiveFeatures?.Count ?? 0}");
+                    
+                    if (status?.ActiveFeatures != null && status.ActiveFeatures.Any())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"   - Active Features: {string.Join(", ", status.ActiveFeatures)}");
+                    }
+                    
+                    // Prüfung: Ist Lizenz vorhanden UND hat Enhanced Printing Feature?
+                    if (!status?.IsLicensed == true || !hasEnhancedPrinting)
+                    {
+                        System.Diagnostics.Debug.WriteLine("? Print access DENIED - showing license required dialog");
+                        
+                        // Zeige Lizenz-erforderlich Dialog
+                        var showLicenseDialog = Views.License.PrintLicenseRequiredDialog.ShowDialog(owner, localizationService!, licenseManager);
+                        
+                        if (showLicenseDialog)
+                        {
+                            System.Diagnostics.Debug.WriteLine("?? User requested license from print dialog");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("? User cancelled license request");
+                        }
+                        
+                        return false;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("? Print access GRANTED - proceeding with print dialog");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("?? No license service provided - proceeding without license check");
+                }
                 
                 if (tournamentClasses == null || !tournamentClasses.Any())
                 {
@@ -371,4 +427,4 @@ namespace DartTournamentPlaner.Helpers
             return summary.ToString();
         }
     }
-} 
+}

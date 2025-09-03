@@ -226,7 +226,9 @@ public class MainWindowUIHelper
         MenuItem apiMenuItem, MenuItem startApiMenuItem, MenuItem stopApiMenuItem, MenuItem openApiDocsMenuItem,
         MenuItem tournamentHubMenuItem, MenuItem registerWithHubMenuItem, MenuItem unregisterFromHubMenuItem,
         MenuItem showJoinUrlMenuItem, MenuItem manualSyncMenuItem, MenuItem hubSettingsMenuItem,
-        MenuItem settingsMenuItem, MenuItem helpMenuItem, MenuItem helpContentMenuItem,
+        MenuItem licenseMenuItem, MenuItem licenseStatusMenuItem, MenuItem activateLicenseMenuItem, 
+        MenuItem licenseInfoMenuItem, MenuItem removeLicenseMenuItem, MenuItem purchaseLicenseMenuItem,
+        MenuItem settingsMenuItem, MenuItem helpMenuItem, MenuItem helpContentMenuItem, 
         MenuItem bugReportMenuItem, MenuItem aboutMenuItem)
     {
         // Datei-Menü
@@ -255,6 +257,14 @@ public class MainWindowUIHelper
         showJoinUrlMenuItem.Header = "📱 " + (_localizationService.GetString("ShowJoinURL") ?? "Join-URL anzeigen");
         manualSyncMenuItem.Header = "🔄 " + (_localizationService.GetString("ManualSync") ?? "Manuell synchronisieren");
         hubSettingsMenuItem.Header = "⚙️ " + (_localizationService.GetString("HubSettings") ?? "Hub-Einstellungen");
+        
+        // NEU: Lizenz-Menü
+        licenseMenuItem.Header = "🔑 " + (_localizationService.GetString("License") ?? "Lizenz");
+        licenseStatusMenuItem.Header = "📊 " + (_localizationService.GetString("LicenseStatus") ?? "Lizenz-Status");
+        activateLicenseMenuItem.Header = "✨ " + (_localizationService.GetString("ActivateLicense") ?? "Lizenz aktivieren");
+        licenseInfoMenuItem.Header = "📋 " + (_localizationService.GetString("LicenseInfo") ?? "Lizenz-Informationen");
+        removeLicenseMenuItem.Header = "🗑️ " + (_localizationService.GetString("RemoveLicense") ?? "Lizenz entfernen");
+        purchaseLicenseMenuItem.Header = "🛒 " + (_localizationService.GetString("PurchaseLicense") ?? "Lizenz kaufen");
         
         // Hilfe-Menü
         settingsMenuItem.Header = _localizationService.GetString("Settings");

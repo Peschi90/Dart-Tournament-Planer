@@ -1,7 +1,10 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
@@ -11,6 +14,8 @@ using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Text.Json;
+using DartTournamentPlaner.Services.License;
+using DartTournamentPlaner.Views.License;
 
 namespace DartTournamentPlaner;
 
@@ -30,6 +35,10 @@ public partial class MainWindow : Window
     private readonly HubIntegrationService _hubService;
     private readonly HubMatchProcessingService _hubMatchProcessor;
     private readonly MainWindowUIHelper _uiHelper;
+
+    // NEU: License Services
+    private readonly Services.License.LicenseManager _licenseManager;
+    private readonly LicenseFeatureService _licenseFeatureService;
 
     // Auto-Save System
     private readonly DispatcherTimer _autoSaveTimer = new DispatcherTimer();
@@ -58,6 +67,10 @@ public partial class MainWindow : Window
         _hubMatchProcessor = new HubMatchProcessingService(_tournamentService.GetTournamentClassById);
         _uiHelper = new MainWindowUIHelper(_localizationService, Dispatcher);
         
+        // NEU: License Services initialisieren
+        _licenseManager = new Services.License.LicenseManager();
+        _licenseFeatureService = new LicenseFeatureService(_licenseManager);
+        
         // Services konfigurieren und starten
         InitializeServices();
         InitializeAutoSave();
@@ -67,6 +80,9 @@ public partial class MainWindow : Window
         LoadData();
         
         _ = Task.Run(async () => await _hubService.InitializeAsync());
+        
+        // NEU: Lizenz-System initialisieren
+        _ = InitializeLicenseSystemAsync();
     }
 
     private void InitializeServices()
@@ -105,6 +121,9 @@ public partial class MainWindow : Window
         _hubService.MatchResultReceived += OnHubMatchResultReceived;
         _hubService.HubStatusChanged += OnHubStatusChanged;
         _hubService.DataChanged += () => MarkAsChanged();
+
+        // NEU: License Service Events
+        _licenseFeatureService.LicenseStatusChanged += OnLicenseStatusChanged;
 
         // Tournament Tabs konfigurieren
         ConfigureTournamentTabs();
@@ -260,6 +279,7 @@ public partial class MainWindow : Window
             ApiMenuItem, StartApiMenuItem, StopApiMenuItem, OpenApiDocsMenuItem,
             TournamentHubMenuItem, RegisterWithHubMenuItem, UnregisterFromHubMenuItem,
             ShowJoinUrlMenuItem, ManualSyncMenuItem, HubSettingsMenuItem,
+            LicenseMenuItem, LicenseStatusMenuItem, ActivateLicenseMenuItem, LicenseInfoMenuItem, RemoveLicenseMenuItem, PurchaseLicenseMenuItem,
             SettingsMenuItem, HelpMenuItem, HelpContentMenuItem, BugReportMenuItem, AboutMenuItem
         );
 
@@ -444,6 +464,8 @@ public partial class MainWindow : Window
                     try
                     {
                         await SaveDataInternal();
+                        // NEU: License Manager disposing
+                        _licenseManager?.Dispose();
                         Application.Current.Shutdown();
                     }
                     catch
@@ -452,6 +474,8 @@ public partial class MainWindow : Window
                     }
                     break;
                 case MessageBoxResult.No:
+                    // NEU: License Manager disposing
+                    _licenseManager?.Dispose();
                     Application.Current.Shutdown();
                     break;
                 case MessageBoxResult.Cancel:
@@ -460,7 +484,135 @@ public partial class MainWindow : Window
         }
         else
         {
+            // NEU: License Manager disposing
+            _licenseManager?.Dispose();
             Application.Current.Shutdown();
+        }
+    }
+
+    // NEU: Lizenz-System Initialisierung
+    private async Task InitializeLicenseSystemAsync()
+    {
+        try
+        {
+            await _licenseFeatureService.InitializeAsync();
+            
+            // UI für Lizenz-Status aktualisieren
+            Dispatcher.Invoke(() => UpdateLicenseMenuVisibility());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"License system initialization error: {ex.Message}");
+        }
+    }
+    
+    // NEU: Lizenz-Status Event Handler
+    private void OnLicenseStatusChanged(object? sender, Models.License.LicenseStatus status)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            UpdateLicenseMenuVisibility();
+            
+            // Optional: Status in der Statusleiste anzeigen
+            if (status.IsLicensed)
+            {
+                System.Diagnostics.Debug.WriteLine($"License active: {status.LicenseType} - {status.CustomerName}");
+            }
+        });
+    }
+    
+    // NEU: Lizenz-Menü Sichtbarkeit aktualisieren
+    private void UpdateLicenseMenuVisibility()
+    {
+        var hasLicense = _licenseManager.HasLicense();
+        var currentStatus = _licenseFeatureService.CurrentStatus;
+        
+        // Lizenz-Info nur anzeigen wenn Lizenz vorhanden
+        LicenseInfoMenuItem.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
+        LicenseSeparator.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
+        
+        // Aktivierung-Text ändern basierend auf Status
+        if (hasLicense && currentStatus.IsValid)
+        {
+            ActivateLicenseMenuItem.Header = "🔄 Lizenz erneuern";
+        }
+        else
+        {
+            ActivateLicenseMenuItem.Header = "✨ Lizenz aktivieren";
+        }
+    }
+    
+    // NEU: Lizenz Event Handlers
+    
+    private void LicenseStatus_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var statusWindow = new Views.License.LicenseStatusWindow(_licenseManager, _licenseFeatureService, _localizationService);
+            statusWindow.Owner = this;
+            statusWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Öffnen des Lizenz-Status: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    private async void ActivateLicense_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new SimpleLicenseActivationDialog(_localizationService, _licenseManager);
+            
+            if (await dialog.ShowDialogAsync())
+            {
+                // Lizenz wurde erfolgreich aktiviert
+                UpdateLicenseMenuVisibility();
+                
+                // Feature Service Status aktualisieren
+                await _licenseFeatureService.InitializeAsync();
+                
+                System.Diagnostics.Debug.WriteLine($"✅ License activated and UI updated");
+            }
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Aktivieren der Lizenz: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    private void LicenseInfo_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new SimpleLicenseInfoDialog(_licenseManager, _licenseFeatureService, _localizationService);
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Anzeigen der Lizenz-Informationen: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    private void PurchaseLicense_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var purchaseDialog = new Views.License.PurchaseLicenseDialog(_localizationService, _licenseManager);
+            purchaseDialog.Owner = this;
+            purchaseDialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Öffnen des Lizenzkauf-Dialogs: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -503,7 +655,31 @@ public partial class MainWindow : Window
 
     private void Print_Click(object sender, RoutedEventArgs e)
     {
-        _tournamentService.ShowPrintDialog();
+        try
+        {
+            // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
+            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
+            {
+                Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
+                return;
+            }
+            
+            // Verwende PrintHelper mit Lizenzprüfung
+            Helpers.PrintHelper.ShowPrintDialog(
+                _tournamentService.AllTournamentClasses, 
+                _tournamentService.PlatinClass, 
+                this, 
+                _localizationService,
+                _licenseFeatureService,  // NEU: LicenseFeatureService für Lizenzprüfung
+                _licenseManager         // NEU: LicenseManager für Dialog
+            );
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     // API Event Handlers
@@ -765,6 +941,80 @@ public partial class MainWindow : Window
             var title = _localizationService.GetString("Error");
             var message = _localizationService.GetString("HubSettingsError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    private async void RemoveLicense_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var title = _localizationService.GetString("RemoveLicense") ?? "Lizenz entfernen";
+            var message = _localizationService.GetString("RemoveLicenseConfirmation") ?? 
+                "Möchten Sie die aktivierte Lizenz wirklich entfernen?\n\n" +
+                "• Die Anwendung wird danach als unlizenziert ausgeführt\n" +
+                "• Alle Core-Features bleiben verfügbar\n" +
+                "• Sie können jederzeit eine neue Lizenz aktivieren\n\n" +
+                "Fortfahren?";
+            
+            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+            
+            if (result == MessageBoxResult.Yes)
+            {
+                // Progress anzeigen
+                var progressDialog = new SimpleLicenseActivationDialog(_localizationService, _licenseManager);
+                
+                // Lizenz entfernen
+                var success = await _licenseManager.RemoveLicenseAndResetAsync();
+                
+                if (success)
+                {
+                    // LicenseFeatureService aktualisieren
+                    await _licenseFeatureService.InitializeAsync();
+                    
+                    // UI-Status aktualisieren
+                    UpdateLicenseMenuVisibility(false);
+                    
+                    var successTitle = _localizationService.GetString("Success") ?? "Erfolg";
+                    var successMessage = _localizationService.GetString("LicenseRemovedSuccess") ?? 
+                        "✅ Lizenz wurde erfolgreich entfernt!\n\n" +
+                        "Die Anwendung läuft jetzt im unlizenzierte Modus mit allen Core-Features.\n" +
+                        "Sie können jederzeit über das Lizenz-Menü eine neue Lizenz aktivieren.";
+                    
+                    MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    var errorTitle = _localizationService.GetString("Error") ?? "Fehler";
+                    var errorMessage = _localizationService.GetString("LicenseRemoveError") ?? 
+                        "❌ Fehler beim Entfernen der Lizenz.\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.";
+                    
+                    MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            var errorTitle = _localizationService.GetString("Error") ?? "Fehler";
+            var errorMessage = $"Unerwarteter Fehler beim Entfernen der Lizenz:\n\n{ex.Message}";
+            
+            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    /// <summary>
+    /// Aktualisiert die Sichtbarkeit der Lizenz-Menüeinträge basierend auf dem Lizenz-Status
+    /// </summary>
+    private void UpdateLicenseMenuVisibility(bool isLicensed)
+    {
+        try
+        {
+            LicenseInfoMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+            RemoveLicenseMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+            LicenseSeparator.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error updating license menu visibility: {ex.Message}");
         }
     }
 }
