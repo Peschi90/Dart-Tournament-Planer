@@ -894,9 +894,7 @@
                     <!-- Statistiken-View (wird bei vorhandener Lizenz angezeigt) -->
                     <local:PlayerStatisticsView x:Name="StatisticsView"/>
                     
-                    <!-- License Required Control (wird bei fehlender Lizenz angezeigt, überlagert Statistics View) -->
-                    <local:StatisticsLicenseRequiredControl x:Name="StatisticsLicenseControl" 
-                                                            Visibility="Collapsed"/>
+                    <!-- Placeholder für License Required Dialog (wird programmatisch behandelt) -->
                 </Grid>
             </TabItem>
         </TabControl>

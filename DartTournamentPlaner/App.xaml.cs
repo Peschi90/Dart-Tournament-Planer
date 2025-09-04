@@ -37,7 +37,10 @@ public partial class App : Application
             LocalizationService = new LocalizationService();
             DataService = new DataService();
             UpdateService = new UpdateService(LocalizationService);
-            ApiIntegrationService = new ApiIntegrationService();
+            
+            // NEU: Verwende LicensedApiIntegrationService statt ApiIntegrationService
+            // Der lizenzierte Service wird später mit LicenseFeatureService initialisiert
+            ApiIntegrationService = new HttpApiIntegrationService(); // Temporär - wird in MainWindow durch LicensedApiIntegrationService ersetzt
 
             // Set static reference in Match and KnockoutMatch for localization
             Match.LocalizationService = LocalizationService;

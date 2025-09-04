@@ -75,11 +75,14 @@ public class LicenseFeatureService
         {
             LicenseFeatures.TOURNAMENT_MANAGEMENT => true,
             LicenseFeatures.PLAYER_TRACKING => true,
-            LicenseFeatures.STATISTICS => false,  // NEU: Statistics ist Premium-Feature
-            LicenseFeatures.API_ACCESS => true,
-            LicenseFeatures.HUB_INTEGRATION => true,
+            LicenseFeatures.STATISTICS => false,  // Premium-Feature
+            LicenseFeatures.API_ACCESS => false,  // Deprecated - Premium-Feature
+            LicenseFeatures.API_CONNECTION => true,  // Core-Feature (API Start/Stop)
+            LicenseFeatures.HUB_INTEGRATION => true,  // Deprecated - Core-Feature
+            LicenseFeatures.HUB_CONNECTION => false,  // NEU: Premium-Feature
             LicenseFeatures.MULTI_TOURNAMENT => true,
             LicenseFeatures.ENHANCED_PRINTING => false,  // Premium-Feature
+            LicenseFeatures.TOURNAMENT_OVERVIEW => false,  // NEU: Premium-Feature
             _ => false // Nur zukünftige Features können Premium sein
         };
     }
@@ -179,14 +182,17 @@ public class LicenseFeatureService
         {
             LicenseFeatures.TOURNAMENT_MANAGEMENT => "Turnier-Management",
             LicenseFeatures.PLAYER_TRACKING => "Spieler-Verfolgung",
-            LicenseFeatures.STATISTICS => "Advanced Statistics",  // NEU
-            LicenseFeatures.API_ACCESS => "API-Zugang",
-            LicenseFeatures.HUB_INTEGRATION => "Hub-Integration",
+            LicenseFeatures.STATISTICS => "Advanced Statistics",
+            LicenseFeatures.API_ACCESS => "API-Zugang (Legacy)",  // Deprecated
+            LicenseFeatures.API_CONNECTION => "API-Verbindung",
+            LicenseFeatures.HUB_INTEGRATION => "Hub-Integration (Legacy)",  // Deprecated
+            LicenseFeatures.HUB_CONNECTION => "Hub-Verbindung",  // NEU
             LicenseFeatures.MULTI_TOURNAMENT => "Multi-Turnier",
             LicenseFeatures.ADVANCED_REPORTING => "Erweiterte Berichte",
             LicenseFeatures.ENHANCED_PRINTING => "Enhanced Printing",
             LicenseFeatures.CUSTOM_THEMES => "Benutzerdefinierte Themes",
             LicenseFeatures.PREMIUM_SUPPORT => "Premium-Support",
+            LicenseFeatures.TOURNAMENT_OVERVIEW => "Tournament Overview",  // NEU
             _ => featureId
         };
     }

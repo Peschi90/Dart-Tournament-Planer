@@ -162,13 +162,16 @@ public static class LicenseFeatures
     public const string TOURNAMENT_MANAGEMENT = "tournament_management";
     public const string PLAYER_TRACKING = "player_tracking";
     public const string STATISTICS = "statistics";  // NEU: Statistics Feature
-    public const string API_ACCESS = "api_access";
-    public const string HUB_INTEGRATION = "hub_integration";
+    public const string API_ACCESS = "api_access";  // Deprecated - verwende API_CONNECTION
+    public const string API_CONNECTION = "api_connection";  // NEU: Korrekter API Feature Name
+    public const string HUB_INTEGRATION = "hub_integration";  // Deprecated - verwende HUB_CONNECTION
+    public const string HUB_CONNECTION = "hub_connection";  // NEU: Korrekter Hub Feature Name
     public const string MULTI_TOURNAMENT = "multi_tournament";
     public const string ADVANCED_REPORTING = "advanced_reporting";
     public const string ENHANCED_PRINTING = "print";  // KORRIGIERT: Verwendet "print" wie in der Lizenz
     public const string CUSTOM_THEMES = "custom_themes";
     public const string PREMIUM_SUPPORT = "premium_support";
+    public const string TOURNAMENT_OVERVIEW = "tournament_overview";  // NEU: Tournament Overview Feature
 }
 
 /// <summary>

@@ -6,182 +6,263 @@
         mc:Ignorable="d"
         Title="Help - Dart Tournament Planner" Height="700" Width="900"
         WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
         ResizeMode="CanResize"
-        MinHeight="600" MinWidth="800"
-        Background="#F5F5F5">
+        MinHeight="600" MinWidth="800">
 
-	<Window.Resources>
-		<!-- Modern TreeView Style -->
-		<Style TargetType="TreeView">
-			<Setter Property="Background" Value="White"/>
-			<Setter Property="BorderBrush" Value="#DDDDDD"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Padding" Value="5"/>
-		</Style>
+    <Window.Resources>
+        <!-- Modern Shadow Effects -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          BlurRadius="16" 
+                          Opacity="0.08"/>
 
-		<!-- Modern TreeViewItem Style -->
-		<Style TargetType="TreeViewItem">
-			<Setter Property="Padding" Value="5"/>
-			<Setter Property="Margin" Value="2"/>
-			<Setter Property="FontWeight" Value="Medium"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="TreeViewItem">
-						<Grid>
-							<Grid.RowDefinitions>
-								<RowDefinition Height="Auto"/>
-								<RowDefinition Height="*"/>
-							</Grid.RowDefinitions>
+        <DropShadowEffect x:Key="HeaderShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="12" 
+                          Opacity="0.1"/>
 
-							<Border x:Name="Border" Grid.Row="0"
+        <!-- Modern Gradient Backgrounds -->
+        <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F8FAFC" Offset="0"/>
+            <GradientStop Color="#F1F5F9" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#F8FAFC" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#3B82F6" Offset="0"/>
+            <GradientStop Color="#2563EB" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Modern TreeView Style -->
+        <Style TargetType="TreeView">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8"/>
+        </Style>
+
+        <!-- Modern TreeViewItem Style -->
+        <Style TargetType="TreeViewItem">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="2,1"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TreeViewItem">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Border x:Name="Border" Grid.Row="0"
                                     Background="Transparent"
-                                    BorderBrush="#DDDDDD"
-                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="0"
                                     Padding="{TemplateBinding Padding}"
-                                    CornerRadius="4">
-								<ContentPresenter x:Name="PART_Header"
+                                    CornerRadius="8">
+                                <ContentPresenter x:Name="PART_Header"
                                                 ContentSource="Header"
                                                 VerticalAlignment="Center"/>
-							</Border>
+                            </Border>
 
-							<ItemsPresenter x:Name="ItemsHost" Grid.Row="1"
+                            <ItemsPresenter x:Name="ItemsHost" Grid.Row="1"
                                             Visibility="Collapsed"
-                                            Margin="20,5,0,0"/>
-						</Grid>
+                                            Margin="20,4,0,0"/>
+                        </Grid>
 
-						<ControlTemplate.Triggers>
-							<Trigger Property="IsExpanded" Value="True">
-								<Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
-							</Trigger>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Visible"/>
+                            </Trigger>
 
-							<Trigger Property="IsSelected" Value="True">
-								<Setter TargetName="Border" Property="Background" Value="#E3F2FD"/>
-								<Setter TargetName="Border" Property="BorderBrush" Value="#2196F3"/>
-								<Setter Property="Foreground" Value="#1976D2"/>
-								<Setter Property="FontWeight" Value="Bold"/>
-							</Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#EFF6FF" Offset="0"/>
+                                            <GradientStop Color="#DBEAFE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="1"/>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
 
-							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="Border" Property="Background" Value="#F0F8FF"/>
-							</Trigger>
-						</ControlTemplate.Triggers>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#F0F9FF"/>
+                                <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-		<!-- Modern ScrollViewer Style -->
-		<Style TargetType="ScrollViewer">
-			<Setter Property="Background" Value="White"/>
-			<Setter Property="BorderBrush" Value="#DDDDDD"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Padding" Value="20"/>
-		</Style>
+        <!-- Modern ScrollViewer Style -->
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
 
-		<!-- Modern TextBlock Style for Content -->
-		<Style x:Key="ContentTextStyle" TargetType="TextBlock">
-			<Setter Property="FontSize" Value="14"/>
-			<Setter Property="LineHeight" Value="20"/>
-			<Setter Property="TextWrapping" Value="Wrap"/>
-			<Setter Property="Foreground" Value="#333333"/>
-			<Setter Property="Margin" Value="0,0,0,20"/>
-		</Style>
+        <!-- Modern TextBlock Style for Content -->
+        <Style x:Key="ContentTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="LineHeight" Value="22"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
 
-		<!-- Modern Button Style -->
-		<Style x:Key="ModernButton" TargetType="Button">
-			<Setter Property="Background" Value="#2196F3"/>
-			<Setter Property="Foreground" Value="White"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="Padding" Value="15,8"/>
-			<Setter Property="Margin" Value="5"/>
-			<Setter Property="FontWeight" Value="Medium"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Button">
-						<Border Background="{TemplateBinding Background}"
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
-							<ContentPresenter HorizontalAlignment="Center"
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,12"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
-						</Border>
-						<ControlTemplate.Triggers>
-							<Trigger Property="IsMouseOver" Value="True">
-								<Setter Property="Background" Value="#1976D2"/>
-							</Trigger>
-							<Trigger Property="IsPressed" Value="True">
-								<Setter Property="Background" Value="#1565C0"/>
-							</Trigger>
-						</ControlTemplate.Triggers>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
-	</Window.Resources>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
-	<Grid>
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
+    <!-- Main container with modern design -->
+    <Border Background="{StaticResource MainBackgroundBrush}" 
+            CornerRadius="16" 
+            Effect="{StaticResource HeaderShadow}"
+            Margin="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-		<!-- Header -->
-		<Border Grid.Row="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="0,0,0,1" Padding="20,15">
-			<StackPanel>
-				<TextBlock x:Name="TitleTextBlock" Text="Help - Dart Tournament Planner"
-                           FontSize="24" FontWeight="Bold" Foreground="#1976D2" Margin="0,0,0,5"/>
-				<TextBlock Text="Comprehensive guide for using the Dart Tournament Planner"
-                           FontSize="14" Foreground="#666666"/>
-			</StackPanel>
-		</Border>
+            <!-- Header with modern gradient design -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource HeaderGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,0,0,1" 
+                    Padding="32,24"
+                    Effect="{StaticResource HeaderShadow}">
+                <StackPanel>
+                    <TextBlock x:Name="TitleTextBlock" Text="?? Help - Dart Tournament Planner"
+                               FontSize="28" FontWeight="Bold" 
+                               Foreground="#1F2937" Margin="0,0,0,8"/>
+                    <TextBlock Text="Comprehensive guide for using the Dart Tournament Planner"
+                               FontSize="16" Foreground="#6B7280"/>
+                </StackPanel>
+            </Border>
 
-		<!-- Main Content Area -->
-		<Grid Grid.Row="1" Margin="20">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="300"/>
-				<ColumnDefinition Width="5"/>
-				<ColumnDefinition Width="*"/>
-			</Grid.ColumnDefinitions>
+            <!-- Main Content Area with white background -->
+            <Border Grid.Row="1" Background="White" Margin="0">
+                <Grid Margin="32,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="300"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-			<!-- Navigation Tree -->
-			<Border Grid.Column="0" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="8">
-				<TreeView x:Name="HelpNavigationTree" BorderThickness="0"
-                          SelectedItemChanged="HelpNavigationTree_SelectedItemChanged"
-                          Margin="10">
-					<TreeViewItem x:Name="GeneralItem" Header="General Usage" IsExpanded="True" IsSelected="True"/>
-					<TreeViewItem x:Name="TournamentSetupItem" Header="Tournament Setup"/>
-					<TreeViewItem x:Name="GroupManagementItem" Header="Group Management"/>
-					<TreeViewItem x:Name="GameRulesItem" Header="Game Rules"/>
-					<TreeViewItem x:Name="MatchesItem" Header="Matches &amp; Results"/>
-					<TreeViewItem x:Name="TournamentPhasesItem" Header="Tournament Phases"/>
-					<TreeViewItem x:Name="MenusItem" Header="Menus &amp; Functions"/>
-					<TreeViewItem x:Name="TipsItem" Header="Tips &amp; Tricks"/>
-				</TreeView>
-			</Border>
+                    <!-- Navigation Tree -->
+                    <Border Grid.Column="0" 
+                            Background="White" 
+                            BorderBrush="#E5E7EB" 
+                            BorderThickness="1" 
+                            CornerRadius="12"
+                            Effect="{StaticResource CardShadow}">
+                        <TreeView x:Name="HelpNavigationTree" 
+                                  BorderThickness="0"
+                                  SelectedItemChanged="HelpNavigationTree_SelectedItemChanged"
+                                  Margin="8">
+                            <TreeViewItem x:Name="GeneralItem" Header="?? General Usage" IsExpanded="True" IsSelected="True"/>
+                            <TreeViewItem x:Name="TournamentSetupItem" Header="?? Tournament Setup"/>
+                            <TreeViewItem x:Name="GroupManagementItem" Header="?? Group Management"/>
+                            <TreeViewItem x:Name="GameRulesItem" Header="?? Game Rules"/>
+                            <TreeViewItem x:Name="MatchesItem" Header="?? Matches &amp; Results"/>
+                            <TreeViewItem x:Name="TournamentPhasesItem" Header="?? Tournament Phases"/>
+                            <TreeViewItem x:Name="MenusItem" Header="?? Menus &amp; Functions"/>
+                            <TreeViewItem x:Name="LicenseSystemItem" Header="?? License System"/>
+                            <TreeViewItem x:Name="ApiIntegrationItem" Header="?? API Integration"/>
+                            <TreeViewItem x:Name="TournamentHubItem" Header="?? Tournament Hub"/>
+                            <TreeViewItem x:Name="StatisticsItem" Header="?? Statistics"/>
+                            <TreeViewItem x:Name="PrintingItem" Header="??? Printing"/>
+                            <TreeViewItem x:Name="TipsItem" Header="?? Tips &amp; Tricks"/>
+                        </TreeView>
+                    </Border>
 
-			<!-- Splitter -->
-			<GridSplitter Grid.Column="1" Width="5" Background="#DDDDDD"
-                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    <!-- Content Area -->
+                    <Border Grid.Column="2" 
+                            Background="White" 
+                            BorderBrush="#E5E7EB" 
+                            BorderThickness="1" 
+                            CornerRadius="12"
+                            Effect="{StaticResource CardShadow}">
+                        <ScrollViewer x:Name="ContentScrollViewer"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="24"
+                                      BorderThickness="0">
+                            <TextBlock x:Name="ContentTextBlock"
+                                       Style="{StaticResource ContentTextStyle}"
+                                       Text="Welcome to the Dart Tournament Planner help system. Select a topic from the left to learn more about specific features and functions."/>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Border>
 
-			<!-- Content Area -->
-			<Border Grid.Column="2" Background="White" BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="8">
-				<ScrollViewer x:Name="ContentScrollViewer"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              BorderThickness="0">
-					<TextBlock x:Name="ContentTextBlock"
-                               Style="{StaticResource ContentTextStyle}"
-                               Text="Welcome to the Dart Tournament Planner help system. Select a topic from the left to learn more about specific features and functions."/>
-				</ScrollViewer>
-			</Border>
-		</Grid>
-
-		<!-- Footer -->
-		<Border Grid.Row="2" Background="#F5F5F5" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Padding="20,15">
-			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-				<Button x:Name="CloseButton" Content="Close" Style="{StaticResource ModernButton}"
-                        Click="CloseButton_Click" Padding="20,8"/>
-			</StackPanel>
-		</Border>
-	</Grid>
+            <!-- Footer -->
+            <Border Grid.Row="2" 
+                    Background="White" 
+                    CornerRadius="0,0,16,16"
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,1,0,0" 
+                    Padding="32,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="CloseButton" Content="Close" Style="{StaticResource ModernButton}"
+                            Click="CloseButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     
     // Neue Services
     private readonly TournamentManagementService _tournamentService;
-    private readonly HubIntegrationService _hubService;
+    private readonly LicensedHubService _hubService;  // NEU: Lizenzierter Hub Service
     private readonly HubMatchProcessingService _hubMatchProcessor;
     private readonly MainWindowUIHelper _uiHelper;
 
@@ -59,17 +59,24 @@ public partial class MainWindow : Window
         // Services aus App.xaml.cs holen
         _configService = App.ConfigService ?? throw new InvalidOperationException("ConfigService not initialized");
         _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not initialized");
-        _apiService = App.ApiIntegrationService ?? throw new InvalidOperationException("ApiIntegrationService not initialized");
-
-        // Neue Services initialisieren
-        _tournamentService = new TournamentManagementService(_localizationService, App.DataService!);
-        _hubService = new HubIntegrationService(_configService, _localizationService, _apiService, Dispatcher);
-        _hubMatchProcessor = new HubMatchProcessingService(_tournamentService.GetTournamentClassById);
-        _uiHelper = new MainWindowUIHelper(_localizationService, Dispatcher);
         
         // NEU: License Services initialisieren
         _licenseManager = new Services.License.LicenseManager();
         _licenseFeatureService = new LicenseFeatureService(_licenseManager);
+        
+        // NEU: Ersetze API Service durch lizenzierten API Service
+        var originalApiService = App.ApiIntegrationService ?? throw new InvalidOperationException("ApiIntegrationService not initialized");
+        _apiService = new LicensedApiIntegrationService(_licenseFeatureService, _localizationService);
+        
+        // Neue Services initialisieren
+        _tournamentService = new TournamentManagementService(_localizationService, App.DataService!);
+        
+        // NEU: Erstelle lizenzierten Hub Service
+        var innerHubService = new HubIntegrationService(_configService, _localizationService, _apiService, Dispatcher);
+        _hubService = new LicensedHubService(innerHubService, _licenseFeatureService, _localizationService, _licenseManager);
+        
+        _hubMatchProcessor = new HubMatchProcessingService(_tournamentService.GetTournamentClassById);
+        _uiHelper = new MainWindowUIHelper(_localizationService, Dispatcher);
         
         // Services konfigurieren und starten
         InitializeServices();
@@ -325,7 +332,7 @@ public partial class MainWindow : Window
             isConnected, 
             _hubService.GetCurrentTournamentId(),
             _hubService.IsSyncing,
-            _hubService.LastSyncTime
+            _hubService.LastSyncTime ?? DateTime.MinValue
         );
     }
 
@@ -418,9 +425,16 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        var title = _localizationService.GetString("About");
-        var message = _localizationService.GetString("AboutText");
-        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        try
+        {
+            AboutDialog.ShowDialog(this, _localizationService);
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("About");
+            var message = _localizationService.GetString("AboutText");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
     }
 
     private void Help_Click(object sender, RoutedEventArgs e)
@@ -618,7 +632,7 @@ public partial class MainWindow : Window
 
     private void OverviewMode_Click(object sender, RoutedEventArgs e)
     {
-        _tournamentService.ShowTournamentOverview();
+        _tournamentService.ShowTournamentOverview(this, _licenseFeatureService, _licenseManager);
     }
 
     private void BugReport_Click(object sender, RoutedEventArgs e)

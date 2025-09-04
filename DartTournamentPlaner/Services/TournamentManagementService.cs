@@ -192,9 +192,45 @@ public class TournamentManagementService
 
     public void ShowTournamentOverview()
     {
+        ShowTournamentOverview(null, null, null);
+    }
+
+    public void ShowTournamentOverview(Window? owner = null, 
+        Services.License.LicenseFeatureService? licenseFeatureService = null, 
+        Services.License.LicenseManager? licenseManager = null)
+    {
         try
         {
-            // ? ERWEITERT: Hole HubIntegrationService für QR-Code Integration
+            // NEU: Lizenzprüfung für Tournament Overview
+            if (licenseFeatureService != null && licenseManager != null)
+            {
+                var hasFeature = licenseFeatureService.HasFeature(Models.License.LicenseFeatures.TOURNAMENT_OVERVIEW);
+                
+                if (!hasFeature)
+                {
+                    // Zeige License Required Dialog
+                    var licenseRequired = Views.License.TournamentOverviewLicenseRequiredDialog.ShowDialog(
+                        owner, 
+                        _localizationService, 
+                        licenseManager
+                    );
+                    
+                    if (!licenseRequired)
+                    {
+                        // Benutzer hat abgebrochen
+                        return;
+                    }
+                    
+                    // Prüfe erneut nach möglicher Lizenzaktivierung
+                    hasFeature = licenseFeatureService.HasFeature(Models.License.LicenseFeatures.TOURNAMENT_OVERVIEW);
+                    if (!hasFeature)
+                    {
+                        return; // Immer noch keine Lizenz
+                    }
+                }
+            }
+            
+            // ERWEITERT: Hole HubIntegrationService für QR-Code Integration
             HubIntegrationService? hubService = null;
             try
             {

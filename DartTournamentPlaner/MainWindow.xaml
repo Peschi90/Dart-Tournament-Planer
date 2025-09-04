@@ -243,6 +243,7 @@
             <Setter Property="Padding" Value="8,4"/>
         </Style>
 
+        <!-- Fixed MenuItem Style with proper rounded corners -->
         <Style TargetType="MenuItem">
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="Margin" Value="2,0"/>
@@ -275,17 +276,28 @@
                                          Margin="8,0,0,0"
                                          Foreground="#6B7280"/>
 
+                                <!-- Fixed Popup with proper background handling -->
                                 <Popup x:Name="PART_Popup" 
                                        IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
                                        PopupAnimation="Fade"
-                                       Placement="Bottom">
-                                    <Border Background="White" 
-                                            BorderBrush="#E5E7EB" 
-                                            BorderThickness="1" 
-                                            CornerRadius="8"
-                                            Effect="{StaticResource CardShadow}"
-                                            Padding="4">
-                                        <StackPanel IsItemsHost="True"/>
+                                       Placement="Bottom"
+                                       AllowsTransparency="True">
+                                    <!-- Outer Border to prevent black corners -->
+                                    <Border Background="Transparent" 
+                                            Padding="2">
+                                        <!-- Inner Border with proper styling -->
+                                        <Border Background="White" 
+                                                BorderBrush="#E5E7EB" 
+                                                BorderThickness="1" 
+                                                CornerRadius="8"
+                                                Effect="{StaticResource CardShadow}"
+                                                Padding="6">
+                                            <!-- ItemsPresenter with rounded clipping -->
+                                            <Border CornerRadius="6" 
+                                                    ClipToBounds="True">
+                                                <ItemsPresenter/>
+                                            </Border>
+                                        </Border>
                                     </Border>
                                 </Popup>
                             </Grid>
@@ -301,6 +313,61 @@
                                     </Setter.Value>
                                 </Setter>
                                 <Setter Property="Foreground" Value="#0369A1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style for submenu items to ensure rounded corners -->
+        <Style x:Key="SubMenuItemStyle" TargetType="MenuItem">
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Margin" Value="2,1"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Border x:Name="templateRoot" 
+                                Background="Transparent"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ContentPresenter x:Name="Icon" 
+                                                Grid.Column="0"
+                                                ContentSource="Icon" 
+                                                Margin="0,0,6,0"/>
+                                <ContentPresenter x:Name="HeaderHost" 
+                                                Grid.Column="1"
+                                                ContentSource="Header"/>
+                                <TextBlock x:Name="InputGestureText" 
+                                         Grid.Column="2"
+                                         Text="{TemplateBinding InputGestureText}" 
+                                         Margin="6,0,0,0"
+                                         Foreground="#9CA3AF"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="templateRoot" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#EFF6FF" Offset="0"/>
+                                            <GradientStop Color="#DBEAFE" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="Foreground" Value="#1E40AF"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="#9CA3AF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -327,54 +394,54 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Menu Bar with modern design -->
+            <!-- Menu Bar with modern design and fixed rounded corners -->
             <Menu Grid.Row="0">
                 <MenuItem Name="FileMenuItem" Header="File">
-                    <MenuItem Name="NewMenuItem" Header="New" Click="New_Click"/>
-                    <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click"/>
-                    <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click"/>
-                    <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click"/>
+                    <MenuItem Name="NewMenuItem" Header="New" Click="New_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem Name="PrintMenuItem" Header="Print" Click="Print_Click"/>
+                    <MenuItem Name="PrintMenuItem" Header="Print" Click="Print_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click"/>
+                    <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
                 <MenuItem Name="ViewMenuItem" Header="View">
-                    <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click"/>
+                    <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
                 <MenuItem Name="ApiMenuItem" Header="API">
-                    <MenuItem Name="StartApiMenuItem" Header="Start API" Click="StartApi_Click"/>
-                    <MenuItem Name="StopApiMenuItem" Header="Stop API" Click="StopApi_Click"/>
-                    <MenuItem Name="OpenApiDocsMenuItem" Header="API Documentation" Click="OpenApiDocs_Click"/>
+                    <MenuItem Name="StartApiMenuItem" Header="Start API" Click="StartApi_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="StopApiMenuItem" Header="Stop API" Click="StopApi_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="OpenApiDocsMenuItem" Header="API Documentation" Click="OpenApiDocs_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem Name="ApiStatusMenuItem" Header="API Status" IsEnabled="False"/>
+                    <MenuItem Name="ApiStatusMenuItem" Header="API Status" IsEnabled="False" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
                 <!-- Tournament Hub Menu -->
                 <MenuItem x:Name="TournamentHubMenuItem" Header="Tournament Hub">
-                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="Register with Hub" Click="RegisterWithHub_Click"/>
-                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="Unregister from Hub" Click="UnregisterFromHub_Click"/>
+                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="Register with Hub" Click="RegisterWithHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="Unregister from Hub" Click="UnregisterFromHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="Show Join URL" Click="ShowJoinUrl_Click"/>
-                    <MenuItem x:Name="ManualSyncMenuItem" Header="Manual Sync" Click="ManualSyncWithHub_Click"/>
+                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="Show Join URL" Click="ShowJoinUrl_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="ManualSyncMenuItem" Header="Manual Sync" Click="ManualSyncWithHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem x:Name="HubSettingsMenuItem" Header="Hub Settings" Click="HubSettings_Click"/>
+                    <MenuItem x:Name="HubSettingsMenuItem" Header="Hub Settings" Click="HubSettings_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
                 <!-- License Menu -->
                 <MenuItem x:Name="LicenseMenuItem" Header="License">
-                    <MenuItem x:Name="LicenseStatusMenuItem" Header="License Status" Click="LicenseStatus_Click"/>
+                    <MenuItem x:Name="LicenseStatusMenuItem" Header="License Status" Click="LicenseStatus_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem x:Name="ActivateLicenseMenuItem" Header="Activate License" Click="ActivateLicense_Click"/>
-                    <MenuItem x:Name="LicenseInfoMenuItem" Header="License Information" Click="LicenseInfo_Click" Visibility="Collapsed"/>
-                    <MenuItem x:Name="RemoveLicenseMenuItem" Header="Remove License" Click="RemoveLicense_Click" Visibility="Collapsed"/>
+                    <MenuItem x:Name="ActivateLicenseMenuItem" Header="Activate License" Click="ActivateLicense_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="LicenseInfoMenuItem" Header="License Information" Click="LicenseInfo_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="RemoveLicenseMenuItem" Header="Remove License" Click="RemoveLicense_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator x:Name="LicenseSeparator" Visibility="Collapsed"/>
-                    <MenuItem x:Name="PurchaseLicenseMenuItem" Header="Purchase License" Click="PurchaseLicense_Click"/>
+                    <MenuItem x:Name="PurchaseLicenseMenuItem" Header="Purchase License" Click="PurchaseLicense_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
                 <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
                 <MenuItem Name="HelpMenuItem" Header="Help">
-                    <MenuItem Name="HelpContentMenuItem" Header="Help" Click="Help_Click"/>
-                    <MenuItem Name="BugReportMenuItem" Header="Report Bug" Click="BugReport_Click"/>
+                    <MenuItem Name="HelpContentMenuItem" Header="Help" Click="Help_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="BugReportMenuItem" Header="Report Bug" Click="BugReport_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
-                    <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click"/>
+                    <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
             </Menu>
 

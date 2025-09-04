@@ -34,6 +34,12 @@ public partial class PurchaseLicenseDialog : Window
         TitleText.Text = _localizationService.GetString("PurchaseLicenseTitle") ?? "Lizenz kaufen";
         SubtitleText.Text = _localizationService.GetString("PurchaseLicenseSubtitle") ?? 
             "Füllen Sie das Formular aus, um eine Lizenz für Dart Tournament Planner anzufordern";
+        PurchasePersonalInformation.Text = _localizationService.GetString("PurchasePersonalInformation") ?? "Perfönliche Informationen";
+        PurchaseLicenseRequirements.Text = _localizationService.GetString("PurchaseLicenseRequirements") ?? "Lizenz Vorraussetzungen";
+        PurchaseAdditionalInformation.Text = _localizationService.GetString("PurchaseAdditionalInformation") ?? "Zusätzliche Informationen";
+        PurchaseSystemInformation.Text = _localizationService.GetString("PurchaseSystemInformation") ?? "System Informationen";
+        PurchaseHardwareInfoI.Text = _localizationService.GetString("PurchaseHardwareInfoI") ?? "InfoText1";
+        PurchaseHardwareInfoII.Text = _localizationService.GetString("PurchaseHardwareInfoII") ?? "InfoText2";
 
         // Labels
         FirstNameLabel.Text = _localizationService.GetString("FirstName") ?? "Vorname" + " *";
@@ -99,6 +105,44 @@ public partial class PurchaseLicenseDialog : Window
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error focusing on statistics feature: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Setzt den Fokus auf das Hub Connection Feature (z.B. wenn Dialog aus Hub-Lizenz-Anfrage geöffnet wird)
+    /// </summary>
+    public void FocusOnHubFeature()
+    {
+        try
+        {
+            HubConnectionFeature.IsChecked = true;
+            HubConnectionFeature.Focus();
+            
+            // Scroll zu dem Feature falls nötig
+            HubConnectionFeature.BringIntoView();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error focusing on hub feature: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Setzt den Fokus auf das Tournament Overview Feature (z.B. wenn Dialog aus Tournament Overview-Lizenz-Anfrage geöffnet wird)
+    /// </summary>
+    public void FocusOnTournamentOverviewFeature()
+    {
+        try
+        {
+            TournamentOverviewFeature.IsChecked = true;
+            TournamentOverviewFeature.Focus();
+            
+            // Scroll zu dem Feature falls nötig
+            TournamentOverviewFeature.BringIntoView();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error focusing on tournament overview feature: {ex.Message}");
         }
     }
 

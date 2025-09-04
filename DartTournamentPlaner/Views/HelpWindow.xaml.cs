@@ -36,6 +36,11 @@ public partial class HelpWindow : Window
             { MatchesItem, "HelpMatchesContent" },
             { TournamentPhasesItem, "HelpTournamentPhasesContent" },
             { MenusItem, "HelpMenusContent" },
+            { LicenseSystemItem, "HelpLicenseSystemContent" },
+            { ApiIntegrationItem, "HelpApiIntegrationContent" },
+            { TournamentHubItem, "HelpTournamentHubContent" },
+            { StatisticsItem, "HelpStatisticsContent" },
+            { PrintingItem, "HelpPrintingContent" },
             { TipsItem, "HelpTipsContent" }
         };
     }
@@ -54,6 +59,11 @@ public partial class HelpWindow : Window
         MatchesItem.Header = _localizationService.GetString("HelpMatches");
         TournamentPhasesItem.Header = _localizationService.GetString("HelpTournamentPhases");
         MenusItem.Header = _localizationService.GetString("HelpMenus");
+        LicenseSystemItem.Header = _localizationService.GetString("HelpLicenseSystem");
+        ApiIntegrationItem.Header = _localizationService.GetString("HelpApiIntegration");
+        TournamentHubItem.Header = _localizationService.GetString("HelpTournamentHub");
+        StatisticsItem.Header = _localizationService.GetString("HelpStatistics");
+        PrintingItem.Header = _localizationService.GetString("HelpPrinting");
         TipsItem.Header = _localizationService.GetString("HelpTips");
 
         // Update button

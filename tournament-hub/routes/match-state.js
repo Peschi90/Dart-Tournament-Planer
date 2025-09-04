@@ -53,17 +53,17 @@ async function loadStateFromDisk(tournamentId, matchId) {
         const filePath = getStateFilePath(tournamentId, matchId);
         const data = await fs.readFile(filePath, 'utf8');
         const gameState = JSON.parse(data);
-        
+
         // Prüfe Alter der Datei
         const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 Tage
         const stateAge = Date.now() - new Date(gameState.savedToDisk || gameState.lastUpdated).getTime();
-        
+
         if (stateAge > maxAge) {
             console.log(`🕒 [MATCH-STATE] State too old (${Math.floor(stateAge / (24 * 60 * 60 * 1000))} days), deleting`);
             await deleteStateFromDisk(tournamentId, matchId);
             return null;
         }
-        
+
         console.log(`📥 [MATCH-STATE] Loaded from disk: ${filePath}`);
         return gameState;
     } catch (error) {
@@ -92,7 +92,7 @@ async function deleteStateFromDisk(tournamentId, matchId) {
  * POST /api/match-state/:tournamentId/:matchId/save
  * Speichere den aktuellen Spielstand
  */
-router.post('/:tournamentId/:matchId/save', async (req, res) => {
+router.post('/:tournamentId/:matchId/save', async(req, res) => {
     try {
         const { tournamentId, matchId } = req.params;
         const gameState = req.body;
@@ -108,7 +108,7 @@ router.post('/:tournamentId/:matchId/save', async (req, res) => {
         }
 
         const cacheKey = `${tournamentId}_${matchId}`;
-        
+
         // Füge Metadata hinzu
         const stateData = {
             ...gameState,
@@ -128,11 +128,11 @@ router.post('/:tournamentId/:matchId/save', async (req, res) => {
         console.log(`💾 [MATCH-STATE] State saved:`, {
             memoryCache: true,
             diskCache: diskSaved,
-            currentPlayer: gameState.gameState?.currentPlayer,
-            currentLeg: gameState.gameState?.currentLeg,
-            player1Score: gameState.gameState?.player1?.score,
-            player2Score: gameState.gameState?.player2?.score,
-            throwHistoryLength: gameState.gameState?.throwHistory?.length || 0
+            currentPlayer: gameState.gameState && gameState.gameState.currentPlayer,
+            currentLeg: gameState.gameState && gameState.gameState.currentLeg,
+            player1Score: gameState.gameState && gameState.gameState.player1 && gameState.gameState.player1.score,
+            player2Score: gameState.gameState && gameState.gameState.player2 && gameState.gameState.player2.score,
+            throwHistoryLength: (gameState.gameState && gameState.gameState.throwHistory && gameState.gameState.throwHistory.length) || 0
         });
 
         res.json({
@@ -159,7 +159,7 @@ router.post('/:tournamentId/:matchId/save', async (req, res) => {
  * GET /api/match-state/:tournamentId/:matchId/load
  * Lade den gespeicherten Spielstand
  */
-router.get('/:tournamentId/:matchId/load', async (req, res) => {
+router.get('/:tournamentId/:matchId/load', async(req, res) => {
     try {
         const { tournamentId, matchId } = req.params;
         const cacheKey = `${tournamentId}_${matchId}`;
@@ -172,7 +172,7 @@ router.get('/:tournamentId/:matchId/load', async (req, res) => {
         // Falls nicht im Memory-Cache, prüfe Festplatte
         if (!cachedState) {
             cachedState = await loadStateFromDisk(tournamentId, matchId);
-            
+
             // Falls von Festplatte geladen, in Memory-Cache speichern
             if (cachedState) {
                 matchStateCache.set(cacheKey, cachedState);
@@ -195,11 +195,11 @@ router.get('/:tournamentId/:matchId/load', async (req, res) => {
 
         if (stateAge > maxAge) {
             console.log(`🕒 [MATCH-STATE] State expired (${Math.floor(stateAge / (60 * 60 * 1000))} hours old)`);
-            
+
             // Lösche abgelaufenen State
             matchStateCache.delete(cacheKey);
             await deleteStateFromDisk(tournamentId, matchId);
-            
+
             return res.json({
                 success: false,
                 message: 'Cached state expired',
@@ -209,9 +209,9 @@ router.get('/:tournamentId/:matchId/load', async (req, res) => {
 
         console.log(`📥 [MATCH-STATE] State loaded successfully:`, {
             age: Math.floor(stateAge / (60 * 1000)), // Minuten
-            currentPlayer: cachedState.gameState?.currentPlayer,
-            currentLeg: cachedState.gameState?.currentLeg,
-            throwHistoryLength: cachedState.gameState?.throwHistory?.length || 0
+            currentPlayer: cachedState.gameState && cachedState.gameState.currentPlayer,
+            currentLeg: cachedState.gameState && cachedState.gameState.currentLeg,
+            throwHistoryLength: (cachedState.gameState && cachedState.gameState.throwHistory && cachedState.gameState.throwHistory.length) || 0
         });
 
         res.json({
@@ -237,7 +237,7 @@ router.get('/:tournamentId/:matchId/load', async (req, res) => {
  * GET /api/match-state/:tournamentId/:matchId/check
  * Prüfe ob ein gespeicherter Spielstand existiert (ohne ihn zu laden)
  */
-router.get('/:tournamentId/:matchId/check', async (req, res) => {
+router.get('/:tournamentId/:matchId/check', async(req, res) => {
     try {
         const { tournamentId, matchId } = req.params;
         const cacheKey = `${tournamentId}_${matchId}`;
@@ -288,7 +288,7 @@ router.get('/:tournamentId/:matchId/check', async (req, res) => {
  * DELETE /api/match-state/:tournamentId/:matchId/clear
  * Lösche den gespeicherten Spielstand (nach Match-Ende)
  */
-router.delete('/:tournamentId/:matchId/clear', async (req, res) => {
+router.delete('/:tournamentId/:matchId/clear', async(req, res) => {
     try {
         const { tournamentId, matchId } = req.params;
         const cacheKey = `${tournamentId}_${matchId}`;

@@ -1,0 +1,201 @@
+<Window x:Class="DartTournamentPlaner.Views.License.TournamentOverviewLicenseRequiredDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tournament Overview License Required" Height="450" Width="700"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResize"
+        MinHeight="400" MinWidth="650"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <!-- Modern Shadow Effects -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          BlurRadius="16" 
+                          Opacity="0.08"/>
+
+        <DropShadowEffect x:Key="HeaderShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="12" 
+                          Opacity="0.1"/>
+
+        <!-- Modern Gradient Backgrounds -->
+        <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F8FAFC" Offset="0"/>
+            <GradientStop Color="#F1F5F9" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#F8FAFC" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#3B82F6" Offset="0"/>
+            <GradientStop Color="#2563EB" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Modern Card Style -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="24"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <!-- Action Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="24,12"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#9CA3AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main container with modern design -->
+    <Border Background="{StaticResource MainBackgroundBrush}" 
+            CornerRadius="16" 
+            Effect="{StaticResource HeaderShadow}"
+            Margin="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource HeaderGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,0,0,1" 
+                    Padding="32,24"
+                    Effect="{StaticResource HeaderShadow}">
+                <StackPanel>
+                    <TextBlock x:Name="TitleText" 
+                               FontSize="24" FontWeight="Bold" 
+                               Foreground="#1F2937" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="SubtitleText" 
+                               FontSize="16" Foreground="#6B7280"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <Border Grid.Row="1" Background="White" Margin="0">
+                <ScrollViewer Padding="32,24" VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="600">
+                        
+                        <!-- Message Card -->
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock x:Name="MessageText" FontSize="16" Foreground="#374151" TextWrapping="Wrap" 
+                                           Margin="0,0,0,20"/>
+                                
+                                <TextBlock x:Name="BenefitsTitle" 
+                                           FontSize="18" FontWeight="Bold" 
+                                           Foreground="#374151" Margin="0,0,0,12"/>
+                                
+                                <TextBlock x:Name="BenefitsList" 
+                                           FontSize="14" Foreground="#6B7280" TextWrapping="Wrap"
+                                           LineHeight="24"/>
+                                
+                                <TextBlock x:Name="ActionText" 
+                                           FontSize="16" FontWeight="SemiBold" 
+                                           Foreground="#374151" 
+                                           Margin="0,20,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Footer Buttons -->
+            <Border Grid.Row="2" 
+                    Background="White" 
+                    CornerRadius="0,0,16,16"
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,1,0,0" 
+                    Padding="32,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="CancelButton" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Click="CancelButton_Click"/>
+                    
+                    <Button x:Name="RequestLicenseButton" 
+                            Style="{StaticResource PrimaryButton}" 
+                            Click="RequestLicenseButton_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

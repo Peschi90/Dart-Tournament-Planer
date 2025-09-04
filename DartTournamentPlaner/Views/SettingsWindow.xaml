@@ -1,7 +1,7 @@
 <Window x:Class="DartTournamentPlaner.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Einstellungen" Height="450" Width="550"
+        Title="Einstellungen" Height="650" Width="550"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="None"

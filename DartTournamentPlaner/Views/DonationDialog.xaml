@@ -4,35 +4,78 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Support Development" Height="350" Width="500"
+        Title="Support Development" Height="700" Width="550"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        Background="#F5F5F5">
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize">
 
     <Window.Resources>
+        <!-- Modern Shadow Effects -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          BlurRadius="16" 
+                          Opacity="0.08"/>
+
+        <DropShadowEffect x:Key="HeaderShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="12" 
+                          Opacity="0.1"/>
+
+        <!-- Modern Gradient Backgrounds -->
+        <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#F8FAFC" Offset="0"/>
+            <GradientStop Color="#F1F5F9" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#FFFFFF" Offset="0"/>
+            <GradientStop Color="#F8FAFC" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Modern Button Styles -->
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3B82F6" Offset="0"/>
+                        <GradientStop Color="#2563EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Padding" Value="10,12"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="6"
-                                Padding="{TemplateBinding Padding}">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
                             <ContentPresenter HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1976D2"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#1565C0"/>
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#2563EB" Offset="0"/>
+                                            <GradientStop Color="#1D4ED8" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -40,87 +83,173 @@
             </Setter>
         </Style>
 
-        <Style x:Key="DonationButton" BasedOn="{StaticResource ModernButton}" TargetType="Button">
-            <Setter Property="Background" Value="#FF9800"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F57C00"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#EF6C00"/>
-                </Trigger>
-            </Style.Triggers>
+        <Style x:Key="DonationButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FF9800" Offset="0"/>
+                        <GradientStop Color="#F57C00" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#F57C00" Offset="0"/>
+                                            <GradientStop Color="#EF6C00" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#FF9800" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="20" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style x:Key="CancelButton" BasedOn="{StaticResource ModernButton}" TargetType="Button">
-            <Setter Property="Background" Value="#757575"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#616161"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#424242"/>
-                </Trigger>
-            </Style.Triggers>
+        <Style x:Key="CancelButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}"
+                                Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#9CA3AF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Card Style -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
         </Style>
     </Window.Resources>
 
-    <Grid Margin="30">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <!-- Main container with modern design -->
+    <Border Background="{StaticResource MainBackgroundBrush}" 
+            CornerRadius="16" 
+            Effect="{StaticResource HeaderShadow}"
+            Margin="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,20">
-            <TextBlock Text="💝" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-            <TextBlock Name="TitleTextBlock" Text="Support Development" 
-                       FontSize="24" FontWeight="Bold" 
-                       Foreground="#FF9800" HorizontalAlignment="Center"/>
-        </StackPanel>
+            <!-- Header with modern gradient design -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource HeaderGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,0,0,1" 
+                    Padding="20,5"
+                    Effect="{StaticResource HeaderShadow}">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="💝" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,0"/>
+                    <TextBlock Name="TitleTextBlock" Text="Support Development" 
+                               FontSize="28" FontWeight="Bold" 
+                               Foreground="#1F2937" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
-        <Border Grid.Row="1" Background="White" 
-                CornerRadius="8" 
-                BorderBrush="#E0E0E0" 
-                BorderThickness="1"
-                Padding="20">
-            <StackPanel>
-                <TextBlock Name="MessageTextBlock"
-                           Text="Do you like this Dart Tournament Planner?&#x0a;&#x0a;Support further development with a small donation.&#x0a;Every contribution helps improve and maintain the software."
-                           FontSize="14"
-                           TextWrapping="Wrap"
-                           LineHeight="20"
-                           Foreground="#333333"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"/>
-
-                <Border Background="#F0F8FF" 
-                        CornerRadius="6" 
-                        Padding="15" 
-                        Margin="0,20,0,0"
-                        BorderBrush="#2196F3" 
-                        BorderThickness="1">
+            <!-- Content with white background -->
+            <Border Grid.Row="1" Background="White" Margin="0" Padding="32,24">
+                <Border Style="{StaticResource CardStyle}" Padding="32">
                     <StackPanel>
-                        <TextBlock Text="With your support you enable:" 
-                                   FontWeight="Bold" 
-                                   Margin="0,0,0,10"
-                                   Foreground="#1976D2"/>
-                        <StackPanel>
-                            <TextBlock Text="- Regular updates and new features" Margin="0,2"/>
-                            <TextBlock Text="- Fast bug fixes" Margin="0,2"/>
-                            <TextBlock Text="- Continuous support" Margin="0,2"/>
-                            <TextBlock Text="- Free use for everyone" Margin="0,2"/>
-                        </StackPanel>
+                        <TextBlock Name="MessageTextBlock"
+                                   Text="Do you like this Dart Tournament Planner?&#x0a;&#x0a;Support further development with a small donation.&#x0a;Every contribution helps improve and maintain the software."
+                                   FontSize="16"
+                                   TextWrapping="Wrap"
+                                   LineHeight="24"
+                                   Foreground="#374151"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Margin="0,0,0,24"/>
+
+                        <Border Background="#FFF7ED" 
+                                CornerRadius="12" 
+                                Padding="20" 
+                                BorderBrush="#FB923C" 
+                                BorderThickness="1"
+                                Effect="{StaticResource CardShadow}">
+                            <StackPanel>
+                                <TextBlock Name="SupportTitleText"
+                                           Text="With your support you enable:" 
+                                           FontWeight="SemiBold" 
+                                           FontSize="16"
+                                           Margin="0,0,0,12"
+                                           Foreground="#9A3412"/>
+                                <StackPanel Name="BenefitsPanel">
+                                    <TextBlock Name="Benefit1Text"
+                                               Text="• Regular updates and new features" 
+                                               Margin="0,3" FontSize="14" Foreground="#7C2D12"/>
+                                    <TextBlock Name="Benefit2Text"
+                                               Text="• Fast bug fixes" 
+                                               Margin="0,3" FontSize="14" Foreground="#7C2D12"/>
+                                    <TextBlock Name="Benefit3Text"
+                                               Text="• Continuous support" 
+                                               Margin="0,3" FontSize="14" Foreground="#7C2D12"/>
+                                    <TextBlock Name="Benefit4Text"
+                                               Text="• Free use for everyone" 
+                                               Margin="0,3" FontSize="14" Foreground="#7C2D12"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
-            </StackPanel>
-        </Border>
+            </Border>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,0">
-            <Button Name="DonateButton" Style="{StaticResource DonationButton}" 
-                    Content="Open Donation Page" Click="DonateButton_Click" MinWidth="150"/>
-            <Button Name="CloseButton" Style="{StaticResource CancelButton}" 
-                    Content="Later" Click="CloseButton_Click" MinWidth="80"/>
-        </StackPanel>
-    </Grid>
+            <!-- Footer Buttons -->
+            <Border Grid.Row="2" 
+                    Background="White" 
+                    CornerRadius="0,0,16,16"
+                    Padding="32,20">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Name="DonateButton" Style="{StaticResource DonationButton}" 
+                            Content="💝 Open Donation Page" Click="DonateButton_Click" MinWidth="200"/>
+                    <Button Name="CloseButton" Style="{StaticResource CancelButton}" 
+                            Content="Later" Click="CloseButton_Click" MinWidth="100"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

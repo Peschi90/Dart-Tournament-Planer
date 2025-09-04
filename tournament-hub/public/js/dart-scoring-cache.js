@@ -8,15 +8,15 @@ class DartScoringCache {
         this.isEnabled = true;
         this.autoSaveInterval = 10000; // 10 Sekunden
         this.saveOnThrowDelay = 2000; // 2 Sekunden nach Wurf
-        
+
         this.autoSaveTimer = null;
         this.saveOnThrowTimer = null;
         this.lastSaveState = null;
         this.hasCachedState = false;
-        
+
         this.saveInProgress = false;
         this.lastSaveTime = null;
-        
+
         console.log('💾 [DART-CACHE] Cache Manager initialized');
     }
 
@@ -29,21 +29,21 @@ class DartScoringCache {
         try {
             const { tournamentId, uniqueId, matchId } = this.core.matchData;
             const actualMatchId = uniqueId || matchId;
-            
+
             const response = await fetch(`/api/match-state/${tournamentId}/${actualMatchId}/check`);
             const result = await response.json();
-            
+
             this.hasCachedState = result.success && result.hasState;
-            
+
             console.log(`🔍 [DART-CACHE] Cache check:`, {
                 tournamentId,
                 matchId: actualMatchId,
                 hasState: this.hasCachedState,
                 sources: result.sources
             });
-            
+
             return this.hasCachedState;
-            
+
         } catch (error) {
             console.warn('⚠️ [DART-CACHE] Failed to check cache:', error);
             return false;
@@ -58,7 +58,7 @@ class DartScoringCache {
 
         try {
             const hasCached = await this.checkForCachedState();
-            
+
             if (!hasCached) {
                 console.log('📭 [DART-CACHE] No cached state found - starting fresh');
                 this.startAutoSave();
@@ -67,7 +67,7 @@ class DartScoringCache {
 
             // Versuche automatisches Laden
             const loadResult = await this.loadCachedState();
-            
+
             if (loadResult.success) {
                 console.log('✅ [DART-CACHE] Auto-loaded successfully');
                 this.startAutoSave();
@@ -96,7 +96,7 @@ class DartScoringCache {
         try {
             const { tournamentId, uniqueId, matchId } = this.core.matchData;
             const actualMatchId = uniqueId || matchId;
-            
+
             const response = await fetch(`/api/match-state/${tournamentId}/${actualMatchId}/load`);
             const result = await response.json();
 
@@ -114,16 +114,16 @@ class DartScoringCache {
             // Restore state to core
             this.core.gameState = cachedData.gameState;
             this.core.gameRules = cachedData.gameRules;
-            
+
             // Update lastSaveState to prevent immediate save
             this.lastSaveState = JSON.stringify(this.core.gameState);
 
             console.log('📥 [DART-CACHE] State restored:', {
                 currentPlayer: this.core.gameState.currentPlayer,
                 currentLeg: this.core.gameState.currentLeg,
-                player1Score: this.core.gameState.player1?.score,
-                player2Score: this.core.gameState.player2?.score,
-                throwHistoryLength: this.core.gameState.throwHistory?.length || 0,
+                player1Score: this.core.gameState.player1 && this.core.gameState.player1.score,
+                player2Score: this.core.gameState.player2 && this.core.gameState.player2.score,
+                throwHistoryLength: (this.core.gameState.throwHistory && this.core.gameState.throwHistory.length) || 0,
                 lastUpdated: result.lastUpdated,
                 age: Math.floor(result.age / (60 * 1000)) + ' minutes'
             });
@@ -153,7 +153,7 @@ class DartScoringCache {
             this.saveInProgress = true;
 
             const currentStateHash = JSON.stringify(this.core.gameState);
-            
+
             // Speichere nur wenn sich etwas geändert hat
             if (currentStateHash === this.lastSaveState) {
                 this.saveInProgress = false;
@@ -184,11 +184,11 @@ class DartScoringCache {
             if (result.success) {
                 this.lastSaveState = currentStateHash;
                 this.lastSaveTime = new Date();
-                
+
                 console.log('💾 [DART-CACHE] State saved successfully to:', result.savedTo);
-                
-                return { 
-                    success: true, 
+
+                return {
+                    success: true,
                     message: 'Spielstand gespeichert',
                     savedTo: result.savedTo,
                     lastUpdated: result.lastUpdated
@@ -247,23 +247,23 @@ class DartScoringCache {
     enableSaveOnThrow() {
         // Hook in das processThrow der Core
         const originalProcessThrow = this.core.processThrow.bind(this.core);
-        
+
         this.core.processThrow = (...args) => {
             const result = originalProcessThrow(...args);
-            
+
             // Auto-save nach erfolgreichem Wurf (mit Delay)
             if (result.success && !this.core.gameState.isGameFinished) {
                 // Cancel existing timer
                 if (this.saveOnThrowTimer) {
                     clearTimeout(this.saveOnThrowTimer);
                 }
-                
+
                 // Save with delay
                 this.saveOnThrowTimer = setTimeout(() => {
                     this.saveCurrentState();
                 }, this.saveOnThrowDelay);
             }
-            
+
             return result;
         };
 
@@ -287,9 +287,9 @@ class DartScoringCache {
             });
 
             const result = await response.json();
-            
+
             console.log('🗑️ [DART-CACHE] Cached state cleared:', result.clearedFrom);
-            
+
             this.lastSaveState = null;
             this.hasCachedState = false;
 
@@ -321,7 +321,7 @@ class DartScoringCache {
      */
     setEnabled(enabled) {
         this.isEnabled = enabled;
-        
+
         if (enabled) {
             this.startAutoSave();
             console.log('✅ [DART-CACHE] Caching enabled');

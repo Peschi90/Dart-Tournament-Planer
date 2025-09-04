@@ -28,7 +28,7 @@ class DartScoringMain {
         this.ui = new DartScoringUI();
         this.stats = new DartScoringStats(this.core, this.ui);
         this.submission = new DartScoringSubmission(this.core, this.ui, this.stats); // ✅ NEU: WebSocket Submission
-        
+
         // ✅ NEU: Cache System
         this.cache = new DartScoringCache(this.core);
         this.cacheUI = new DartScoringCacheUI(this.core, this.ui, this.cache);
@@ -227,11 +227,11 @@ class DartScoringMain {
                 console.log('✅ [DART-MAIN] Auto-load successful');
                 this.cache.startAutoSave();
                 this.cacheUI.updateRestoreButton(false);
-                return { 
-                    loaded: true, 
-                    method: 'auto', 
+                return {
+                    loaded: true,
+                    method: 'auto',
                     age: loadResult.age,
-                    lastUpdated: loadResult.lastUpdated 
+                    lastUpdated: loadResult.lastUpdated
                 };
             } else {
                 console.warn('⚠️ [DART-MAIN] Auto-load failed, showing manual button');
@@ -254,18 +254,18 @@ class DartScoringMain {
     setupMatchCompletionCleanup() {
         // Hook in das submitMatchResult um Cache zu löschen
         const originalSubmit = this.core.submitMatchResult.bind(this.core);
-        
-        this.core.submitMatchResult = async (...args) => {
+
+        this.core.submitMatchResult = async(...args) => {
             try {
                 const result = await originalSubmit(...args);
-                
+
                 // Wenn erfolgreich übertragen, lösche Cache
                 if (result.success) {
                     console.log('🗑️ [DART-MAIN] Match completed successfully, clearing cache');
                     await this.cache.clearCachedState();
                     this.cacheUI.updateRestoreButton(false);
                 }
-                
+
                 return result;
             } catch (error) {
                 throw error;

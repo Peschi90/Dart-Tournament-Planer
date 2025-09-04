@@ -840,7 +840,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// NEU: Zeigt das Statistics License Required Control
+    /// NEU: Zeigt das Statistics License Required Dialog
     /// </summary>
     private void ShowStatisticsLicenseRequired()
     {
@@ -855,61 +855,14 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
                 System.Diagnostics.Debug.WriteLine("✅ StatisticsView hidden");
             }
 
-            // Zeige License Required Control
-            if (StatisticsLicenseControl != null)
-            {
-                StatisticsLicenseControl.Visibility = Visibility.Visible;
-                System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl set to visible");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("❌ StatisticsLicenseControl not found in XAML - trying to create dynamically");
-                
-                // Fallback: Erstelle das Control dynamisch und füge es zum Grid hinzu
-                if (_licenseManager != null && _localizationService != null)
-                {
-                    System.Diagnostics.Debug.WriteLine("🔧 Creating StatisticsLicenseControl dynamically with services...");
-                    
-                    // Finde das Grid des Statistics Tab
-                    var statisticsTabItem = MainTabControl?.Items?.Cast<TabItem>()
-                        .FirstOrDefault(tab => tab.Name == "StatisticsTabItem");
-                    
-                    if (statisticsTabItem?.Content is Grid statisticsGrid)
-                    {
-                        // Prüfe ob bereits ein dynamisches Control existiert
-                        var existingControl = statisticsGrid.Children
-                            .OfType<StatisticsLicenseRequiredControl>()
-                            .FirstOrDefault();
-                            
-                        if (existingControl == null)
-                        {
-                            // Erstelle das License Required Control
-                            var licenseControl = StatisticsLicenseRequiredControl.Create(_localizationService, _licenseManager);
-                            licenseControl.Name = "StatisticsLicenseControl";
-                            
-                            // Füge es zum Grid hinzu
-                            statisticsGrid.Children.Add(licenseControl);
-                            
-                            System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl created dynamically and added to grid");
-                        }
-                        else
-                        {
-                            existingControl.Visibility = Visibility.Visible;
-                            System.Diagnostics.Debug.WriteLine("✅ Existing dynamic StatisticsLicenseControl set to visible");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("❌ Statistics Tab Grid not found");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ Services not available for dynamic creation:");
-                    System.Diagnostics.Debug.WriteLine($"   - LicenseManager: {_licenseManager != null}");
-                    System.Diagnostics.Debug.WriteLine($"   - LocalizationService: {_localizationService != null}");
-                }
-            }
+            // NEU: Zeige das moderne StatisticsLicenseRequiredDialog
+            StatisticsLicenseRequiredDialog.ShowLicenseRequiredDialog(
+                Window.GetWindow(this),
+                _localizationService,
+                _licenseManager
+            );
+            
+            System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseRequiredDialog shown");
         }
         catch (Exception ex)
         {
@@ -929,32 +882,6 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             {
                 StatisticsView.Visibility = Visibility.Visible;
                 System.Diagnostics.Debug.WriteLine("✅ StatisticsView set to visible");
-            }
-
-            // Verstecke License Required Control (falls vorhanden)
-            if (StatisticsLicenseControl != null)
-            {
-                StatisticsLicenseControl.Visibility = Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseControl set to collapsed");
-            }
-            else
-            {
-                // Suche nach dynamisch erstelltem Control
-                var statisticsTabItem = MainTabControl?.Items?.Cast<TabItem>()
-                    .FirstOrDefault(tab => tab.Name == "StatisticsTabItem");
-                
-                if (statisticsTabItem?.Content is Grid statisticsGrid)
-                {
-                    var existingControl = statisticsGrid.Children
-                        .OfType<StatisticsLicenseRequiredControl>()
-                        .FirstOrDefault();
-                    
-                    if (existingControl != null)
-                    {
-                        existingControl.Visibility = Visibility.Collapsed;
-                        System.Diagnostics.Debug.WriteLine("✅ Dynamically created StatisticsLicenseControl set to collapsed");
-                    }
-                }
             }
         }
         catch (Exception ex)

@@ -7,10 +7,10 @@ class DartScoringCacheUI {
         this.core = core;
         this.ui = ui;
         this.cache = cache;
-        
+
         this.restoreButton = null;
         this.statusIndicator = null;
-        
+
         console.log('🎨 [DART-CACHE-UI] Cache UI initialized');
     }
 
@@ -88,7 +88,7 @@ class DartScoringCacheUI {
         // Zusammenbauen
         cacheStatusContainer.appendChild(this.statusIndicator);
         cacheStatusContainer.appendChild(this.restoreButton);
-        
+
         // Als erstes Element in header-controls einfügen
         headerControls.insertBefore(cacheStatusContainer, headerControls.firstChild);
 
@@ -182,9 +182,9 @@ class DartScoringCacheUI {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.id = 'restoreModal';
-            
+
             const ageText = cacheInfo.age ? this.formatAge(cacheInfo.age) : 'unbekannt';
-            const lastUpdated = cacheInfo.lastUpdated ? 
+            const lastUpdated = cacheInfo.lastUpdated ?
                 new Date(cacheInfo.lastUpdated).toLocaleString('de-DE') : 'unbekannt';
 
             modal.innerHTML = `
@@ -280,16 +280,16 @@ class DartScoringCacheUI {
     setupEventListeners() {
         // Restore-Button Click
         if (this.restoreButton) {
-            this.restoreButton.addEventListener('click', async () => {
+            this.restoreButton.addEventListener('click', async() => {
                 console.log('🔄 [DART-CACHE-UI] Manual restore triggered');
-                
+
                 this.restoreButton.disabled = true;
                 this.restoreButton.innerHTML = '🔄 Lädt...';
-                
+
                 try {
                     // Prüfe zuerst ob State existiert
                     const hasCache = await this.cache.checkForCachedState();
-                    
+
                     if (!hasCache) {
                         this.showRestoreError('Kein gespeicherter Spielstand gefunden');
                         return;
@@ -297,10 +297,10 @@ class DartScoringCacheUI {
 
                     // Zeige Dialog
                     const shouldRestore = await this.showRestoreDialog();
-                    
+
                     if (shouldRestore) {
                         const result = await this.cache.loadCachedState();
-                        
+
                         if (result.success) {
                             // Update UI
                             this.ui.updateDisplay();
@@ -313,7 +313,7 @@ class DartScoringCacheUI {
                         // User wählte "Neu starten" - lösche Cache
                         await this.cache.clearCachedState();
                         this.updateRestoreButton(false);
-                        
+
                         if (this.ui && this.ui.showMessage) {
                             this.ui.showMessage('🆕 Neues Spiel gestartet', 'info', 2000);
                         }
@@ -333,17 +333,17 @@ class DartScoringCacheUI {
         if (this.cache) {
             // Override cache save method to update UI
             const originalSave = this.cache.saveCurrentState.bind(this.cache);
-            this.cache.saveCurrentState = async (...args) => {
+            this.cache.saveCurrentState = async(...args) => {
                 this.updateStatusIndicator('saving');
-                
+
                 const result = await originalSave(...args);
-                
+
                 if (result.success) {
                     this.updateStatusIndicator('saved');
                 } else {
                     this.updateStatusIndicator('error');
                 }
-                
+
                 return result;
             };
         }
@@ -374,7 +374,7 @@ class DartScoringCacheUI {
      */
     updateCacheUI() {
         const status = this.cache.getCacheStatus();
-        
+
         if (!status.isEnabled) {
             this.updateStatusIndicator('disabled');
             this.updateRestoreButton(false);
@@ -391,7 +391,7 @@ class DartScoringCacheUI {
         if (this.statusIndicator && this.statusIndicator.parentNode) {
             this.statusIndicator.parentNode.removeChild(this.statusIndicator);
         }
-        
+
         if (this.restoreButton && this.restoreButton.parentNode) {
             this.restoreButton.parentNode.removeChild(this.restoreButton);
         }
