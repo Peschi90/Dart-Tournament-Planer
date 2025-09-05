@@ -302,6 +302,10 @@ public class TournamentTabEventHandlers
             {
                 TournamentKnockoutHelper.ResetToGroupPhase(_tournamentClass);
                 
+                // ✅ NEU: Explizit alle UI-Views aktualisieren nach dem Reset
+                _updatePlayersView();
+                _updateMatchesView();
+                
                 var successMessage = _localizationService.GetString("TournamentResetComplete") ?? "Das Turnier wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
                 

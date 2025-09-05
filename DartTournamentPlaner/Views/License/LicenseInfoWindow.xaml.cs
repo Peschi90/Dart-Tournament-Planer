@@ -357,13 +357,96 @@ public partial class LicenseInfoWindow : Window
         
         try
         {
+            // ✅ ERWEITERT: Echter Server-Abgleich mit Fortschrittsanzeige
+            RefreshButton.Content = "🌐 Verbindung zum Server...";
+            
+            // 1. Server-Validierung durchführen (erzwingt Server-Kommunikation)
+            var validationResult = await _licenseManager.ValidateLicenseAsync();
+            
+            RefreshButton.Content = "🔄 Features werden aktualisiert...";
+            
+            // 2. Feature Service mit neuen Daten aktualisieren
+            await _licenseFeatureService.InitializeAsync();
+            
+            RefreshButton.Content = "🔄 Anzeige wird aktualisiert...";
+            
+            // 3. UI-Display aktualisieren
             await LoadLicenseInformationAsync();
+            
+            // 4. Erfolgs-Feedback
+            if (validationResult.IsValid)
+            {
+                if (!validationResult.Offline)
+                {
+                    ShowTemporaryMessage("✅ Lizenz validiert und Features erfolgreich aktualisiert");
+                }
+                else
+                {
+                    ShowTemporaryMessage("⚠️ Lizenz offline validiert - begrenzte Feature-Aktualisierung");
+                }
+            }
+            else
+            {
+                ShowTemporaryMessage("❌ Lizenz-Validierung fehlgeschlagen - verwende gecachte Daten");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowTemporaryMessage($"❌ Aktualisierung fehlgeschlagen: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"RefreshButton_Click Error: {ex.Message}");
         }
         finally
         {
             RefreshButton.IsEnabled = true;
             RefreshButton.Content = "🔄 " + (_localizationService.GetString("Refresh") ?? "Aktualisieren");
         }
+    }
+    
+    /// <summary>
+    /// Zeigt eine temporäre Nachricht im Status-Badge an
+    /// </summary>
+    private async void ShowTemporaryMessage(string message)
+    {
+        var originalIcon = StatusIcon.Text;
+        var originalText = StatusText.Text;
+        var originalBackground = StatusBadge.Background;
+        var originalForeground = StatusIcon.Foreground;
+        
+        // Temporäre Anzeige
+        if (message.StartsWith("✅"))
+        {
+            StatusIcon.Text = "✅";
+            StatusText.Text = "Aktualisiert";
+            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(220, 252, 231)); // Light Green
+            StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)); // Green
+            StatusText.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+        }
+        else if (message.StartsWith("⚠️"))
+        {
+            StatusIcon.Text = "⚠️";
+            StatusText.Text = "Warnung";
+            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(255, 237, 213)); // Light Orange
+            StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(245, 124, 0)); // Orange
+            StatusText.Foreground = new SolidColorBrush(Color.FromRgb(245, 124, 0));
+        }
+        else if (message.StartsWith("❌"))
+        {
+            StatusIcon.Text = "❌";
+            StatusText.Text = "Fehler";
+            StatusBadge.Background = new SolidColorBrush(Color.FromRgb(254, 226, 226)); // Light Red
+            StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+            StatusText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+        }
+        
+        // 3 Sekunden warten
+        await Task.Delay(3000);
+        
+        // Originalzustand wiederherstellen
+        StatusIcon.Text = originalIcon;
+        StatusText.Text = originalText;
+        StatusBadge.Background = originalBackground;
+        StatusIcon.Foreground = originalForeground;
+        StatusText.Foreground = originalForeground;
     }
     
     private void RemoveLicenseButton_Click(object sender, RoutedEventArgs e)

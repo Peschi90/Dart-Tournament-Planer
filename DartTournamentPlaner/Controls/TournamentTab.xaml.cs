@@ -349,7 +349,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             _uiManager?.UpdateMatchesView(SelectedGroup);
             
-            // ✅ NEU: Aktualisiere Statistiken bei Match-Änderungen
+            // ✅ NEU: Aktualisiere Statistiken bei Match-Änderungen UND bei Resets
             Dispatcher.BeginInvoke(() => UpdateStatisticsTab(), DispatcherPriority.Background);
             
             if (sender is Match match && TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
@@ -379,6 +379,9 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
         
         _uiManager?.UpdateMatchesView(SelectedGroup);
+        
+        // ✅ NEU: Aktualisiere auch Statistiken wenn Matches hinzugefügt oder entfernt werden (z.B. bei Reset)
+        Dispatcher.BeginInvoke(() => UpdateStatisticsTab(), DispatcherPriority.Background);
     }
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)

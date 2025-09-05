@@ -22,6 +22,7 @@ public partial class OverviewConfigDialog : Window
 
     public OverviewConfigDialog()
     {
+        // ✅ KORRIGIERT: Hole LocalizationService aus Application static property
         _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not available");
         InitializeComponent();
     }
@@ -29,8 +30,8 @@ public partial class OverviewConfigDialog : Window
     private void InitializeComponent()
     {
         Title = _localizationService.GetString("OverviewConfiguration");
-        Width = 500;
-        Height = 400;
+        Width = 520;
+        Height = 480;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         
@@ -46,7 +47,7 @@ public partial class OverviewConfigDialog : Window
                 Color.FromRgb(255, 255, 255),
                 Color.FromRgb(253, 253, 253), 90),
             CornerRadius = new CornerRadius(16),
-            Margin = new Thickness(16, 16, 16, 16),
+            Margin = new Thickness(16),
             Effect = new DropShadowEffect
             {
                 Color = Colors.Black,
@@ -57,20 +58,18 @@ public partial class OverviewConfigDialog : Window
             }
         };
 
-        var grid = new Grid { Margin = new Thickness(32, 32, 32, 32) };
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(16) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var grid = new Grid { Margin = new Thickness(32) };
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(20) }); // Spacer
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Main interval setting
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Checkbox
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Info
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Spacer
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Buttons
 
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        // Header mit Icon and Gradient
+        // ✅ KORRIGIERT: Header mit korrekten Padding-Parametern
         var headerBorder = new Border
         {
             Background = new LinearGradientBrush(
@@ -78,7 +77,7 @@ public partial class OverviewConfigDialog : Window
                 Color.FromRgb(30, 58, 138), 90),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(20, 16, 20, 16),
-            Margin = new Thickness(0, 0, 0, 24),
+            Margin = new Thickness(0, 0, 0, 0),
             Effect = new DropShadowEffect
             {
                 Color = Color.FromRgb(30, 64, 175),
@@ -103,7 +102,7 @@ public partial class OverviewConfigDialog : Window
 
         var titleBlock = new TextBlock
         {
-            Text = _localizationService.GetString("TournamentOverviewConfiguration"),
+            Text = _localizationService.GetString("TournamentOverviewConfiguration") ?? "Tournament Overview Konfiguration",
             FontSize = 18,
             FontWeight = FontWeights.SemiBold,
             Foreground = Brushes.White,
@@ -115,34 +114,26 @@ public partial class OverviewConfigDialog : Window
         headerBorder.Child = headerPanel;
 
         Grid.SetRow(headerBorder, 0);
-        Grid.SetColumnSpan(headerBorder, 2);
         grid.Children.Add(headerBorder);
 
-        // Class Interval Section
-        var classSection = CreateInputSection(
-            "Zeit pro Tab:",
+        // Main Tab Interval Section
+        var mainSection = CreateInputSection(
+            _localizationService.GetString("TabDisplayTime") ?? "Zeit pro Tab:",
             out _subTabIntervalTextBox,
             _localizationService.GetString("Seconds") ?? "Sekunden",
             "Wie lange jeder Tab angezeigt wird, bevor zum nächsten gewechselt wird"
         );
-        Grid.SetRow(classSection, 2);
-        Grid.SetColumnSpan(classSection, 2);
-        grid.Children.Add(classSection);
+        Grid.SetRow(mainSection, 2);
+        grid.Children.Add(mainSection);
 
-        // Sub-Tab Interval Section (als Backup - wird intern gleich behandelt)
-        var subSection = CreateInputSection(
-            "Erweiterte Einstellung:",
-            out _classIntervalTextBox, 
-            _localizationService.GetString("Seconds") ?? "Sekunden",
-            "Backup-Einstellung für Kompatibilität (wird derzeit nicht verwendet)"
-        );
-        // Verstecke die erweiterte Einstellung für Benutzerfreundlichkeit
-        subSection.Visibility = Visibility.Collapsed;
-        Grid.SetRow(subSection, 3);
-        Grid.SetColumnSpan(subSection, 2);
-        grid.Children.Add(subSection);
+        // Backup interval - hidden but kept for compatibility
+        _classIntervalTextBox = new TextBox
+        {
+            Visibility = Visibility.Collapsed,
+            Text = "5"
+        };
 
-        // Show Only Active Classes
+        // ✅ KORRIGIERT: Show Only Active Classes Checkbox mit korrekten Padding-Parametern
         var checkboxBorder = new Border
         {
             Background = new LinearGradientBrush(
@@ -152,64 +143,55 @@ public partial class OverviewConfigDialog : Window
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(16, 12, 16, 12),
-            Margin = new Thickness(0, 16, 0, 0)
+            Margin = new Thickness(0, 20, 0, 0)
         };
 
         _showOnlyActiveCheckBox = new CheckBox
         {
-            Content = _localizationService.GetString("ShowOnlyActiveClassesText"),
+            Content = _localizationService.GetString("ShowOnlyActiveClassesText") ?? "Nur aktive Klassen anzeigen",
             FontSize = 14,
             FontWeight = FontWeights.Medium,
             Foreground = new SolidColorBrush(Color.FromRgb(30, 64, 175))
         };
 
         checkboxBorder.Child = _showOnlyActiveCheckBox;
-        Grid.SetRow(checkboxBorder, 4);
-        Grid.SetColumnSpan(checkboxBorder, 2);
+        Grid.SetRow(checkboxBorder, 3);
         grid.Children.Add(checkboxBorder);
 
         // Info Text
         var infoText = new TextBlock
         {
-            Text = "⚡ Vereinfachte Konfiguration:\n" +
+            Text = "💡 Konfiguration:\n" +
                    "• Jeder Tab wird für die angegebene Zeit angezeigt\n" +
                    "• Nach allen Tabs einer Klasse wird zur nächsten Klasse gewechselt\n" +
                    "• Scrollen läuft parallel und blockiert den Tab-Wechsel nicht\n" +
-                   "• Perfekt für Turnier-Präsentationen auf großen Bildschirmen",
+                   "• Perfekt für Turnier-Präsentationen auf großen Bildschirmen\n" +
+                   "• Statistik-Tabs werden automatisch in die Übersicht integriert",
             TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 16, 0, 24),
+            Margin = new Thickness(0, 20, 0, 0),
             Foreground = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
-            FontSize = 13,
-            LineHeight = 20
+            FontSize = 12,
+            LineHeight = 18
         };
-        Grid.SetRow(infoText, 6);
-        Grid.SetColumnSpan(infoText, 2);
+        Grid.SetRow(infoText, 4);
         grid.Children.Add(infoText);
 
-        // Buttons
+        // ✅ KORRIGIERT: Buttons mit korrekter Funktionalität
         var buttonPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 16, 0, 0)
+            Margin = new Thickness(0, 20, 0, 0)
         };
 
         var cancelButton = CreateModernButton(
-            _localizationService.GetString("Cancel"),
+            _localizationService.GetString("Cancel") ?? "Abbrechen",
             Color.FromRgb(100, 116, 139),
             Color.FromRgb(71, 85, 105)
         );
         cancelButton.IsCancel = true;
         cancelButton.Margin = new Thickness(0, 0, 12, 0);
-        cancelButton.Click += (s, e) => { DialogResult = false; Close(); };
-
-        var okButton = CreateModernButton(
-            _localizationService.GetString("Save") ?? "Speichern",
-            Color.FromRgb(34, 197, 94),
-            Color.FromRgb(22, 163, 74)
-        );
-        okButton.IsDefault = true;
-        okButton.Click += (s, e) => { SaveAndClose(); };
+        cancelButton.Click += CancelButton_Click;
 
         var applyButton = CreateModernButton(
             _localizationService.GetString("Apply") ?? "Anwenden",
@@ -217,29 +199,38 @@ public partial class OverviewConfigDialog : Window
             Color.FromRgb(37, 99, 235)
         );
         applyButton.Margin = new Thickness(0, 0, 12, 0);
-        applyButton.Click += (s, e) => { ApplySettings(); };
+        applyButton.Click += ApplyButton_Click;
+
+        var saveButton = CreateModernButton(
+            _localizationService.GetString("Save") ?? "Speichern",
+            Color.FromRgb(34, 197, 94),
+            Color.FromRgb(22, 163, 74)
+        );
+        saveButton.IsDefault = true;
+        saveButton.Click += SaveButton_Click;
 
         buttonPanel.Children.Add(cancelButton);
         buttonPanel.Children.Add(applyButton);
-        buttonPanel.Children.Add(okButton);
+        buttonPanel.Children.Add(saveButton);
 
-        Grid.SetRow(buttonPanel, 7);
-        Grid.SetColumnSpan(buttonPanel, 2);
+        Grid.SetRow(buttonPanel, 6);
         grid.Children.Add(buttonPanel);
 
         mainBorder.Child = grid;
         Content = mainBorder;
 
-        Loaded += (s, e) =>
-        {
-            // Vereinfacht: Beide Felder bekommen den gleichen Wert
-            _subTabIntervalTextBox.Text = SubTabInterval.ToString();
-            _classIntervalTextBox.Text = SubTabInterval.ToString(); // Backup für Kompatibilität
-            _showOnlyActiveCheckBox.IsChecked = ShowOnlyActiveClasses;
+        Loaded += Dialog_Loaded;
+    }
 
-            _subTabIntervalTextBox.Focus();
-            _subTabIntervalTextBox.SelectAll();
-        };
+    private void Dialog_Loaded(object sender, RoutedEventArgs e)
+    {
+        // Set initial values
+        _subTabIntervalTextBox.Text = SubTabInterval.ToString();
+        _classIntervalTextBox.Text = SubTabInterval.ToString(); // Backup für Kompatibilität
+        _showOnlyActiveCheckBox.IsChecked = ShowOnlyActiveClasses;
+
+        _subTabIntervalTextBox.Focus();
+        _subTabIntervalTextBox.SelectAll();
     }
 
     private Border CreateInputSection(string labelText, out TextBox textBox, string suffixText, string tooltip)
@@ -251,7 +242,7 @@ public partial class OverviewConfigDialog : Window
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(20, 16, 20, 16),
-            Margin = new Thickness(0, 8, 0, 8),
+            Margin = new Thickness(0, 0, 0, 0),
             Effect = new DropShadowEffect
             {
                 Color = Colors.Black,
@@ -263,7 +254,7 @@ public partial class OverviewConfigDialog : Window
         };
 
         var sectionGrid = new Grid();
-        sectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+        sectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
         sectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         var label = new TextBlock
@@ -283,6 +274,7 @@ public partial class OverviewConfigDialog : Window
             HorizontalAlignment = HorizontalAlignment.Left
         };
 
+        // ✅ KORRIGIERT: TextBox mit korrekten Padding-Parametern
         textBox = new TextBox
         {
             Width = 80,
@@ -355,8 +347,29 @@ public partial class OverviewConfigDialog : Window
         return button;
     }
 
-    private void SaveAndClose()
+    // ✅ KORRIGIERT: Event Handler für Buttons
+    private void CancelButton_Click(object sender, RoutedEventArgs e)
     {
+        DialogResult = false;
+        Close();
+    }
+
+    private void ApplyButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Apply settings without closing
+        if (ApplySettings())
+        {
+            MessageBox.Show(
+                _localizationService.GetString("SettingsApplied") ?? "Einstellungen wurden angewendet.",
+                _localizationService.GetString("Information") ?? "Information",
+                MessageBoxButton.OK, 
+                MessageBoxImage.Information);
+        }
+    }
+
+    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    {
+        // Save and close
         if (ApplySettings())
         {
             DialogResult = true;
@@ -366,10 +379,11 @@ public partial class OverviewConfigDialog : Window
 
     private bool ApplySettings()
     {
-        if (!int.TryParse(_subTabIntervalTextBox.Text, out int tabInterval) || tabInterval < 1)
+        if (!int.TryParse(_subTabIntervalTextBox.Text, out int tabInterval) || tabInterval < 1 || tabInterval > 300)
         {
             MessageBox.Show(
-                "Ungültiger Wert für Tab-Zeit. Bitte geben Sie eine Zahl ≥ 1 ein.",
+                _localizationService.GetString("InvalidTabInterval") ?? 
+                "Ungültiger Wert für Tab-Zeit. Bitte geben Sie eine Zahl zwischen 1 und 300 Sekunden ein.",
                 _localizationService.GetString("Error") ?? "Fehler",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             _subTabIntervalTextBox.Focus();
@@ -377,10 +391,13 @@ public partial class OverviewConfigDialog : Window
             return false;
         }
 
-        // Vereinfacht: Beide Intervalle bekommen den gleichen Wert
+        // Set both intervals to the same value for simplicity
         ClassInterval = tabInterval;
         SubTabInterval = tabInterval;
         ShowOnlyActiveClasses = _showOnlyActiveCheckBox.IsChecked == true;
+
+        System.Diagnostics.Debug.WriteLine($"⚙️ [OverviewConfig] Settings applied: " +
+            $"Interval={tabInterval}s, ShowOnlyActive={ShowOnlyActiveClasses}");
 
         return true;
     }

@@ -13,6 +13,7 @@ using QRCoder;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Helpers;
+using DartTournamentPlaner.Services.License;
 using WinColor = System.Windows.Media.Color;
 using WinBrushes = System.Windows.Media.Brushes;
 using DrawingColor = System.Drawing.Color;
@@ -24,6 +25,7 @@ public partial class TournamentOverviewWindow : Window
     private readonly List<TournamentClass> _tournamentClasses;
     private readonly LocalizationService _localizationService;
     private readonly HubIntegrationService? _hubService;
+    private readonly LicenseFeatureService? _licenseFeatureService;
     
     // Helper-Klassen für spezialisierte Funktionalitäten
     private readonly TournamentOverviewDataGridHelper _dataGridHelper;
@@ -42,13 +44,33 @@ public partial class TournamentOverviewWindow : Window
     public TournamentOverviewWindow(
         List<TournamentClass> tournamentClasses,
         LocalizationService localizationService,
-        HubIntegrationService? hubService = null)
+        HubIntegrationService? hubService = null,
+        LicenseFeatureService? licenseFeatureService = null)
     {
         InitializeComponent();
         
         _tournamentClasses = tournamentClasses;
         _localizationService = localizationService;
         _hubService = hubService;
+        
+        // ✅ KORRIGIERT: Hole LicenseFeatureService vom MainWindow falls nicht übergeben
+        _licenseFeatureService = licenseFeatureService;
+        if (_licenseFeatureService == null)
+        {
+            try
+            {
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    var licenseServiceField = mainWindow.GetType()
+                        .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    _licenseFeatureService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
+            }
+        }
         
         // Initialisiere Helper-Klassen direkt im Konstruktor
         _qrCodeHelper = new TournamentOverviewQRCodeHelper(_hubService, _localizationService, OnOpenMatchPageClick);
@@ -58,10 +80,12 @@ public partial class TournamentOverviewWindow : Window
             _hubService, 
             () => _qrCodeHelper.CreateQRCodeCellTemplate());
         
+        // ✅ ERWEITERT: TabHelper mit LicenseFeatureService
         _tabHelper = new TournamentOverviewTabHelper(
             _localizationService, 
             _dataGridHelper, 
-            CreateTournamentTreeView);
+            CreateTournamentTreeView,
+            _licenseFeatureService);
         
         // Scroll Manager
         _scrollManager = new TournamentOverviewScrollManager(
@@ -84,6 +108,9 @@ public partial class TournamentOverviewWindow : Window
         
         InitializeOverview();
         UpdateTranslations();
+
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Window initialized with {_tournamentClasses.Count} classes, " +
+            $"Hub: {_hubService != null}, License: {_licenseFeatureService != null}");
     }
 
     /// <summary>
@@ -126,6 +153,8 @@ public partial class TournamentOverviewWindow : Window
         }
 
         UpdateStatus();
+
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Overview initialized with {MainTabControl.Items.Count} active tabs");
     }
 
     /// <summary>
@@ -219,18 +248,20 @@ public partial class TournamentOverviewWindow : Window
 
     private void Configure_Click(object sender, RoutedEventArgs e)
     {
-        // Aktuelle Werte vom CycleManager holen
+        // ✅ VERBESSERT: Aktuelle Werte vom CycleManager holen und besseres Dialog-Handling
         var currentSubTabInterval = _cycleManager?.GetCurrentSubTabInterval() ?? 5;
         
         var dialog = new OverviewConfigDialog
         {
             Owner = this,
-            ClassInterval = currentSubTabInterval, // Beide Werte gleich setzen für Benutzerfreundlichkeit
+            ClassInterval = currentSubTabInterval,
             SubTabInterval = currentSubTabInterval,
             ShowOnlyActiveClasses = _showOnlyActiveClasses
         };
 
-        if (dialog.ShowDialog() == true)
+        var dialogResult = dialog.ShowDialog();
+        
+        if (dialogResult == true)
         {
             _showOnlyActiveClasses = dialog.ShowOnlyActiveClasses;
             
@@ -251,7 +282,12 @@ public partial class TournamentOverviewWindow : Window
                 StartCycling();
             }
             
-            System.Diagnostics.Debug.WriteLine($"⚙️ [TournamentOverview] Configuration updated - SubTab: {dialog.SubTabInterval}s, ShowOnlyActive: {dialog.ShowOnlyActiveClasses}");
+            System.Diagnostics.Debug.WriteLine($"⚙️ [TournamentOverview] Configuration saved - " +
+                $"SubTab: {dialog.SubTabInterval}s, ShowOnlyActive: {dialog.ShowOnlyActiveClasses}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"⚙️ [TournamentOverview] Configuration dialog cancelled");
         }
     }
 
@@ -305,6 +341,12 @@ public partial class TournamentOverviewWindow : Window
                     var currentTab = _activeTournamentTabs[_currentClassIndex];
                     currentDisplay = _localizationService.GetString("Showing") + ": " + currentTab.Header?.ToString();
                     
+                    // ✅ ERWEITERT: Zeige auch aktuellen Sub-Tab an
+                    if (currentTab.Content is TabControl subTabControl && subTabControl.SelectedItem is TabItem selectedSubTab)
+                    {
+                        currentDisplay += $" → {selectedSubTab.Header}";
+                    }
+                    
                     // Zeige Scroll-Status an (aber blockiert nicht den Tab-Wechsel)
                     if (_scrollManager.IsScrolling)
                     {
@@ -312,10 +354,41 @@ public partial class TournamentOverviewWindow : Window
                     }
                 }
                 
-                // Vereinfachte Timer-Anzeige
+                // ✅ KORRIGIERT: Einfache, exakte Timer-Anzeige
                 var remainingTime = _cycleManager.GetRemainingTime();
-                TimerTextBlock.Text = $"{remainingTime / 60:D2}:{remainingTime % 60:D2}";
-                cycleInfo = $"Auto-Cycling aktiv - {remainingTime}s verbleibend";
+                
+                // ✅ VERBESSERT: Einfache, klare Anzeige
+                if (remainingTime <= 0)
+                {
+                    TimerTextBlock.Text = "00:00";
+                }
+                else
+                {
+                    var minutes = remainingTime / 60;
+                    var seconds = remainingTime % 60;
+                    TimerTextBlock.Text = $"{minutes:D2}:{seconds:D2}";
+                }
+                
+                // ✅ KORRIGIERT: Einfache Status-Informationen
+                var totalInterval = _cycleManager.GetCurrentSubTabInterval();
+                var elapsedTime = totalInterval - remainingTime;
+                var elapsedPercent = totalInterval > 0 ? (elapsedTime * 100.0 / totalInterval) : 0;
+                
+                cycleInfo = $"Auto-Cycling aktiv ({elapsedPercent:F0}% - {remainingTime}s verbleibend)";
+                
+                // ✅ KORRIGIERT: Einfache Farbwechsel basierend auf verbleibender Zeit
+                if (remainingTime <= 3)
+                {
+                    TimerTextBlock.Foreground = new SolidColorBrush(WinColor.FromRgb(220, 38, 38)); // Rot
+                }
+                else if (remainingTime <= 10)
+                {
+                    TimerTextBlock.Foreground = new SolidColorBrush(WinColor.FromRgb(245, 158, 11)); // Orange
+                }
+                else
+                {
+                    TimerTextBlock.Foreground = new SolidColorBrush(WinColor.FromRgb(34, 197, 94)); // Grün
+                }
             }
             else
             {
@@ -323,6 +396,7 @@ public partial class TournamentOverviewWindow : Window
                 buttonText = "▶ " + _localizationService.GetString("StartCycling");
                 currentDisplay = _localizationService.GetString("ManualMode");
                 TimerTextBlock.Text = "--:--";
+                TimerTextBlock.Foreground = new SolidColorBrush(WinColor.FromRgb(107, 114, 128)); // Grau
                 cycleInfo = _localizationService.GetString("CyclingStopped");
             }
 
@@ -343,7 +417,7 @@ public partial class TournamentOverviewWindow : Window
         {
             Title = _localizationService.GetString("TournamentOverview");
             OverviewModeText.Text = _localizationService.GetString("OverviewModeTitle");
-            ConfigureButton.Content = "Konfigurieren";
+            ConfigureButton.Content = "⚙ " + (_localizationService.GetString("Configure") ?? "Konfigurieren");
             CloseButton.ToolTip = _localizationService.GetString("Close");
             
             UpdateStatus();

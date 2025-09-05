@@ -1,37 +1,45 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Controls;
+using DartTournamentPlaner.Services.License;
+using DartTournamentPlaner.Models.License;
 using WinColor = System.Windows.Media.Color;
 using WinBrushes = System.Windows.Media.Brushes;
 
 namespace DartTournamentPlaner.Helpers;
 
 /// <summary>
-/// Helper-Klasse f�r die Erstellung und Verwaltung von Tab-Strukturen im TournamentOverviewWindow
-/// Verantwortlich f�r die Erstellung von Haupt-Tabs und Sub-Tabs basierend auf Tournament-Phasen
+/// Helper-Klasse für die Erstellung und Verwaltung von Tab-Strukturen im TournamentOverviewWindow
+/// Verantwortlich für die Erstellung von Haupt-Tabs und Sub-Tabs basierend auf Tournament-Phasen
+/// ✅ ERWEITERT: Mit Statistik-Tab-Integration
 /// </summary>
 public class TournamentOverviewTabHelper
 {
     private readonly LocalizationService _localizationService;
     private readonly TournamentOverviewDataGridHelper _dataGridHelper;
     private readonly Func<TournamentClass, bool, FrameworkElement> _createTournamentTreeView;
+    private readonly LicenseFeatureService? _licenseFeatureService;
 
     public TournamentOverviewTabHelper(
         LocalizationService localizationService,
         TournamentOverviewDataGridHelper dataGridHelper,
-        Func<TournamentClass, bool, FrameworkElement> createTournamentTreeView)
+        Func<TournamentClass, bool, FrameworkElement> createTournamentTreeView,
+        LicenseFeatureService? licenseFeatureService = null)
     {
         _localizationService = localizationService;
         _dataGridHelper = dataGridHelper;
         _createTournamentTreeView = createTournamentTreeView;
+        _licenseFeatureService = licenseFeatureService;
     }
 
     /// <summary>
     /// Erstellt einen Tournament-Class Tab mit Header und Content
+    /// ✅ ERWEITERT: Inklusive Statistik-Tabs
     /// </summary>
     public TabItem CreateTournamentClassTab(TournamentClass tournamentClass, int classIndex)
     {
@@ -82,6 +90,7 @@ public class TournamentOverviewTabHelper
 
     /// <summary>
     /// Erstellt das Content-TabControl basierend auf der aktuellen Tournament-Phase
+    /// ✅ ERWEITERT: Mit automatischer Statistik-Tab-Integration
     /// </summary>
     public TabControl CreateContentTabControl(TournamentClass tournamentClass)
     {
@@ -107,12 +116,12 @@ public class TournamentOverviewTabHelper
         {
             // Create tabs for knockout brackets - both matches and tree views
             var winnerBracketMatchesTab = CreateKnockoutBracketTab(
-                _localizationService.GetString("WinnerBracketMatches"), 
+                _localizationService.GetString("WinnerBracketMatches") ?? "Winner Bracket Spiele", 
                 tournamentClass, false, false);
             tabControl.Items.Add(winnerBracketMatchesTab);
 
             var winnerBracketTreeTab = CreateKnockoutBracketTab(
-                _localizationService.GetString("WinnerBracketTree"), 
+                _localizationService.GetString("WinnerBracketTree") ?? "Winner Bracket Baum", 
                 tournamentClass, false, true);
             tabControl.Items.Add(winnerBracketTreeTab);
 
@@ -120,12 +129,12 @@ public class TournamentOverviewTabHelper
             if (tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
             {
                 var loserBracketMatchesTab = CreateKnockoutBracketTab(
-                    _localizationService.GetString("LoserBracketMatches"), 
+                    _localizationService.GetString("LoserBracketMatches") ?? "Loser Bracket Spiele", 
                     tournamentClass, true, false);
                 tabControl.Items.Add(loserBracketMatchesTab);
 
                 var loserBracketTreeTab = CreateKnockoutBracketTab(
-                    _localizationService.GetString("LoserBracketTree"), 
+                    _localizationService.GetString("LoserBracketTree") ?? "Loser Bracket Baum", 
                     tournamentClass, true, true);
                 tabControl.Items.Add(loserBracketTreeTab);
             }
@@ -135,6 +144,13 @@ public class TournamentOverviewTabHelper
             // Create finals tab
             var finalsTab = CreateFinalsTab(tournamentClass);
             tabControl.Items.Add(finalsTab);
+        }
+
+        // ✅ NEU: Statistik-Tab automatisch hinzufügen
+        var statisticsTab = CreateStatisticsTab(tournamentClass);
+        if (statisticsTab != null)
+        {
+            tabControl.Items.Add(statisticsTab);
         }
 
         if (tabControl.Items.Count > 0)
@@ -207,7 +223,7 @@ public class TournamentOverviewTabHelper
     /// </summary>
     public TabItem CreateFinalsTab(TournamentClass tournamentClass)
     {
-        var tabItem = new TabItem { Header = _localizationService.GetString("FinalsTab") };
+        var tabItem = new TabItem { Header = _localizationService.GetString("FinalsTab") ?? "Finale" };
 
         // Similar to knockout but for finals matches
         var finalsMatches = tournamentClass.GetFinalsMatches();
@@ -218,7 +234,100 @@ public class TournamentOverviewTabHelper
     }
 
     /// <summary>
-    /// Setzt die Farben f�r Tab-Header basierend auf dem Class-Index
+    /// ✅ KORRIGIERT: Erstellt einen Statistik-Tab nur wenn Lizenz vorhanden ist
+    /// </summary>
+    public TabItem? CreateStatisticsTab(TournamentClass tournamentClass)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"📊 [TabHelper] Checking statistics license for class: {tournamentClass.Name}");
+
+            // ✅ KORRIGIERT: Prüfe Lizenz ZUERST - kein Tab wenn keine Lizenz
+            var hasStatisticsLicense = CheckStatisticsLicense();
+            
+            if (!hasStatisticsLicense)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [TabHelper] No statistics license - not creating statistics tab");
+                return null; // ✅ Kein Tab erstellen wenn keine Lizenz
+            }
+
+            System.Diagnostics.Debug.WriteLine($"✅ [TabHelper] Statistics license available - creating tab");
+            
+            var tabItem = new TabItem();
+            
+            // Header mit Icon
+            var headerPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            
+            var iconText = new TextBlock
+            {
+                Text = "📊",
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 6, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            
+            var headerText = new TextBlock
+            {
+                Text = _localizationService.GetString("Statistics") ?? "Statistiken",
+                FontWeight = FontWeights.Medium,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            headerPanel.Children.Add(iconText);
+            headerPanel.Children.Add(headerText);
+            tabItem.Header = headerPanel;
+
+            // ✅ Da wir hier sind, haben wir eine gültige Lizenz - erstelle Statistik-View
+            var statisticsView = new PlayerStatisticsView
+            {
+                TournamentClass = tournamentClass,
+                Margin = new Thickness(10)
+            };
+            
+            // Ensure translations are updated
+            statisticsView.UpdateTranslations();
+            
+            tabItem.Content = statisticsView;
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [TabHelper] Statistics tab created successfully with licensed view");
+            return tabItem;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TabHelper] Error creating statistics tab: {ex.Message}");
+            return null; // No statistics tab if error
+        }
+    }
+
+    /// <summary>
+    /// ✅ KORRIGIERT: Prüft ob Statistics-Lizenz vorhanden ist
+    /// </summary>
+    private bool CheckStatisticsLicense()
+    {
+        try
+        {
+            if (_licenseFeatureService == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ [TabHelper] No LicenseFeatureService available");
+                return false;
+            }
+
+            // ✅ KORRIGIERT: Verwende den korrekten Feature-Identifier und Methode
+            var isEnabled = _licenseFeatureService.HasFeature(LicenseFeatures.STATISTICS);
+            System.Diagnostics.Debug.WriteLine($"🔍 [TabHelper] Statistics license check result: {isEnabled}");
+            
+            return isEnabled;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TabHelper] Error checking statistics license: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Setzt die Farben für Tab-Header basierend auf dem Class-Index
     /// </summary>
     private void SetTabColors(System.Windows.Shapes.Ellipse colorEllipse, Border colorBorder, int classIndex)
     {

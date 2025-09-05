@@ -325,18 +325,72 @@ public partial class LicenseStatusWindow : Window
     private async void RefreshButton_Click(object sender, RoutedEventArgs e)
     {
         RefreshButton.IsEnabled = false;
-        RefreshButton.Content = "Updating...";
+        RefreshButton.Content = "🔄 Updating...";
         
         try
         {
+            // ✅ ERWEITERT: Echter Server-Abgleich mit Fortschrittsanzeige
+            RefreshButton.Content = "🌐 Connecting to server...";
+            
+            // 1. Server-Validierung durchführen
+            var validationResult = await _licenseManager.ValidateLicenseAsync();
+            
+            RefreshButton.Content = "🔄 Updating features...";
+            
+            // 2. Feature Service mit neuen Daten aktualisieren
             await _licenseFeatureService.InitializeAsync();
+            
+            RefreshButton.Content = "🔄 Refreshing display...";
+            
+            // 3. UI-Display aktualisieren
             await LoadLicenseStatusAsync();
+            
+            // 4. Erfolgs-Feedback
+            if (validationResult.IsValid)
+            {
+                if (!validationResult.Offline)
+                {
+                    ShowTemporaryMessage("✅ License validated and features updated successfully");
+                }
+                else
+                {
+                    ShowTemporaryMessage("⚠️ License validated offline - limited feature update");
+                }
+            }
+            else
+            {
+                ShowTemporaryMessage("❌ License validation failed - using cached data");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowTemporaryMessage($"❌ Update failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"RefreshButton_Click Error: {ex.Message}");
         }
         finally
         {
             RefreshButton.IsEnabled = true;
             RefreshButton.Content = (_localizationService.GetString("Refresh") ?? "Refresh");
         }
+    }
+    
+    /// <summary>
+    /// Zeigt eine temporäre Nachricht in der Status-Beschreibung an
+    /// </summary>
+    private async void ShowTemporaryMessage(string message)
+    {
+        var originalText = StatusDescription.Text;
+        StatusDescription.Text = message;
+        StatusDescription.Foreground = message.StartsWith("✅") ? 
+            new SolidColorBrush(Color.FromRgb(34, 197, 94)) : // Green
+            message.StartsWith("⚠️") ?
+            new SolidColorBrush(Color.FromRgb(245, 124, 0)) : // Orange
+            new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+        
+        await Task.Delay(3000);
+        
+        StatusDescription.Text = originalText;
+        StatusDescription.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)); // Gray
     }
     
     private void ShowDetailsButton_Click(object sender, RoutedEventArgs e)

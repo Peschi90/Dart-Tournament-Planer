@@ -591,4 +591,51 @@ public class LicenseManager
         // Server erwartet das Format MIT Bindestrichen: BDF6-192D-E8BE-4178-B160-C6C3-6018-0FE3
         return normalized;
     }
+    
+    /// <summary>
+    /// ✅ NEU: Erzwingt Server-Validierung (umgeht Cache) für Feature-Updates
+    /// Diese Methode wird vom LicenseFeatureService verwendet um sicherzustellen,
+    /// dass bei einem Refresh echte Server-Kommunikation stattfindet
+    /// </summary>
+    public async Task<LicenseValidationResult> ForceServerValidationAsync()
+    {
+        System.Diagnostics.Debug.WriteLine($"🌐 LicenseManager: Force server validation requested...");
+        
+        var licenseKey = LoadLicenseKey();
+        if (string.IsNullOrEmpty(licenseKey))
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ No license key found for forced validation");
+            return new LicenseValidationResult 
+            { 
+                IsValid = false, 
+                ErrorType = LicenseErrorType.LicenseNotFound,
+                Message = "No license key found" 
+            };
+        }
+        
+        var hardwareId = GenerateHardwareId();
+        
+        // ✅ WICHTIG: Direkte Server-Validierung ohne Cache-Prüfung
+        System.Diagnostics.Debug.WriteLine($"🌐 Forcing server communication for license validation...");
+        var result = await ValidateLicenseWithServerAsync(licenseKey, hardwareId);
+        
+        // Status aktualisieren
+        _isValid = result.IsValid;
+        _lastValidation = DateTime.Now;
+        _cachedLicenseData = result.Data;
+        
+        // Speichere letzte erfolgreiche Validierung
+        if (result.IsValid)
+        {
+            SaveLastValidation(_lastValidation);
+        }
+        
+        // Event auslösen
+        LicenseStatusChanged?.Invoke(this, new LicenseStatusChangedEventArgs(result));
+        
+        System.Diagnostics.Debug.WriteLine($"✅ Forced server validation completed: IsValid={result.IsValid}, " +
+            $"Offline={result.Offline}, Features={result.Data?.Features?.Length ?? 0}");
+        
+        return result;
+    }
 }

@@ -8,10 +8,11 @@ namespace DartTournamentPlaner.Helpers;
 /// <summary>
 /// Vereinfachter Manager für automatisches Tab-Cycling im TournamentOverviewWindow
 /// Klare, einfache Logik: Jeder Tab bekommt seine definierte Zeit, dann wird gewechselt
+/// ✅ KORRIGIERT: Hochpräziser Timer mit DateTime-basierter Kontrolle
 /// </summary>
 public class TournamentOverviewCycleManager
 {
-    private readonly DispatcherTimer _cycleTimer;
+    private readonly DispatcherTimer _checkTimer; // ✅ KORRIGIERT: Hochfrequenter Check-Timer
     private readonly LocalizationService _localizationService;
     private readonly Func<TabControl> _getMainTabControl;
     private readonly Func<List<TabItem>> _getActiveTournamentTabs;
@@ -25,10 +26,10 @@ public class TournamentOverviewCycleManager
     
     private bool _isRunning = false;
     private DateTime _tabStartTime = DateTime.Now;
+    private DateTime _lastUIUpdate = DateTime.Now; // ✅ NEU: Für UI-Update-Kontrolle
     
     // Konfigurierbare Werte
     private int _subTabInterval = 5; // Sekunden pro Sub-Tab
-    private bool _isInClassTransition = false; // Flag für Klassen-Übergang
 
     public bool IsRunning => _isRunning;
     public DateTime TabStartTime => _tabStartTime;
@@ -56,9 +57,10 @@ public class TournamentOverviewCycleManager
         _updateStatus = updateStatus;
         _startScrolling = startScrolling;
         
-        _cycleTimer = new DispatcherTimer();
-        _cycleTimer.Interval = TimeSpan.FromSeconds(1); // Jede Sekunde prüfen
-        _cycleTimer.Tick += CycleTimer_Tick;
+        // ✅ KORRIGIERT: Hochfrequenter Timer für präzise Kontrolle
+        _checkTimer = new DispatcherTimer(DispatcherPriority.Normal);
+        _checkTimer.Interval = TimeSpan.FromMilliseconds(100); // Alle 100ms prüfen
+        _checkTimer.Tick += CheckTimer_Tick;
     }
 
     /// <summary>
@@ -68,17 +70,17 @@ public class TournamentOverviewCycleManager
     {
         _isRunning = true;
         _tabStartTime = DateTime.Now;
-        _isInClassTransition = false;
+        _lastUIUpdate = DateTime.Now;
         
         _setCurrentSubTab();
-        _cycleTimer.Start();
+        _checkTimer.Start();
         
         // Starte Scrollen für den aktuellen Tab
         _startScrolling();
         
         _updateStatus();
         
-        System.Diagnostics.Debug.WriteLine($"🎬 [AutoCycle] Started cycling - {_subTabInterval}s per tab");
+        System.Diagnostics.Debug.WriteLine($"🎬 [AutoCycle] Started cycling - {_subTabInterval}s per tab (high-precision DateTime-based)");
     }
 
     /// <summary>
@@ -87,8 +89,7 @@ public class TournamentOverviewCycleManager
     public void StopCycling()
     {
         _isRunning = false;
-        _cycleTimer.Stop();
-        _isInClassTransition = false;
+        _checkTimer.Stop();
         
         _updateStatus();
         
@@ -100,8 +101,6 @@ public class TournamentOverviewCycleManager
     /// </summary>
     public void UpdateConfiguration(int classInterval, int subTabInterval)
     {
-        // Vereinfacht: Beide Intervalle werden als Sub-Tab-Interval behandelt
-        // Klassen-Wechsel passiert automatisch wenn alle Sub-Tabs durch sind
         _subTabInterval = subTabInterval;
         
         System.Diagnostics.Debug.WriteLine($"⚙️ [AutoCycle] Updated config - {_subTabInterval}s per tab");
@@ -116,34 +115,44 @@ public class TournamentOverviewCycleManager
     }
 
     /// <summary>
-    /// Berechnet die verbleibende Zeit bis zum nächsten Tab-Wechsel
+    /// ✅ KORRIGIERT: Berechnet die verbleibende Zeit exakt basierend auf DateTime
     /// </summary>
     public int GetRemainingTime()
     {
         if (!_isRunning) return 0;
         
         var elapsed = (DateTime.Now - _tabStartTime).TotalSeconds;
-        var remaining = Math.Max(0, _subTabInterval - (int)elapsed);
-        
-        return remaining;
+        var remaining = Math.Max(0, _subTabInterval - elapsed);
+        return (int)Math.Ceiling(remaining);
     }
 
     /// <summary>
-    /// Timer-Event für Tab-Cycling - prüft jede Sekunde ob gewechselt werden soll
+    /// ✅ KORRIGIERT: Hochfrequenter Check-Timer (100ms) mit DateTime-basierter Logik
     /// </summary>
-    private void CycleTimer_Tick(object? sender, EventArgs e)
+    private void CheckTimer_Tick(object? sender, EventArgs e)
     {
         if (!_isRunning) return;
 
-        var elapsed = (DateTime.Now - _tabStartTime).TotalSeconds;
+        var now = DateTime.Now;
+        var elapsedSeconds = (now - _tabStartTime).TotalSeconds;
         
-        // Zeit für den aktuellen Tab abgelaufen?
-        if (elapsed >= _subTabInterval)
+        // ✅ NEU: UI-Update alle 500ms für flüssige Anzeige ohne Performance-Impact
+        if ((now - _lastUIUpdate).TotalMilliseconds >= 500)
         {
-            SwitchToNextTab();
+            _updateStatus();
+            _lastUIUpdate = now;
+            
+            // ✅ DEBUG: Zeige präzise Timer-Info alle 500ms
+            var remainingTime = Math.Max(0, _subTabInterval - elapsedSeconds);
+            System.Diagnostics.Debug.WriteLine($"⏱️ [AutoCycle] Precise check: elapsed={elapsedSeconds:F1}s, remaining={remainingTime:F1}s");
         }
         
-        _updateStatus();
+        // ✅ KORRIGIERT: Exakte Tab-Wechsel basierend auf DateTime
+        if (elapsedSeconds >= _subTabInterval)
+        {
+            System.Diagnostics.Debug.WriteLine($"⏰ [AutoCycle] Tab switch triggered after {elapsedSeconds:F3}s (target: {_subTabInterval}s)");
+            SwitchToNextTab();
+        }
     }
 
     /// <summary>
@@ -160,6 +169,11 @@ public class TournamentOverviewCycleManager
 
             if (activeTournamentTabs.Count == 0) return;
 
+            // ✅ KORRIGIERT: Zeige exakte Timer-Performance
+            var actualElapsed = (DateTime.Now - _tabStartTime).TotalSeconds;
+            var expectedTime = _subTabInterval;
+            var timingDifference = actualElapsed - expectedTime;
+
             // Hole aktuelle Sub-Tab-Informationen
             var currentClassTab = mainTabControl.SelectedItem as TabItem;
             if (currentClassTab?.Content is TabControl subTabControl && subTabControl.Items.Count > 0)
@@ -173,7 +187,8 @@ public class TournamentOverviewCycleManager
                     _setCurrentSubTabIndex(nextSubTabIndex);
                     _setCurrentSubTab();
                     
-                    System.Diagnostics.Debug.WriteLine($"📑 [AutoCycle] Switched to sub-tab {nextSubTabIndex + 1}/{subTabControl.Items.Count} in class {currentClassIndex + 1}");
+                    System.Diagnostics.Debug.WriteLine($"📑 [AutoCycle] Switched to sub-tab {nextSubTabIndex + 1}/{subTabControl.Items.Count} in class {currentClassIndex + 1} " +
+                        $"(precise: {actualElapsed:F3}s, expected: {expectedTime}s, diff: {timingDifference:+0.000;-0.000}s)");
                 }
                 else
                 {
@@ -189,7 +204,7 @@ public class TournamentOverviewCycleManager
                 return;
             }
 
-            // Timer für neuen Tab zurücksetzen
+            // ✅ KORRIGIERT: Exakte Timer-Zurücksetzung
             _tabStartTime = DateTime.Now;
             
             // Starte Scrollen für den neuen Tab nach kurzer Verzögerung
@@ -242,7 +257,7 @@ public class TournamentOverviewCycleManager
                 System.Diagnostics.Debug.WriteLine($"🏆 [AutoCycle] Switched to class {nextClassIndex + 1}/{activeTournamentTabs.Count}");
             }
 
-            // Timer für neue Klasse zurücksetzen
+            // ✅ KORRIGIERT: Exakte Timer-Zurücksetzung
             _tabStartTime = DateTime.Now;
             
             // Starte Scrollen für den neuen Tab nach kurzer Verzögerung

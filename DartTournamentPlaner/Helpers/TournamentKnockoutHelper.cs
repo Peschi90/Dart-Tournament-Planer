@@ -332,6 +332,7 @@ public static class TournamentKnockoutHelper
 
     /// <summary>
     /// Setzt ein Turnier auf die Gruppenphase zurück
+    /// ✅ ERWEITERT: Setzt jetzt auch Gruppenphasen-Matches und Statistiken zurück
     /// </summary>
     /// <param name="tournamentClass">Die zurückzusetzende TournamentClass</param>
     public static void ResetToGroupPhase(TournamentClass tournamentClass)
@@ -416,14 +417,30 @@ public static class TournamentKnockoutHelper
                 groupPhase.Groups = tournamentClass.Groups; // Stelle sicher dass Groups verlinkt sind
             }
             
-            // 3. Reset zu group phase
+            // 3. ✅ NEU: Reset alle Gruppen-Matches falls gewünscht
+            System.Diagnostics.Debug.WriteLine("ResetToGroupPhase: Resetting all group matches");
+            foreach (var group in tournamentClass.Groups)
+            {
+                if (group.MatchesGenerated && group.Matches.Count > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"  - Resetting {group.Matches.Count} matches in group '{group.Name}'");
+                    group.ResetMatches();
+                }
+            }
+            
+            // 4. ✅ NEU: Reset alle Spieler-Statistiken
+            System.Diagnostics.Debug.WriteLine("ResetToGroupPhase: Clearing all player statistics");
+            tournamentClass.ClearAllStatistics();
+            
+            // 5. Reset zu group phase
             tournamentClass.CurrentPhase = groupPhase;
             
-            // 4. WICHTIG: Trigge UI-Refresh um alle Views zu aktualisieren
+            // 6. WICHTIG: Trigge UI-Refresh um alle Views zu aktualisieren
             tournamentClass.TriggerUIRefresh();
             
             System.Diagnostics.Debug.WriteLine($"ResetToGroupPhase: Successfully reset tournament to group phase with {tournamentClass.Groups.Count} groups");
             System.Diagnostics.Debug.WriteLine($"ResetToGroupPhase: Total phases remaining: {tournamentClass.Phases.Count}");
+            System.Diagnostics.Debug.WriteLine("ResetToGroupPhase: All group matches and statistics have been reset");
         }
         catch (Exception ex)
         {

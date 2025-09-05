@@ -30,11 +30,57 @@ public class LicenseFeatureService
     
     /// <summary>
     /// Initialisiert den Service und lädt den aktuellen Status
+    /// ? ERWEITERT: Führt echte Server-Validierung durch für kompletten Feature-Abgleich
     /// </summary>
     public async Task InitializeAsync()
     {
-        var validationResult = await _licenseManager.ValidateLicenseAsync();
-        UpdateStatus(validationResult);
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"?? LicenseFeatureService: Starting initialization with server validation...");
+            
+            // ? KRITISCH: Erzwinge Server-Validierung für aktuelle Features
+            // Dies überschreibt die Cached-Logik im LicenseManager
+            var validationResult = await ValidateLicenseWithServerRefreshAsync();
+            
+            // Status aktualisieren
+            UpdateStatus(validationResult);
+            
+            System.Diagnostics.Debug.WriteLine($"? LicenseFeatureService: Initialization completed. " +
+                $"Licensed: {_currentStatus?.IsLicensed}, Features: {_currentStatus?.ActiveFeatures.Count ?? 0}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"? LicenseFeatureService: Initialization failed: {ex.Message}");
+            
+            // Fallback auf gecachte Daten
+            try
+            {
+                var fallbackResult = await _licenseManager.ValidateLicenseAsync();
+                UpdateStatus(fallbackResult);
+            }
+            catch
+            {
+                // Letzter Fallback: Unlizenziert
+                _currentStatus = CreateUnlicensedStatus();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// ? NEU: Erzwingt Server-Validierung durch direkten Aufruf (umgeht Cache)
+    /// Diese Methode stellt sicher, dass bei einem Refresh echte Server-Kommunikation stattfindet
+    /// </summary>
+    private async Task<LicenseValidationResult> ValidateLicenseWithServerRefreshAsync()
+    {
+        System.Diagnostics.Debug.WriteLine($"?? LicenseFeatureService: Forcing server validation...");
+        
+        // ? VERBESSERT: Verwende die neue ForceServerValidationAsync Methode
+        var result = await _licenseManager.ForceServerValidationAsync();
+        
+        System.Diagnostics.Debug.WriteLine($"?? Server validation result: IsValid={result.IsValid}, " +
+            $"Offline={result.Offline}, Features={result.Data?.Features?.Length ?? 0}");
+        
+        return result;
     }
     
     /// <summary>

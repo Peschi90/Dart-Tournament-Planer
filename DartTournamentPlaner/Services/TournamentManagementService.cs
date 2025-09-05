@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -6,11 +6,12 @@ using System.Threading.Tasks;
 using System.Windows;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Views;
+using DartTournamentPlaner.Services.License;
 
 namespace DartTournamentPlaner.Services;
 
 /// <summary>
-/// Service f�r Tournament-spezifische Operationen und Datenmanagement
+/// Service für Tournament-spezifische Operationen und Datenmanagement
 /// Verwaltet die vier Tournament-Klassen und deren Operationen
 /// </summary>
 public class TournamentManagementService
@@ -195,42 +196,16 @@ public class TournamentManagementService
         ShowTournamentOverview(null, null, null);
     }
 
+    /// <summary>
+    /// ✅ ERWEITERT: Zeigt das Tournament Overview Window mit vollständiger Service-Integration
+    /// </summary>
     public void ShowTournamentOverview(Window? owner = null, 
-        Services.License.LicenseFeatureService? licenseFeatureService = null, 
-        Services.License.LicenseManager? licenseManager = null)
+        LicenseFeatureService? licenseFeatureService = null, 
+        LicenseManager? licenseManager = null)
     {
         try
         {
-            // NEU: Lizenzpr�fung f�r Tournament Overview
-            if (licenseFeatureService != null && licenseManager != null)
-            {
-                var hasFeature = licenseFeatureService.HasFeature(Models.License.LicenseFeatures.TOURNAMENT_OVERVIEW);
-                
-                if (!hasFeature)
-                {
-                    // Zeige License Required Dialog
-                    var licenseRequired = Views.License.TournamentOverviewLicenseRequiredDialog.ShowDialog(
-                        owner, 
-                        _localizationService, 
-                        licenseManager
-                    );
-                    
-                    if (!licenseRequired)
-                    {
-                        // Benutzer hat abgebrochen
-                        return;
-                    }
-                    
-                    // Pr�fe erneut nach m�glicher Lizenzaktivierung
-                    hasFeature = licenseFeatureService.HasFeature(Models.License.LicenseFeatures.TOURNAMENT_OVERVIEW);
-                    if (!hasFeature)
-                    {
-                        return; // Immer noch keine Lizenz
-                    }
-                }
-            }
-            
-            // ERWEITERT: Hole HubIntegrationService f�r QR-Code Integration
+            // ✅ ERWEITERT: Hole HubIntegrationService für QR-Code Integration
             HubIntegrationService? hubService = null;
             try
             {
@@ -241,25 +216,66 @@ public class TournamentManagementService
                     hubService = hubServiceField?.GetValue(mainWindow) as HubIntegrationService;
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Could not get HubService for TournamentOverview: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get HubService: {ex.Message}");
+            }
+
+            // ✅ KORRIGIERT: Hole LicenseFeatureService vom MainWindow falls nicht übergeben
+            LicenseFeatureService? effectiveLicenseService = licenseFeatureService;
+            if (effectiveLicenseService == null)
+            {
+                try
+                {
+                    if (Application.Current.MainWindow is MainWindow mainWindow)
+                    {
+                        var licenseServiceField = mainWindow.GetType()
+                            .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        effectiveLicenseService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
+                }
             }
             
-            var overviewWindow = new TournamentOverviewWindow(_tournamentClasses, _localizationService, hubService);
+            // ✅ VERBESSERT: Erstelle TournamentOverviewWindow mit allen Services
+            var overviewWindow = new TournamentOverviewWindow(
+                _tournamentClasses,
+                _localizationService,
+                hubService,
+                effectiveLicenseService
+            );
+            
+            if (owner != null)
+            {
+                overviewWindow.Owner = owner;
+                overviewWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            }
+            else
+            {
+                overviewWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            }
+            
             overviewWindow.Show();
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Window opened successfully with " +
+                $"Hub: {hubService != null}, License: {effectiveLicenseService != null}");
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("ErrorOpeningOverview")} {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening window: {ex.Message}");
+            
+            var title = _localizationService.GetString("Error") ?? "Error";
+            var message = $"{_localizationService.GetString("ErrorOpeningOverview") ?? "Error opening Tournament Overview:"} {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
     public void ShowPrintDialog(Window? owner = null, 
-        Services.License.LicenseFeatureService? licenseFeatureService = null, 
-        Services.License.LicenseManager? licenseManager = null)
+        LicenseFeatureService? licenseFeatureService = null, 
+        LicenseManager? licenseManager = null)
     {
         try
         {
@@ -268,14 +284,14 @@ public class TournamentManagementService
                 PlatinClass, 
                 owner, 
                 _localizationService,
-                licenseFeatureService,  // Lizenzpr�fung
-                licenseManager         // F�r Lizenz-Dialog
+                licenseFeatureService,  // Lizenzprüfung
+                licenseManager         // Für Lizenz-Dialog
             );
         }
         catch (Exception ex)
         {
             var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim �ffnen des Druckdialogs: {ex.Message}";
+            var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
