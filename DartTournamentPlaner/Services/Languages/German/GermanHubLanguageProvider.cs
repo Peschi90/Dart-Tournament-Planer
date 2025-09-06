@@ -41,6 +41,19 @@ public class GermanHubLanguageProvider : ILanguageSection
             ["UnregisterTournamentError"] = "Fehler beim Entregistrieren: {0}",
             ["NoTournamentRegistered"] = "Kein Tournament beim Hub registriert.",
 
+            // Hub Registration Success Dialog
+            ["TournamentRegisteredTitle"] = "Turnier erfolgreich registriert",
+            ["TournamentRegisteredMessage"] = "Ihr Turnier wurde erfolgreich beim Tournament Hub registriert!",
+            ["TournamentInformation"] = "🏆 Turnier-Informationen",
+            ["ActiveFeatures"] = "🌟 Aktive Features",
+            ["TournamentFeaturesText"] = "- Echtzeit-Turnier-Synchronisation\n- Multi-Device Turnier-Zugang\n- Live Match-Ergebnis Updates",
+            ["JoinUrlCopiedText"] = "Die Join-URL wurde automatisch in die Zwischenablage kopiert.",
+            ["CopyUrl"] = "URL kopieren",
+            ["OK"] = "OK",
+            ["Copied"] = "Kopiert!",
+            ["Error"] = "Fehler",
+            ["CopyError"] = "Fehler beim Kopieren der URL.",
+
             // Hub Synchronisation
             ["SyncWithHub"] = "Mit Hub synchronisieren",
             ["SyncSuccess"] = "Tournament erfolgreich mit Hub synchronisiert!",

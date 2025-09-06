@@ -2,15 +2,15 @@
 
 function createMatchCard(match) {
     const canSubmitResult = match.status !== 'Finished' && match.status !== 'finished';
-    
+
     // 🔑 ERWEITERTE Match-ID Extraktion mit UUID-Support
     const matchId = match.matchId || match.id || match.Id || 'Unknown';
     const matchUuid = match.uniqueId || match.UniqueId || null;
     const hasValidUuid = !!(matchUuid && matchUuid.length > 0);
-    
+
     // Verwende UUID als primäre ID wenn verfügbar, sonst numerische ID
     const primaryMatchId = hasValidUuid ? matchUuid : matchId;
-    
+
     console.log(`🎯 [CREATE_CARD] Creating match card for:`, {
         matchId: matchId,
         uniqueId: matchUuid,
@@ -23,11 +23,11 @@ function createMatchCard(match) {
         player1: match.player1 || match.Player1,
         player2: match.player2 || match.Player2
     });
-    
+
     // Handle different player name formats
     let player1Name = 'Spieler 1';
     let player2Name = 'Spieler 2';
-    
+
     if (match.player1) {
         if (typeof match.player1 === 'string') {
             player1Name = match.player1;
@@ -43,7 +43,7 @@ function createMatchCard(match) {
             player1Name = match.Player1.Name;
         }
     }
-    
+
     if (match.player2) {
         if (typeof match.player2 === 'string') {
             player2Name = match.player2;
@@ -59,7 +59,7 @@ function createMatchCard(match) {
             player2Name = match.Player2.Name;
         }
     }
-    
+
     const p1Sets = match.player1Sets || match.Player1Sets || 0;
     const p2Sets = match.player2Sets || match.Player2Sets || 0;
     const p1Legs = match.player1Legs || match.Player1Legs || 0;
@@ -67,21 +67,21 @@ function createMatchCard(match) {
     const notes = match.notes || match.Notes || '';
     const status = match.status || match.Status || 'NotStarted';
     const matchType = match.matchType || match.MatchType || 'Group';
-    
+
     const classId = match.classId || match.ClassId || 1;
-    
+
     let className = match.className || match.ClassName || null;
     if (!className) {
         const foundClass = window.tournamentClasses.find(c => c.id == classId);
-        className = foundClass?.name || `Klasse ${classId}`;
+        className = foundClass ? .name || `Klasse ${classId}`;
     }
-    
+
     const groupName = match.groupName || match.GroupName || null;
     const groupId = match.groupId || match.GroupId || null;
-    
+
     // 🎮 ERWEITERTE GAME RULES VERARBEITUNG FÜR ALLE MATCH-TYPES
     let gameRule = getMatchSpecificGameRules(match, matchType, classId, className);
-    
+
     // Extrahiere Game Rule Properties mit Fallbacks
     const playWithSets = gameRule.playWithSets !== false;
     const setsToWin = gameRule.setsToWin || 3;
@@ -91,7 +91,7 @@ function createMatchCard(match) {
     const gamePoints = gameRule.gamePoints || 501;
     const gameMode = gameRule.gameMode || 'Standard';
     const finishMode = gameRule.finishMode || 'DoubleOut';
-    
+
     console.log(`🎮 [CREATE_CARD] Match ${primaryMatchId} Game Rules:`, {
         name: gameRule.name,
         matchType,
@@ -101,19 +101,19 @@ function createMatchCard(match) {
         legsToWin,
         finishMode
     });
-    
+
     // 🔑 ERWEITERTE Card ID mit UUID-Support
-    const uniqueCardId = hasValidUuid ? 
+    const uniqueCardId = hasValidUuid ?
         `match_uuid_${matchUuid.replace(/-/g, '_')}_class_${classId}_type_${matchType.replace(/[^a-zA-Z0-9]/g, '')}` :
         `match_${matchId}_class_${classId}_type_${matchType.replace(/[^a-zA-Z0-9]/g, '')}_group_${groupId || 'none'}_${player1Name.replace(/\s+/g, '')}_${player2Name.replace(/\s+/g, '')}`;
-    
+
     // Match-Type Display
     const getMatchTypeDisplay = (type) => {
         const matchTypeIndicator = {
             'Group': '🔸 Gruppe',
             'Finals': '🏆 Finale',
             'Knockout-WB-Best64': '⚡ K.O. Beste 64',
-            'Knockout-WB-Best32': '⚡ K.O. Beste 32', 
+            'Knockout-WB-Best32': '⚡ K.O. Beste 32',
             'Knockout-WB-Best16': '⚡ K.O. Beste 16',
             'Knockout-WB-Quarterfinal': '⚡ K.O. Viertelfinale',
             'Knockout-WB-Semifinal': '⚡ K.O. Halbfinale',
@@ -127,42 +127,42 @@ function createMatchCard(match) {
             'Knockout-LB-LoserRound6': '🔄 K.O. Loser Runde 6',
             'Knockout-LB-LoserFinal': '🔄 K.O. Loser Final'
         };
-        
+
         if (matchTypeIndicator[type]) {
             return matchTypeIndicator[type];
         }
-        
+
         if (type.startsWith('Knockout-WB')) {
             if (type.includes('Final')) return '🏆 K.O. Finale';
             return '⚡ K.O. Winner Bracket';
         }
-        
+
         if (type.startsWith('Knockout-LB')) {
             if (type.includes('LoserFinal')) return '🔄 K.O. Loser Final';
             return '🔄 K.O. Loser Bracket';
         }
-        
+
         if (type === 'Finals') return '🏆 Finalrunde';
         if (type === 'Group') return '🔸 Gruppe';
-        
+
         return `🎯 ${type.replace('Knockout-', 'K.O. ').replace('WB', 'Winner').replace('LB', 'Loser')}`;
     };
-    
+
     const classColors = {
         1: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
         2: 'linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%)',
         3: 'linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)',
         4: 'linear-gradient(135deg, #92400E 0%, #D97706 100%)'
     };
-    
+
     const classColor = classColors[classId] || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 
     // 🎯 ERWEITERTE GAME RULES ANZEIGE MIT MATCH-TYPE SPEZIFISCHEN INFORMATIONEN
     const gameRulesDisplay = createGameRulesDisplay(gameRule, matchType, className);
 
     // 🔑 ERWEITERTE Match-Header mit UUID-Anzeige
-    const matchHeaderDisplay = hasValidUuid ? 
-        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🆔 UUID</span>` : 
+    const matchHeaderDisplay = hasValidUuid ?
+        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🆔 UUID</span>` :
         `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🔢 ID</span>`;
 
     return `
@@ -860,15 +860,27 @@ function openMatchPage(matchId) {
             return;
         }
         
-        // 🔗 SCHRITT 3: Enhanced URL mit UUID-Unterstützung und Match-Kontext
-        const matchPageUrl = `/match-page.html?tournament=${encodeURIComponent(tournamentId)}&match=${encodeURIComponent(finalMatchId)}${useUuid ? '&uuid=true' : ''}`;
+        // 🔗 SCHRITT 3: VEREINFACHTE URL - nur UUID/Match-ID erforderlich
+        let matchPageUrl;
+        let urlInfo;
         
-        console.log(`🔗 [MATCH_PAGE] Opening enhanced URL: ${matchPageUrl}`);
+        if (useUuid) {
+            // ✅ NEUE VEREINFACHTE URL: Nur UUID
+            matchPageUrl = `/match-page.html?match=${encodeURIComponent(finalMatchId)}&uuid=true`;
+            urlInfo = `Simplified UUID-based URL`;
+        } else {
+            // 🔄 Fallback für numerische IDs - Tournament ID noch erforderlich
+            matchPageUrl = `/match-page.html?tournament=${encodeURIComponent(tournamentId)}&match=${encodeURIComponent(finalMatchId)}`;
+            urlInfo = `Legacy numeric ID URL (requires tournament ID)`;
+        }
+        
+        console.log(`🔗 [MATCH_PAGE] Opening ${urlInfo}: ${matchPageUrl}`);
         console.log(`🔗 [MATCH_PAGE] Match identification:`, {
             originalId: matchId,
             finalId: finalMatchId,
             usingUuid: useUuid,
-            tournamentId: tournamentId
+            tournamentId: tournamentId,
+            simplified: useUuid
         });
         
         // 🎯 SCHRITT 4: Enhanced User Experience mit Match-Info
@@ -890,10 +902,11 @@ function openMatchPage(matchId) {
         }
         
         // Frage Benutzer nach Öffnungsmethode mit Enhanced Info
+        const simplifiedInfo = useUuid ? '\n🚀 Vereinfachte URL (nur UUID erforderlich)' : '\n🔄 Legacy URL (Tournament ID + Match ID)';
         const openInNewTab = confirm(
             `Match-Seite öffnen:\n${matchInfo}\n\n` +
             `🆔 Identifikation: ${useUuid ? 'UUID' : 'Numerische ID'}\n` +
-            `🏆 Tournament: ${tournamentId}\n\n` +
+            `🏆 Tournament: ${tournamentId}${simplifiedInfo}\n\n` +
             '✅ OK = In neuem Tab öffnen\n' +
             '❌ Abbrechen = In aktuellem Tab öffnen'
         );

@@ -743,7 +743,7 @@
                         <DockPanel Margin="20">
                             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,16">
                                 <TextBlock Text="⚔️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="KO-Teilnehmer:" 
+                                <TextBlock Name="KOParticipantsHeaderText" Text="KO-Teilnehmer:" 
                                            FontWeight="SemiBold" 
                                            FontSize="15" 
                                            Foreground="#374151" 
@@ -780,7 +780,7 @@
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,16">
                                         <TextBlock Text="🥇" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Winner Bracket:" 
+                                        <TextBlock Name="WinnerBracketHeaderText" Text="Winner Bracket:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
                                                    Foreground="#374151" 
@@ -831,7 +831,7 @@
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,16">
                                         <TextBlock Text="🥈" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Loser Bracket:" 
+                                        <TextBlock Name="LoserBracketHeaderText" Text="Loser Bracket:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
                                                    Foreground="#374151" 

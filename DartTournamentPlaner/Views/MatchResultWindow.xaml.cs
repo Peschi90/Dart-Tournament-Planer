@@ -29,6 +29,13 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         _localizationService = localizationService;
         _hubService = hubService;
         
+        // ✅ IMPROVED DEBUG: Detaillierte Constructor-Informationen
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Constructor called with regular Match");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match ID: {_match.Id}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match UUID: {_match.UniqueId ?? "null"}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService provided: {_hubService != null}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService registered: {_hubService?.IsRegisteredWithHub}");
+        
         InitializeComponent();
         InitializeUI();
         InitializeHubIntegration();
@@ -575,22 +582,28 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// ✅ NEU: Initialize Hub Integration and QR Code
+    /// UPDATED: Verwendet neue dart-scoring.html URL mit Match-UUID Parameter
+    /// FIXED: Verbesserte Debug-Ausgaben
     /// </summary>
     private void InitializeHubIntegration()
     {
         try
         {
+            // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
+            System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] InitializeHubIntegration called");
+            System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
+            System.Diagnostics.Debug.WriteLine($"   Hub registered: {_hubService?.IsRegisteredWithHub}");
+            System.Diagnostics.Debug.WriteLine($"   Match UUID: {_match.UniqueId ?? "null"}");
+            
             // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
             if (_hubService != null && 
                 _hubService.IsRegisteredWithHub && 
-                !string.IsNullOrEmpty(_match.UniqueId) &&
-                !string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
+                !string.IsNullOrEmpty(_match.UniqueId))
             {
-                // Erstelle Match-Page URL
-                var tournamentId = _hubService.GetCurrentTournamentId();
-                _matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{_match.UniqueId}?uuid=true";
+                // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
+                _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={_match.UniqueId}&uuid=true";
                 
-                System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Generated Match-Page URL: {_matchPageUrl}");
+                System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Generated dart-scoring URL: {_matchPageUrl}");
                 
                 // Zeige QR Code Section
                 QrCodeSection.Visibility = Visibility.Visible;
@@ -609,7 +622,6 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
                 if (_hubService == null) reasons.Add("HubService not available");
                 if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
                 if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
-                if (string.IsNullOrEmpty(_hubService?.GetCurrentTournamentId())) reasons.Add("Tournament ID not available");
                 
                 System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
             }
@@ -701,6 +713,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// ✅ NEU: Open Match-Page in default browser
+    /// UPDATED: Öffnet dart-scoring.html mit Match-UUID Parameter
     /// </summary>
     private void OpenWebInterfaceButton_Click(object sender, RoutedEventArgs e)
     {
@@ -716,11 +729,11 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
                 
                 Process.Start(processInfo);
                 
-                System.Diagnostics.Debug.WriteLine($"🌐 [MatchResultWindow] Opened Match-Page in browser: {_matchPageUrl}");
+                System.Diagnostics.Debug.WriteLine($"🌐 [MatchResultWindow] Opened dart-scoring page in browser: {_matchPageUrl}");
                 
                 // Optional: Zeige Toast-Nachricht
                 MessageBox.Show(
-                    "Match-Page wurde im Browser geöffnet!\n\nSie können das Ergebnis nun auch über das Web-Interface eingeben.",
+                    "Dart-Scoring Seite wurde im Browser geöffnet!\n\nSie können das Ergebnis nun auch über das Web-Interface eingeben.",
                     "Web-Interface geöffnet",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -729,7 +742,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         catch (Exception ex)
         {
             MessageBox.Show(
-                $"Fehler beim Öffnen der Match-Page:\n{ex.Message}",
+                $"Fehler beim Öffnen der Dart-Scoring Seite:\n{ex.Message}",
                 "Fehler",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -740,6 +753,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// ✅ NEU: Copy Match-Page URL to clipboard
+    /// UPDATED: Kopiert dart-scoring.html URL mit Match-UUID Parameter
     /// </summary>
     private void CopyUrlButton_Click(object sender, RoutedEventArgs e)
     {
@@ -750,7 +764,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
                 Clipboard.SetText(_matchPageUrl);
                 
                 MessageBox.Show(
-                    "Match-Page URL wurde in die Zwischenablage kopiert!\n\n" + 
+                    "Dart-Scoring URL wurde in die Zwischenablage kopiert!\n\n" + 
                     "Sie können diese URL teilen, um anderen den Zugang zur Match-Eingabe zu ermöglichen.",
                     "URL kopiert",
                     MessageBoxButton.OK,

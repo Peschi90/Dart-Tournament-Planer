@@ -109,6 +109,14 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             // Spiele und Match-Management
             ["Matches"] = "Spiele:",
             ["Standings"] = "Tabelle:",
+            ["Match"] = "Match", // ✅ NEU: Für DataGrid-Header
+            ["Result"] = "Ergebnis", // ✅ NEU: Für DataGrid-Header
+            ["Status"] = "Status", // ✅ NEU: Für DataGrid-Header
+            ["Position"] = "Pos", // ✅ NEU: Für DataGrid-Header
+            ["Player"] = "Spieler", // ✅ NEU: Für DataGrid-Header
+            ["Score"] = "Pkt", // ✅ NEU: Für DataGrid-Header
+            ["Sets"] = "Sets", // ✅ NEU: Für DataGrid-Header
+            ["Legs"] = "Legs", // ✅ NEU: Für DataGrid-Header
             ["GenerateMatches"] = "Spiele generieren",
             ["MatchesGenerated"] = "Spiele wurden erfolgreich generiert!",
             ["ResetMatches"] = "Spiele zurücksetzen",

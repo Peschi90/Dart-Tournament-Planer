@@ -358,14 +358,37 @@ public class TournamentTabEventHandlers
 
     public async Task HandleKnockoutMatchDoubleClick(KnockoutMatch match, string bracketType)
     {
-        // ✅ VEREINFACHT: Konvertiere KnockoutMatch zu regulärem Match und verwende normale MatchResultWindow
+        // ✅ FIXED: Direkte Verwendung des HubService mit erweitertem Debug
         var hubService = _getHubService();
         
-        // Konvertiere KnockoutMatch zu normalem Match für die MatchResultWindow
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HandleKnockoutMatchDoubleClick called");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService available: {hubService != null}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService registered: {hubService?.IsRegisteredWithHub}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match UUID: {match.UniqueId}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match ID: {match.Id}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Bracket Type: {bracketType}");
+        
+        // ✅ IMPROVED: Detaillierte Prüfung der HubService-Kette
+        if (hubService == null)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] HubService is null - trying to debug the getHubService callback");
+            
+            try
+            {
+                var testHub = _getHubService();
+                System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] getHubService() second call result: {testHub != null}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] getHubService() callback failed: {ex.Message}");
+            }
+        }
+
+        // ✅ SIMPLIFIED: Verwende die bewährte Konvertierungs-Methode aber mit korrektem HubService
         var regularMatch = new Match
         {
             Id = match.Id,
-            UniqueId = match.UniqueId,
+            UniqueId = match.UniqueId, // ✅ WICHTIG: UUID wird übertragen
             Player1 = match.Player1,
             Player2 = match.Player2,
             Player1Sets = match.Player1Sets,
@@ -379,6 +402,10 @@ public class TournamentTabEventHandlers
             FinishedAt = match.FinishedAt,
             UsesSets = _tournamentClass.GameRules.PlayWithSets
         };
+        
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Creating MatchResultWindow for KnockoutMatch with HubService: {hubService != null}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match UUID transferred: {regularMatch.UniqueId}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Converting KnockoutMatch {match.Id} to regular Match {regularMatch.Id}");
         
         var resultWindow = new MatchResultWindow(regularMatch, _tournamentClass.GameRules, _localizationService, hubService);
         resultWindow.Owner = _getWindow();
@@ -396,9 +423,15 @@ public class TournamentTabEventHandlers
             match.Notes = internalMatch.Notes;
             match.EndTime = internalMatch.EndTime;
             
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] KnockoutMatch {match.Id} result copied back from MatchResultWindow");
+            
             await SendKnockoutMatchResultToHub(match, _tournamentClass, bracketType);
             _refreshKnockoutView();
             _onDataChanged();
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] MatchResultWindow was cancelled for KnockoutMatch {match.Id}");
         }
     }
 

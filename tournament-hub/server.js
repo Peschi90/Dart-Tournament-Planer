@@ -170,10 +170,19 @@ app.get('/tournament/:tournamentId', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'tournament-interface.html'));
 });
 
+// ✅ VEREINFACHTE ROUTE: Nur UUID erforderlich (Backward-kompatibel)
+app.get('/match/:matchId', (req, res) => {
+    const { matchId } = req.params;
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    console.log(`🎯 [API] Match page: ${matchId} from ${clientIP}`);
+    res.sendFile(path.join(__dirname, 'public', 'match-page.html'));
+});
+
+// 🔄 BACKWARD-KOMPATIBILITÄT: Legacy Route mit Tournament ID
 app.get('/match/:tournamentId/:matchId', (req, res) => {
     const { tournamentId, matchId } = req.params;
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-    console.log(`🎯 [API] Match page: ${matchId} in tournament ${tournamentId} from ${clientIP}`);
+    console.log(`🎯 [API] Legacy match page: ${matchId} in tournament ${tournamentId} from ${clientIP} (redirecting to simplified route)`);
     res.sendFile(path.join(__dirname, 'public', 'match-page.html'));
 });
 

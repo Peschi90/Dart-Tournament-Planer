@@ -9,6 +9,7 @@ namespace DartTournamentPlaner.Helpers;
 /// <summary>
 /// Helper-Klasse für die Erstellung und Verwaltung von DataGrids im TournamentOverviewWindow
 /// Verantwortlich für alle DataGrid-spezifischen Operationen
+/// FIXED: Improved QR code column debugging and dynamic creation
 /// </summary>
 public class TournamentOverviewDataGridHelper
 {
@@ -24,6 +25,9 @@ public class TournamentOverviewDataGridHelper
         _localizationService = localizationService;
         _hubService = hubService;
         _createQRCodeCellTemplate = createQRCodeCellTemplate;
+        
+        // ✅ DEBUG: Helper-Initialisierung loggen
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Initialized - HubService: {_hubService != null}, IsRegistered: {_hubService?.IsRegisteredWithHub}");
     }
 
     /// <summary>
@@ -31,6 +35,10 @@ public class TournamentOverviewDataGridHelper
     /// </summary>
     public DataGrid CreateMatchesDataGrid(Group group)
     {
+        // ✅ DEBUG: DataGrid-Erstellung loggen
+        var hubStatus = _hubService?.IsRegisteredWithHub ?? false;
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Creating matches DataGrid - Hub registered: {hubStatus}");
+        
         var dataGrid = new DataGrid
         {
             ItemsSource = group.Matches,
@@ -62,17 +70,18 @@ public class TournamentOverviewDataGridHelper
             Width = new DataGridLength(100)
         });
 
-        // QR-Code Spalte hinzufügen wenn Hub Service verfügbar
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        // ✅ FIXED: Always add QR-Code column, let converter handle visibility logic
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Adding QR code column - HubService: {_hubService != null}");
+        
+        var qrColumn = new DataGridTemplateColumn
         {
-            var qrColumn = new DataGridTemplateColumn
-            {
-                Header = "📱",
-                Width = new DataGridLength(120),
-                CellTemplate = _createQRCodeCellTemplate()
-            };
-            dataGrid.Columns.Add(qrColumn);
-        }
+            Header = "📱",
+            Width = new DataGridLength(120),
+            CellTemplate = _createQRCodeCellTemplate()
+        };
+        dataGrid.Columns.Add(qrColumn);
+        
+        System.Diagnostics.Debug.WriteLine($"✅ [DataGridHelper] Matches DataGrid created with {dataGrid.Columns.Count} columns");
 
         return dataGrid;
     }
@@ -143,6 +152,10 @@ public class TournamentOverviewDataGridHelper
     /// </summary>
     public DataGrid CreateKnockoutDataGrid(IEnumerable<KnockoutMatch> knockoutMatches)
     {
+        // ✅ DEBUG: DataGrid-Erstellung loggen
+        var hubStatus = _hubService?.IsRegisteredWithHub ?? false;
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Creating knockout DataGrid - Hub registered: {hubStatus}");
+        
         var dataGrid = new DataGrid
         {
             ItemsSource = knockoutMatches,
@@ -181,17 +194,18 @@ public class TournamentOverviewDataGridHelper
             Width = new DataGridLength(100)
         });
 
-        // QR-Code Spalte für Knockout Matches
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        // ✅ FIXED: Always add QR-Code column, let converter handle visibility logic
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Adding QR code column to knockout DataGrid");
+        
+        var qrColumn = new DataGridTemplateColumn
         {
-            var qrColumn = new DataGridTemplateColumn
-            {
-                Header = "📱",
-                Width = new DataGridLength(120),
-                CellTemplate = _createQRCodeCellTemplate()
-            };
-            dataGrid.Columns.Add(qrColumn);
-        }
+            Header = "📱",
+            Width = new DataGridLength(120),
+            CellTemplate = _createQRCodeCellTemplate()
+        };
+        dataGrid.Columns.Add(qrColumn);
+        
+        System.Diagnostics.Debug.WriteLine($"✅ [DataGridHelper] Knockout DataGrid created with {dataGrid.Columns.Count} columns");
 
         return dataGrid;
     }
@@ -201,6 +215,10 @@ public class TournamentOverviewDataGridHelper
     /// </summary>
     public DataGrid CreateFinalsDataGrid(IEnumerable<Match> finalsMatches)
     {
+        // ✅ DEBUG: DataGrid-Erstellung loggen
+        var hubStatus = _hubService?.IsRegisteredWithHub ?? false;
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Creating finals DataGrid - Hub registered: {hubStatus}");
+        
         var dataGrid = new DataGrid
         {
             ItemsSource = finalsMatches,
@@ -232,17 +250,18 @@ public class TournamentOverviewDataGridHelper
             Width = new DataGridLength(100)
         });
 
-        // QR-Code Spalte für Finals Matches
-        if (_hubService != null && _hubService.IsRegisteredWithHub)
+        // ✅ FIXED: Always add QR-Code column, let converter handle visibility logic
+        System.Diagnostics.Debug.WriteLine($"🎯 [DataGridHelper] Adding QR code column to finals DataGrid");
+        
+        var qrColumn = new DataGridTemplateColumn
         {
-            var qrColumn = new DataGridTemplateColumn
-            {
-                Header = "📱",
-                Width = new DataGridLength(120),
-                CellTemplate = _createQRCodeCellTemplate()
-            };
-            dataGrid.Columns.Add(qrColumn);
-        }
+            Header = "📱",
+            Width = new DataGridLength(120),
+            CellTemplate = _createQRCodeCellTemplate()
+        };
+        dataGrid.Columns.Add(qrColumn);
+        
+        System.Diagnostics.Debug.WriteLine($"✅ [DataGridHelper] Finals DataGrid created with {dataGrid.Columns.Count} columns");
 
         return dataGrid;
     }

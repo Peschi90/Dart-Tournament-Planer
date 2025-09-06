@@ -20,11 +20,14 @@ public class GermanLanguageProvider : ILanguageProvider
         _sections = new List<ILanguageSection>
         {
             new GermanUILanguageProvider(),
+            new GermanStartupLanguageProvider(), // ✅ NEU: Startup/Splash Screen Übersetzungen
             new GermanHubLanguageProvider(),
             new GermanLicenseLanguageProvider(),
             new GermanTournamentLanguageProvider(),
+            new GermanKnockoutLanguageProvider(), // ✅ NEU: KO-Tab spezifische Übersetzungen
             new GermanHelpAndApiLanguageProvider(),
             new GermanStatisticsLanguageProvider(),
+            new GermanPlayerStatisticsLanguageProvider(), // ✅ NEU: PlayerStatistics übersetzungen
             new GermanPrintLanguageProvider(),
             new GermanHelpContentLanguageProvider()
         };

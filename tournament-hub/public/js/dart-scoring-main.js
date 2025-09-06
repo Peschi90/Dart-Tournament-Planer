@@ -47,15 +47,67 @@ class DartScoringMain {
             const urlParams = new URLSearchParams(window.location.search);
             const tournamentId = urlParams.get('tournament') || urlParams.get('t');
             const matchId = urlParams.get('match') || urlParams.get('m');
+            const uuidMode = urlParams.get('uuid') === 'true';
 
-            console.log('📋 [DART-MAIN] URL parameters:', { tournamentId, matchId });
+            console.log('📋 [DART-MAIN] URL parameters:', { tournamentId, matchId, uuidMode });
 
-            if (!tournamentId || !matchId) {
-                throw new Error('Tournament ID and Match ID are required');
+            // ✅ VEREINFACHTE API: Versuche zuerst nur mit Match-ID
+            let matchData = null;
+            let gameRules = null;
+
+            if (matchId) {
+                if (uuidMode || !tournamentId) {
+                    // Verwende die neue vereinfachte API
+                    console.log('🚀 [DART-MAIN] Using simplified API (UUID-based)...');
+                    try {
+                        const response = await fetch(`/api/match/${encodeURIComponent(matchId)}${uuidMode ? '?uuid=true' : ''}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                matchData = data.match;
+                                gameRules = data.gameRules;
+                                console.log('✅ [DART-MAIN] Match data loaded via simplified API:', data.meta);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('⚠️ [DART-MAIN] Simplified API failed, falling back to legacy API:', error.message);
+                    }
+                }
+
+                // Fallback zur Legacy-API falls vereinfachte API fehlschlägt
+                if (!matchData && tournamentId) {
+                    console.log('🔄 [DART-MAIN] Falling back to legacy API...');
+                    try {
+                        const response = await fetch(`/api/match/${encodeURIComponent(tournamentId)}/${encodeURIComponent(matchId)}${uuidMode ? '?uuid=true' : ''}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success) {
+                                matchData = data.match;
+                                gameRules = data.gameRules;
+                                console.log('✅ [DART-MAIN] Match data loaded via legacy API');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ [DART-MAIN] Legacy API also failed:', error.message);
+                    }
+                }
             }
 
+            if (!matchData) {
+                throw new Error('Match data could not be loaded from any API');
+            }
+
+            if (!matchId) {
+                throw new Error('Match ID is required');
+            }
+
+            // Store tournament info for later use (Tournament ID now comes from match data)
+            this.tournamentId = matchData.tournamentId;
+            this.matchId = matchId;
+            this.uuidMode = uuidMode;
+
             // Initialize core with match data
-            const coreInitialized = await this.core.initialize(matchId, tournamentId);
+            const coreInitialized = await this.core.initialize(this.matchId, this.tournamentId, matchData, gameRules);
             if (!coreInitialized) {
                 throw new Error('Failed to initialize dart scoring core');
             }

@@ -30,6 +30,7 @@
   <!-- Icon als Resource einbinden -->
   <ItemGroup>
     <Resource Include="Assets\Images\favicon.ico" />
+    <Resource Include="Assets\Images\logo.png" />
   </ItemGroup>
 
 </Project>

@@ -859,18 +859,45 @@ class DartScoringUI {
         const urlParams = new URLSearchParams(window.location.search);
         const tournamentId = urlParams.get('tournament') || urlParams.get('t');
         const matchId = urlParams.get('match') || urlParams.get('m');
+        const isUuidSystem = urlParams.get('uuid') === 'true';
 
         // Back to match page
         this.elements.backToMatch.addEventListener('click', (e) => {
             e.preventDefault();
-            const matchUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}&uuid=true`;
+            
+            let matchUrl;
+            
+            // Prefer simplified URL for UUID matches when no tournament or tournament=null
+            if (isUuidSystem && (!tournamentId || tournamentId === 'null' || tournamentId === null)) {
+                // Use new simplified match URL format
+                matchUrl = `/match/${matchId}`;
+                console.log('🚀 [DART-SCORING] Using simplified match URL (UUID-only):', matchUrl);
+            } else if (tournamentId && matchId) {
+                // Use legacy format with tournament
+                matchUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}&uuid=true`;
+                console.log('🔄 [DART-SCORING] Using legacy match URL:', matchUrl);
+            } else if (matchId) {
+                // Fallback: match ID only
+                matchUrl = `/match/${matchId}`;
+                console.log('🎯 [DART-SCORING] Using fallback simplified match URL:', matchUrl);
+            } else {
+                console.error('❌ [DART-SCORING] No match ID available for navigation');
+                alert('Fehler: Match-ID nicht verfügbar');
+                return;
+            }
+            
             window.location.href = matchUrl;
         });
 
         // Back to tournament
         this.elements.backToTournament.addEventListener('click', (e) => {
             e.preventDefault();
-            window.location.href = `/tournament-interface.html?tournament=${tournamentId}`;
+            if (tournamentId && tournamentId !== 'null' && tournamentId !== null) {
+                window.location.href = `/tournament-interface.html?tournament=${tournamentId}`;
+            } else {
+                console.error('❌ [DART-SCORING] No tournament ID available for navigation');
+                alert('Fehler: Tournament-ID nicht verfügbar');
+            }
         });
     }
 

@@ -110,6 +110,14 @@ public class EnglishTournamentLanguageProvider : ILanguageSection
             // Games and Match Management
             ["Matches"] = "Matches:",
             ["Standings"] = "Standings:",
+            ["Match"] = "Match", // ✅ NEU: For DataGrid headers
+            ["Result"] = "Result", // ✅ NEU: For DataGrid headers
+            ["Status"] = "Status", // ✅ NEU: For DataGrid headers
+            ["Position"] = "Pos", // ✅ NEU: For DataGrid headers
+            ["Player"] = "Player", // ✅ NEU: For DataGrid headers
+            ["Score"] = "Pts", // ✅ NEU: For DataGrid headers
+            ["Sets"] = "Sets", // ✅ NEU: For DataGrid headers
+            ["Legs"] = "Legs", // ✅ NEU: For DataGrid headers
             ["GenerateMatches"] = "Generate Matches",
             ["MatchesGenerated"] = "Matches have been successfully generated!",
             ["ResetMatches"] = "Reset Matches",

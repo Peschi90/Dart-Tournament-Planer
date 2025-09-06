@@ -20,11 +20,14 @@ public class EnglishLanguageProvider : ILanguageProvider
         _sections = new List<ILanguageSection>
         {
             new EnglishUILanguageProvider(),
+            new EnglishStartupLanguageProvider(), // ✅ NEU: Startup/Splash Screen Übersetzungen
             new EnglishHubLanguageProvider(),
             new EnglishLicenseLanguageProvider(),
             new EnglishTournamentLanguageProvider(),
+            new EnglishKnockoutLanguageProvider(), // ✅ NEU: KO-Tab spezifische Übersetzungen
             new EnglishHelpAndApiLanguageProvider(),
             new EnglishStatisticsLanguageProvider(),
+            new EnglishPlayerStatisticsLanguageProvider(), // ✅ NEU: PlayerStatistics übersetzungen
             new EnglishPrintLanguageProvider(),
             new EnglishHelpContentLanguageProvider()
         };

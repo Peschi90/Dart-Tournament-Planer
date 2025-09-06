@@ -106,11 +106,18 @@ public partial class TournamentOverviewWindow : Window
             UpdateStatus,
             () => _scrollManager.StartScrolling());
         
+        // ✅ NEW: Hub-Status-Event-Handler hinzufügen
+        if (_hubService != null)
+        {
+            _hubService.HubStatusChanged += OnHubStatusChanged;
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Hub status event handler registered");
+        }
+        
         InitializeOverview();
         UpdateTranslations();
 
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Window initialized with {_tournamentClasses.Count} classes, " +
-            $"Hub: {_hubService != null}, License: {_licenseFeatureService != null}");
+            $"Hub: {_hubService != null}, Hub registered: {_hubService?.IsRegisteredWithHub}, License: {_licenseFeatureService != null}");
     }
 
     /// <summary>
@@ -159,6 +166,7 @@ public partial class TournamentOverviewWindow : Window
 
     /// <summary>
     /// Event Handler für "Match-Page öffnen" Button
+    /// UPDATED: Verwendet neue dart-scoring.html URL mit Match-UUID Parameter
     /// </summary>
     private void OnOpenMatchPageClick(object sender, RoutedEventArgs e)
     {
@@ -166,42 +174,50 @@ public partial class TournamentOverviewWindow : Window
         {
             if (sender is Button button && button.DataContext is Match match)
             {
-                var tournamentId = _hubService?.GetCurrentTournamentId();
-                if (!string.IsNullOrEmpty(tournamentId) && !string.IsNullOrEmpty(match.UniqueId))
+                if (!string.IsNullOrEmpty(match.UniqueId))
                 {
-                    var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{match.UniqueId}?uuid=true";
+                    // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
+                    var dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={match.UniqueId}&uuid=true";
                     
                     var processInfo = new ProcessStartInfo
                     {
-                        FileName = matchPageUrl,
+                        FileName = dartScoringUrl,
                         UseShellExecute = true
                     };
                     
                     Process.Start(processInfo);
-                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened Match-Page: {matchPageUrl}");
+                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened dart-scoring page: {dartScoringUrl}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Match UUID is empty for Match {match.Id}");
                 }
             }
             else if (sender is Button knockoutButton && knockoutButton.DataContext is KnockoutMatch knockoutMatch)
             {
-                var tournamentId = _hubService?.GetCurrentTournamentId();
-                if (!string.IsNullOrEmpty(tournamentId) && !string.IsNullOrEmpty(knockoutMatch.UniqueId))
+                if (!string.IsNullOrEmpty(knockoutMatch.UniqueId))
                 {
-                    var matchPageUrl = $"https://dtp.i3ull3t.de:9443/match/{tournamentId}/{knockoutMatch.UniqueId}?uuid=true";
+                    // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
+                    var dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={knockoutMatch.UniqueId}&uuid=true";
                     
                     var processInfo = new ProcessStartInfo
                     {
-                        FileName = matchPageUrl,
+                        FileName = dartScoringUrl,
                         UseShellExecute = true
                     };
                     
                     Process.Start(processInfo);
-                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened Knockout Match-Page: {matchPageUrl}");
+                    System.Diagnostics.Debug.WriteLine($"🌐 [TournamentOverview] Opened dart-scoring page for knockout match: {dartScoringUrl}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] KnockoutMatch UUID is empty for Match {knockoutMatch.Id}");
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening match page: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening dart-scoring page: {ex.Message}");
         }
     }
 
@@ -314,6 +330,13 @@ public partial class TournamentOverviewWindow : Window
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         StopCycling();
+        
+        // ✅ NEW: Hub-Event-Handler entfernen
+        if (_hubService != null)
+        {
+            _hubService.HubStatusChanged -= OnHubStatusChanged;
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Hub status event handler unregistered");
+        }
         
         // Cleanup für Helper-Klassen
         _scrollManager?.Dispose();
@@ -900,5 +923,81 @@ public partial class TournamentOverviewWindow : Window
         }
 
         return null;
+    }
+
+    // ✅ NEW: Event handler for hub status changes
+    private void OnHubStatusChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_hubService == null) return;
+
+            // Aktiviere oder deaktiviere die Schaltflächen basierend auf dem Hub-Status
+            var isRegistered = _hubService.IsRegisteredWithHub;
+            
+            Dispatcher.Invoke(() =>
+            {
+                // Beispiel: Aktiviere oder deaktiviere eine Schaltfläche
+                // MyButton.IsEnabled = isRegistered;
+                
+                UpdateStatus();
+            });
+            
+            System.Diagnostics.Debug.WriteLine($"🔄 [TournamentOverview] Hub status changed: Registered = {isRegistered}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error handling hub status change: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEW: Event-Handler für Hub-Status-Änderungen
+    /// </summary>
+    private void OnHubStatusChanged(bool isRegistered)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Hub status changed: {isRegistered}");
+            
+            // UI-Update auf UI-Thread durchführen
+            Dispatcher.Invoke(() =>
+            {
+                System.Diagnostics.Debug.WriteLine($"🔄 [TournamentOverview] Reinitializing overview due to hub status change");
+                
+                // ✅ FIXED: Bessere Reinitialisierung - behalte aktuellen Tab
+                var currentTabIndex = MainTabControl.SelectedIndex;
+                var currentSubTabIndex = _currentSubTabIndex;
+                var wasRunning = _cycleManager?.IsRunning ?? false;
+                
+                if (wasRunning)
+                {
+                    StopCycling();
+                }
+                
+                // Reinitialize overview to rebuild DataGrids with updated QR code columns
+                InitializeOverview();
+                
+                // Restore tab selection
+                if (currentTabIndex >= 0 && currentTabIndex < MainTabControl.Items.Count)
+                {
+                    MainTabControl.SelectedIndex = currentTabIndex;
+                    _currentClassIndex = currentTabIndex;
+                    _currentSubTabIndex = currentSubTabIndex;
+                    SetCurrentSubTab();
+                }
+                
+                if (wasRunning)
+                {
+                    StartCycling();
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Overview reinitialized with new hub status: {isRegistered}");
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error handling hub status change: {ex.Message}");
+        }
     }
 }

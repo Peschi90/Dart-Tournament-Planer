@@ -138,28 +138,36 @@ public partial class App : Application
         {
             System.Diagnostics.Debug.WriteLine("=== InitializeApplicationAsync START ===");
 
-            // Phase 1: Services initialisieren
+            // Phase 1: Services initialisieren (0% - 30%)
             await splashWindow.ExecuteWithStatusAsync(async (progress) =>
             {
-                progress.Report("Initialisiere Services...");
-                await Task.Delay(300); // Kurze Pause für visuelle Wahrnehmung
+                splashWindow.UpdateProgress(0.1);
+                progress.Report(LocalizationService?.GetTranslation("InitializingServices") ?? "Initialisiere Services...");
+                await Task.Delay(400); // Pause für visuelle Wahrnehmung
                 
-                progress.Report("Services bereit");
-                await Task.Delay(200);
+                splashWindow.UpdateProgress(0.25);
+                progress.Report(LocalizationService?.GetTranslation("ServicesReady") ?? "Services bereit");
+                await Task.Delay(300);
+                
+                splashWindow.UpdateProgress(0.3);
                 
             }, LocalizationService?.GetTranslation("StartingApplication") ?? "Starte Anwendung...");
 
-            // Phase 2: Update-Überprüfung
+            // Phase 2: Update-Überprüfung (30% - 70%)
             await CheckForUpdatesAsync(splashWindow);
 
-            // Phase 3: Finale Vorbereitung
+            // Phase 3: Finale Vorbereitung (70% - 100%)
             await splashWindow.ExecuteWithStatusAsync(async (progress) =>
             {
-                progress.Report("Bereite Benutzeroberfläche vor...");
+                splashWindow.UpdateProgress(0.75);
+                progress.Report(LocalizationService?.GetTranslation("PreparingInterface") ?? "Bereite Benutzeroberfläche vor...");
+                await Task.Delay(500);
+                
+                splashWindow.UpdateProgress(0.9);
+                progress.Report(LocalizationService?.GetTranslation("Ready") ?? "Fertig");
                 await Task.Delay(400);
                 
-                progress.Report("Fertig");
-                await Task.Delay(300);
+                splashWindow.UpdateProgress(1.0);
                 
             }, LocalizationService?.GetTranslation("Ready") ?? "Bereit");
 
@@ -185,21 +193,25 @@ public partial class App : Application
 
             await splashWindow.ExecuteWithStatusAsync(async (progress) =>
             {
+                splashWindow.UpdateProgress(0.35);
                 progress.Report(LocalizationService?.GetTranslation("ConnectingToGitHub") ?? "Verbinde mit GitHub...");
-                await Task.Delay(200);
+                await Task.Delay(300);
                 
+                splashWindow.UpdateProgress(0.45);
                 progress.Report(LocalizationService?.GetTranslation("AnalyzingReleases") ?? "Analysiere Releases...");
                 
                 // Eigentliche Update-Überprüfung
                 updateInfo = await UpdateService!.CheckForUpdatesAsync();
                 
-                await Task.Delay(300); // Kurze Pause damit User den Progress sieht
+                splashWindow.UpdateProgress(0.6);
+                await Task.Delay(400); // Pause damit User den Progress sieht
                 
                 var resultText = updateInfo != null 
                     ? LocalizationService?.GetTranslation("UpdateAvailable") ?? "Update verfügbar"
                     : LocalizationService?.GetTranslation("NoUpdateAvailable") ?? "Keine Updates verfügbar";
                     
                 progress.Report(resultText);
+                splashWindow.UpdateProgress(0.7);
                 await Task.Delay(500);
                 
             }, LocalizationService?.GetTranslation("CheckingForUpdates") ?? "Suche nach Updates...");
@@ -224,9 +236,9 @@ public partial class App : Application
             // Update Splash mit Fehlerstatus
             try
             {
-                splashWindow.UpdateStatus(
-                    LocalizationService?.GetTranslation("UpdateCheckComplete") ?? "Update-Überprüfung abgeschlossen", 
+                splashWindow.UpdateStatusAnimated(
                     LocalizationService?.GetTranslation("UpdateCheckFailed") ?? "Überprüfung fehlgeschlagen");
+                splashWindow.UpdateProgress(0.7);
                 await Task.Delay(800);
             }
             catch

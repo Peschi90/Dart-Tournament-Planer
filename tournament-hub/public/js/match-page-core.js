@@ -12,134 +12,182 @@ class MatchPageCore {
         this.isConnected = false;
         this.connectionRetries = 0;
         this.maxRetries = 5;
-        
+
         console.log('🎯 [MATCH-CORE] Match Page Core initialized');
     }
 
     /**
-     * Extract URL parameters from query string or path with UUID support
+     * Extract URL parameters from query string or path with enhanced UUID support
      */
     extractUrlParameters() {
         const urlParams = new URLSearchParams(window.location.search);
         const pathParts = window.location.pathname.split('/');
-        
+
         // 🔑 ERWEITERT: UUID-Unterstützung bei Parameter-Extraktion
-        
-        // Priorität 1: Query-Parameter (?tournament=ID&match=ID)
+
+        // ✅ PRIORITÄT 1: Vereinfachte URL-Struktur (nur Match-ID)
+        const simplifiedMatchId = urlParams.get('match') || urlParams.get('matchId');
+        const uuidHint = urlParams.get('uuid') === 'true';
+
+        if (simplifiedMatchId && !urlParams.get('tournament') && !urlParams.get('tournamentId')) {
+            console.log('🚀 [MATCH-CORE] Using simplified URL structure (UUID-only)');
+            console.log('🆔 [MATCH-CORE] UUID hint from URL:', uuidHint);
+
+            const isLikelyUuid = simplifiedMatchId.length >= 32 && simplifiedMatchId.includes('-');
+
+            console.log('🆔 [MATCH-CORE] Simplified match ID analysis:', {
+                value: simplifiedMatchId,
+                likelyUuid: isLikelyUuid,
+                uuidHint: uuidHint,
+                finalAssessment: isLikelyUuid || uuidHint
+            });
+
+            return {
+                matchId: simplifiedMatchId,
+                isUuid: isLikelyUuid || uuidHint,
+                simplified: true
+            };
+        }
+
+        // 🔄 PRIORITÄT 2: Legacy Query-Parameter (?tournament=ID&match=ID)
         const queryTournamentId = urlParams.get('tournament') || urlParams.get('tournamentId');
         const queryMatchId = urlParams.get('match') || urlParams.get('matchId');
-        const uuidHint = urlParams.get('uuid') === 'true';
-        
+
         if (queryTournamentId && queryMatchId) {
-            console.log('🔍 [MATCH-CORE] Using query parameters');
+            console.log('� [MATCH-CORE] Using legacy query parameters');
             console.log('🆔 [MATCH-CORE] UUID hint from URL:', uuidHint);
             console.log('🔍 [MATCH-CORE] Match ID format:', typeof queryMatchId, 'length:', queryMatchId.length, 'contains hyphens:', queryMatchId.includes('-'));
-            
+
             // Erkenne UUID-Format (typisch: 8-4-4-4-12 Zeichen mit Bindestrichen)
             const isLikelyUuid = queryMatchId.length >= 32 && queryMatchId.includes('-');
-            
+
             console.log('🆔 [MATCH-CORE] Match ID analysis:', {
                 value: queryMatchId,
                 likelyUuid: isLikelyUuid,
                 uuidHint: uuidHint,
                 finalAssessment: isLikelyUuid || uuidHint
             });
-            
+
             return {
                 tournamentId: queryTournamentId,
                 matchId: queryMatchId,
-                isUuid: isLikelyUuid || uuidHint
+                isUuid: isLikelyUuid || uuidHint,
+                simplified: false
             };
         }
-        
-        // Priorität 2: Path-Parameter (/match/tournamentId/matchId)
-        if (pathParts.length >= 4 && pathParts[1] === 'match') {
-            console.log('🔍 [MATCH-CORE] Using path parameters');
-            const pathMatchId = pathParts[3];
-            const isLikelyUuid = pathMatchId.length >= 32 && pathMatchId.includes('-');
-            
-            console.log('🆔 [MATCH-CORE] Path match ID analysis:', {
-                value: pathMatchId,
-                likelyUuid: isLikelyUuid
-            });
-            
-            return {
-                tournamentId: pathParts[2],
-                matchId: pathMatchId,
-                isUuid: isLikelyUuid
-            };
-        }
-        
-        // Priorität 3: Legacy path format (/tournament/tournamentId -> dann Query-Parameter)
-        if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
-            const legacyTournamentId = pathParts[2];
-            const legacyMatchId = urlParams.get('match') || urlParams.get('matchId');
-            
-            if (legacyTournamentId && legacyMatchId) {
-                console.log('🔍 [MATCH-CORE] Using legacy format');
-                const isLikelyUuid = legacyMatchId.length >= 32 && legacyMatchId.includes('-');
-                
+
+        // 🔄 PRIORITÄT 3: Path-Parameter (/match/tournamentId/matchId oder /match/matchId)
+        if (pathParts.length >= 3 && pathParts[1] === 'match') {
+            if (pathParts.length >= 4) {
+                // Legacy: /match/tournamentId/matchId
+                console.log('� [MATCH-CORE] Using legacy path parameters');
+                const pathMatchId = pathParts[3];
+                const isLikelyUuid = pathMatchId.length >= 32 && pathMatchId.includes('-');
+
+                console.log('🆔 [MATCH-CORE] Legacy path match ID analysis:', {
+                    value: pathMatchId,
+                    likelyUuid: isLikelyUuid
+                });
+
                 return {
-                    tournamentId: legacyTournamentId,
-                    matchId: legacyMatchId,
-                    isUuid: isLikelyUuid || uuidHint
+                    tournamentId: pathParts[2],
+                    matchId: pathMatchId,
+                    isUuid: isLikelyUuid,
+                    simplified: false
+                };
+            } else if (pathParts.length === 3) {
+                // Neu: /match/matchId
+                console.log('🚀 [MATCH-CORE] Using simplified path parameters');
+                const pathMatchId = pathParts[2];
+                const isLikelyUuid = pathMatchId.length >= 32 && pathMatchId.includes('-');
+
+                console.log('🆔 [MATCH-CORE] Simplified path match ID analysis:', {
+                    value: pathMatchId,
+                    likelyUuid: isLikelyUuid
+                });
+
+                return {
+                    matchId: pathMatchId,
+                    isUuid: isLikelyUuid,
+                    simplified: true
                 };
             }
         }
-        
+
+        // 🔄 PRIORITÄT 4: Legacy path format (/tournament/tournamentId -> dann Query-Parameter)
+        if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
+            const legacyTournamentId = pathParts[2];
+            const legacyMatchId = urlParams.get('match') || urlParams.get('matchId');
+
+            if (legacyTournamentId && legacyMatchId) {
+                console.log('� [MATCH-CORE] Using legacy tournament format');
+                const isLikelyUuid = legacyMatchId.length >= 32 && legacyMatchId.includes('-');
+
+                return {
+                    tournamentId: legacyTournamentId,
+                    matchId: legacyMatchId,
+                    isUuid: isLikelyUuid || uuidHint,
+                    simplified: false
+                };
+            }
+        }
+
         console.warn('⚠️ [MATCH-CORE] No valid URL parameters found');
         return {};
     }
 
     /**
-     * Initialize the match page with tournament and match IDs with UUID support
+     * Initialize the match page with enhanced UUID support
      */
     async initialize() {
         try {
-            console.log('🚀 [MATCH-CORE] Initializing match page with UUID support...');
-            
-            // Extract URL parameters (enhanced with UUID detection)
+            console.log('🚀 [MATCH-CORE] Initializing match page with enhanced UUID support...');
+
+            // Extract URL parameters (enhanced with simplified URL support)
             const urlParams = this.extractUrlParameters();
             console.log('📋 [MATCH-CORE] URL Parameters:', urlParams);
-            
-            if (!urlParams.tournamentId || !urlParams.matchId) {
-                throw new Error('Ungültige Match-URL: Tournament ID oder Match ID fehlen');
+
+            if (!urlParams.matchId) {
+                throw new Error('Ungültige Match-URL: Match ID fehlt');
             }
 
-            this.tournamentId = urlParams.tournamentId;
             this.matchId = urlParams.matchId;
+            this.tournamentId = urlParams.tournamentId || null; // Kann null sein bei vereinfachten URLs
             this.urlIndicatesUuid = urlParams.isUuid || false;
+            this.isSimplifiedUrl = urlParams.simplified || false;
 
-            console.log(`🎯 [MATCH-CORE] Tournament: ${this.tournamentId}, Match: ${this.matchId}`);
+            console.log(`🎯 [MATCH-CORE] Match: ${this.matchId}`);
+            console.log(`🏆 [MATCH-CORE] Tournament: ${this.tournamentId || 'wird automatisch ermittelt'}`);
             console.log(`🆔 [MATCH-CORE] URL indicates UUID: ${this.urlIndicatesUuid}`);
-            
+            console.log(`🚀 [MATCH-CORE] Simplified URL: ${this.isSimplifiedUrl}`);
+
             // Update page title
             document.title = `Match ${this.matchId} - Tournament Hub`;
-            
+
             // Setup back button
             this.setupBackButton();
-            
+
             // Initialize socket connection first (non-blocking)
             this.initializeSocket();
 
             // 🔑 ERWEITERT: Load match data first to get complete match information including UUID
             await this.loadMatchData();
-            
+
             // Load tournament info
             await this.loadTournamentInfo();
-            
+
             // Load game rules
             await this.loadGameRules();
-            
+
             // Initialize form handlers
             this.initializeFormHandlers();
-            
+
             // Start periodic updates
             this.startPeriodicUpdates();
-            
+
             console.log('🎉 [MATCH-CORE] Match page initialization complete!');
             this.showInfo('Match-Seite erfolgreich geladen', 'success');
-            
+
             // 🆔 ERWEITERT: Zeige UUID-Status in der UI
             if (this.matchUniqueId) {
                 console.log('✅ [MATCH-CORE] Match page running with UUID support');
@@ -148,9 +196,9 @@ class MatchPageCore {
                 console.warn('⚠️ [MATCH-CORE] URL indicated UUID but none found in match data');
                 this.showInfo('⚠️ UUID erwartet aber nicht gefunden', 'warning');
             }
-            
+
             return true;
-            
+
         } catch (error) {
             console.error('🚫 [MATCH-CORE] Initialization error:', error);
             this.showError(`Initialisierungsfehler: ${error.message}`);
@@ -193,7 +241,7 @@ class MatchPageCore {
     initializeSocket() {
         try {
             console.log('🔌 [MATCH-CORE] Connecting to Socket.IO server...');
-            
+
             this.socket = io('/', {
                 transports: ['websocket', 'polling'],
                 timeout: 10000,
@@ -229,7 +277,7 @@ class MatchPageCore {
             console.error('🚫 [MATCH-CORE] Connection error:', error);
             this.connectionRetries++;
             this.updateConnectionStatus(false);
-            
+
             if (this.connectionRetries >= this.maxRetries) {
                 this.showConnectionError();
             }
@@ -279,7 +327,7 @@ class MatchPageCore {
 
         console.log('🚪 [MATCH-CORE] Joining match room:', roomData);
         this.socket.emit('join-match-room', roomData);
-        
+
         // Request initial match data
         this.requestMatchData();
     }
@@ -304,12 +352,12 @@ class MatchPageCore {
                 this.matchData = data.match;
                 this.gameRules = data.gameRules;
                 console.log('✅ [MATCH-CORE] Match data processed successfully');
-                
+
                 // Trigger display update
                 if (window.matchPageDisplay) {
                     window.matchPageDisplay.updateDisplay(this.matchData, this.gameRules);
                 }
-                
+
                 this.hideLoading();
             } else {
                 console.error('❌ [MATCH-CORE] Failed to load match data:', data.message);
@@ -329,7 +377,7 @@ class MatchPageCore {
             if (data.success && data.match) {
                 console.log('🔄 [MATCH-CORE] Processing match update...');
                 this.matchData = data.match;
-                
+
                 // Update display
                 if (window.matchPageDisplay) {
                     window.matchPageDisplay.handleMatchUpdate(this.matchData);
@@ -348,7 +396,7 @@ class MatchPageCore {
             if (data.success && data.gameRules) {
                 console.log('📋 [MATCH-CORE] Processing game rules update...');
                 this.gameRules = data.gameRules;
-                
+
                 // Update display
                 if (window.matchPageDisplay) {
                     window.matchPageDisplay.handleGameRulesUpdate(this.gameRules);
@@ -365,11 +413,11 @@ class MatchPageCore {
     updateConnectionStatus(connected) {
         const indicator = document.getElementById('connectionIndicator');
         const text = document.getElementById('connectionText');
-        
+
         if (indicator) {
             indicator.classList.toggle('connected', connected);
         }
-        
+
         if (text) {
             text.textContent = connected ? 'Verbunden' : 'Getrennt';
         }
@@ -381,11 +429,11 @@ class MatchPageCore {
     hideLoading() {
         const loadingContainer = document.getElementById('loadingContainer');
         const matchContainer = document.getElementById('matchContainer');
-        
+
         if (loadingContainer) {
             loadingContainer.classList.add('hidden');
         }
-        
+
         if (matchContainer) {
             matchContainer.classList.remove('hidden');
             matchContainer.classList.add('fade-in');
@@ -404,7 +452,7 @@ class MatchPageCore {
                 ${message}
             `;
         }
-        
+
         console.error('🚫 [MATCH-CORE] Error displayed:', message);
     }
 
@@ -422,33 +470,33 @@ class MatchPageCore {
         try {
             console.log('📤 [MATCH-CORE] Submitting match result...');
             console.log('📊 [MATCH-CORE] Result data:', resultData);
-            
+
             // ✅ ERWEITERT: Add comprehensive match identification to result
             const enhancedResultData = {
                 ...resultData,
                 // ✅ KORRIGIERT: Setze explizit den Status auf "Finished"
                 status: 'Finished',
                 // 🔑 PRIMÄRE UUID-IDENTIFIKATION (preferred for all operations)
-                uniqueId: this.matchUniqueId,                           // UUID (primary)
-                matchIdentification: this.getMatchIdentification(),     // All ID types
-                hubIdentifier: this.matchData?.hubIdentifier,           // Hub-specific ID
-                
+                uniqueId: this.matchUniqueId, // UUID (primary)
+                matchIdentification: this.getMatchIdentification(), // All ID types
+                hubIdentifier: this.matchData && this.matchData.hubIdentifier, // Hub-specific ID
+
                 // Enhanced metadata for Hub/Planner integration
                 submittedVia: 'Match-Page-Web-Interface',
                 submittedAt: new Date().toISOString(),
-                matchType: this.matchData?.matchType || 'Unknown',
-                bracketType: this.matchData?.bracketType || null,
-                round: this.matchData?.round || null,
-                position: this.matchData?.position || null,
-                
+                matchType: this.matchData && this.matchData.matchType || 'Unknown',
+                bracketType: this.matchData && this.matchData.bracketType || null,
+                round: this.matchData && this.matchData.round || null,
+                position: this.matchData && this.matchData.position || null,
+
                 // Class information
-                classId: this.matchData?.classId || 1,
-                className: this.matchData?.className || 'Unknown Class',
-                
+                classId: this.matchData && this.matchData.classId || 1,
+                className: this.matchData && this.matchData.className || 'Unknown Class',
+
                 // Group information (for proper identification)
-                groupId: this.matchData?.groupId || null,
-                groupName: this.matchData?.groupName || null,
-                
+                groupId: this.matchData && this.matchData.groupId || null,
+                groupName: this.matchData && this.matchData.groupName || null,
+
                 // 🎯 UUID-System Metadata
                 uuidSystem: {
                     enabled: true,
@@ -459,13 +507,13 @@ class MatchPageCore {
                         uuid: this.matchUniqueId || null,
                         numericId: this.matchNumericId || null,
                         requestedId: this.matchId,
-                        hubIdentifier: this.matchData?.hubIdentifier || null
+                        hubIdentifier: this.matchData && this.matchData.hubIdentifier || null
                     }
                 }
             };
 
             console.log('🔍 [MATCH-CORE] Enhanced result data with UUID system:', enhancedResultData);
-            
+
             // 🎯 WICHTIG: Use preferred match ID (UUID if available)
             const submitMatchId = this.getPreferredMatchId();
             console.log(`📤 [MATCH-CORE] Submitting to match ID: ${submitMatchId} (preferred method: ${enhancedResultData.uuidSystem.submissionMethod})`);
@@ -496,10 +544,10 @@ class MatchPageCore {
 
             // Show enhanced success message
             this.showInfo(`Match-Ergebnis erfolgreich übertragen! (ID: ${submitMatchId})`, 'success');
-            
+
             // ✅ KORRIGIERT: Aktualisiere Match Data sofort mit submitted Result
             console.log('🔄 [MATCH-CORE] Updating local match data with submitted result...');
-            
+
             // Update local match data immediately for instant UI feedback
             if (this.matchData) {
                 this.matchData.status = 'Finished';
@@ -510,16 +558,16 @@ class MatchPageCore {
                 this.matchData.notes = enhancedResultData.notes || '';
                 this.matchData.endTime = new Date().toISOString();
                 this.matchData.lastUpdated = new Date().toISOString();
-                
+
                 // Update display immediately
                 if (window.matchPageDisplay) {
                     console.log('🎨 [MATCH-CORE] Triggering immediate display update...');
                     window.matchPageDisplay.updateDisplay(this.matchData, this.gameRules);
                 }
             }
-            
+
             // Also reload from server for confirmation (async)
-            setTimeout(async () => {
+            setTimeout(async() => {
                 try {
                     console.log('🔄 [MATCH-CORE] Reloading match data from server for confirmation...');
                     await this.loadMatchData();
@@ -570,17 +618,32 @@ class MatchPageCore {
     }
 
     /**
-     * Load match data from API
+     * Load match data from API with simplified URL support
      */
     async loadMatchData() {
         try {
-            console.log('📡 [MATCH-CORE] Loading match data...');
-            console.log(`🔍 [MATCH-CORE] Tournament: ${this.tournamentId}, Match: ${this.matchId}`);
-            
-            const response = await window.matchPageAPI.getMatchData(
-                this.tournamentId,
-                this.matchId
-            );
+            console.log('📡 [MATCH-CORE] Loading match data with enhanced API support...');
+            console.log(`🔍 [MATCH-CORE] Match: ${this.matchId}`);
+            console.log(`🏆 [MATCH-CORE] Tournament: ${this.tournamentId || 'auto-detect'}`);
+            console.log(`🚀 [MATCH-CORE] Simplified URL: ${this.isSimplifiedUrl}`);
+
+            let response;
+
+            if (this.isSimplifiedUrl) {
+                // ✅ NEUE VEREINFACHTE API: Nur Match-ID
+                console.log('🚀 [MATCH-CORE] Using simplified API...');
+                response = await window.matchPageAPI.getMatchDataSimplified(this.matchId);
+
+                // Extract tournament ID from response for further API calls
+                if (response.success && response.match) {
+                    this.tournamentId = response.match.tournamentId;
+                    console.log(`🏆 [MATCH-CORE] Tournament ID auto-detected: ${this.tournamentId}`);
+                }
+            } else {
+                // 🔄 LEGACY API: Tournament ID + Match ID
+                console.log('🔄 [MATCH-CORE] Using legacy API...');
+                response = await window.matchPageAPI.getMatchData(this.tournamentId, this.matchId);
+            }
 
             if (!response.success) {
                 throw new Error(response.message || 'Fehler beim Laden der Match-Daten');
@@ -594,14 +657,16 @@ class MatchPageCore {
             if (response.match) {
                 this.matchUniqueId = response.match.uniqueId || null;
                 this.matchNumericId = response.match.matchId || response.match.id || null;
-                
+
                 console.log('🔍 [MATCH-CORE] Match identification extracted:');
                 console.log(`   Requested ID: ${this.matchId}`);
                 console.log(`   UUID: ${this.matchUniqueId || 'none'}`);
                 console.log(`   Numeric ID: ${this.matchNumericId || 'none'}`);
+                console.log(`   Tournament ID: ${this.tournamentId}`);
                 console.log(`   Match Type: ${response.match.matchType || 'Unknown'}`);
                 console.log(`   Bracket Type: ${response.match.bracketType || 'none'}`);
-                
+                console.log(`   API Used: ${this.isSimplifiedUrl ? 'simplified' : 'legacy'}`);
+
                 // HINZUGEFÜGT: Logge welche ID verwendet wurde für die Anfrage
                 if (this.matchId === this.matchUniqueId) {
                     console.log('✅ [MATCH-CORE] Match was accessed via UUID');
@@ -616,6 +681,10 @@ class MatchPageCore {
             if (response.meta && response.meta.matchIdentification) {
                 const metaId = response.meta.matchIdentification;
                 console.log('🔍 [MATCH-CORE] API Meta identification:', metaId);
+
+                if (metaId.simplified) {
+                    console.log('🚀 [MATCH-CORE] Server confirmed simplified API usage');
+                }
             }
 
             console.log('✅ [MATCH-CORE] Match data loaded successfully');
@@ -648,18 +717,18 @@ class MatchPageCore {
     async loadTournamentInfo() {
         try {
             console.log('🏆 [MATCH-CORE] Loading tournament information...');
-            
+
             const response = await window.matchPageAPI.getTournamentInfo(this.tournamentId);
-            
+
             if (response.success && response.data && response.data.tournament) {
                 this.tournamentData = response.data.tournament;
                 console.log('✅ [MATCH-CORE] Tournament info loaded:', this.tournamentData.name);
-                
+
                 // Update page title with tournament name
                 if (this.tournamentData.name) {
                     document.title = `Match ${this.matchId} - ${this.tournamentData.name}`;
                 }
-                
+
                 // Update display
                 if (typeof window.matchPageDisplay !== 'undefined') {
                     window.matchPageDisplay.updateTournamentDisplay(this.tournamentData);
@@ -667,7 +736,7 @@ class MatchPageCore {
             } else {
                 console.warn('⚠️ [MATCH-CORE] Tournament info not available or invalid response');
             }
-            
+
         } catch (error) {
             console.warn('⚠️ [MATCH-CORE] Error loading tournament info (non-fatal):', error);
         }
@@ -679,47 +748,47 @@ class MatchPageCore {
     async loadGameRules() {
         try {
             console.log('🎮 [MATCH-CORE] Loading game rules...');
-            
+
             // ✅ KORRIGIERT: Prüfe zuerst, ob Game Rules bereits aus Match-Data vorhanden sind
             if (this.gameRules) {
                 console.log('✅ [MATCH-CORE] Game rules already loaded from match data:', this.gameRules.name || 'Default');
-                
+
                 // Update display mit bereits geladenen Rules
                 if (typeof window.matchPageDisplay !== 'undefined') {
                     window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
                 }
                 return;
             }
-            
+
             // Fallback: Versuche Game Rules von API zu laden (nur wenn nicht bereits vorhanden)
             console.log('🔍 [MATCH-CORE] Game rules not in match data, trying to load from tournament...');
-            
+
             try {
                 // Verwende Tournament-Level Game Rules als Fallback
                 const response = await window.matchPageAPI.getGameRules(this.tournamentId, null);
-                
+
                 if (response.success && response.data) {
                     // Finde passende Game Rules für diesen Match
                     const tournamentGameRules = Array.isArray(response.data) ? response.data : [response.data];
-                    
+
                     // Versuche Match-spezifische Rules zu finden
-                    let matchGameRules = tournamentGameRules.find(gr => 
-                        (gr.classId || gr.ClassId) === this.matchData?.classId &&
-                        (gr.matchType || 'Group') === (this.matchData?.matchType || 'Group')
+                    let matchGameRules = tournamentGameRules.find(gr =>
+                        (gr.classId || gr.ClassId) === (this.matchData && this.matchData.classId) &&
+                        (gr.matchType || 'Group') === (this.matchData && this.matchData.matchType || 'Group')
                     );
-                    
+
                     // Fallback: Class-basierte Rules
                     if (!matchGameRules) {
-                        matchGameRules = tournamentGameRules.find(gr => 
-                            (gr.classId || gr.ClassId) === this.matchData?.classId
+                        matchGameRules = tournamentGameRules.find(gr =>
+                            (gr.classId || gr.ClassId) === (this.matchData && this.matchData.classId)
                         );
                     }
-                    
+
                     // Final fallback: Erste verfügbare Rules
                     if (!matchGameRules && tournamentGameRules.length > 0) {
                         matchGameRules = tournamentGameRules[0];
                     }
-                    
+
                     if (matchGameRules) {
                         this.gameRules = matchGameRules;
                         console.log('✅ [MATCH-CORE] Game rules loaded from tournament:', this.gameRules.name || 'Default');
@@ -730,18 +799,18 @@ class MatchPageCore {
             } catch (apiError) {
                 console.warn('⚠️ [MATCH-CORE] Could not load tournament game rules:', apiError.message);
             }
-            
+
             // Erstelle Default Game Rules wenn immer noch keine vorhanden
             if (!this.gameRules) {
                 console.log('🔧 [MATCH-CORE] Creating default game rules');
                 this.gameRules = this.createDefaultGameRules();
             }
-            
+
             // Update display
             if (typeof window.matchPageDisplay !== 'undefined') {
                 window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
             }
-            
+
             console.log('✅ [MATCH-CORE] Game rules finalized:', {
                 name: this.gameRules.name || 'Default',
                 gameMode: this.gameRules.gameMode || 'Standard',
@@ -749,15 +818,15 @@ class MatchPageCore {
                 finishMode: this.gameRules.finishMode || 'DoubleOut',
                 playWithSets: this.gameRules.playWithSets || false
             });
-            
+
         } catch (error) {
             console.warn('⚠️ [MATCH-CORE] Error loading game rules (non-fatal), using defaults:', error);
-            
+
             // Erstelle Default Game Rules als finaler Fallback
             if (!this.gameRules) {
                 this.gameRules = this.createDefaultGameRules();
                 console.log('🔧 [MATCH-CORE] Using default game rules after error');
-                
+
                 // Update display mit Default Rules
                 if (typeof window.matchPageDisplay !== 'undefined') {
                     window.matchPageDisplay.updateGameRulesDisplay(this.gameRules);
@@ -792,19 +861,21 @@ class MatchPageCore {
      */
     initializeFormHandlers() {
         console.log('📝 [MATCH-CORE] Initializing form handlers...');
-        
+
         // Match result form submission
         const resultForm = document.getElementById('matchResultForm');
         if (resultForm) {
             resultForm.addEventListener('submit', this.handleResultSubmission.bind(this));
         }
-        
+
         // Real-time validation on input changes
-        const inputs = resultForm?.querySelectorAll('input[type="number"]');
-        inputs?.forEach(input => {
-            input.addEventListener('input', this.validateForm.bind(this));
-        });
-        
+        const inputs = resultForm && resultForm.querySelectorAll('input[type="number"]');
+        if (inputs) {
+            inputs.forEach(input => {
+                input.addEventListener('input', this.validateForm.bind(this));
+            });
+        }
+
         console.log('✅ [MATCH-CORE] Form handlers initialized');
     }
 
@@ -813,10 +884,10 @@ class MatchPageCore {
      */
     async handleResultSubmission(event) {
         event.preventDefault();
-        
+
         try {
             console.log('📤 [MATCH-CORE] Handling result submission...');
-            
+
             // ✅ KORRIGIERT: Verwende die korrekten Feldnamen für die API
             const formData = new FormData(event.target);
             const resultData = {
@@ -829,24 +900,24 @@ class MatchPageCore {
                 status: 'Finished',
                 // UUID-Informationen hinzufügen
                 matchIdentification: this.getMatchIdentification(),
-                matchType: this.matchData?.matchType || 'Unknown',
-                className: this.matchData?.className || 'Unknown'
+                matchType: this.matchData && this.matchData.matchType || 'Unknown',
+                className: this.matchData && this.matchData.className || 'Unknown'
             };
-            
+
             console.log('📊 [MATCH-CORE] Submitting result:', resultData);
-            
+
             // Disable submit button
             const submitButton = event.target.querySelector('button[type="submit"]');
             if (submitButton) {
                 submitButton.disabled = true;
                 submitButton.textContent = 'Übertrage...';
             }
-            
+
             await this.submitMatchResult(resultData);
-            
+
             // Show success message
             this.showInfo('Ergebnis erfolgreich übertragen!', 'success');
-            
+
         } catch (error) {
             console.error('❌ [MATCH-CORE] Error submitting result:', error);
             this.showError(`Fehler: ${error.message}`);
@@ -874,7 +945,7 @@ class MatchPageCore {
      */
     startPeriodicUpdates() {
         console.log('🔄 [MATCH-CORE] Starting periodic updates...');
-        
+
         // Update every 30 seconds
         this.updateInterval = setInterval(() => {
             if (this.isSocketConnected()) {
@@ -893,7 +964,7 @@ class MatchPageCore {
      */
     showInfo(message, type = 'info') {
         console.log(`ℹ️ [MATCH-CORE] Info: ${message}`);
-        
+
         // Create or update info display
         let infoDisplay = document.getElementById('infoDisplay');
         if (!infoDisplay) {
@@ -913,7 +984,7 @@ class MatchPageCore {
             `;
             document.body.appendChild(infoDisplay);
         }
-        
+
         // Set message and styling based on type
         infoDisplay.textContent = message;
         switch (type) {
@@ -930,7 +1001,7 @@ class MatchPageCore {
             default:
                 infoDisplay.style.backgroundColor = '#17a2b8';
         }
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => {
             if (infoDisplay && infoDisplay.parentNode) {
@@ -952,16 +1023,16 @@ console.log('📦 [MATCH-CORE] Match Page Core module loaded');
 function openMatchPage(matchId) {
     try {
         console.log(`📄 [GLOBAL] Opening match page for match ${matchId}`);
-        
+
         // Get tournament ID from current URL or global variable
         let tournamentId = window.currentTournamentId;
-        
+
         // Fallback: Tournament ID aus URL extrahieren
         if (!tournamentId) {
             const urlParams = new URLSearchParams(window.location.search);
             tournamentId = urlParams.get('tournament') || urlParams.get('tournamentId');
         }
-        
+
         // Weitere Fallback: Tournament ID aus URL-Path extrahieren
         if (!tournamentId) {
             const pathParts = window.location.pathname.split('/');
@@ -969,36 +1040,51 @@ function openMatchPage(matchId) {
                 tournamentId = pathParts[2];
             }
         }
-        
+
         // Fallback: Tournament ID aus aktuellem Tournament ermitteln
         if (!tournamentId && window.currentTournament) {
             tournamentId = window.currentTournament.id;
         }
-        
+
+        // Note: Tournament ID is no longer required for UUID-only matches
         if (!tournamentId) {
-            console.error('❌ [GLOBAL] Cannot open match page - tournament ID not found');
-            alert('Fehler: Turnier-ID nicht gefunden. Bitte Seite neu laden.');
-            return;
+            console.log('ℹ️ [GLOBAL] No tournament ID found - will use simplified URL format');
         }
-        
+
         if (!matchId) {
             console.error('❌ [GLOBAL] Cannot open match page - match ID is missing');
             alert('Fehler: Match-ID fehlt.');
             return;
         }
+
+        // Determine if this is a UUID match (enhanced detection)
+        const isLikelyUuid = matchId.length >= 32 && matchId.includes('-');
         
-        // KORRIGIERT: Verwende Query-Parameter Format für match-page.html (nicht /match/ path)
-        const matchPageUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}`;
+        let matchPageUrl;
         
+        if (isLikelyUuid && (!tournamentId || tournamentId === 'null' || tournamentId === null)) {
+            // Use simplified URL for UUID matches when no tournament available
+            matchPageUrl = `/match/${matchId}`;
+            console.log('🚀 [GLOBAL] Using simplified match URL (UUID-only):', matchPageUrl);
+        } else if (tournamentId && matchId) {
+            // Use legacy format with tournament
+            matchPageUrl = `/match-page.html?tournament=${tournamentId}&match=${matchId}`;
+            console.log('🔄 [GLOBAL] Using legacy match URL:', matchPageUrl);
+        } else {
+            // Fallback: simplified URL even without UUID confirmation
+            matchPageUrl = `/match/${matchId}`;
+            console.log('🎯 [GLOBAL] Using fallback simplified match URL:', matchPageUrl);
+        }
+
         console.log(`🔗 [GLOBAL] Preparing to open: ${matchPageUrl}`);
-        
+
         // Frage Benutzer nach Öffnungsmethode
         const openInNewTab = confirm(
             `Match-Seite für Match ${matchId} öffnen:\n\n` +
             '✅ OK = In neuem Tab öffnen\n' +
             '❌ Abbrechen = In aktuellem Tab öffnen'
         );
-        
+
         if (openInNewTab) {
             // Open in new tab
             const newWindow = window.open(matchPageUrl, '_blank', 'width=1200,height=800');
@@ -1016,7 +1102,7 @@ function openMatchPage(matchId) {
             console.log(`🔗 [GLOBAL] Opening match page in current tab: ${matchPageUrl}`);
             window.location.href = matchPageUrl;
         }
-        
+
     } catch (error) {
         console.error('❌ [GLOBAL] Error opening match page:', error);
         alert(`Fehler beim Öffnen der Match-Seite: ${error.message}`);

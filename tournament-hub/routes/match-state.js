@@ -31,6 +31,31 @@ function getStateFilePath(tournamentId, matchId) {
     return path.join(DATA_DIR, `${tournamentId}_${matchId}.json`);
 }
 
+// ✅ NEUE VEREINFACHTE HILFSFUNKTION: Match aus allen Turnieren finden
+function findMatchInTournaments(matchId, tournamentRegistry) {
+    const allTournaments = tournamentRegistry.getAllTournaments();
+
+    for (const tournament of allTournaments) {
+        if (!tournament.matches || !Array.isArray(tournament.matches)) continue;
+
+        const match = tournament.matches.find(m =>
+            // UUID-Suche
+            (m.uniqueId && m.uniqueId === matchId) ||
+            // Numerische ID-Suche
+            (m.matchId || m.id || m.Id) == matchId
+        );
+
+        if (match) {
+            return {
+                tournament: tournament,
+                match: match
+            };
+        }
+    }
+
+    return null;
+}
+
 async function saveStateToDisk(tournamentId, matchId, gameState) {
     try {
         const filePath = getStateFilePath(tournamentId, matchId);
@@ -89,8 +114,147 @@ async function deleteStateFromDisk(tournamentId, matchId) {
 }
 
 /**
- * POST /api/match-state/:tournamentId/:matchId/save
- * Speichere den aktuellen Spielstand
+ * ✅ VEREINFACHTE API: Save match state (nur Match-ID erforderlich)
+ * POST /api/match-state/:matchId/save
+ */
+router.post('/:matchId/save', async(req, res) => {
+    try {
+        const { matchId } = req.params;
+        const gameState = req.body;
+
+        console.log(`💾 [MATCH-STATE] Simplified save for match: ${matchId}`);
+
+        // Finde Match in allen Turnieren
+        const found = findMatchInTournaments(matchId, req.app.locals.tournamentRegistry);
+
+        if (!found) {
+            return res.status(404).json({
+                success: false,
+                message: `Match ${matchId} not found in any tournament`
+            });
+        }
+
+        const tournamentId = found.tournament.id;
+        const cacheKey = `${tournamentId}_${matchId}`;
+
+        // Validierung der Spieldaten
+        if (!gameState || typeof gameState !== 'object') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid game state data'
+            });
+        }
+
+        const stateData = {
+            ...gameState,
+            lastSaved: new Date().toISOString(),
+            tournamentId: tournamentId,
+            matchId: matchId,
+            foundVia: 'simplified-api'
+        };
+
+        // In-Memory Cache (primär)
+        matchStateCache.set(cacheKey, stateData);
+        console.log(`💾 [MATCH-STATE] Simplified state cached for ${cacheKey}`);
+
+        // Disk Persistierung (sekundär)
+        const diskSaved = await saveStateToDisk(tournamentId, matchId, stateData);
+
+        res.json({
+            success: true,
+            message: 'Game state saved successfully (simplified API)',
+            data: {
+                cacheKey: cacheKey,
+                lastSaved: stateData.lastSaved,
+                diskSaved: diskSaved,
+                tournamentId: tournamentId,
+                matchId: matchId,
+                apiVersion: 'simplified'
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ [MATCH-STATE] Simplified save error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save game state',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * ✅ VEREINFACHTE API: Load match state (nur Match-ID erforderlich)
+ * GET /api/match-state/:matchId/load
+ */
+router.get('/:matchId/load', async(req, res) => {
+    try {
+        const { matchId } = req.params;
+
+        console.log(`📥 [MATCH-STATE] Simplified load for match: ${matchId}`);
+
+        // Finde Match in allen Turnieren
+        const found = findMatchInTournaments(matchId, req.app.locals.tournamentRegistry);
+
+        if (!found) {
+            return res.status(404).json({
+                success: false,
+                message: `Match ${matchId} not found in any tournament`
+            });
+        }
+
+        const tournamentId = found.tournament.id;
+        const cacheKey = `${tournamentId}_${matchId}`;
+
+        let cachedState = null;
+
+        // Versuche aus In-Memory Cache zu laden
+        if (matchStateCache.has(cacheKey)) {
+            cachedState = matchStateCache.get(cacheKey);
+            console.log(`📥 [MATCH-STATE] Simplified state loaded from cache: ${cacheKey}`);
+        } else {
+            // Fallback: Lade von Disk
+            cachedState = await loadStateFromDisk(tournamentId, matchId);
+            if (cachedState) {
+                matchStateCache.set(cacheKey, cachedState);
+                console.log(`📥 [MATCH-STATE] Simplified state loaded from disk and cached: ${cacheKey}`);
+            }
+        }
+
+        if (cachedState) {
+            res.json({
+                success: true,
+                message: 'Game state loaded successfully (simplified API)',
+                data: {
+                    ...cachedState,
+                    loadedFrom: cachedState.savedToDisk ? 'disk' : 'cache',
+                    tournamentId: tournamentId,
+                    matchId: matchId,
+                    apiVersion: 'simplified'
+                }
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: `No saved state found for match ${matchId}`,
+                tournamentId: tournamentId,
+                matchId: matchId
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ [MATCH-STATE] Simplified load error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to load game state',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * 🔄 LEGACY API: POST /api/match-state/:tournamentId/:matchId/save
+ * Speichere den aktuellen Spielstand (Backward-kompatibel)
  */
 router.post('/:tournamentId/:matchId/save', async(req, res) => {
     try {

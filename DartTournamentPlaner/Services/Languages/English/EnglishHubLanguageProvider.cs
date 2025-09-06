@@ -41,6 +41,19 @@ public class EnglishHubLanguageProvider : ILanguageSection
             ["UnregisterTournamentError"] = "Error unregistering: {0}",
             ["NoTournamentRegistered"] = "No tournament registered with Hub.",
 
+            // Hub Registration Success Dialog
+            ["TournamentRegisteredTitle"] = "Tournament Successfully Registered",
+            ["TournamentRegisteredMessage"] = "Your tournament has been successfully registered with the Tournament Hub!",
+            ["TournamentInformation"] = "🏆 Tournament Information",
+            ["ActiveFeatures"] = "🌟 Active Features",
+            ["TournamentFeaturesText"] = "- Real-time tournament synchronization\n- Multi-device tournament access\n- Live match result updates",
+            ["JoinUrlCopiedText"] = "The join URL has been copied to your clipboard automatically.",
+            ["CopyUrl"] = "Copy URL",
+            ["OK"] = "OK",
+            ["Copied"] = "Copied!",
+            ["Error"] = "Error",
+            ["CopyError"] = "Error copying URL.",
+
             // Hub Synchronization
             ["SyncWithHub"] = "Sync with Hub",
             ["SyncSuccess"] = "Tournament successfully synced with Hub!",

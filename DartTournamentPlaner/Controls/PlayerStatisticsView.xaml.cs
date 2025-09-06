@@ -14,13 +14,14 @@ namespace DartTournamentPlaner.Controls;
 /// <summary>
 /// UserControl für die Anzeige von Spieler-Statistiken einer Turnierklasse
 /// </summary>
-public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
+public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged, IDisposable
 {
     private TournamentClass? _tournamentClass;
     private StatisticsSummary _summary = new();
     private ObservableCollection<PlayerStatisticsDisplayModel> _players = new();
     private string _debugMessage = "";
     private LocalizationService? _localizationService;
+    private bool _disposed = false;
 
     public PlayerStatisticsView()
     {
@@ -29,6 +30,13 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
         
         // Try to get localization service from App
         _localizationService = App.LocalizationService;
+        
+        // ✅ NEU: Event Handler für Sprachwechsel
+        if (_localizationService != null)
+        {
+            _localizationService.PropertyChanged += LocalizationService_PropertyChanged;
+        }
+        
         UpdateTranslations();
     }
 
@@ -96,7 +104,7 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
         {
             // Titel
             if (TitleTextBlock != null)
-                TitleTextBlock.Text = $"📊 {_localizationService.GetString("PlayerStatistics")}_";
+                TitleTextBlock.Text = $"📊 {_localizationService.GetString("PlayerStatistics")}";
 
             // Summary Headers
             if (PlayersHeaderText != null)
@@ -240,9 +248,7 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
             // Standard-Sortierung nach Average (höchster zuerst)
             SortPlayers(PlayerStatisticsSortType.Average);
 
-            // ✅ NEU: Debug-Information für UI
-            var loadingMessage = _localizationService?.GetString("StatisticsLoading") ?? "Wird geladen...";
-            var updatedMessage = _localizationService?.GetString("StatisticsUpdated") ?? "Statistiken aktualisiert";
+            // ✅ NEU: Debug-Information für UI mit Übersetzungen
             DebugMessage = $"JSON: {jsonDataCount}, Manager: {managerCount}, {_localizationService?.GetString("ShowAllPlayers") ?? "Angezeigt"}: {Players.Count} - {DateTime.Now:HH:mm:ss}";
 
             System.Diagnostics.Debug.WriteLine($"[STATS-VIEW] Statistics loaded successfully: {Players.Count} players displayed");
@@ -314,6 +320,39 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged
     private void RefreshButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         LoadStatistics();
+    }
+
+    /// <summary>
+    /// ✅ NEU: Event Handler für Sprachwechsel
+    /// </summary>
+    private void LocalizationService_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(LocalizationService.CurrentLanguage) || 
+            e.PropertyName == nameof(LocalizationService.CurrentTranslations))
+        {
+            UpdateTranslations();
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Dispose-Pattern für Event Handler Cleanup
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            if (_localizationService != null)
+            {
+                _localizationService.PropertyChanged -= LocalizationService_PropertyChanged;
+            }
+            _disposed = true;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -6,7 +6,7 @@ class MatchPageDisplay {
     constructor() {
         this.currentMatch = null;
         this.currentGameRules = null;
-        
+
         console.log('🎨 [MATCH-DISPLAY] Match Page Display initialized');
     }
 
@@ -16,20 +16,20 @@ class MatchPageDisplay {
     updateDisplay(matchData, gameRules) {
         try {
             console.log('🔄 [MATCH-DISPLAY] Updating display with new data');
-            
+
             this.currentMatch = matchData;
             this.currentGameRules = gameRules;
 
             // Update header information
             this.updateHeader();
-            
+
             // Update main match area
             this.updateMainMatchArea();
-            
+
             // Update sidebar sections
             this.updateGameRulesSection();
             this.updateMatchInfoSection();
-            
+
             console.log('✅ [MATCH-DISPLAY] Display updated successfully');
         } catch (error) {
             console.error('🚫 [MATCH-DISPLAY] Error updating display:', error);
@@ -66,10 +66,10 @@ class MatchPageDisplay {
 
         // ✅ KORRIGIERT: Strengere Status-Erkennung - nur bei echten Results als finished markieren
         const hasValidResult = this.hasValidMatchResult();
-        const isExplicitlyFinished = this.currentMatch.status === 'finished' || 
-                                   this.currentMatch.status === 'Finished' ||
-                                   this.currentMatch.status === 'completed' ||
-                                   this.currentMatch.status === 'Completed';
+        const isExplicitlyFinished = this.currentMatch.status === 'finished' ||
+            this.currentMatch.status === 'Finished' ||
+            this.currentMatch.status === 'completed' ||
+            this.currentMatch.status === 'Completed';
 
         // ✅ WICHTIG: Match ist nur dann finished wenn BEIDE Bedingungen erfüllt sind
         const isFinished = isExplicitlyFinished && hasValidResult;
@@ -120,29 +120,33 @@ class MatchPageDisplay {
         const player1Legs = this.getPlayerLegs(1) || 0;
         const player2Legs = this.getPlayerLegs(2) || 0;
 
-        const playWithSets = this.currentGameRules?.playWithSets || false;
+        const playWithSets = this.currentGameRules && this.currentGameRules.playWithSets || false;
 
         // Bei Sets-Spiel: Mindestens ein Spieler muss Sets > 0 haben
         if (playWithSets) {
             const hasSetsResult = player1Sets > 0 || player2Sets > 0;
             const hasLegsResult = player1Legs > 0 || player2Legs > 0;
-            
+
             console.log('🔍 [MATCH-DISPLAY] Sets validation:', {
-                playWithSets, hasSetsResult, hasLegsResult,
-                sets: `${player1Sets}-${player2Sets}`, legs: `${player1Legs}-${player2Legs}`
+                playWithSets,
+                hasSetsResult,
+                hasLegsResult,
+                sets: `${player1Sets}-${player2Sets}`,
+                legs: `${player1Legs}-${player2Legs}`
             });
-            
+
             return hasSetsResult && hasLegsResult; // Beide müssen vorhanden sein
-        } 
+        }
         // Bei Legs-Only: Mindestens ein Spieler muss Legs > 0 haben
         else {
             const hasLegsResult = player1Legs > 0 || player2Legs > 0;
-            
+
             console.log('🔍 [MATCH-DISPLAY] Legs validation:', {
-                playWithSets, hasLegsResult,
+                playWithSets,
+                hasLegsResult,
                 legs: `${player1Legs}-${player2Legs}`
             });
-            
+
             return hasLegsResult;
         }
     }
@@ -160,26 +164,26 @@ class MatchPageDisplay {
      */
     getPlayerSets(playerNumber) {
         const playerField = `player${playerNumber}Sets`;
-        
+
         // Priorität 1: Direkte Player-Felder im Match
         if (this.currentMatch[playerField] !== undefined && this.currentMatch[playerField] !== null) {
             return this.currentMatch[playerField];
         }
-        
+
         // Priorität 2: Result-Objekt (Legacy-Format)
         if (this.currentMatch.result) {
             const resultField = playerNumber === 1 ? 'sets1' : 'sets2';
             if (this.currentMatch.result[resultField] !== undefined && this.currentMatch.result[resultField] !== null) {
                 return this.currentMatch.result[resultField];
             }
-            
+
             // Alternative result field names
             const playerResultField = `player${playerNumber}Sets`;
             if (this.currentMatch.result[playerResultField] !== undefined && this.currentMatch.result[playerResultField] !== null) {
                 return this.currentMatch.result[playerResultField];
             }
         }
-        
+
         // ✅ KORRIGIERT: Nur null zurückgeben wenn kein gültiges Result vorhanden
         return null;
     }
@@ -189,26 +193,26 @@ class MatchPageDisplay {
      */
     getPlayerLegs(playerNumber) {
         const playerField = `player${playerNumber}Legs`;
-        
+
         // Priorität 1: Direkte Player-Felder im Match
         if (this.currentMatch[playerField] !== undefined && this.currentMatch[playerField] !== null) {
             return this.currentMatch[playerField];
         }
-        
+
         // Priorität 2: Result-Objekt (Legacy-Format)
         if (this.currentMatch.result) {
             const resultField = playerNumber === 1 ? 'legs1' : 'legs2';
             if (this.currentMatch.result[resultField] !== undefined && this.currentMatch.result[resultField] !== null) {
                 return this.currentMatch.result[resultField];
             }
-            
+
             // Alternative result field names
             const playerResultField = `player${playerNumber}Legs`;
             if (this.currentMatch.result[playerResultField] !== undefined && this.currentMatch.result[playerResultField] !== null) {
                 return this.currentMatch.result[playerResultField];
             }
         }
-        
+
         // ✅ KORRIGIERT: Nur null zurückgeben wenn kein gültiges Result vorhanden
         return null;
     }
@@ -217,26 +221,26 @@ class MatchPageDisplay {
      * Render a player score card
      */
     renderPlayerScoreCard(playerName, sets, legs, playerNumber) {
-        const displayName = playerName || `Spieler ${playerNumber}`;
-        
-        // ✅ KORRIGIERT: Bessere Anzeige-Logik für Sets und Legs
-        const playWithSets = this.currentGameRules?.playWithSets || false;
-        
-        // Zeige nur Werte an, wenn sie wirklich existieren (nicht null)
-        const displaySets = (sets !== null && sets !== undefined) ? sets : '-';
-        const displayLegs = (legs !== null && legs !== undefined) ? legs : '-' ;
+            const displayName = playerName || `Spieler ${playerNumber}`;
 
-        // ✅ ERWEITERT: Debugging-Info für Score-Cards
-        console.log(`🃏 [MATCH-DISPLAY] Rendering player ${playerNumber} card:`, {
-            playerName: displayName,
-            sets: sets,
-            legs: legs,
-            displaySets: displaySets,
-            displayLegs: displayLegs,
-            playWithSets: playWithSets
-        });
+            // ✅ KORRIGIERT: Bessere Anzeige-Logik für Sets und Legs
+            const playWithSets = this.currentGameRules && this.currentGameRules.playWithSets || false;
 
-        return `
+            // Zeige nur Werte an, wenn sie wirklich existieren (nicht null)
+            const displaySets = (sets !== null && sets !== undefined) ? sets : '-';
+            const displayLegs = (legs !== null && legs !== undefined) ? legs : '-';
+
+            // ✅ ERWEITERT: Debugging-Info für Score-Cards
+            console.log(`🃏 [MATCH-DISPLAY] Rendering player ${playerNumber} card:`, {
+                playerName: displayName,
+                sets: sets,
+                legs: legs,
+                displaySets: displaySets,
+                displayLegs: displayLegs,
+                playWithSets: playWithSets
+            });
+
+            return `
             <div class="player-card player-${playerNumber}">
                 <div class="player-name">${displayName}</div>
                 <div class="player-scores">
@@ -447,21 +451,77 @@ class MatchPageDisplay {
      */
     handleOpenDartScoring() {
         try {
-            // Get URL parameters to pass to dart scoring page
-            const urlParams = new URLSearchParams(window.location.search);
-            const tournamentId = urlParams.get('tournament') || urlParams.get('t');
-            const matchId = urlParams.get('match') || urlParams.get('m');
-            const uuid = urlParams.get('uuid');
+            console.log('🎯 [MATCH-DISPLAY] Opening dart scoring with UUID support...');
+            
+            // Get match and tournament info from matchPageCore (enhanced for UUID support)
+            let tournamentId = null;
+            let matchId = null;
+            let isUuidSystem = false;
+            
+            // Check if matchPageCore is available and has the required data
+            if (window.matchPageCore) {
+                tournamentId = window.matchPageCore.tournamentId;
+                matchId = window.matchPageCore.matchId;
+                isUuidSystem = window.matchPageCore.urlIndicatesUuid || window.matchPageCore.isSimplifiedUrl;
+                
+                console.log('🔍 [MATCH-DISPLAY] Core data available:');
+                console.log('   Tournament ID:', tournamentId);
+                console.log('   Match ID:', matchId);
+                console.log('   UUID System:', isUuidSystem);
+            } else {
+                // Fallback: try to get from URL parameters (legacy support)
+                console.log('⚠️ [MATCH-DISPLAY] matchPageCore not available, trying URL fallback...');
+                const urlParams = new URLSearchParams(window.location.search);
+                tournamentId = urlParams.get('tournament') || urlParams.get('t');
+                matchId = urlParams.get('match') || urlParams.get('m');
+                const uuid = urlParams.get('uuid');
+                isUuidSystem = uuid === 'true';
+                
+                // Try path parameters as additional fallback
+                if (!matchId) {
+                    const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
+                    if (pathParts.length >= 2 && pathParts[0] === 'match') {
+                        if (pathParts.length === 2) {
+                            // Simplified URL: /match/uuid
+                            matchId = pathParts[1];
+                            isUuidSystem = true;
+                        } else if (pathParts.length === 3) {
+                            // Legacy URL: /match/tournament/match
+                            tournamentId = pathParts[1];
+                            matchId = pathParts[2];
+                        }
+                    }
+                }
+            }
 
-            if (!tournamentId || !matchId) {
-                console.error('❌ [MATCH-DISPLAY] Missing tournament or match ID for dart scoring');
+            if (!matchId) {
+                console.error('❌ [MATCH-DISPLAY] Missing match ID for dart scoring');
+                alert('Fehler: Match-ID nicht verfügbar für Dart-Scoring');
                 return;
             }
 
-            // Build dart scoring URL
-            let dartScoringUrl = `/dart-scoring.html?tournament=${tournamentId}&match=${matchId}`;
-            if (uuid === 'true') {
-                dartScoringUrl += '&uuid=true';
+            // Build dart scoring URL (prefer simplified format for UUID matches)
+            let dartScoringUrl;
+            
+            // Check if we came from a simplified URL (UUID-only)
+            const wasSimplifiedUrl = window.matchPageCore?.isSimplifiedUrl;
+            
+            if (isUuidSystem && (wasSimplifiedUrl || !tournamentId || tournamentId === 'uuid-only')) {
+                // Use simplified URL for UUID matches, especially if we came from a simplified URL
+                dartScoringUrl = `/dart-scoring.html?match=${matchId}&uuid=true`;
+                console.log('🚀 [MATCH-DISPLAY] Using simplified dart scoring URL (UUID-only)');
+                console.log('   Reason: wasSimplifiedUrl=' + wasSimplifiedUrl + ', tournamentId=' + tournamentId);
+            } else if (tournamentId && matchId) {
+                // Use legacy URL with tournament ID
+                dartScoringUrl = `/dart-scoring.html?tournament=${tournamentId}&match=${matchId}`;
+                if (isUuidSystem) {
+                    dartScoringUrl += '&uuid=true';
+                }
+                console.log('🔄 [MATCH-DISPLAY] Using legacy dart scoring URL');
+            } else {
+                console.error('❌ [MATCH-DISPLAY] Insufficient data for dart scoring URL');
+                alert('Fehler: Unvollständige Match-Daten für Dart-Scoring');
+                return;
             }
 
             console.log('🎯 [MATCH-DISPLAY] Opening dart scoring page:', dartScoringUrl);
@@ -471,7 +531,7 @@ class MatchPageDisplay {
 
         } catch (error) {
             console.error('❌ [MATCH-DISPLAY] Error opening dart scoring:', error);
-            alert('Fehler beim Öffnen der Dart-Scoring-Seite');
+            alert('Fehler beim Öffnen der Dart-Scoring-Seite: ' + error.message);
         }
     }
 

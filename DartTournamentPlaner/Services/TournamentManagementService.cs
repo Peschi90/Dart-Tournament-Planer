@@ -205,20 +205,43 @@ public class TournamentManagementService
     {
         try
         {
-            // ✅ ERWEITERT: Hole HubIntegrationService für QR-Code Integration
+            // ✅ FIXED: Hole HubIntegrationService korrekt über LicensedHubService
             HubIntegrationService? hubService = null;
             try
             {
                 if (Application.Current.MainWindow is MainWindow mainWindow)
                 {
+                    // ✅ FIX: Hole den LicensedHubService und extrahiere den inneren HubIntegrationService
                     var hubServiceField = mainWindow.GetType()
                         .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    hubService = hubServiceField?.GetValue(mainWindow) as HubIntegrationService;
+                    
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubServiceField found: {hubServiceField != null}");
+                    
+                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+                    
+                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] LicensedHubService found, getting inner service...");
+                        
+                        // Zugriff auf den inneren HubIntegrationService über Reflection
+                        var innerServiceField = licensedHubService.GetType()
+                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        
+                        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubIntegrationService retrieved: {hubService != null}");
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubService registered: {hubService?.IsRegisteredWithHub}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentManagementService] Not a LicensedHubService or null");
+                    }
                 }
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get HubService: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentManagementService] Could not get HubService: {ex.Message}");
             }
 
             // ✅ KORRIGIERT: Hole LicenseFeatureService vom MainWindow falls nicht übergeben
@@ -239,36 +262,30 @@ public class TournamentManagementService
                     System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
                 }
             }
-            
-            // ✅ VERBESSERT: Erstelle TournamentOverviewWindow mit allen Services
+
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] Creating TournamentOverviewWindow with Hub: {hubService != null}, License: {effectiveLicenseService != null}");
+
             var overviewWindow = new TournamentOverviewWindow(
-                _tournamentClasses,
-                _localizationService,
+                _tournamentClasses, 
+                _localizationService, 
                 hubService,
-                effectiveLicenseService
-            );
-            
+                effectiveLicenseService);
+
             if (owner != null)
             {
                 overviewWindow.Owner = owner;
-                overviewWindow.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             }
-            else
-            {
-                overviewWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-            }
-            
+
             overviewWindow.Show();
             
-            System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Window opened successfully with " +
-                $"Hub: {hubService != null}, License: {effectiveLicenseService != null}");
+            System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Window opened successfully with Hub: {hubService != null}, License: {effectiveLicenseService != null}");
         }
         catch (System.Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening window: {ex.Message}");
             
-            var title = _localizationService.GetString("Error") ?? "Error";
-            var message = $"{_localizationService.GetString("ErrorOpeningOverview") ?? "Error opening Tournament Overview:"} {ex.Message}";
+            var title = _localizationService.GetString("Error");
+            var message = $"{_localizationService.GetString("ErrorOpeningOverview")} {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }

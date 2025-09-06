@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Services.License; // ✅ FIX: Add License services import
 using DartTournamentPlaner.Views;
 
 namespace DartTournamentPlaner.Models;
@@ -579,15 +580,72 @@ public class TournamentTreeRenderer
 
         try
         {
+            // ✅ FIX: HubIntegrationService vom MainWindow holen
+            HubIntegrationService? hubService = null;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] Getting HubService for match {match.Id}...");
+                
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] MainWindow found: {mainWindow.GetType().Name}");
+                    
+                    // Zugriff auf den LicensedHubService über Reflection
+                    var hubServiceField = mainWindow.GetType()
+                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceField found: {hubServiceField != null}");
+                    
+                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+                    
+                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] LicensedHubService found, getting inner service...");
+                        
+                        // Zugriff auf den inneren HubIntegrationService über Reflection
+                        var innerServiceField = licensedHubService.GetType()
+                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] InnerServiceField found: {innerServiceField != null}");
+                        
+                        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubIntegrationService retrieved: {hubService != null}");
+                        
+                        if (hubService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubService registered: {hubService.IsRegisteredWithHub}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] HubIntegrationService is null");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] Not a LicensedHubService or null");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] MainWindow not found or wrong type");
+                }
+            }
+            catch (Exception hubEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTreeRenderer] Could not get HubService: {hubEx.Message}");
+            }
+
             // WICHTIG: Verwende rundenspezifische Regeln für KO-Matches
             var roundRules = _tournament.GameRules.GetRulesForRound(match.Round);
             
             System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} in {match.Round}");
             System.Diagnostics.Debug.WriteLine($"  Round Rules: SetsToWin={roundRules.SetsToWin}, LegsToWin={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
-            System.Diagnostics.Debug.WriteLine($"  Using SPECIALIZED constructor for KnockoutMatch");
+            System.Diagnostics.Debug.WriteLine($"  Using SPECIALIZED constructor for KnockoutMatch with HubService: {hubService != null}");
 
-            // KORREKTUR: Verwende den spezialisierten Constructor für KnockoutMatches
-            var resultWindow = new MatchResultWindow(match, roundRules, _tournament.GameRules, localizationService);
+            // ✅ FIX: Übergebe HubService an das MatchResultWindow mit korrekter Parameter-Reihenfolge
+            var resultWindow = new MatchResultWindow(match, roundRules, _tournament.GameRules, localizationService, hubService);
             
             // Try to find parent window
             var parentWindow = Application.Current.MainWindow;

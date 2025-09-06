@@ -3,27 +3,99 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:DartTournamentPlaner.Controls"
         Title="Dart Tournament Planner"
-        Height="370" Width="480"
+        Height="600" Width="600"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Topmost="True">
+        Topmost="True"
+        Opacity="0">
 
     <Window.Resources>
         <!-- Card Shadow Effect -->
         <DropShadowEffect x:Key="CardShadow" 
                           Color="Black" 
                           Direction="270" 
-                          ShadowDepth="8" 
+                          ShadowDepth="12" 
+                          BlurRadius="25" 
+                          Opacity="0.2"/>
+
+        <!-- Glow Effect für App Icon -->
+        <DropShadowEffect x:Key="IconGlow" 
+                          Color="#3B82F6" 
+                          Direction="0" 
+                          ShadowDepth="0" 
                           BlurRadius="20" 
-                          Opacity="0.15"/>
+                          Opacity="0.4"/>
+
+        <!-- Pulse Animation für Icon -->
+        <Storyboard x:Key="IconPulseAnimation" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="AppIconBorder"
+                           Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.BlurRadius)"
+                           From="12" To="24" Duration="0:0:2"/>
+            <DoubleAnimation Storyboard.TargetName="AppIconBorder"
+                           Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)"
+                           From="0.3" To="0.6" Duration="0:0:2"/>
+        </Storyboard>
+
+        <!-- Rotating Loading Ring Animation -->
+        <Storyboard x:Key="LoadingRingAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="LoadingRingRotation"
+                           Storyboard.TargetProperty="Angle"
+                           From="0" To="360" Duration="0:0:1.5"/>
+        </Storyboard>
+
+        <!-- Fade In Animation für das gesamte Window -->
+        <Storyboard x:Key="WindowFadeInAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:0.8"/>
+        </Storyboard>
+
+        <!-- Slide Up Animation für Content -->
+        <Storyboard x:Key="ContentSlideUpAnimation">
+            <DoubleAnimation Storyboard.TargetName="ContentTransform"
+                           Storyboard.TargetProperty="Y"
+                           From="30" To="0" Duration="0:0:1">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="MainContent"
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:1"/>
+        </Storyboard>
+
+        <!-- Progress Bar Fill Animation -->
+        <Storyboard x:Key="ProgressAnimation">
+            <DoubleAnimation Storyboard.TargetName="ProgressFill"
+                           Storyboard.TargetProperty="Width"
+                           From="0" To="300" Duration="0:0:3">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- Status Text Fade Animation -->
+        <Storyboard x:Key="StatusFadeAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                           From="0.5" To="1" Duration="0:0:0.5" AutoReverse="True" RepeatBehavior="Forever"/>
+        </Storyboard>
     </Window.Resources>
 
-    <!-- Moderne Splash Screen mit LoadingSpinner -->
-    <Border CornerRadius="16" 
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard Storyboard="{StaticResource WindowFadeInAnimation}"/>
+            <BeginStoryboard Storyboard="{StaticResource ContentSlideUpAnimation}"/>
+            <BeginStoryboard Storyboard="{StaticResource IconPulseAnimation}"/>
+            <BeginStoryboard Storyboard="{StaticResource LoadingRingAnimation}"/>
+        </EventTrigger>
+    </Window.Triggers>
+
+    <!-- Moderne Splash Screen mit erweiterten Animationen -->
+    <Border CornerRadius="20" 
             BorderThickness="1"
             BorderBrush="#E5E7EB"
             Effect="{StaticResource CardShadow}">
@@ -31,11 +103,16 @@
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                 <GradientStop Color="#FFFFFF" Offset="0"/>
-                <GradientStop Color="#F8FAFC" Offset="1"/>
+                <GradientStop Color="#F8FAFC" Offset="0.7"/>
+                <GradientStop Color="#F1F5F9" Offset="1"/>
             </LinearGradientBrush>
         </Border.Background>
 
-        <Grid>
+        <Grid x:Name="MainContent" Opacity="0">
+            <Grid.RenderTransform>
+                <TranslateTransform x:Name="ContentTransform" Y="30"/>
+            </Grid.RenderTransform>
+            
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -43,91 +120,177 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header mit App-Icon und Titel -->
+            <!-- Header mit animiertem App-Icon und Titel -->
             <Border Grid.Row="0" 
-                    Padding="24,20,24,16"
+                    Padding="32,24,32,20"
                     Background="Transparent">
                 <StackPanel HorizontalAlignment="Center">
-                    <!-- App Icon (large version) -->
-                    <Border Width="64" Height="64" 
-                            CornerRadius="12" 
-                            Margin="0,0,0,16">
+                    <!-- Animiertes App Icon -->
+                    <Border x:Name="AppIconBorder"
+                            Width="150" Height="150" 
+                            CornerRadius="16" 
+                            Margin="0,0,0,20">
                         <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <RadialGradientBrush>
                                 <GradientStop Color="#3B82F6" Offset="0"/>
-                                <GradientStop Color="#1D4ED8" Offset="1"/>
-                            </LinearGradientBrush>
+                                <GradientStop Color="#1D4ED8" Offset="0.7"/>
+                                <GradientStop Color="#1E40AF" Offset="1"/>
+                            </RadialGradientBrush>
                         </Border.Background>
                         <Border.Effect>
                             <DropShadowEffect Color="#3B82F6" Direction="0" ShadowDepth="0" 
                                               BlurRadius="12" Opacity="0.3"/>
                         </Border.Effect>
-                        <TextBlock Text="🎯" 
-                                   FontSize="28" 
+                        
+                        <!-- Layered Icon: Echtes App Icon mit Emoji Fallback -->
+                        <Grid>
+                            <!-- Primäres App Icon (zunächst versteckt) -->
+                            <Image x:Name="AppIconImage"
+                                   Source="pack://application:,,,/Assets/Images/favicon.ico" 
+                                   Width="128" 
+                                   Height="128"
                                    HorizontalAlignment="Center" 
                                    VerticalAlignment="Center"
-                                   Foreground="White"/>
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   Stretch="Uniform"
+                                   Visibility="Collapsed"/>
+                            
+                            <!-- Fallback Emoji (standardmäßig sichtbar) -->
+                            <TextBlock x:Name="FallbackIconText"
+                                       Text="🎯" 
+                                       FontSize="32" 
+                                       HorizontalAlignment="Center" 
+                                       VerticalAlignment="Center"
+                                       Foreground="White"
+                                       Visibility="Visible"/>
+                        </Grid>
                     </Border>
 
-                    <!-- App-Titel -->
+                    <!-- App-Titel mit Gradient -->
                     <TextBlock Name="AppTitleBlock"
                                Text="Dart Tournament Planner"
-                               FontSize="20"
+                               FontSize="22"
                                FontWeight="Bold"
-                               Foreground="#1E293B"
                                HorizontalAlignment="Center"
-                               Margin="0,0,0,4"/>
+                               Margin="0,0,0,6">
+                        <TextBlock.Foreground>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#1E293B" Offset="0"/>
+                                <GradientStop Color="#334155" Offset="1"/>
+                            </LinearGradientBrush>
+                        </TextBlock.Foreground>
+                    </TextBlock>
 
                     <!-- Untertitel -->
                     <TextBlock Name="AppSubtitleBlock"
                                Text="Moderne Turnierverwaltung"
-                               FontSize="13"
+                               FontSize="14"
                                Foreground="#64748B"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
-            <!-- Loading Spinner Bereich -->
+            <!-- Erweiterter Loading Bereich mit animiertem Ring und Fortschrittsbalken -->
             <Grid Grid.Row="1" 
-                  Margin="24,20,24,20"
+                  Margin="32,24,32,24"
                   VerticalAlignment="Center">
+                
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="20"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Animierter Loading Ring -->
+                <Canvas Grid.Row="0" Width="100" Height="100" HorizontalAlignment="Center">
+                    <!-- Hintergrund Ring -->
+                    <Ellipse Width="100" Height="100" 
+                             Stroke="#E2E8F0" 
+                             StrokeThickness="6" 
+                             Fill="Transparent"/>
+                    
+                    <!-- Animierter Progress Ring -->
+                    <Ellipse Width="100" Height="100" 
+                             Stroke="#3B82F6" 
+                             StrokeThickness="6" 
+                             Fill="Transparent"
+                             StrokeDashArray="20 80"
+                             RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <RotateTransform x:Name="LoadingRingRotation"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                    
+                    <!-- Zentraler Punkt -->
+                    <Ellipse Width="12" Height="12" 
+                             Fill="#3B82F6" 
+                             Canvas.Left="44" Canvas.Top="44"/>
+                </Canvas>
+
+                <!-- Abstand zwischen Ring und Fortschrittsbalken -->
+                <!-- Grid.Row="1" ist der Abstand -->
+
+                <!-- Fortschrittsbalken unterhalb des Rings -->
+                <Border Grid.Row="2" 
+                        Height="6" 
+                        Background="#E2E8F0" 
+                        CornerRadius="3"
+                        MaxWidth="300"
+                        HorizontalAlignment="Center">
+                    <Border x:Name="ProgressFill"
+                            Width="0"
+                            Height="6"
+                            Background="#3B82F6"
+                            CornerRadius="3"
+                            HorizontalAlignment="Left"/>
+                </Border>
+
+                <!-- Fallback LoadingSpinner (falls der Ring nicht funktioniert) -->
                 <controls:LoadingSpinner x:Name="MainLoadingSpinner"
-                                         IsSpinnerVisible="True"
+                                         Grid.Row="0"
+                                         IsSpinnerVisible="False"
                                          LoadingText="Wird geladen..."
-                                         HorizontalAlignment="Center"/>
+                                         HorizontalAlignment="Center"
+                                         Visibility="Collapsed"/>
             </Grid>
 
-            <!-- Status-Text -->
+            <!-- Animierter Status-Text -->
             <Border Grid.Row="2" 
-                    Padding="24,0,24,16">
+                    Padding="32,0,32,20">
                 <TextBlock Name="StatusTextBlock"
                            Text="Starte Anwendung..."
-                           FontSize="12"
+                           FontSize="13"
                            Foreground="#6B7280"
                            HorizontalAlignment="Center"
-                           FontWeight="Medium"/>
+                           FontWeight="Medium">
+                    <TextBlock.Triggers>
+                        <EventTrigger RoutedEvent="Loaded">
+                            <BeginStoryboard Storyboard="{StaticResource StatusFadeAnimation}"/>
+                        </EventTrigger>
+                    </TextBlock.Triggers>
+                </TextBlock>
             </Border>
 
             <!-- Footer mit Versionsinformationen -->
             <Border Grid.Row="3" 
                     Background="#F8FAFC"
-                    Padding="16,12"
-                    CornerRadius="0,0,16,16"
+                    Padding="20,16"
+                    CornerRadius="0,0,20,20"
                     BorderBrush="#E5E7EB"
                     BorderThickness="0,1,0,0">
                 <StackPanel Orientation="Horizontal" 
                             HorizontalAlignment="Center">
                     <TextBlock Name="VersionTextBlock"
                                Text="Version 1.0.0"
-                               FontSize="10"
+                               FontSize="11"
                                Foreground="#9CA3AF"
                                VerticalAlignment="Center"/>
-                    <Rectangle Width="1" Height="12" 
+                    <Rectangle Width="1" Height="14" 
                                Fill="#D1D5DB" 
-                               Margin="8,0"/>
+                               Margin="10,0"/>
                     <TextBlock Name="CopyrightTextBlock"
-                               Text="&copy; 2025 by I3uLL3t"
-                               FontSize="10"
+                               Text="© 2025 by I3uLL3t"
+                               FontSize="11"
                                Foreground="#9CA3AF"
                                VerticalAlignment="Center"/>
                 </StackPanel>

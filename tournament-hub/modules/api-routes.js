@@ -5,12 +5,12 @@ const express = require('express');
 const router = express.Router();
 
 function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io, websocketHandlers) {
-    
+
     // Health check
     router.get('/health', (req, res) => {
         const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
         console.log(`?? [API] Health check requested from ${clientIP}`);
-        
+
         const healthInfo = {
             status: 'OK',
             server: 'dtp.i3ull3t.de:9443',
@@ -26,7 +26,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
             uptime: process.uptime(),
             packageVersion: require('../package.json').version
         };
-        
+
         res.json(healthInfo);
     });
 
@@ -34,7 +34,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     router.get('/status', (req, res) => {
         const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
         console.log(`?? [API] Status endpoint requested from ${clientIP}`);
-        
+
         const stats = tournamentRegistry.getStatistics();
         const status = {
             status: 'OK',
@@ -43,7 +43,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
             environment: process.env.NODE_ENV || 'production',
             timestamp: new Date().toISOString(),
             uptime: Math.floor(process.uptime()),
-            
+
             // Server info
             serverInfo: {
                 domain: 'dtp.i3ull3t.de',
@@ -51,17 +51,17 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 protocol: 'https',
                 ssl: true
             },
-            
+
             // WebSocket info
             websocket: {
                 enabled: true,
                 connectedClients: io ? io.engine.clientsCount : 0,
                 protocol: 'wss'
             },
-            
+
             // Tournament statistics
             tournaments: stats,
-            
+
             // System info
             system: {
                 nodeVersion: process.version,
@@ -70,7 +70,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 memoryUsage: process.memoryUsage()
             }
         };
-        
+
         res.json(status);
     });
 
@@ -78,7 +78,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     router.get('/statistics', (req, res) => {
         const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
         console.log(`?? [API] Statistics requested from ${clientIP}`);
-        
+
         const stats = tournamentRegistry.getStatistics();
         const response = {
             success: true,
@@ -99,7 +99,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 server: 'dtp.i3ull3t.de:9443'
             }
         };
-        
+
         res.json(response);
     });
 
@@ -107,7 +107,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     router.get('/websocket/info', (req, res) => {
         const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
         console.log(`?? [API] WebSocket info requested from ${clientIP}`);
-        
+
         res.json({
             success: true,
             websocket: {
@@ -119,7 +119,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     url: 'wss://dtp.i3ull3t.de:9443',
                     events: [
                         'subscribe-tournament',
-                        'unsubscribe-tournament', 
+                        'unsubscribe-tournament',
                         'register-planner',
                         'submit-match-result',
                         'heartbeat'
@@ -150,13 +150,13 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament registration
-    router.post('/tournaments/register', async (req, res) => {
+    router.post('/tournaments/register', async(req, res) => {
         try {
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Tournament registration from ${clientIP}:`, req.body.tournamentId);
-            
+
             const { tournamentId, name, description, apiEndpoint, location, apiKey, classes, gameRules, totalPlayers } = req.body;
-            
+
             if (!tournamentId || !name) {
                 return res.status(400).json({
                     success: false,
@@ -181,14 +181,14 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
             };
 
             const registrationResult = tournamentRegistry.registerTournament(registrationData);
-            
+
             if (!registrationResult.success) {
                 return res.status(400).json({
                     success: false,
                     message: registrationResult.error || 'Tournament registration failed'
                 });
             }
-            
+
             const baseUrl = `https://dtp.i3ull3t.de:9443`;
             const joinUrl = `${baseUrl}/join/${tournamentId}`;
             const websocketUrl = `wss://dtp.i3ull3t.de:9443`;
@@ -203,13 +203,13 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     websocketUrl,
                     registeredAt: registrationData.registeredAt,
                     server: 'dtp.i3ull3t.de:9443',
-                    classes: classes?.length || 0,
-                    gameRules: gameRules?.length || 0
+                    classes: classes ? .length || 0,
+                    gameRules: gameRules ? .length || 0
                 }
             };
-            
+
             console.log(`? [API] Tournament registered: ${tournamentId} - Join: ${joinUrl}`);
-            
+
             // Broadcast tournament registration via WebSocket
             if (io) {
                 io.emit('tournament-registered', {
@@ -218,9 +218,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     timestamp: new Date().toISOString()
                 });
             }
-            
+
             res.json(response);
-            
+
         } catch (error) {
             console.error(`? [API] Tournament registration error:`, error);
             res.status(500).json({
@@ -232,35 +232,35 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament sync
-    router.post('/tournaments/:tournamentId/sync-full', async (req, res) => {
+    router.post('/tournaments/:tournamentId/sync-full', async(req, res) => {
         try {
             const { tournamentId } = req.params;
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Full tournament sync: ${tournamentId} from ${clientIP}`);
-            
+
             const tournamentData = req.body;
-            
+
             // ERWEITERT: Detailliertes Logging für Game Rules
             console.log(`?? [API] Tournament sync data for ${tournamentId}:`);
             console.log(`   ?? Classes: ${tournamentData.classes?.length || 0}`);
             console.log(`   ?? Game Rules: ${tournamentData.gameRules?.length || 0}`);
             console.log(`   ?? Matches: ${tournamentData.matches?.length || 0}`);
-            
+
             const updated = tournamentRegistry.updateTournament(tournamentId, tournamentData);
-            
+
             if (updated && socketIOHandlers) {
                 socketIOHandlers.broadcastTournamentUpdate(tournamentId, {
                     type: 'full-sync',
-                    classes: tournamentData.classes?.length || 0,
-                    matches: tournamentData.matches?.length || 0,
-                    gameRules: tournamentData.gameRules?.length || 0,
-                    gameRulesNames: tournamentData.gameRules?.map(gr => gr.name || `Rule ${gr.id}`) || []
+                    classes: tournamentData.classes ? .length || 0,
+                    matches: tournamentData.matches ? .length || 0,
+                    gameRules: tournamentData.gameRules ? .length || 0,
+                    gameRulesNames: tournamentData.gameRules ? .map(gr => gr.name || `Rule ${gr.id}`) || []
                 });
-                
+
                 console.log(`? [API] Tournament synced successfully: ${tournamentId}`);
                 console.log(`?? [API] Game Rules applied: ${tournamentData.gameRules?.length || 0} rules`);
             }
-            
+
             res.json({
                 success: updated,
                 message: updated ? 'Tournament synced successfully' : 'Failed to sync tournament',
@@ -269,11 +269,11 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     syncedAt: new Date().toISOString(),
                     websocketBroadcast: updated,
                     server: 'dtp.i3ull3t.de:9443',
-                    gameRulesSynced: tournamentData.gameRules?.length || 0,
-                    matchesWithRules: tournamentData.matches?.filter(m => m.gameRulesUsed || m.gameRulesId).length || 0
+                    gameRulesSynced: tournamentData.gameRules ? .length || 0,
+                    matchesWithRules: tournamentData.matches ? .filter(m => m.gameRulesUsed || m.gameRulesId).length || 0
                 }
             });
-            
+
         } catch (error) {
             console.error(`? [API] Tournament sync error:`, error);
             res.status(500).json({
@@ -285,16 +285,16 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament list endpoint (for dashboard)
-    router.get('/tournaments', async (req, res) => {
+    router.get('/tournaments', async(req, res) => {
         try {
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Tournaments list requested from ${clientIP}`);
-            
+
             const tournaments = tournamentRegistry.getAllTournaments();
             const activeTournaments = tournamentRegistry.getActiveTournaments();
-            
+
             console.log(`? [API] Returning ${tournaments.length} tournaments (${activeTournaments.length} active)`);
-            
+
             const response = {
                 success: true,
                 data: {
@@ -308,8 +308,8 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                         lastUpdate: t.lastUpdate,
                         connectedClients: t.connectedClients || 0,
                         totalMatches: (t.matches || []).length,
-                        activeMatches: (t.matches || []).filter(m => 
-                            (m.status || '').toLowerCase() === 'inprogress' || 
+                        activeMatches: (t.matches || []).filter(m =>
+                            (m.status || '').toLowerCase() === 'inprogress' ||
                             (m.Status || '').toLowerCase() === 'inprogress'
                         ).length,
                         classes: (t.classes || []).length,
@@ -333,9 +333,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     server: 'dtp.i3ull3t.de:9443'
                 }
             };
-            
+
             res.json(response);
-            
+
         } catch (error) {
             console.error(`? [API] Tournaments list error:`, error);
             res.status(500).json({
@@ -347,23 +347,23 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament details endpoint
-    router.get('/tournaments/:tournamentId', async (req, res) => {
+    router.get('/tournaments/:tournamentId', async(req, res) => {
         try {
             const { tournamentId } = req.params;
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Tournament details requested: ${tournamentId} from ${clientIP}`);
-            
+
             const tournament = tournamentRegistry.getTournament(tournamentId);
-            
+
             if (!tournament) {
                 return res.status(404).json({
                     success: false,
                     message: `Tournament not found: ${tournamentId}`
                 });
             }
-            
+
             console.log(`? [API] Returning tournament details: ${tournament.name}`);
-            
+
             const response = {
                 success: true,
                 data: {
@@ -377,8 +377,8 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                         lastUpdate: tournament.lastUpdate,
                         connectedClients: tournament.connectedClients || 0,
                         totalMatches: (tournament.matches || []).length,
-                        activeMatches: (tournament.matches || []).filter(m => 
-                            (m.status || '').toLowerCase() === 'inprogress' || 
+                        activeMatches: (tournament.matches || []).filter(m =>
+                            (m.status || '').toLowerCase() === 'inprogress' ||
                             (m.Status || '').toLowerCase() === 'inprogress'
                         ).length,
                         totalPlayers: tournament.totalPlayers || 0,
@@ -397,9 +397,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     server: 'dtp.i3ull3t.de:9443'
                 }
             };
-            
+
             res.json(response);
-            
+
         } catch (error) {
             console.error(`? [API] Tournament details error:`, error);
             res.status(500).json({
@@ -411,21 +411,21 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament classes endpoint
-    router.get('/tournaments/:tournamentId/classes', async (req, res) => {
+    router.get('/tournaments/:tournamentId/classes', async(req, res) => {
         try {
             const { tournamentId } = req.params;
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Tournament classes requested: ${tournamentId} from ${clientIP}`);
-            
+
             const tournament = tournamentRegistry.getTournament(tournamentId);
-            
+
             if (!tournament) {
                 return res.status(404).json({
                     success: false,
                     message: `Tournament not found: ${tournamentId}`
                 });
             }
-            
+
             const classes = tournament.classes || [];
             const matches = tournament.matches || [];
             const classesWithStats = classes.map(cls => ({
@@ -434,9 +434,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 playerCount: cls.playerCount || 0,
                 groupCount: cls.groupCount || 0
             }));
-            
+
             console.log(`? [API] Returning ${classesWithStats.length} classes with stats`);
-            
+
             res.json({
                 success: true,
                 data: classesWithStats,
@@ -447,7 +447,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     server: 'dtp.i3ull3t.de:9443'
                 }
             });
-            
+
         } catch (error) {
             console.error(`? [API] Tournament classes error:`, error);
             res.status(500).json({
@@ -459,25 +459,25 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament game rules endpoint
-    router.get('/tournaments/:tournamentId/gamerules', async (req, res) => {
+    router.get('/tournaments/:tournamentId/gamerules', async(req, res) => {
         try {
             const { tournamentId } = req.params;
             const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
             console.log(`?? [API] Tournament game rules requested: ${tournamentId} from ${clientIP}`);
-            
+
             const tournament = tournamentRegistry.getTournament(tournamentId);
-            
+
             if (!tournament) {
                 return res.status(404).json({
                     success: false,
                     message: `Tournament not found: ${tournamentId}`
                 });
             }
-            
+
             const gameRules = tournament.gameRules || [];
-            
+
             console.log(`? [API] Returning ${gameRules.length} game rules`);
-            
+
             res.json({
                 success: true,
                 data: gameRules,
@@ -488,7 +488,7 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     server: 'dtp.i3ull3t.de:9443'
                 }
             });
-            
+
         } catch (error) {
             console.error(`? [API] Tournament game rules error:`, error);
             res.status(500).json({
@@ -500,13 +500,13 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
     });
 
     // Tournament matches with class filtering
-    router.get('/tournaments/:tournamentId/matches', async (req, res) => {
-        try {
-            const { tournamentId } = req.params;
-            const { classId } = req.query;
-            const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-            
-            console.log(`?? [API] Tournament matches requested: ${tournamentId}${classId ? ` for class ${classId}` : ' (all classes)'} from ${clientIP}`);
+    router.get('/tournaments/:tournamentId/matches', async(req, res) => {
+                try {
+                    const { tournamentId } = req.params;
+                    const { classId } = req.query;
+                    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+
+                    console.log(`?? [API] Tournament matches requested: ${tournamentId}${classId ? ` for class ${classId}` : ' (all classes)'} from ${clientIP}`);
             
             const tournament = tournamentRegistry.getTournament(tournamentId);
             
@@ -890,6 +890,147 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
         }
     });
 
+    // ✅ VEREINFACHTE API: Match-Result nur mit UUID (ohne Tournament ID)
+    router.post('/match/:matchId/result', async (req, res) => {
+        try {
+            const { matchId } = req.params;
+            const result = req.body;
+            const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+            
+            console.log(`🎯 [API] Simplified dart scoring result submission: Match ${matchId} from ${clientIP}`);
+            console.log(`📊 [API] Dart scoring result:`, result);
+            
+            // Suche Match in allen Turnieren
+            const allTournaments = tournamentRegistry.getAllTournaments();
+            let foundMatch = null;
+            let foundTournament = null;
+            
+            for (const tournament of allTournaments) {
+                if (!tournament.matches || !Array.isArray(tournament.matches)) continue;
+                
+                const match = findMatchByIdOrUUID(tournament.matches, matchId);
+                if (match) {
+                    foundMatch = match;
+                    foundTournament = tournament;
+                    break;
+                }
+            }
+            
+            if (!foundMatch || !foundTournament) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Match ${matchId} not found in any tournament`
+                });
+            }
+            
+            console.log(`✅ [API] Found match ${matchId} in tournament: ${foundTournament.name}`);
+            
+            // Enhanced result with dart scoring metadata
+            const enhancedResult = {
+                ...result,
+                // Match identification
+                uniqueId: foundMatch.uniqueId,
+                matchId: foundMatch.matchId || foundMatch.id || foundMatch.Id,
+                submittedVia: 'Dart-Scoring-Simplified',
+                submittedAt: new Date().toISOString(),
+                matchType: foundMatch.matchType || 'Unknown',
+                bracketType: foundMatch.bracketType || null,
+                // Class information
+                classId: result.classId || foundMatch.classId || 1,
+                className: result.className || foundMatch.className || 'Unknown Class',
+                // Mark as finished
+                status: 'finished'
+            };
+            
+            // Use UUID for Match Service if available
+            const submitMatchId = foundMatch.uniqueId || matchId;
+            const success = await matchService.submitMatchResult(foundTournament.id, submitMatchId, enhancedResult);
+            
+            if (success && socketIOHandlers) {
+                // Broadcast with enhanced match data
+                const broadcastData = {
+                    type: 'dart-scoring-result-simplified',
+                    tournamentId: foundTournament.id,
+                    matchId: submitMatchId,
+                    uniqueId: foundMatch.uniqueId,
+                    numericMatchId: foundMatch.matchId || foundMatch.id || foundMatch.Id,
+                    result: enhancedResult,
+                    timestamp: new Date().toISOString(),
+                    matchType: foundMatch.matchType || 'Unknown',
+                    bracketType: foundMatch.bracketType || null,
+                    classId: enhancedResult.classId,
+                    className: enhancedResult.className
+                };
+                
+                // Broadcast to tournament interface
+                socketIOHandlers.broadcastTournamentUpdate(foundTournament.id, broadcastData);
+                
+                // WebSocket-Direct Broadcasting
+                if (websocketHandlers) {
+                    console.log(`📡 [API] Triggering WebSocket-Direct broadcast for simplified dart scoring result`);
+                    websocketHandlers.broadcastMatchUpdate(foundTournament.id, submitMatchId, enhancedResult);
+                }
+                
+                // Broadcast to specific match room
+                if (io) {
+                    // UUID-based rooms
+                    if (foundMatch.uniqueId) {
+                        const uuidMatchRoom = `match_${foundTournament.id}_${foundMatch.uniqueId}`;
+                        io.to(uuidMatchRoom).emit('match-updated', {
+                            success: true,
+                            match: enhancedResult,
+                            uniqueId: foundMatch.uniqueId,
+                            source: 'dart-scoring-simplified',
+                            updatedAt: new Date().toISOString()
+                        });
+                        console.log(`📤 [API] Simplified dart scoring result broadcasted to UUID room: ${uuidMatchRoom}`);
+                    }
+                    
+                    // Legacy numeric ID rooms
+                    const numericMatchRoom = `match_${foundTournament.id}_${foundMatch.matchId || foundMatch.id || foundMatch.Id}`;
+                    io.to(numericMatchRoom).emit('match-updated', {
+                        success: true,
+                        match: enhancedResult,
+                        matchId: foundMatch.matchId || foundMatch.id || foundMatch.Id,
+                        source: 'dart-scoring-simplified',
+                        updatedAt: new Date().toISOString()
+                    });
+                    console.log(`📤 [API] Simplified dart scoring result broadcasted to numeric room: ${numericMatchRoom}`);
+                }
+                
+                console.log(`✅ [API] Simplified dart scoring result submitted and broadcasted: ${submitMatchId}`);
+                
+                res.json({
+                    success: true,
+                    message: 'Dart scoring result submitted successfully (simplified API)',
+                    data: {
+                        tournamentId: foundTournament.id,
+                        matchId: submitMatchId,
+                        uniqueId: foundMatch.uniqueId,
+                        numericMatchId: foundMatch.matchId || foundMatch.id || foundMatch.Id,
+                        submittedAt: new Date().toISOString(),
+                        websocketBroadcast: true,
+                        server: 'dtp.i3ull3t.de:9443',
+                        apiVersion: 'simplified'
+                    }
+                });
+            } else {
+                res.status(400).json({
+                    success: false,
+                    message: 'Failed to submit dart scoring result'
+                });
+            }
+            
+        } catch (error) {
+            console.error(`❌ [API] Simplified dart scoring result submission error:`, error);
+            res.status(500).json({
+                success: false,
+                message: 'Failed to submit dart scoring result',
+                error: error.message
+            });
+        }
+    });
+
     // Submit dart scoring match result
     router.post('/match/:tournamentId/:matchId/result', async (req, res) => {
         try {
@@ -1077,6 +1218,199 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
             res.status(500).json({
                 success: false,
                 message: 'Internal server error during match access validation'
+            });
+        }
+    });
+
+    // ✅ VEREINFACHTE API: Match-Daten nur mit UUID (ohne Tournament ID)
+    router.get('/match/:matchId', async (req, res) => {
+        try {
+            const { matchId } = req.params;
+            const { uuid } = req.query;
+            const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+            
+            console.log(`🎯 [API] Simplified match data: ${matchId}${uuid ? ' (UUID mode)' : ''} from ${clientIP}`);
+            
+            // Suche Match in allen Turnieren
+            const allTournaments = tournamentRegistry.getAllTournaments();
+            let foundMatch = null;
+            let foundTournament = null;
+            
+            for (const tournament of allTournaments) {
+                if (!tournament.matches || !Array.isArray(tournament.matches)) continue;
+                
+                const match = findMatchByIdOrUUID(tournament.matches, matchId);
+                if (match) {
+                    foundMatch = match;
+                    foundTournament = tournament;
+                    break;
+                }
+            }
+            
+            if (!foundMatch || !foundTournament) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Match ${matchId} not found in any tournament`,
+                    searchedIn: allTournaments.length + ' tournaments'
+                });
+            }
+            
+            console.log(`✅ [API] Found match ${matchId} in tournament: ${foundTournament.name}`);
+            
+            // Find game rules for this match
+            let gameRules = null;
+            if (foundMatch.gameRulesUsed) {
+                gameRules = foundMatch.gameRulesUsed;
+                console.log(`🎮 [API] Using match-specific game rules: ${gameRules.name || 'Unnamed'}`);
+            } else if (foundTournament.gameRules) {
+                // Try to find rules by class and match type
+                gameRules = foundTournament.gameRules.find(gr => {
+                    const classMatch = (gr.classId || gr.ClassId) === foundMatch.classId;
+                    const typeMatch = (gr.matchType || 'Group') === (foundMatch.matchType || 'Group');
+                    return classMatch && typeMatch;
+                });
+                
+                // Fallback to any rules for this class
+                if (!gameRules) {
+                    gameRules = foundTournament.gameRules.find(gr => 
+                        (gr.classId || gr.ClassId) === foundMatch.classId
+                    );
+                }
+                
+                // Final fallback to first available rules
+                if (!gameRules && foundTournament.gameRules.length > 0) {
+                    gameRules = foundTournament.gameRules[0];
+                }
+                
+                console.log(`🎮 [API] Using tournament game rules: ${gameRules?.name || 'Default'}`);
+            }
+            
+            // Create default game rules if none found
+            if (!gameRules) {
+                gameRules = {
+                    id: `default_${foundMatch.classId || 1}`,
+                    name: 'Standard Rules',
+                    gamePoints: 501,
+                    startingScore: 501,
+                    gameMode: 'Points501',
+                    finishMode: 'DoubleOut',
+                    doubleOut: true,
+                    singleOut: false,
+                    playWithSets: true,
+                    setsToWin: 3,
+                    legsToWin: 3,
+                    legsPerSet: 5,
+                    gameTypeString: '501',
+                    finishTypeString: 'DoubleOut',
+                    dartScoringReady: true
+                };
+                console.log(`🎮 [API] Using default game rules for match ${matchId}`);
+            } else {
+                // Ensure all frontend fields are available
+                if (!gameRules.startingScore && gameRules.gamePoints) {
+                    gameRules.startingScore = gameRules.gamePoints;
+                }
+                if (!gameRules.gameTypeString && gameRules.gamePoints) {
+                    gameRules.gameTypeString = gameRules.gamePoints.toString();
+                }
+                if (!gameRules.finishTypeString && gameRules.finishMode) {
+                    gameRules.finishTypeString = gameRules.finishMode;
+                }
+                if (gameRules.doubleOut === undefined && gameRules.finishMode) {
+                    gameRules.doubleOut = gameRules.finishMode === 'DoubleOut';
+                }
+                if (gameRules.singleOut === undefined && gameRules.finishMode) {
+                    gameRules.singleOut = gameRules.finishMode === 'SingleOut';
+                }
+                gameRules.dartScoringReady = true;
+                
+                console.log(`🎮 [API] Enhanced game rules for dart scoring compatibility`);
+            }
+            
+            // Enhanced match response for dart scoring
+            const responseMatch = {
+                // Primary identification (prefer UUID)
+                id: foundMatch.uniqueId || foundMatch.matchId || foundMatch.id,
+                matchId: foundMatch.matchId || foundMatch.id,
+                uniqueId: foundMatch.uniqueId || null,
+                
+                // Tournament info
+                tournamentId: foundTournament.id,
+                
+                // Display name for dart scoring
+                displayName: `${foundMatch.player1 || 'Spieler 1'} vs ${foundMatch.player2 || 'Spieler 2'}`,
+                
+                // Match data
+                player1: { 
+                    name: foundMatch.player1 || 'Spieler 1',
+                    id: foundMatch.player1Id || 1
+                },
+                player2: { 
+                    name: foundMatch.player2 || 'Spieler 2',
+                    id: foundMatch.player2Id || 2
+                },
+                player1Sets: foundMatch.player1Sets || 0,
+                player2Sets: foundMatch.player2Sets || 0,
+                player1Legs: foundMatch.player1Legs || 0,
+                player2Legs: foundMatch.player2Legs || 0,
+                status: foundMatch.status || 'notstarted',
+                winner: foundMatch.winner,
+                notes: foundMatch.notes || '',
+                
+                // Classification
+                classId: foundMatch.classId,
+                className: foundMatch.className,
+                matchType: foundMatch.matchType || 'Group',
+                groupId: foundMatch.groupId,
+                groupName: foundMatch.groupName,
+                
+                // KO-specific (if applicable)
+                bracketType: foundMatch.bracketType || null,
+                round: foundMatch.round || null,
+                position: foundMatch.position || null,
+                
+                // Game rules integration
+                gameRulesId: foundMatch.gameRulesId,
+                gameRulesUsed: foundMatch.gameRulesUsed,
+                
+                // Timestamps
+                syncedAt: foundMatch.syncedAt,
+                startTime: foundMatch.startTime,
+                endTime: foundMatch.endTime
+            };
+            
+            console.log(`✅ [API] Returning simplified match data: ${responseMatch.displayName}`);
+            
+            res.json({
+                success: true,
+                match: responseMatch,
+                gameRules: gameRules,
+                tournament: {
+                    id: foundTournament.id,
+                    name: foundTournament.name,
+                    description: foundTournament.description
+                },
+                meta: {
+                    requestedAt: new Date().toISOString(),
+                    server: `dtp.i3ull3t.de:9443`,
+                    matchIdentification: {
+                        requestedId: matchId,
+                        uniqueId: foundMatch.uniqueId || null,
+                        numericId: foundMatch.matchId || foundMatch.id,
+                        accessMethod: matchId === foundMatch.uniqueId ? 'UUID' : 'numericId',
+                        tournamentFound: foundTournament.id
+                    },
+                    simplified: true,
+                    uuidMode: uuid === 'true'
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ [API] Simplified match data error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error.message
             });
         }
     });

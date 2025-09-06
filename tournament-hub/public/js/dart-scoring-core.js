@@ -736,14 +736,37 @@ class DartScoringCore {
 
             console.log('📤 [DART-CORE] Submitting match result:', matchResult);
 
-            // Submit via REST API
-            const response = await fetch(`/api/match/${this.matchData.tournamentId}/${this.matchData.uniqueId || this.matchData.matchId}/result`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(matchResult)
-            });
+            // ✅ VEREINFACHTE API: Versuche zuerst nur mit Match-ID
+            let response;
+            const matchId = this.matchData.uniqueId || this.matchData.matchId;
+
+            // Neue vereinfachte API (nur Match-ID erforderlich)
+            try {
+                console.log('🚀 [DART-CORE] Trying simplified API...');
+                response = await fetch(`/api/match/${encodeURIComponent(matchId)}/result`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(matchResult)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Simplified API failed: HTTP ${response.status}`);
+                }
+                console.log('✅ [DART-CORE] Simplified API successful');
+            } catch (error) {
+                console.warn('⚠️ [DART-CORE] Simplified API failed, falling back to legacy API:', error.message);
+
+                // Fallback zur Legacy-API
+                response = await fetch(`/api/match/${this.matchData.tournamentId}/${matchId}/result`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(matchResult)
+                });
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);

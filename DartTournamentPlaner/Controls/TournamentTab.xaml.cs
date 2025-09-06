@@ -1,16 +1,19 @@
-﻿using System.ComponentModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
-using System.Collections.Specialized;
-using System.Reflection;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
-using DartTournamentPlaner.ViewModels;
 using DartTournamentPlaner.Views;
-using DartTournamentPlaner.Helpers;
+using DartTournamentPlaner.ViewModels; // ✅ FIX: Import ViewModels namespace for KnockoutMatchViewModel
 using DartTournamentPlaner.Services.License; // NEU: License Services
 
 namespace DartTournamentPlaner.Controls;
@@ -168,21 +171,68 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] getHubService() callback called");
+                
                 // Versuche HubService über MainWindow zu finden
                 if (Application.Current.MainWindow is MainWindow mainWindow)
                 {
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] MainWindow found: {mainWindow.GetType().Name}");
+                    
+                    // ✅ FIX: Hole den LicensedHubService und extrahiere den inneren HubIntegrationService
                     var hubServiceField = mainWindow.GetType()
                         .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    return hubServiceField?.GetValue(mainWindow) as HubIntegrationService;
+                    
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubServiceField found: {hubServiceField != null}");
+                    
+                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+                    
+                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] LicensedHubService found, getting inner service...");
+                        
+                        // Zugriff auf den inneren HubIntegrationService über Reflection
+                        var innerServiceField = licensedHubService.GetType()
+                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] InnerServiceField found: {innerServiceField != null}");
+                        
+                        var hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubIntegrationService retrieved: {hubService != null}");
+                        
+                        if (hubService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubService registered: {hubService.IsRegisteredWithHub}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] HubIntegrationService is null");
+                        }
+                        
+                        return hubService;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] Not a LicensedHubService or null");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] MainWindow not found or wrong type");
                 }
                 return null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting HubService: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] Error getting HubService: {ex.Message}");
                 return null;
             }
         });
+
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] Testing getHubService callback during initialization...");
+        var testHubService = getHubService();
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] getHubService test result: {testHubService != null}");
 
         // Initialize Event Handlers
         _eventHandlers = new TournamentTabEventHandlers(
@@ -201,6 +251,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
             () => Window.GetWindow(this),
             getHubService
         );
+
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] TournamentTabEventHandlers initialized with HubService callback");
 
         // Initialize Translation Manager
         _translationManager = new TournamentTabTranslationManager(_localizationService);
@@ -270,7 +322,101 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         _translationManager.MatchesDataGrid = MatchesDataGrid;
         _translationManager.FinalsMatchesDataGrid = FinalsMatchesDataGrid;
         _translationManager.KnockoutMatchesDataGrid = KnockoutMatchesDataGrid;
+        _translationManager.LoserBracketDataGrid = LoserBracketDataGrid; // ✅ NEU
         _translationManager.StandingsDataGrid = StandingsDataGrid;
+        
+        // ✅ NEU: StatisticsTab
+        _translationManager.StatisticsTabItem = StatisticsTabItem;
+        
+        // ✅ NEU: KO-Tab spezifische Elemente (jetzt mit direkten XAML-Referenzen)
+        _translationManager.KOParticipantsHeaderText = KOParticipantsHeaderText;
+        _translationManager.WinnerBracketHeaderText = WinnerBracketHeaderText;
+        _translationManager.LoserBracketHeaderText = LoserBracketHeaderText;
+        _translationManager.LoserBracketTabItem = LoserBracketTab;
+        _translationManager.LoserBracketTreeTabItem = LoserBracketTreeTab;
+        
+        // Tab-Items für KO-Bereich (diese müssen zur Laufzeit gefunden werden)
+        SetupKnockoutTabReferences();
+    }
+
+    /// <summary>
+    /// ✅ NEU: Setzt Referenzen für KO-Tab Sub-Tabs zur Laufzeit
+    /// </summary>
+    private void SetupKnockoutTabReferences()
+    {
+        try
+        {
+            var knockoutContent = KnockoutTabItem?.Content as Grid;
+            if (knockoutContent != null)
+            {
+                var tabControl = FindChildOfType<TabControl>(knockoutContent);
+                if (tabControl != null)
+                {
+                    // Finde Tab-Items basierend auf Header-Text (da diese nicht direkt benannt sind)
+                    foreach (TabItem tabItem in tabControl.Items.OfType<TabItem>())
+                    {
+                        var headerText = tabItem.Header?.ToString() ?? "";
+                        
+                        if (headerText.Contains("Turnierbaum") || headerText.Contains("Tournament Tree"))
+                        {
+                            _translationManager.TournamentTreeTabItem = tabItem;
+                        }
+                        else if (headerText.Contains("Winner Bracket") && !headerText.Contains("Loser"))
+                        {
+                            _translationManager.WinnerBracketTabItem = tabItem;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Error setting up KO tab references: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Hilfsmethode zum Finden von Child-Controls eines bestimmten Typs
+    /// </summary>
+    private T? FindChildOfType<T>(DependencyObject parent) where T : DependencyObject
+    {
+        if (parent == null) return null;
+
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            
+            if (child is T result)
+                return result;
+                
+            var childResult = FindChildOfType<T>(child);
+            if (childResult != null)
+                return childResult;
+        }
+        
+        return null;
+    }
+
+    /// <summary>
+    /// ✅ NEU: Hilfsmethode zum Finden von TextBlocks mit bestimmtem Text-Inhalt
+    /// </summary>
+    private TextBlock? FindChildTextBlock(DependencyObject parent, string containsText)
+    {
+        if (parent == null) return null;
+
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            
+            if (child is TextBlock textBlock && textBlock.Text.Contains(containsText))
+                return textBlock;
+                
+            var childResult = FindChildTextBlock(child, containsText);
+            if (childResult != null)
+                return childResult;
+        }
+        
+        return null;
     }
 
     public void UpdateTranslations()
@@ -592,17 +738,77 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
     private async void KnockoutMatchesDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && _eventHandlers != null)
+        try
         {
-            await _eventHandlers.HandleKnockoutMatchDoubleClick(viewModel.Match, "Winner Bracket");
+            // ✅ FIX: Cast to KnockoutMatchViewModel and extract the match
+            if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && 
+                viewModel.Match is KnockoutMatch selectedMatch && 
+                _eventHandlers != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] KnockoutMatchesDataGrid_MouseDoubleClick called for match {selectedMatch.Id}");
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] About to call HandleKnockoutMatchDoubleClick...");
+                
+                await _eventHandlers.HandleKnockoutMatchDoubleClick(selectedMatch, "Winner Bracket");
+                
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] HandleKnockoutMatchDoubleClick completed successfully");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] KnockoutMatchesDataGrid_MouseDoubleClick - selectedItem available: {KnockoutMatchesDataGrid.SelectedItem != null}, _eventHandlers: {_eventHandlers != null}");
+                if (KnockoutMatchesDataGrid.SelectedItem != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] SelectedItem type: {KnockoutMatchesDataGrid.SelectedItem.GetType().Name}");
+                    
+                    // ✅ DEBUG: Try to access the Match property if it's a ViewModel
+                    if (KnockoutMatchesDataGrid.SelectedItem is KnockoutMatchViewModel vm)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] ViewModel found, Match: {vm.Match?.Id}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] Exception in KnockoutMatchesDataGrid_MouseDoubleClick: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] StackTrace: {ex.StackTrace}");
         }
     }
 
     private async void LoserBracketDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && _eventHandlers != null)
+        try
         {
-            await _eventHandlers.HandleKnockoutMatchDoubleClick(viewModel.Match, "Loser Bracket");
+            // ✅ FIX: Cast to KnockoutMatchViewModel and extract the match
+            if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel viewModel && 
+                viewModel.Match is KnockoutMatch selectedMatch && 
+                _eventHandlers != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] LoserBracketDataGrid_MouseDoubleClick called for match {selectedMatch.Id}");
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] About to call HandleKnockoutMatchDoubleClick...");
+                
+                await _eventHandlers.HandleKnockoutMatchDoubleClick(selectedMatch, "Loser Bracket");
+                
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] HandleKnockoutMatchDoubleClick completed successfully");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] LoserBracketDataGrid_MouseDoubleClick - selectedItem available: {LoserBracketDataGrid.SelectedItem != null}, _eventHandlers: {_eventHandlers != null}");
+                if (LoserBracketDataGrid.SelectedItem != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] SelectedItem type: {LoserBracketDataGrid.SelectedItem.GetType().Name}");
+                    
+                    // ✅ DEBUG: Try to access the Match property if it's a ViewModel
+                    if (LoserBracketDataGrid.SelectedItem is KnockoutMatchViewModel vm)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] ViewModel found, Match: {vm.Match?.Id}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] Exception in LoserBracketDataGrid_MouseDoubleClick: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab] StackTrace: {ex.StackTrace}");
         }
     }
 
@@ -620,8 +826,69 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         try
         {
+            // ✅ FIX: HubIntegrationService vom MainWindow holen und an MatchResultWindow übergeben
+            HubIntegrationService? hubService = null;
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Starting HubService retrieval...");
+                
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] MainWindow found: {mainWindow.GetType().Name}");
+                    
+                    // Zugriff auf den LicensedHubService über Reflection
+                    var hubServiceField = mainWindow.GetType()
+                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceField found: {hubServiceField != null}");
+                    
+                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+                    
+                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] LicensedHubService found, getting inner service...");
+                        
+                        // Zugriff auf den inneren HubIntegrationService über Reflection
+                        var innerServiceField = licensedHubService.GetType()
+                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] InnerServiceField found: {innerServiceField != null}");
+                        
+                        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+                        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubIntegrationService retrieved: {hubService != null}");
+                        
+                        if (hubService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubService registered: {hubService.IsRegisteredWithHub}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] HubIntegrationService is null");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] Not a LicensedHubService or null");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] MainWindow not found or wrong type");
+                }
+            }
+            catch (Exception hubEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] Could not get HubService: {hubEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] StackTrace: {hubEx.StackTrace}");
+            }
+
             var gameRules = TournamentClass?.GameRules ?? new GameRules();
-            var dialog = new MatchResultWindow(match, gameRules, _localizationService);
+            
+            // ✅ FIX: HubService als Parameter übergeben
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creating MatchResultWindow with HubService: {hubService != null}");
+            var dialog = new MatchResultWindow(match, gameRules, _localizationService, hubService);
             
             if (dialog.ShowDialog() == true)
             {
@@ -649,11 +916,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         if (sender is Button button)
         {
-            if (button.Tag is KnockoutMatchViewModel viewModel)
-            {
-                match = viewModel.Match;
-            }
-            else if (button.Tag is KnockoutMatch knockoutMatch)
+            if (button.Tag is KnockoutMatch knockoutMatch)
             {
                 match = knockoutMatch;
             }
@@ -675,11 +938,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
 
         if (sender is Button button)
         {
-            if (button.Tag is KnockoutMatchViewModel viewModel)
-            {
-                match = viewModel.Match;
-            }
-            else if (button.Tag is KnockoutMatch knockoutMatch)
+            if (button.Tag is KnockoutMatch knockoutMatch)
             {
                 match = knockoutMatch;
             }

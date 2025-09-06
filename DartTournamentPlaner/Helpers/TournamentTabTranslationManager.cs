@@ -38,7 +38,17 @@ public class TournamentTabTranslationManager
     public DataGrid? MatchesDataGrid { get; set; }
     public DataGrid? FinalsMatchesDataGrid { get; set; }
     public DataGrid? KnockoutMatchesDataGrid { get; set; }
+    public DataGrid? LoserBracketDataGrid { get; set; } // ✅ NEU: Loser Bracket DataGrid
     public DataGrid? StandingsDataGrid { get; set; }
+
+    // ✅ NEU: KO-Tab spezifische UI-Elemente
+    public TextBlock? KOParticipantsHeaderText { get; set; }
+    public TextBlock? WinnerBracketHeaderText { get; set; }
+    public TextBlock? LoserBracketHeaderText { get; set; }
+    public TabItem? TournamentTreeTabItem { get; set; }
+    public TabItem? WinnerBracketTabItem { get; set; }
+    public TabItem? LoserBracketTabItem { get; set; }
+    public TabItem? LoserBracketTreeTabItem { get; set; }
 
     public TournamentTabTranslationManager(LocalizationService localizationService)
     {
@@ -51,6 +61,7 @@ public class TournamentTabTranslationManager
         UpdateButtonTexts();
         UpdateHeaderTexts();
         UpdateDataGridHeaders();
+        UpdateKnockoutSpecificElements(); // ✅ NEU: KO-spezifische Übersetzungen
     }
 
     private void UpdateTabHeaders()
@@ -67,6 +78,16 @@ public class TournamentTabTranslationManager
         // ✅ NEU: Statistiken-Tab
         if (StatisticsTabItem != null)
             StatisticsTabItem.Header = _localizationService.GetString("StatisticsTab");
+
+        // ✅ NEU: KO-Tab interne Tabs
+        if (TournamentTreeTabItem != null)
+            TournamentTreeTabItem.Header = _localizationService.GetString("TournamentTreeTab");
+        if (WinnerBracketTabItem != null)
+            WinnerBracketTabItem.Header = _localizationService.GetString("WinnerBracketDataTab");
+        if (LoserBracketTabItem != null)
+            LoserBracketTabItem.Header = _localizationService.GetString("LoserBracketDataTab");
+        if (LoserBracketTreeTabItem != null)
+            LoserBracketTreeTabItem.Header = _localizationService.GetString("LoserBracketTreeTab");
     }
 
     private void UpdateButtonTexts()
@@ -131,12 +152,24 @@ public class TournamentTabTranslationManager
             FinalsMatchesDataGrid.Columns[2].Header = _localizationService.GetString("Status") ?? "Status";
         }
 
-        if (KnockoutMatchesDataGrid?.Columns.Count >= 4)
+        // ✅ ERWEITERT: KO DataGrids mit Freilos-Spalte
+        if (KnockoutMatchesDataGrid?.Columns.Count >= 5)
         {
-            KnockoutMatchesDataGrid.Columns[0].Header = _localizationService.GetString("Round") ?? "Runde";
-            KnockoutMatchesDataGrid.Columns[1].Header = _localizationService.GetString("Match") ?? "Match";
-            KnockoutMatchesDataGrid.Columns[2].Header = _localizationService.GetString("Result");
-            KnockoutMatchesDataGrid.Columns[3].Header = _localizationService.GetString("Status") ?? "Status";
+            KnockoutMatchesDataGrid.Columns[0].Header = _localizationService.GetString("RoundColumn") ?? "Runde";
+            KnockoutMatchesDataGrid.Columns[1].Header = _localizationService.GetString("MatchColumn") ?? "Match";
+            KnockoutMatchesDataGrid.Columns[2].Header = _localizationService.GetString("ResultColumn") ?? "Ergebnis";
+            KnockoutMatchesDataGrid.Columns[3].Header = _localizationService.GetString("StatusColumn") ?? "Status";
+            KnockoutMatchesDataGrid.Columns[4].Header = _localizationService.GetString("ByeColumn") ?? "Freilos";
+        }
+
+        // ✅ NEU: Loser Bracket DataGrid
+        if (LoserBracketDataGrid?.Columns.Count >= 5)
+        {
+            LoserBracketDataGrid.Columns[0].Header = _localizationService.GetString("RoundColumn") ?? "Runde";
+            LoserBracketDataGrid.Columns[1].Header = _localizationService.GetString("MatchColumn") ?? "Match";
+            LoserBracketDataGrid.Columns[2].Header = _localizationService.GetString("ResultColumn") ?? "Ergebnis";
+            LoserBracketDataGrid.Columns[3].Header = _localizationService.GetString("StatusColumn") ?? "Status";
+            LoserBracketDataGrid.Columns[4].Header = _localizationService.GetString("ByeColumn") ?? "Freilos";
         }
 
         if (StandingsDataGrid?.Columns.Count >= 6)
@@ -148,5 +181,19 @@ public class TournamentTabTranslationManager
             StandingsDataGrid.Columns[4].Header = _localizationService.GetString("Sets");
             StandingsDataGrid.Columns[5].Header = _localizationService.GetString("Legs");
         }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Aktualisiert KO-Tab spezifische UI-Elemente
+    /// </summary>
+    private void UpdateKnockoutSpecificElements()
+    {
+        // Header-Texte für KO-Bereiche
+        if (KOParticipantsHeaderText != null)
+            KOParticipantsHeaderText.Text = _localizationService.GetString("KOParticipantsHeader");
+        if (WinnerBracketHeaderText != null)
+            WinnerBracketHeaderText.Text = _localizationService.GetString("WinnerBracketHeader");
+        if (LoserBracketHeaderText != null)
+            LoserBracketHeaderText.Text = _localizationService.GetString("LoserBracketHeader");
     }
 }
