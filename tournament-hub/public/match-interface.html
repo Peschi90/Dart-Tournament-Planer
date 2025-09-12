@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>?? Match Interface - Tournament Hub</title>
+    <title>Match Interface - Tournament Hub</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
@@ -445,7 +445,7 @@
                     </div>
 
                     <div class="score-section">
-                        <div class="score-title">?? Match-Ergebnis eingeben</div>
+                        <div class="score-title">Match-Ergebnis eingeben</div>
 
                         <div class="score-inputs">
                             <div class="score-input-group">
@@ -577,9 +577,9 @@
                 `Match ${match.id || matchId}`;
 
             document.getElementById('player1Name').textContent =
-                match.player1 ? .name || match.player1Name || 'Spieler 1';
+                (match.player1 && match.player1.name) || match.player1Name || 'Spieler 1';
             document.getElementById('player2Name').textContent =
-                match.player2 ? .name || match.player2Name || 'Spieler 2';
+                (match.player2 && match.player2.name) || match.player2Name || 'Spieler 2';
 
             // Status aktualisieren
             updateMatchStatus(match.status);
@@ -603,7 +603,7 @@
 
             // Gewinner markieren
             if (match.winner) {
-                const winnerCard = match.winner.name === match.player1 ? .name ?
+                const winnerCard = match.winner.name === (match.player1 && match.player1.name) ?
                     'player1Card' : 'player2Card';
                 document.getElementById(winnerCard).classList.add('winner');
             }

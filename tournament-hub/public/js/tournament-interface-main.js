@@ -1,5 +1,19 @@
 ﻿// tournament-interface-main.js - Main initialization and event handlers
 
+/**
+ * Get translation helper
+ */
+function t(key, params = {}) {
+    if (window.i18n && window.i18n.t) {
+        return window.i18n.t(key, params);
+    }
+    if (window.I18nManager && window.I18nManager.t) {
+        return window.I18nManager.t(key, params);
+    }
+    console.warn(`🌐 t() called but i18n not available for key: ${key}`);
+    return key; // Fallback if i18n not available
+}
+
 // Get tournament ID from URL
 const pathParts = window.location.pathname.split('/');
 if (pathParts.length >= 3 && pathParts[1] === 'tournament') {
@@ -16,33 +30,50 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Tournament Interface loading for:', tournamentId);
     console.log('🔍 Current URL:', window.location.href);
     console.log('🔍 Tournament ID extracted:', tournamentId);
-    
+
     // Check if all required elements exist
     const requiredElements = [
-        'tournamentName', 'tournamentMeta', 'connectionIndicator', 
+        'tournamentName', 'tournamentMeta', 'connectionIndicator',
         'connectionText', 'classSelector', 'classSelect', 'loadClassMatches', 'matchContainer'
     ];
-    
+
     const missingElements = requiredElements.filter(id => !document.getElementById(id));
     if (missingElements.length > 0) {
         console.error('❌ Missing required elements:', missingElements);
     } else {
         console.log('✅ All required DOM elements found');
     }
-    
+
+    // 🌐 Setup i18n language change listener
+    if (window.i18n) {
+        window.i18n.onLanguageChange((language) => {
+            console.log('🌐 [TOURNAMENT] Language changed to:', language);
+            // Re-apply translations to all dynamically generated content
+            setTimeout(() => {
+                if (window.applyTranslationsToElement) {
+                    window.applyTranslationsToElement(document.body);
+                }
+                // Re-translate match cards and dynamic content
+                if (window.refreshDisplayTranslations) {
+                    window.refreshDisplayTranslations();
+                }
+            }, 100);
+        });
+    }
+
     // Initialize connections
     initializeSocket();
-    
+
     // Load data with delay to ensure DOM is ready
     setTimeout(() => {
         console.log('🔄 Starting tournament data loading...');
         loadTournamentData();
     }, 100);
-    
+
     // Klassen-Event-Handler
     const loadClassButton = document.getElementById('loadClassMatches');
     const classSelect = document.getElementById('classSelect');
-    
+
     if (loadClassButton) {
         loadClassButton.addEventListener('click', function() {
             window.currentClassId = classSelect.value || null;
@@ -53,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.warn('⚠️ Load class button not found');
     }
-    
+
     if (classSelect) {
         classSelect.addEventListener('change', function() {
             window.currentClassId = this.value || null;
@@ -65,22 +96,22 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         console.warn('⚠️ Class select element not found');
     }
-    
+
     console.log('✅ Tournament Interface initialization complete');
 });
 
 // Submit result from card with unique ID and enhanced UUID support
 function submitResultFromCard(uniqueCardId) {
     console.log(`🎯 [CARD_SUBMIT] Submitting result from card: ${uniqueCardId}`);
-    
+
     // Finde die Match-Card
     const cardElement = document.getElementById(uniqueCardId);
     if (!cardElement) {
         console.error(`❌ [CARD_SUBMIT] Card element not found: ${uniqueCardId}`);
-        showNotification(`❌ Fehler: Match-Card nicht gefunden!`, 'error');
+        showNotification(t('tournamentInterface.messages.cardNotFound'), 'error');
         return;
     }
-    
+
     // 🔑 ERWEITERT: Extrahiere Match-Daten inklusive UUID aus data-Attributen
     const cardData = {
         matchId: cardElement.dataset.matchId,
@@ -96,7 +127,7 @@ function submitResultFromCard(uniqueCardId) {
         player2Name: cardElement.dataset.player2,
         uniqueCardId: uniqueCardId
     };
-    
+
     console.log(`🔑 [CARD_SUBMIT] Card UUID information:`, {
         matchId: cardData.matchId,
         matchUuid: cardData.matchUuid,
@@ -104,7 +135,7 @@ function submitResultFromCard(uniqueCardId) {
         hasUuid: cardData.hasUuid,
         finalIdentifier: cardData.hasUuid ? cardData.matchUuid : cardData.matchId
     });
-    
+
     // 🎮 ERWEITERT: Extrahiere Game Rules direkt aus der Card
     let cardGameRules = null;
     try {
@@ -116,9 +147,9 @@ function submitResultFromCard(uniqueCardId) {
     } catch (error) {
         console.warn(`⚠️ [CARD_SUBMIT] Could not parse game rules from card:`, error);
     }
-    
+
     console.log(`📊 [CARD_SUBMIT] Card data extracted:`, cardData);
-    
+
     // 🔑 ERWEITERT: Finde entsprechendes Match-Objekt mit UUID-Priorität
     const match = window.matches.find(m => {
         // Priorität 1: UUID-basierte Suche
@@ -129,22 +160,22 @@ function submitResultFromCard(uniqueCardId) {
                 return true;
             }
         }
-        
+
         // Priorität 2: Numerische ID-basierte Suche
         const mId = m.matchId || m.id || m.Id;
         const mClassId = m.classId || m.ClassId;
         const mMatchType = m.matchType || m.MatchType || 'Group';
-        return mId == cardData.matchId && 
-               mClassId == cardData.classId && 
-               mMatchType === cardData.matchType;
+        return mId == cardData.matchId &&
+            mClassId == cardData.classId &&
+            mMatchType === cardData.matchType;
     });
-    
+
     if (!match) {
         console.error(`❌ [CARD_SUBMIT] No matching match object found for card data:`, cardData);
-        showNotification(`❌ Fehler: Match-Daten inkonsistent!`, 'error');
+        showNotification(t('tournamentInterface.messages.dataInconsistent'), 'error');
         return;
     }
-    
+
     console.log(`✅ [CARD_SUBMIT] Match object found:`, {
         matchId: match.matchId || match.id,
         uniqueId: match.uniqueId || match.UniqueId,
@@ -152,10 +183,10 @@ function submitResultFromCard(uniqueCardId) {
         player1: match.player1 || match.Player1,
         player2: match.player2 || match.Player2
     });
-    
+
     // 🎮 ERWEITERT: Bestimme Game Rules mit Priorität auf Card-Daten
     let gameRule = null;
-    
+
     // 1. Priorität: Game Rules aus der Card (bereits verarbeitet)
     if (cardGameRules) {
         gameRule = cardGameRules;
@@ -171,19 +202,20 @@ function submitResultFromCard(uniqueCardId) {
         gameRule = getMatchSpecificGameRules(match, cardData.matchType, cardData.classId, cardData.className);
         console.log(`🎮 [CARD_SUBMIT] Using determined match-specific game rules:`, gameRule);
     }
-    
+
     const playWithSets = gameRule.playWithSets !== false;
-    
+
     // Extrahiere Eingabewerte
-    let p1Sets = 0, p2Sets = 0;
+    let p1Sets = 0,
+        p2Sets = 0;
     const p1Legs = parseInt(document.getElementById(`p1Legs_${uniqueCardId}`).value) || 0;
     const p2Legs = parseInt(document.getElementById(`p2Legs_${uniqueCardId}`).value) || 0;
-    
+
     if (playWithSets) {
         p1Sets = parseInt(document.getElementById(`p1Sets_${uniqueCardId}`).value) || 0;
         p2Sets = parseInt(document.getElementById(`p2Sets_${uniqueCardId}`).value) || 0;
     }
-    
+
     const notes = document.getElementById(`notes_${uniqueCardId}`).value.trim();
 
     console.log(`📊 [CARD_SUBMIT] Input values from card ${uniqueCardId}:`);
@@ -195,10 +227,10 @@ function submitResultFromCard(uniqueCardId) {
     // 🔑 ERWEITERT: Result-Objekt mit vollständigen UUID- und Game Rules-Informationen
     const result = {
         // 🔑 PRIMÄRE UUID-IDENTIFIKATION (für Match-Submission)
-        matchId: cardData.hasUuid ? cardData.matchUuid : cardData.matchId,    // Verwende UUID wenn verfügbar
-        uniqueId: cardData.matchUuid,                                         // UUID explizit
-        numericMatchId: cardData.matchId,                                     // Numerische ID für Kompatibilität
-        
+        matchId: cardData.hasUuid ? cardData.matchUuid : cardData.matchId, // Verwende UUID wenn verfügbar
+        uniqueId: cardData.matchUuid, // UUID explizit
+        numericMatchId: cardData.matchId, // Numerische ID für Kompatibilität
+
         // Match-Ergebnis
         player1Sets: p1Sets,
         player1Legs: p1Legs,
@@ -208,7 +240,7 @@ function submitResultFromCard(uniqueCardId) {
         status: 'Finished',
         submittedAt: new Date().toISOString(),
         playWithSets: playWithSets,
-        
+
         // Match-Klassifizierung
         classId: cardData.classId,
         className: cardData.className,
@@ -217,7 +249,7 @@ function submitResultFromCard(uniqueCardId) {
         matchType: cardData.matchType,
         player1Name: cardData.player1Name,
         player2Name: cardData.player2Name,
-        
+
         // 🔑 UUID-System Metadata
         matchIdentification: {
             requestedId: cardData.matchId,
@@ -227,7 +259,7 @@ function submitResultFromCard(uniqueCardId) {
             submissionMethod: cardData.hasUuid ? 'uuid' : 'numericId',
             hasValidUuid: cardData.hasUuid
         },
-        
+
         // 🎯 UUID-System Information for Hub
         uuidSystem: {
             enabled: true,
@@ -241,7 +273,7 @@ function submitResultFromCard(uniqueCardId) {
                 hubIdentifier: match.hubIdentifier || null
             }
         },
-        
+
         // 🎮 ERWEITERT: Game Rules Information für Server-Side Processing
         gameRules: {
             name: gameRule.name,
@@ -273,7 +305,7 @@ function submitResultFromCard(uniqueCardId) {
     const submitBtn = document.getElementById(`submitBtn_${uniqueCardId}`);
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<div class="loading-spinner"></div> Übertrage...';
+        submitBtn.innerHTML = `<div class="loading-spinner"></div> ${t('tournamentInterface.messages.transferring')}`;
     }
 
     // 🔑 ERWEITERT: Submit via WebSocket mit UUID-Support

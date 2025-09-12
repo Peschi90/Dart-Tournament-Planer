@@ -1,0 +1,340 @@
+{
+    "language": {
+        "auto": "Automatic (Browser Language)",
+        "german": "German",
+        "english": "English",
+        "select": "Select Language"
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "save": "Save",
+        "delete": "Delete",
+        "edit": "Edit",
+        "close": "Close",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "refresh": "Refresh",
+        "submit": "Submit",
+        "reset": "Reset",
+        "yes": "Yes",
+        "no": "No",
+        "or": "or",
+        "group": "Group",
+        "round": "Round"
+    },
+    "dashboard": {
+        "title": "🎯 Tournament Hub Dashboard",
+        "subtitle": "Central management for all Dart tournaments",
+        "stats": {
+            "activeTournaments": "Active Tournaments",
+            "currently": "Currently registered",
+            "connectedClients": "Connected Clients",
+            "onlineParticipants": "Online participants",
+            "serverUptime": "Server Uptime",
+            "continuouslyOnline": "Continuously online",
+            "processedMatches": "Processed Matches",
+            "processedToday": "Processed today"
+        },
+        "tournaments": {
+            "title": "🏆 Active Tournaments",
+            "active": "Active Tournaments",
+            "noTournaments": "🎯 No active tournaments",
+            "waitingForRegistrations": "Waiting for Tournament Planner registrations...",
+            "hint": "Register a tournament via the Tournament Planner",
+            "autoUpdate": "Dashboard updates automatically every 30 seconds",
+            "loading": "Loading tournaments...",
+            "unnamedTournament": "Unnamed Tournament",
+            "status": {
+                "active": "Active",
+                "inactive": "Inactive"
+            },
+            "labels": {
+                "clients": "Clients",
+                "matches": "Matches",
+                "classes": "Classes",
+                "active": "Active",
+                "location": "Location",
+                "registered": "Registered",
+                "lastHeartbeat": "Last Heartbeat",
+                "unknown": "Unknown",
+                "never": "Never",
+                "justNow": "Just now",
+                "minutesAgo": "{{minutes}} min ago",
+                "hoursAgo": "{{hours}} hrs ago"
+            },
+            "actions": {
+                "join": "Join",
+                "view": "View"
+            }
+        },
+        "connection": {
+            "connected": "✅ Connected",
+            "connecting": "🔄 Connecting...",
+            "disconnected": "❌ Disconnected",
+            "error": "❌ Connection error",
+            "httpMode": "📡 HTTP Mode",
+            "retry": "🔄 Retry {{attempt}}/{{max}}"
+        },
+        "errors": {
+            "loadingData": "❌ Error loading data",
+            "connectionError": "Connection error",
+            "tryAgain": "Try again"
+        },
+        "footer": "Tournament Hub v1.0.0 | 🔒 Secure HTTPS connection | Automatic updates every 30 seconds"
+    },
+    "matchPage": {
+        "title": "Match Interface - Dart Tournament Hub",
+        "loading": {
+            "match": "Loading Match...",
+            "connecting": "Connecting to Tournament Hub...",
+            "matchData": "Loading match data..."
+        },
+        "connection": {
+            "connecting": "Connecting...",
+            "connected": "Connected",
+            "live": "LIVE",
+            "disconnected": "Connection lost",
+            "reconnecting": "Reconnecting...",
+            "error": "Connection error"
+        },
+        "sections": {
+            "gameRules": "Game Rules",
+            "matchInfo": "Match Information",
+            "playerList": "Players"
+        },
+        "match": {
+            "title": "Match {{matchId}}",
+            "status": {
+                "label": "Status",
+                "pending": "Pending",
+                "NotStarted": "Not started",
+                "inprogress": "In progress",
+                "finished": "Finished",
+                "bye": "Bye"
+            },
+            "players": {
+                "player": "Player",
+                "placeholder": "Player {{number}}",
+                "sets": "Sets",
+                "legs": "Legs",
+                "vs": "vs"
+            },
+            "sets": "Sets",
+            "legs": "Legs",
+            "startTime": "Started",
+            "endTime": "Finished",
+            "result": {
+                "title": "Match Result",
+                "winner": "Winner: {{player}}",
+                "finalScore": "Final Score",
+                "completed": "Match completed"
+            }
+        },
+        "forms": {
+            "resultForm": {
+                "title": "Enter Result",
+                "legsSection": "Legs (Total)",
+                "gameRulesInfo": "Game is played with {{gameMode}} ({{gamePoints}} points)",
+                "player1Sets": "{{player}} Sets",
+                "player2Sets": "{{player}} Sets",
+                "player1Legs": "{{player}} Legs",
+                "player2Legs": "{{player}} Legs",
+                "notes": "Notes (optional)",
+                "notesPlaceholder": "Additional information about the match...",
+                "submit": "Submit Result",
+                "submitting": "Submitting result..."
+            },
+            "validation": {
+                "invalidSets": "Invalid set count",
+                "invalidLegs": "Invalid leg count",
+                "noWinner": "No clear winner",
+                "required": "Required field"
+            }
+        },
+        "dartScoring": {
+            "title": "🎯 Dart Scoring",
+            "description": "Open the interactive Dart Scoring System",
+            "openButton": "🎯 Open Dart Scoring"
+        },
+        "navigation": {
+            "backToTournament": "← Back to Tournament"
+        },
+        "errors": {
+            "loadingMatch": "Error loading match",
+            "connectionFailed": "Connection to server failed",
+            "submissionFailed": "Error submitting result",
+            "invalidParameters": "Invalid URL parameters",
+            "matchIdNotAvailable": "Error: Match ID not available",
+            "noValidMatchId": "No valid match ID found",
+            "incompleteMatchData": "Error: Incomplete match data for Dart Scoring",
+            "openingDartScoring": "Error opening Dart Scoring page"
+        },
+        "messages": {
+            "tournamentId": "Tournament ID",
+            "matchId": "Match ID"
+        },
+        "gameRules": {
+            "gameMode": "Game Mode",
+            "gamePoints": "Game Points",
+            "finishMode": "Finish Mode",
+            "sets": "Sets",
+            "legs": "Legs",
+            "setsToWin": "Sets to Win",
+            "legsToWin": "Legs to Win",
+            "legsPerSet": "Legs per Set",
+            "maxThrows": "Max. Throws",
+            "checkoutMode": "Checkout Mode",
+            "description": "Rule Description",
+            "bestOf": "Best of",
+            "legsOnly": "Legs Only",
+            "gameModeInfo": "📋 Game Mode: Sets (Best of {{setsToWin}}, Legs per Set: {{legsToWin}})",
+            "legsOnlyInfo": "📋 Game Mode: Legs Only (Best of {{legsToWin}})"
+        }
+    },
+    "tournamentInterface": {
+        "title": "🎯 Tournament Interface - Dart Tournament Hub",
+        "loading": {
+            "connecting": "Connecting to Tournament Hub...",
+            "matchData": "Loading tournament data...",
+            "tournament": "🎯 Loading Tournament..."
+        },
+        "connection": {
+            "live": "LIVE",
+            "connecting": "Connecting...",
+            "connected": "Connected",
+            "disconnected": "Disconnected"
+        },
+        "classes": {
+            "selector": "Class:",
+            "allClasses": "All Classes",
+            "load": "📋 Load",
+            "players": "Players",
+            "class": "Class"
+        },
+        "navigation": {
+            "backToSelection": "Back to Tournament Selection"
+        },
+        "tournament": {
+            "players": "Players",
+            "matches": "Matches",
+            "classes": "Classes",
+            "unknownLocation": "Unknown Location"
+        },
+        "players": {
+            "player": "Player"
+        },
+        "matches": {
+            "noMatches": "No matches found",
+            "retryButton": "🔄 Retry",
+            "debugButton": "🔧 Debug",
+            "refreshButton": "🔄 Refresh",
+            "openMatchPage": "📄 Open Match Page",
+            "enterResult": "🎯 Enter Result",
+            "submitResult": "🎯 Submit Result"
+        },
+        "messages": {
+            "loadingMatchesError": "Error loading matches",
+            "noMatchesDescription": "No matches found for this selection",
+            "syncDescription": "Matches are synchronized from Tournament Planner...",
+            "tournamentId": "Tournament-ID",
+            "tournamentIdMissing": "Tournament ID not found - cannot open match page",
+            "matchIdMissing": "Match ID not provided - cannot open match page",
+            "openingMatchPage": "Error opening match page"
+        },
+        "status": {
+            "pending": "Pending",
+            "notstarted": "Not started",
+            "inprogress": "In progress",
+            "finished": "Finished",
+            "bye": "Bye"
+        },
+        "gameRules": {
+            "points": "Points",
+            "legs": "Legs",
+            "sets": "Sets",
+            "finishMode": {
+                "DoubleOut": "DoubleOut",
+                "SingleOut": "SingleOut",
+                "StraightOut": "StraightOut"
+            },
+            "legsOnly": "LEGS ONLY (no Sets)",
+            "knockout": "Knockout Special Rules",
+            "groupPhase": "Group Phase",
+            "finalRound": "Final Round",
+            "grandFinal": "Grand Final",
+            "koFinal": "KO Final",
+            "koSemifinal": "KO Semifinal",
+            "koQuarterfinal": "KO Quarterfinal",
+            "koBest16": "KO Best 16",
+            "koBest32": "KO Best 32",
+            "koBest64": "KO Best 64",
+            "koWinner": "KO Winner",
+            "loserFinal": "Loser Final",
+            "koLoser": "KO Loser",
+            "standard": "Standard",
+            "onlyLegsNoSets": "LEGS ONLY (no Sets)",
+            "knockoutSpecialRules": "Knockout Special Rules"
+        },
+        "matchTypes": {
+            "group": "Group",
+            "finals": "Finals",
+            "finalRound": "Final Round",
+            "koBest64": "K.O. Best 64",
+            "koBest32": "K.O. Best 32",
+            "koBest16": "K.O. Best 16",
+            "koQuarterfinal": "K.O. Quarterfinal",
+            "koSemifinal": "K.O. Semifinal",
+            "koFinal": "K.O. Final",
+            "koGrandFinal": "K.O. Grand Final",
+            "koLoserRound1": "K.O. Loser Round 1",
+            "koLoserRound2": "K.O. Loser Round 2",
+            "koLoserRound3": "K.O. Loser Round 3",
+            "koLoserRound4": "K.O. Loser Round 4",
+            "koLoserRound5": "K.O. Loser Round 5",
+            "koLoserRound6": "K.O. Loser Round 6",
+            "koLoserFinal": "K.O. Loser Final",
+            "koWinnerBracket": "K.O. Winner Bracket",
+            "koLoserBracket": "K.O. Loser Bracket"
+        },
+        "match": {
+            "match": "Match",
+            "uuidCompatible": "UUID-compatible",
+            "completed": "Match completed",
+            "rules": "Rules"
+        },
+        "scoring": {
+            "sets": "Sets",
+            "legs": "Legs"
+        },
+        "form": {
+            "enterResultFor": "Enter result for",
+            "max": "max",
+            "required": "required",
+            "setsFor": "Sets for",
+            "setsToWin": "Sets to win",
+            "legsFor": "Legs for",
+            "legsToWin": "Legs to win",
+            "set": "Set",
+            "notesOptional": "Notes (optional)",
+            "matchDetailsPlaceholder": "Match details, special events...",
+            "submitResult": "Submit Result",
+            "openMatchPage": "Open Match Page",
+            "switchToMatchPage": "Switch to individual match page",
+            "numericId": "numeric ID",
+            "legsOnlyMode": "LEGS ONLY MODE",
+            "thisMatchUses": "This match uses the rule",
+            "onlyLegsCountedNoSets": "only legs are counted (no sets)"
+        },
+        "forms": {
+            "legsMode": "LEGS ONLY MODE",
+            "legsRequired": "required",
+            "notes": "Notes (optional)",
+            "notesPlaceholder": "Match details, special events..."
+        }
+    }
+}

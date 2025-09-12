@@ -864,9 +864,9 @@ class DartScoringUI {
         // Back to match page
         this.elements.backToMatch.addEventListener('click', (e) => {
             e.preventDefault();
-            
+
             let matchUrl;
-            
+
             // Prefer simplified URL for UUID matches when no tournament or tournament=null
             if (isUuidSystem && (!tournamentId || tournamentId === 'null' || tournamentId === null)) {
                 // Use new simplified match URL format
@@ -882,10 +882,10 @@ class DartScoringUI {
                 console.log('🎯 [DART-SCORING] Using fallback simplified match URL:', matchUrl);
             } else {
                 console.error('❌ [DART-SCORING] No match ID available for navigation');
-                alert('Fehler: Match-ID nicht verfügbar');
+                alert(t('dartScoring.errors.matchIdNotAvailable'));
                 return;
             }
-            
+
             window.location.href = matchUrl;
         });
 
@@ -896,7 +896,7 @@ class DartScoringUI {
                 window.location.href = `/tournament-interface.html?tournament=${tournamentId}`;
             } else {
                 console.error('❌ [DART-SCORING] No tournament ID available for navigation');
-                alert('Fehler: Tournament-ID nicht verfügbar');
+                alert(t('dartScoring.errors.tournamentIdNotAvailable'));
             }
         });
     }
@@ -1886,7 +1886,7 @@ class DartScoringUI {
         } else {
             // Fallback if completion module not available
             console.warn('⚠️ [DART-UI] Completion module not available - showing fallback');
-            alert('🏁 Match beendet!\n\nDas Ergebnis wurde erfolgreich übertragen.\nDie Seite kann nun geschlossen werden.');
+            alert(t('dartScoring.match.finished'));
         }
     }
 

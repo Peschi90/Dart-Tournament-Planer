@@ -231,13 +231,13 @@ public class Group : INotifyPropertyChanged
         
         if (!MatchesGenerated)
         {
-            System.Diagnostics.Debug.WriteLine($"  Group {Name}: No matches generated");
+            //System.Diagnostics.Debug.WriteLine($"  Group {Name}: No matches generated");
             return new GroupCompletionStatus(false, "Keine Spiele generiert", 0, 0);
         }
 
         if (Matches.Count == 0)
         {
-            System.Diagnostics.Debug.WriteLine($"  Group {Name}: No matches found");
+            //System.Diagnostics.Debug.WriteLine($"  Group {Name}: No matches found");
             return new GroupCompletionStatus(false, "Keine Spiele vorhanden", 0, 0);
         }
 
@@ -246,9 +246,9 @@ public class Group : INotifyPropertyChanged
         var inProgressMatches = Matches.Count(m => m.Status == MatchStatus.InProgress);
         var notStartedMatches = Matches.Count(m => m.Status == MatchStatus.NotStarted);
 
-        System.Diagnostics.Debug.WriteLine($"  Group {Name}: {finishedMatches}/{totalMatches} finished");
-        System.Diagnostics.Debug.WriteLine($"    - InProgress: {inProgressMatches}");
-        System.Diagnostics.Debug.WriteLine($"    - NotStarted: {notStartedMatches}");
+        //System.Diagnostics.Debug.WriteLine($"  Group {Name}: {finishedMatches}/{totalMatches} finished");
+        //System.Diagnostics.Debug.WriteLine($"    - InProgress: {inProgressMatches}");
+        //System.Diagnostics.Debug.WriteLine($"    - NotStarted: {notStartedMatches}");
 
         //// Detaillierte Aufschlüsselung für Debugging
         //foreach (var match in Matches)
@@ -453,6 +453,16 @@ public class Group : INotifyPropertyChanged
 
     public override string ToString()
     {
+        var localizationService = Match.LocalizationService;
+
+        if (localizationService != null)
+        {
+            var playersText = localizationService.GetString("PlayersPlural") ?? "Spieler";
+            var matchesText = localizationService.GetString("MatchesPlural") ?? "Spiele";
+            return $"{Name} ({Players.Count} {playersText}, {Matches.Count} {matchesText})";
+        }
+
+        // Fallback zu deutschen Texten wenn LocalizationService nicht verfügbar
         return $"{Name} ({Players.Count} Spieler, {Matches.Count} Spiele)";
     }
 

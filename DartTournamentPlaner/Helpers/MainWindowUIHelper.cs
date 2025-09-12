@@ -223,7 +223,7 @@ public class MainWindowUIHelper
         MenuItem fileMenuItem, MenuItem newMenuItem, MenuItem openMenuItem, 
         MenuItem saveMenuItem, MenuItem saveAsMenuItem, MenuItem printMenuItem, MenuItem exitMenuItem,
         MenuItem viewMenuItem, MenuItem overviewModeMenuItem,
-        MenuItem apiMenuItem, MenuItem startApiMenuItem, MenuItem stopApiMenuItem, MenuItem openApiDocsMenuItem,
+        //MenuItem apiMenuItem, MenuItem startApiMenuItem, MenuItem stopApiMenuItem, MenuItem openApiDocsMenuItem,
         MenuItem tournamentHubMenuItem, MenuItem registerWithHubMenuItem, MenuItem unregisterFromHubMenuItem,
         MenuItem showJoinUrlMenuItem, MenuItem manualSyncMenuItem, MenuItem hubSettingsMenuItem,
         MenuItem licenseMenuItem, MenuItem licenseStatusMenuItem, MenuItem activateLicenseMenuItem, 
@@ -245,10 +245,10 @@ public class MainWindowUIHelper
         overviewModeMenuItem.Header = _localizationService.GetString("TournamentOverview");
         
         // API-Menü
-        apiMenuItem.Header = "🌐 " + (_localizationService.GetString("API") ?? "API");
-        startApiMenuItem.Header = "▶️ " + (_localizationService.GetString("StartAPI") ?? "API starten");
-        stopApiMenuItem.Header = "⏹️ " + (_localizationService.GetString("StopAPI") ?? "API stoppen");
-        openApiDocsMenuItem.Header = "📖 " + (_localizationService.GetString("APIDocumentation") ?? "API Dokumentation");
+        //apiMenuItem.Header = "🌐 " + (_localizationService.GetString("API") ?? "API");
+        //startApiMenuItem.Header = "▶️ " + (_localizationService.GetString("StartAPI") ?? "API starten");
+        //stopApiMenuItem.Header = "⏹️ " + (_localizationService.GetString("StopAPI") ?? "API stoppen");
+        //openApiDocsMenuItem.Header = "📖 " + (_localizationService.GetString("APIDocumentation") ?? "API Dokumentation");
         
         // Tournament Hub-Menü
         tournamentHubMenuItem.Header = "🎯 " + (_localizationService.GetString("TournamentHub") ?? "Tournament Hub");

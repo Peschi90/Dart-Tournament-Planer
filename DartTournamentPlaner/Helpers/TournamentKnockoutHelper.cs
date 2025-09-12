@@ -280,7 +280,8 @@ public static class TournamentKnockoutHelper
         bool isLoserBracket,
         LocalizationService? localizationService = null)
     {
-        canvas.Background = System.Windows.Media.Brushes.White;
+        // Theme-bewusster Hintergrund
+        canvas.Background = GetThemeBrush("BackgroundBrush", System.Windows.Media.Brushes.White);
 
         if (matches.Count == 0)
         {
@@ -292,7 +293,7 @@ public static class TournamentKnockoutHelper
             return;
         }
 
-        // Add title
+        // Add title mit Theme-Unterstützung
         var titleText = new System.Windows.Controls.TextBlock
         {
             Text = isLoserBracket ? "🥈 " + (localizationService?.GetString("LoserBracketTree") ?? "Loser Bracket")
@@ -300,8 +301,8 @@ public static class TournamentKnockoutHelper
             FontSize = 24,
             FontWeight = System.Windows.FontWeights.Bold,
             Foreground = isLoserBracket 
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 92, 92))
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34)),
+                ? GetThemeBrush("ErrorBrush", new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 92, 92)))
+                : GetThemeBrush("SuccessBrush", new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34))),
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center
         };
         
@@ -309,13 +310,13 @@ public static class TournamentKnockoutHelper
         System.Windows.Controls.Canvas.SetTop(titleText, 10);
         canvas.Children.Add(titleText);
 
-        // Simple message for now
+        // Simple message for now mit Theme-Unterstützung
         var infoText = new System.Windows.Controls.TextBlock
         {
             Text = localizationService?.GetString("InteractiveTournamentTree") ?? "Interaktiver Turnierbaum wird über TournamentClass erstellt",
             FontSize = 14,
             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-            Foreground = System.Windows.Media.Brushes.DarkGray,
+            Foreground = GetThemeBrush("SecondaryTextBrush", System.Windows.Media.Brushes.DarkGray),
             Margin = new System.Windows.Thickness(0, 50, 0, 0)
         };
         
@@ -328,6 +329,29 @@ public static class TournamentKnockoutHelper
         canvas.Height = Math.Max(700, 600);
         canvas.MinWidth = canvas.Width;
         canvas.MinHeight = canvas.Height;
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Theme-Ressourcen zu holen
+    /// </summary>
+    private static object? GetThemeResource(string resourceKey)
+    {
+        try
+        {
+            return System.Windows.Application.Current?.Resources[resourceKey];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Brush aus Theme-Ressourcen zu holen
+    /// </summary>
+    private static System.Windows.Media.Brush GetThemeBrush(string resourceKey, System.Windows.Media.Brush fallback)
+    {
+        return GetThemeResource(resourceKey) as System.Windows.Media.Brush ?? fallback;
     }
 
     /// <summary>

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
@@ -13,11 +14,12 @@ namespace DartTournamentPlaner.Helpers;
 /// <summary>
 /// UI Manager für TournamentTab - verwaltet alle UI-Updates und -Displays
 /// </summary>
-public class TournamentTabUIManager
+public class TournamentTabUIManager : IDisposable
 {
     private readonly TournamentClass _tournamentClass;
     private readonly LocalizationService _localizationService;
     private readonly Dispatcher _dispatcher;
+    private bool _disposed = false;
 
     // UI Elements - werden vom TournamentTab gesetzt
     public ListBox? GroupsListBox { get; set; }
@@ -53,6 +55,76 @@ public class TournamentTabUIManager
         _tournamentClass = tournamentClass;
         _localizationService = localizationService;
         _dispatcher = dispatcher;
+        
+        // Theme-Change Event abonnieren
+        if (App.ThemeService != null)
+        {
+            App.ThemeService.ThemeChanged += OnThemeChanged;
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Subscribed to ThemeChanged event");
+        }
+    }
+
+    /// <summary>
+    /// Event-Handler für Theme-Änderungen
+    /// </summary>
+    private void OnThemeChanged(object? sender, string newTheme)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Theme changed to: {newTheme} - refreshing tournament trees");
+            
+            _dispatcher.BeginInvoke(() =>
+            {
+                try
+                {
+                    // Refresh die Tournament Trees wenn wir in der KO-Phase sind
+                    if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Refreshing tournament trees for KO phase");
+                        DrawBracketTree();
+                        DrawLoserBracketTree();
+                    }
+                    else
+                    {
+                        // Auch für andere Phasen die Canvas-Hintergründe aktualisieren
+                        UpdateCanvasBackgrounds();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Error in OnThemeChanged dispatcher action: {ex.Message}");
+                }
+            }, DispatcherPriority.Background);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Error in OnThemeChanged: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Aktualisiert die Canvas-Hintergründe basierend auf dem aktuellen Theme
+    /// </summary>
+    private void UpdateCanvasBackgrounds()
+    {
+        try
+        {
+            if (BracketCanvas != null)
+            {
+                BracketCanvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
+                System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Updated BracketCanvas background");
+            }
+            
+            if (LoserBracketCanvas != null)
+            {
+                LoserBracketCanvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
+                System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Updated LoserBracketCanvas background");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Error updating canvas backgrounds: {ex.Message}");
+        }
     }
 
     public void UpdateUI()
@@ -698,18 +770,77 @@ public class TournamentTabUIManager
             if (BracketCanvas != null)
             {
                 BracketCanvas.Children.Clear();
-                BracketCanvas.Background = System.Windows.Media.Brushes.White;
+                // Theme-bewusster Hintergrund statt fest auf Weiß
+                BracketCanvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
             }
             
             if (LoserBracketCanvas != null)
             {
                 LoserBracketCanvas.Children.Clear();
-                LoserBracketCanvas.Background = System.Windows.Media.Brushes.White;
+                // Theme-bewusster Hintergrund statt fest auf Weiß
+                LoserBracketCanvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"ClearKnockoutCanvases: ERROR: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Theme-Ressourcen zu holen
+    /// </summary>
+    private object? GetThemeResource(string resourceKey)
+    {
+        try
+        {
+            return Application.Current?.Resources[resourceKey];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Brush aus Theme-Ressourcen zu holen
+    /// </summary>
+    private Brush GetThemeBrush(string resourceKey, Brush fallback)
+    {
+        return GetThemeResource(resourceKey) as Brush ?? fallback;
+    }
+
+    /// <summary>
+    /// Dispose-Pattern für ordnungsgemäße Ressourcenverwaltung
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Geschützte Dispose-Methode
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed && disposing)
+        {
+            try
+            {
+                // Theme-Change Event abmelden
+                if (App.ThemeService != null)
+                {
+                    App.ThemeService.ThemeChanged -= OnThemeChanged;
+                    System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Unsubscribed from ThemeChanged event");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TournamentTabUIManager] Error during dispose: {ex.Message}");
+            }
+            
+            _disposed = true;
         }
     }
 }

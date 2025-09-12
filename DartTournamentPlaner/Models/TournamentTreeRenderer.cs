@@ -14,7 +14,7 @@ namespace DartTournamentPlaner.Models;
 
 /// <summary>
 /// Verantwortlich für das Rendering von interaktiven Turnierbäumen
-/// Erstellt Canvas-basierte UI-Elemente für K.O.-Turniere
+/// Erstellt Canvas-basierte UI-Elemente für K.O.-Turniere mit Theme-Unterstützung
 /// </summary>
 public class TournamentTreeRenderer
 {
@@ -55,8 +55,8 @@ public class TournamentTreeRenderer
                 return targetCanvas;
             }
 
-            // Set canvas properties
-            targetCanvas.Background = System.Windows.Media.Brushes.White; // Weißer Hintergrund anstatt Gradient
+            // Set canvas properties mit Theme-Unterstützung
+            targetCanvas.Background = GetThemeResource("BackgroundBrush") as Brush ?? Brushes.White;
             targetCanvas.MinWidth = 1200;
             targetCanvas.MinHeight = 800;
 
@@ -121,6 +121,83 @@ public class TournamentTreeRenderer
         }
     }
 
+    /// <summary>
+    /// Hilfsmethode um Theme-Ressourcen zu holen
+    /// </summary>
+    private object? GetThemeResource(string resourceKey)
+    {
+        try
+        {
+            return Application.Current?.Resources[resourceKey];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Brush aus Theme-Ressourcen zu holen
+    /// </summary>
+    private Brush GetThemeBrush(string resourceKey, Brush fallback)
+    {
+        return GetThemeResource(resourceKey) as Brush ?? fallback;
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Color aus Theme-Ressourcen zu holen
+    /// </summary>
+    private Color GetThemeColor(string resourceKey, Color fallback)
+    {
+        var brush = GetThemeResource(resourceKey) as SolidColorBrush;
+        return brush?.Color ?? fallback;
+    }
+
+    /// <summary>
+    /// Hilfsmethode um eine kontraststarke Farbe für Gewinner-Text zu bekommen
+    /// </summary>
+    private Brush GetWinnerTextBrush()
+    {
+        // Für Gewinner verwenden wir eine besonders kontraststarke Farbe
+        // Im Dark Mode: helles Grün, im Light Mode: dunkles Grün
+        var isDarkMode = IsCurrentThemeDark();
+        
+        if (isDarkMode)
+        {
+            // Dark Mode: Verwende ein helles, kontraststarkes Grün
+            return new SolidColorBrush(Color.FromRgb(74, 222, 128)); // Helles Grün
+        }
+        else
+        {
+            // Light Mode: Verwende ein dunkles, kontraststarkes Grün
+            return new SolidColorBrush(Color.FromRgb(21, 128, 61)); // Dunkles Grün
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um zu erkennen ob das aktuelle Theme dunkel ist
+    /// </summary>
+    private bool IsCurrentThemeDark()
+    {
+        try
+        {
+            var backgroundBrush = GetThemeResource("BackgroundBrush") as SolidColorBrush;
+            if (backgroundBrush != null)
+            {
+                var color = backgroundBrush.Color;
+                // Berechne die Helligkeit (Luminanz) der Hintergrundfarbe
+                var luminance = (0.299 * color.R + 0.587 * color.G + 0.114 * color.B) / 255;
+                return luminance < 0.5; // Wenn Luminanz < 0.5, dann ist es ein dunkles Theme
+            }
+        }
+        catch
+        {
+            // Fallback
+        }
+        
+        return false; // Standardannahme: helles Theme
+    }
+
     private void CreateEmptyBracketMessage(Canvas canvas, bool isLoserBracket, LocalizationService? localizationService)
     {
         var messagePanel = new StackPanel
@@ -145,7 +222,7 @@ public class TournamentTreeRenderer
             FontSize = 24,
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = System.Windows.Media.Brushes.DarkGray
+            Foreground = GetThemeBrush("SecondaryTextBrush", Brushes.DarkGray)
         };
 
         var subText = new TextBlock
@@ -153,7 +230,7 @@ public class TournamentTreeRenderer
             Text = localizationService?.GetString("TournamentTreeWillShow") ?? "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
             FontSize = 16,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = System.Windows.Media.Brushes.Gray,
+            Foreground = GetThemeBrush("SecondaryTextBrush", Brushes.Gray),
             Margin = new Thickness(0, 20, 0, 0),
             TextWrapping = TextWrapping.Wrap,
             MaxWidth = 400
@@ -167,7 +244,7 @@ public class TournamentTreeRenderer
         Canvas.SetTop(messagePanel, 300);
         canvas.Children.Add(messagePanel);
 
-        canvas.Background = System.Windows.Media.Brushes.White; // Weißer Hintergrund anstatt Gradient
+        canvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
     }
 
     private void CreateBracketTitle(Canvas canvas, bool isLoserBracket, LocalizationService? localizationService)
@@ -180,12 +257,12 @@ public class TournamentTreeRenderer
             FontSize = 32,
             FontWeight = FontWeights.Bold,
             Foreground = isLoserBracket 
-                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(205, 92, 92))
-                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 139, 34)),
+                ? GetThemeBrush("ErrorBrush", new SolidColorBrush(Color.FromRgb(205, 92, 92)))
+                : GetThemeBrush("SuccessBrush", new SolidColorBrush(Color.FromRgb(34, 139, 34))),
             HorizontalAlignment = HorizontalAlignment.Center,
-            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            Effect = new DropShadowEffect
             {
-                Color = System.Windows.Media.Colors.Gray,
+                Color = GetThemeColor("SecondaryTextBrush", Colors.Gray),
                 Direction = 315,
                 ShadowDepth = 2,
                 BlurRadius = 4,
@@ -203,17 +280,17 @@ public class TournamentTreeRenderer
         var roundLabelBorder = new Border
         {
             Background = isLoserBracket 
-                ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(220, 255, 182, 193))
-                : new SolidColorBrush(System.Windows.Media.Color.FromArgb(220, 144, 238, 144)),
+                ? GetThemeBrush("ErrorBrush", new SolidColorBrush(Color.FromArgb(220, 255, 182, 193)))
+                : GetThemeBrush("SuccessBrush", new SolidColorBrush(Color.FromArgb(220, 144, 238, 144))),
             CornerRadius = new CornerRadius(20),
             Padding = new Thickness(20, 8, 20, 8),
             BorderBrush = isLoserBracket 
-                ? System.Windows.Media.Brushes.IndianRed
-                : System.Windows.Media.Brushes.ForestGreen,
+                ? GetThemeBrush("ErrorBrush", Brushes.IndianRed)
+                : GetThemeBrush("SuccessBrush", Brushes.ForestGreen),
             BorderThickness = new Thickness(3),
-            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            Effect = new DropShadowEffect
             {
-                Color = System.Windows.Media.Colors.Gray,
+                Color = GetThemeColor("SecondaryTextBrush", Colors.Gray),
                 Direction = 315,
                 ShadowDepth = 3,
                 BlurRadius = 5,
@@ -226,7 +303,7 @@ public class TournamentTreeRenderer
             Text = sampleMatch.RoundDisplay,
             FontWeight = FontWeights.Bold,
             FontSize = 18,
-            Foreground = System.Windows.Media.Brushes.DarkSlateGray,
+            Foreground = GetThemeBrush("TextBrush", Brushes.DarkSlateGray),
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
@@ -245,9 +322,9 @@ public class TournamentTreeRenderer
             CornerRadius = new CornerRadius(12),
             Margin = new Thickness(5),
             Cursor = System.Windows.Input.Cursors.Hand,
-            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            Effect = new DropShadowEffect
             {
-                Color = System.Windows.Media.Colors.Gray,
+                Color = GetThemeColor("SecondaryTextBrush", Colors.Gray),
                 Direction = 315,
                 ShadowDepth = 4,
                 BlurRadius = 6,
@@ -255,15 +332,15 @@ public class TournamentTreeRenderer
             }
         };
 
-        // Set background and border based on match status
+        // Set background and border based on match status with theme support
         SetMatchControlAppearance(border, match);
 
         // Create content grid mit WENIGER Zeilen (Match ID entfernt)
         var contentGrid = new Grid
         {
-            Background = System.Windows.Media.Brushes.Transparent 
+            Background = Brushes.Transparent 
         };
-        // NUR 2 Zeilen: Spieler-Bereich und Score/Status DC
+        // NUR 2 Zeilen: Spieler-Bereich und Score/Status
         contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Spieler bekommen mehr Platz
         contentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Score bleibt unten
 
@@ -288,9 +365,10 @@ public class TournamentTreeRenderer
             FontWeight = match.Winner?.Id == match.Player1?.Id ? FontWeights.Bold : FontWeights.Medium,
             HorizontalAlignment = HorizontalAlignment.Left,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            // Verbesserte Farb-Logik für bessere Lesbarkeit
             Foreground = match.Winner?.Id == match.Player1?.Id
-                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0))
-                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)),
+                ? GetWinnerTextBrush()
+                : GetThemeBrush("TextBrush", new SolidColorBrush(Color.FromRgb(30, 30, 30))),
             Margin = new Thickness(10, 2, 2, 0),
             TextAlignment = TextAlignment.Left,
             VerticalAlignment = VerticalAlignment.Top
@@ -304,7 +382,7 @@ public class TournamentTreeRenderer
             HorizontalAlignment = HorizontalAlignment.Center,
             FontStyle = FontStyles.Italic,
             FontWeight = FontWeights.Normal,
-            Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(128, 128, 128)),
+            Foreground = GetThemeBrush("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(128, 128, 128))),
             Margin = new Thickness(8, 0, 8, 0), // Horizontaler Abstand statt vertikaler
             TextAlignment = TextAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
@@ -319,9 +397,10 @@ public class TournamentTreeRenderer
             FontWeight = match.Winner?.Id == match.Player2?.Id ? FontWeights.Bold : FontWeights.Medium,
             HorizontalAlignment = HorizontalAlignment.Right,
             TextTrimming = TextTrimming.CharacterEllipsis,
+            // Verbesserte Farb-Logik für bessere Lesbarkeit
             Foreground = match.Winner?.Id == match.Player2?.Id
-                ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 100, 0))
-                : new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 30, 30)),
+                ? GetWinnerTextBrush()
+                : GetThemeBrush("TextBrush", new SolidColorBrush(Color.FromRgb(30, 30, 30))),
             Margin = new Thickness(2, 2, 10, 0),
             TextAlignment = TextAlignment.Right,
             VerticalAlignment = VerticalAlignment.Top
@@ -349,7 +428,7 @@ public class TournamentTreeRenderer
             Text = match.Status == MatchStatus.NotStarted ? "--:--" : match.ScoreDisplay,
             FontSize = 13, // Etwas größer
             FontWeight = FontWeights.Bold,
-            Foreground = System.Windows.Media.Brushes.DarkBlue,
+            Foreground = GetThemeBrush("AccentBrush", Brushes.DarkBlue),
             Margin = new Thickness(0, 0, 10, 0) // Mehr Abstand zum Status-Indikator
         };
 
@@ -363,11 +442,11 @@ public class TournamentTreeRenderer
 
         statusIndicator.Fill = match.Status switch
         {
-            MatchStatus.NotStarted => System.Windows.Media.Brushes.Gray,
-            MatchStatus.InProgress => System.Windows.Media.Brushes.Orange,
-            MatchStatus.Finished => System.Windows.Media.Brushes.Green,
-            MatchStatus.Bye => System.Windows.Media.Brushes.RoyalBlue,
-            _ => System.Windows.Media.Brushes.Gray
+            MatchStatus.NotStarted => GetThemeBrush("SecondaryTextBrush", Brushes.Gray),
+            MatchStatus.InProgress => GetThemeBrush("WarningBrush", Brushes.Orange),
+            MatchStatus.Finished => GetThemeBrush("SuccessBrush", Brushes.Green),
+            MatchStatus.Bye => GetThemeBrush("AccentBrush", Brushes.RoyalBlue),
+            _ => GetThemeBrush("SecondaryTextBrush", Brushes.Gray)
         };
 
         scorePanel.Children.Add(scoreText);
@@ -393,28 +472,34 @@ public class TournamentTreeRenderer
         switch (match.Status)
         {
             case MatchStatus.NotStarted:
-                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250));
-                border.BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(200, 200, 200));
+                border.Background = GetThemeBrush("SurfaceBrush", new SolidColorBrush(Color.FromRgb(248, 249, 250)));
+                border.BorderBrush = GetThemeBrush("BorderBrush", new SolidColorBrush(Color.FromRgb(200, 200, 200)));
                 border.BorderThickness = new Thickness(2);
                 break;
             case MatchStatus.InProgress:
-                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 248, 220));
-                border.BorderBrush = System.Windows.Media.Brushes.Orange;
+                // Verwende eine hellere Version der WarningBrush für den Hintergrund
+                var warningColor = GetThemeColor("WarningBrush", Color.FromRgb(251, 191, 36));
+                border.Background = new SolidColorBrush(Color.FromArgb(50, warningColor.R, warningColor.G, warningColor.B)); // 50 = ~20% Opazität
+                border.BorderBrush = GetThemeBrush("WarningBrush", Brushes.Orange);
                 border.BorderThickness = new Thickness(3);
                 break;
             case MatchStatus.Finished:
-                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(240, 255, 240));
-                border.BorderBrush = System.Windows.Media.Brushes.Green;
+                // Verwende eine hellere Version der SuccessBrush für den Hintergrund
+                var successColor = GetThemeColor("SuccessBrush", Color.FromRgb(34, 197, 94));
+                border.Background = new SolidColorBrush(Color.FromArgb(50, successColor.R, successColor.G, successColor.B)); // 50 = ~20% Opazität
+                border.BorderBrush = GetThemeBrush("SuccessBrush", Brushes.Green);
                 border.BorderThickness = new Thickness(3);
                 break;
             case MatchStatus.Bye:
-                border.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(230, 245, 255));
-                border.BorderBrush = System.Windows.Media.Brushes.RoyalBlue;
+                // Verwende eine hellere Version der AccentBrush für den Hintergrund
+                var accentColor = GetThemeColor("AccentBrush", Color.FromRgb(59, 130, 246));
+                border.Background = new SolidColorBrush(Color.FromArgb(50, accentColor.R, accentColor.G, accentColor.B)); // 50 = ~20% Opazität
+                border.BorderBrush = GetThemeBrush("AccentBrush", Brushes.RoyalBlue);
                 border.BorderThickness = new Thickness(3);
                 break;
             default:
-                border.Background = System.Windows.Media.Brushes.White;
-                border.BorderBrush = System.Windows.Media.Brushes.Gray;
+                border.Background = GetThemeBrush("SurfaceBrush", Brushes.White);
+                border.BorderBrush = GetThemeBrush("BorderBrush", Brushes.Gray);
                 border.BorderThickness = new Thickness(2);
                 break;
         }
@@ -425,11 +510,11 @@ public class TournamentTreeRenderer
         // Mouse enter/leave effects
         border.MouseEnter += (s, e) =>
         {
-            var transform = new System.Windows.Media.ScaleTransform(1.05, 1.05);
+            var transform = new ScaleTransform(1.05, 1.05);
             border.RenderTransformOrigin = new Point(0.5, 0.5);
             border.RenderTransform = transform;
             
-            var dropShadow = (System.Windows.Media.Effects.DropShadowEffect?)border.Effect;
+            var dropShadow = (DropShadowEffect?)border.Effect;
             if (dropShadow != null)
             {
                 dropShadow.ShadowDepth = 6;
@@ -441,7 +526,7 @@ public class TournamentTreeRenderer
         {
             border.RenderTransform = null;
             
-            var dropShadow = (System.Windows.Media.Effects.DropShadowEffect?)border.Effect;
+            var dropShadow = (DropShadowEffect?)border.Effect;
             if (dropShadow != null)
             {
                 dropShadow.ShadowDepth = 4;

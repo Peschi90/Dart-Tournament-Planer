@@ -77,6 +77,93 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// 🔐 ADMIN AUTHENTICATION SYSTEM
+const crypto = require('crypto');
+
+// Admin configuration - Change this password for production!
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'M.peschka070590';
+const ADMIN_SESSIONS = new Map(); // Store active admin sessions
+
+// Generate admin token
+function generateAdminToken() {
+    return crypto.randomBytes(32).toString('hex');
+}
+
+// Admin authentication middleware
+function requireAdminAuth(req, res, next) {
+    const token = (req.headers.authorization && req.headers.authorization.replace('Bearer ', '')) ||
+        req.query.token ||
+        req.body.token;
+
+    if (!token || !ADMIN_SESSIONS.has(token)) {
+        return res.status(401).json({
+            success: false,
+            message: 'Admin-Authentifizierung erforderlich',
+            redirectTo: '/admin-login.html'
+        });
+    }
+
+    // Update session timestamp
+    ADMIN_SESSIONS.set(token, {
+        ...ADMIN_SESSIONS.get(token),
+        lastAccess: Date.now()
+    });
+
+    next();
+}
+
+// Clean expired sessions (older than 24 hours)
+setInterval(() => {
+    const now = Date.now();
+    for (const [token, session] of ADMIN_SESSIONS.entries()) {
+        if (now - session.lastAccess > 24 * 60 * 60 * 1000) {
+            ADMIN_SESSIONS.delete(token);
+        }
+    }
+}, 60 * 60 * 1000); // Clean every hour
+
+// Admin login endpoint
+app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body;
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+
+    console.log(`🔐 [ADMIN] Login attempt from ${clientIP}`);
+
+    if (password === ADMIN_PASSWORD) {
+        const token = generateAdminToken();
+        ADMIN_SESSIONS.set(token, {
+            ip: clientIP,
+            loginTime: Date.now(),
+            lastAccess: Date.now()
+        });
+
+        console.log(`✅ [ADMIN] Successful login from ${clientIP}`);
+        res.json({
+            success: true,
+            token,
+            message: 'Admin-Login erfolgreich'
+        });
+    } else {
+        console.log(`❌ [ADMIN] Failed login attempt from ${clientIP}`);
+        res.status(401).json({
+            success: false,
+            message: 'Ungültiges Passwort'
+        });
+    }
+});
+
+// Admin logout endpoint
+app.post('/api/admin/logout', (req, res) => {
+    const token = (req.headers.authorization && req.headers.authorization.replace('Bearer ', '')) || req.body.token;
+
+    if (token && ADMIN_SESSIONS.has(token)) {
+        ADMIN_SESSIONS.delete(token);
+        console.log(`👋 [ADMIN] Admin logged out`);
+    }
+
+    res.json({ success: true, message: 'Erfolgreich abgemeldet' });
+});
+
 // Enhanced rate limiting for production
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -149,20 +236,56 @@ app.use('/api', apiRoutes);
 const matchStateRoutes = require('./routes/match-state');
 app.use('/api/match-state', matchStateRoutes);
 
-// Static routes
+// Static routes with authentication
+
+// 🔐 PROTECTED: Admin Dashboard (requires authentication)
 app.get('/', (req, res) => {
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-    console.log(`🏠 [API] Root access from ${clientIP}`);
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    console.log(`🏠 [API] Root access attempt from ${clientIP}`);
+
+    // Check for admin token in query or session
+    const token = req.query.token;
+
+    if (token && ADMIN_SESSIONS.has(token)) {
+        // Valid admin session - allow access to dashboard
+        console.log(`✅ [API] Authenticated admin access from ${clientIP}`);
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    } else {
+        // No valid session - redirect to login
+        console.log(`🔐 [API] Redirecting to admin login from ${clientIP}`);
+        res.redirect('/admin-login.html');
+    }
 });
 
-app.get('/join/:tournamentId', (req, res) => {
+// 🔐 PROTECTED: Admin dashboard route with authentication
+app.get('/admin/dashboard', (req, res) => {
+    const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
+    console.log(`🏠 [API] Admin dashboard access from ${clientIP}`);
+
+    // Check for admin token in query or session
+    const token = req.query.token ||
+        (req.headers.authorization && req.headers.authorization.replace('Bearer ', ''));
+
+    if (token && ADMIN_SESSIONS.has(token)) {
+        // Valid admin session - allow access to dashboard
+        console.log(`✅ [API] Authenticated admin dashboard access from ${clientIP}`);
+        res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    } else {
+        // No valid session - redirect to login
+        console.log(`🔐 [API] Redirecting to admin login from dashboard route ${clientIP}`);
+        res.redirect('/admin-login.html');
+    }
+});
+
+// 🆓 PUBLIC: Tournament join page (no authentication required)
+app.get('/join/:tournamentId?', (req, res) => {
     const { tournamentId } = req.params;
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-    console.log(`🎮 [API] Join tournament page: ${tournamentId} from ${clientIP}`);
+    console.log(`🎮 [API] Join tournament page: ${tournamentId || 'general'} from ${clientIP}`);
     res.sendFile(path.join(__dirname, 'public', 'join-tournament.html'));
 });
 
+// 🆓 PUBLIC: Tournament interface (participants can view)
 app.get('/tournament/:tournamentId', (req, res) => {
     const { tournamentId } = req.params;
     const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';

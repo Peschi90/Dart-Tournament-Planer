@@ -22,7 +22,7 @@ namespace DartTournamentPlaner.Controls;
 /// TournamentTab Control - Refactored für bessere Wartbarkeit
 /// Delegiert Verantwortlichkeiten an spezialisierte Manager-Klassen
 /// </summary>
-public partial class TournamentTab : UserControl, INotifyPropertyChanged
+public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDisposable
 {
     // Core data and services
     private TournamentClass _tournamentClass;
@@ -324,7 +324,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         _translationManager.KnockoutMatchesDataGrid = KnockoutMatchesDataGrid;
         _translationManager.LoserBracketDataGrid = LoserBracketDataGrid; // ✅ NEU
         _translationManager.StandingsDataGrid = StandingsDataGrid;
-        
+        _translationManager.PlayersHeaderText = PlayersHeaderText;
+
         // ✅ NEU: StatisticsTab
         _translationManager.StatisticsTabItem = StatisticsTabItem;
         
@@ -1184,5 +1185,52 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Dispose-Pattern für ordnungsgemäße Ressourcenverwaltung
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Geschützte Dispose-Methode
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            try
+            {
+                // Tournament Class Events abmelden
+                if (_tournamentClass != null)
+                {
+                    _tournamentClass.UIRefreshRequested -= OnTournamentUIRefreshRequested;
+                }
+
+                // Unsubscribe from group events
+                UnsubscribeFromGroupEvents(_selectedGroup);
+
+                // Localization Service Events abmelden
+                if (_localizationService != null)
+                {
+                    // Das Event wird automatisch aufgeräumt wenn das Control disposed wird
+                }
+
+                // Manager Classes ordnungsgemäß disposed
+                _uiManager?.Dispose();
+                _eventHandlers?.Dispose();
+                _translationManager?.Dispose();
+
+                System.Diagnostics.Debug.WriteLine($"[TournamentTab] Disposed successfully");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TournamentTab] Error during dispose: {ex.Message}");
+            }
+        }
     }
 }

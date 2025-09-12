@@ -82,8 +82,8 @@ public class TournamentPhase : INotifyPropertyChanged
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"=== TournamentPhase.CanProceedToNextPhase START ===");
-            System.Diagnostics.Debug.WriteLine($"TournamentPhase.CanProceedToNextPhase: Phase = {PhaseType}");
+            //System.Diagnostics.Debug.WriteLine($"=== TournamentPhase.CanProceedToNextPhase START ===");
+            //System.Diagnostics.Debug.WriteLine($"TournamentPhase.CanProceedToNextPhase: Phase = {PhaseType}");
             
             bool result = PhaseType switch
             {
@@ -93,8 +93,8 @@ public class TournamentPhase : INotifyPropertyChanged
                 _ => false
             };
             
-            System.Diagnostics.Debug.WriteLine($"TournamentPhase.CanProceedToNextPhase: Result = {result}");
-            System.Diagnostics.Debug.WriteLine($"=== TournamentPhase.CanProceedToNextPhase END ===");
+            //System.Diagnostics.Debug.WriteLine($"TournamentPhase.CanProceedToNextPhase: Result = {result}");
+            //System.Diagnostics.Debug.WriteLine($"=== TournamentPhase.CanProceedToNextPhase END ===");
             
             return result;
         }
@@ -109,8 +109,8 @@ public class TournamentPhase : INotifyPropertyChanged
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"=== CheckGroupPhaseComplete START ===");
-            System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: Groups count = {Groups.Count}");
+            //System.Diagnostics.Debug.WriteLine($"=== CheckGroupPhaseComplete START ===");
+            //System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: Groups count = {Groups.Count}");
             
             if (Groups.Count == 0)
             {
@@ -124,23 +124,23 @@ public class TournamentPhase : INotifyPropertyChanged
             {
                 var status = group.CheckCompletionStatus();
                 
-                System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: Group '{group.Name}':");
-                System.Diagnostics.Debug.WriteLine($"  - Status: {status}");
-                System.Diagnostics.Debug.WriteLine($"  - IsComplete: {status.IsComplete}");
+                //System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: Group '{group.Name}':");
+                //System.Diagnostics.Debug.WriteLine($"  - Status: {status}");
+                //System.Diagnostics.Debug.WriteLine($"  - IsComplete: {status.IsComplete}");
                 
                 if (!status.IsComplete)
                 {
-                    System.Diagnostics.Debug.WriteLine($"  - Group '{group.Name}' is NOT complete: {status.StatusMessage}");
+                    //System.Diagnostics.Debug.WriteLine($"  - Group '{group.Name}' is NOT complete: {status.StatusMessage}");
                     allGroupsComplete = false;
                 }
             }
             
-            System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: All groups complete = {allGroupsComplete}");
+            //System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: All groups complete = {allGroupsComplete}");
             return allGroupsComplete;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: ERROR: {ex.Message}");
+           System.Diagnostics.Debug.WriteLine($"CheckGroupPhaseComplete: ERROR: {ex.Message}");
             return false;
         }
     }
@@ -149,21 +149,21 @@ public class TournamentPhase : INotifyPropertyChanged
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"=== GetQualifiedPlayers START ===");
-            System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Phase = {PhaseType}, playersPerGroup = {playersPerGroup}");
+            //System.Diagnostics.Debug.WriteLine($"=== GetQualifiedPlayers START ===");
+            //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Phase = {PhaseType}, playersPerGroup = {playersPerGroup}");
             
             var qualifiedPlayers = new List<Player>();
 
             switch (PhaseType)
             {
                 case TournamentPhaseType.GroupPhase:
-                    System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Processing {Groups.Count} groups");
+                    //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Processing {Groups.Count} groups");
                     foreach (var group in Groups)
                     {
                         var standings = group.GetStandings();
                         var groupQualified = standings.Take(playersPerGroup).Select(s => s.Player).Where(p => p != null).ToList();
                         
-                        System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Group '{group.Name}' - {groupQualified.Count} qualified:");
+                        //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Group '{group.Name}' - {groupQualified.Count} qualified:");
                         foreach (var player in groupQualified)
                         {
                             System.Diagnostics.Debug.WriteLine($"  - {player.Name}");
@@ -178,7 +178,7 @@ public class TournamentPhase : INotifyPropertyChanged
                     {
                         var standings = FinalsGroup.GetStandings();
                         qualifiedPlayers.AddRange(standings.Select(s => s.Player).Where(p => p != null)!);
-                        System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Finals - {qualifiedPlayers.Count} qualified");
+                        //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Finals - {qualifiedPlayers.Count} qualified");
                     }
                     break;
 
@@ -188,13 +188,13 @@ public class TournamentPhase : INotifyPropertyChanged
                     if (finalMatch?.Winner != null)
                     {
                         qualifiedPlayers.Add(finalMatch.Winner);
-                        System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: KO winner - {finalMatch.Winner.Name}");
+                        //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: KO winner - {finalMatch.Winner.Name}");
                     }
                     break;
             }
 
-            System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Total qualified = {qualifiedPlayers.Count}");
-            System.Diagnostics.Debug.WriteLine($"=== GetQualifiedPlayers END ===");
+            //System.Diagnostics.Debug.WriteLine($"GetQualifiedPlayers: Total qualified = {qualifiedPlayers.Count}");
+            //System.Diagnostics.Debug.WriteLine($"=== GetQualifiedPlayers END ===");
             
             return qualifiedPlayers;
         }

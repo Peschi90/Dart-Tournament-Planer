@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I18n Test</title>
+    <script src="/js/i18n.js"></script>
+</head>
+
+<body>
+    <h1>I18n Test Page</h1>
+
+    <div id="languageSelectorContainer"></div>
+
+    <div style="margin: 2rem;">
+        <h2 data-i18n="dashboard.title">Dashboard Title</h2>
+        <p data-i18n="dashboard.subtitle">Dashboard Subtitle</p>
+        <p data-i18n="dashboard.stats.activeTournaments">Active Tournaments</p>
+        <p data-i18n="dashboard.connection.connected">Connected</p>
+        <p data-i18n="dashboard.tournaments.labels.clients">Clients</p>
+        <button data-i18n="common.refresh">Refresh</button>
+    </div>
+
+    <div id="test-results" style="margin: 2rem; padding: 1rem; background: #f0f0f0; border-radius: 8px;">
+        <h3>Test Results:</h3>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async() => {
+            const results = document.getElementById('results');
+
+            try {
+                // Test i18n initialization
+                await i18n.init();
+                results.innerHTML += '<p>✅ I18n initialized successfully</p>';
+
+                // Test createLanguageSelector function
+                if (typeof i18n.createLanguageSelector === 'function') {
+                    i18n.createLanguageSelector('languageSelectorContainer');
+                    results.innerHTML += '<p>✅ Language selector created successfully</p>';
+                } else {
+                    results.innerHTML += '<p>❌ createLanguageSelector function not found</p>';
+                }
+
+                // Test translation keys
+                const testKeys = [
+                    'dashboard.title',
+                    'dashboard.stats.activeTournaments',
+                    'dashboard.connection.connected',
+                    'common.refresh'
+                ];
+
+                for (const key of testKeys) {
+                    const translation = i18n.t(key);
+                    if (translation && translation !== key) {
+                        results.innerHTML += `<p>✅ Translation for "${key}": "${translation}"</p>`;
+                    } else {
+                        results.innerHTML += `<p>❌ Missing translation for "${key}"</p>`;
+                    }
+                }
+
+                // Apply translations
+                i18n.applyTranslations();
+                results.innerHTML += '<p>✅ Translations applied to DOM</p>';
+
+            } catch (error) {
+                results.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -6,22 +6,11 @@
              xmlns:local="clr-namespace:DartTournamentPlaner.Controls"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="1200"
-             Background="White">
+             Background="{DynamicResource BackgroundBrush}">
     
     <UserControl.Resources>
         <!-- Converter für Boolean zu Visibility -->
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        
-        <!-- Moderne Gradient-Hintergründe -->
-        <LinearGradientBrush x:Key="CardBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#FFFFFF" Offset="0"/>
-            <GradientStop Color="#FDFDFD" Offset="1"/>
-        </LinearGradientBrush>
-        
-        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#F8FAFC" Offset="0"/>
-            <GradientStop Color="#F1F5F9" Offset="1"/>
-        </LinearGradientBrush>
         
         <!-- Moderne Schatten-Effekte -->
         <DropShadowEffect x:Key="ModernCardShadow" 
@@ -54,8 +43,8 @@
                             
                             <!-- Tab Headers mit modernem Design -->
                             <Border Grid.Row="0" 
-                                    Background="{StaticResource HeaderGradient}" 
-                                    BorderBrush="#E5E7EB" 
+                                    Background="{DynamicResource HeaderGradient}" 
+                                    BorderBrush="{DynamicResource BorderBrush}" 
                                     BorderThickness="0,0,0,1"
                                     Effect="{StaticResource SubtleShadow}">
                                 <TabPanel x:Name="HeaderPanel" 
@@ -67,8 +56,8 @@
                             
                             <!-- Content Area mit Schatten -->
                             <Border Grid.Row="1" 
-                                    Background="{StaticResource CardBackgroundBrush}" 
-                                    BorderBrush="#E5E7EB" 
+                                    Background="{DynamicResource BackgroundBrush}" 
+                                    BorderBrush="{DynamicResource BorderBrush}" 
                                     BorderThickness="0">
                                 <ContentPresenter x:Name="PART_SelectedContentHost"
                                                 ContentSource="SelectedContent"/>
@@ -81,6 +70,7 @@
 
         <!-- Modern TabItem Style -->
         <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
@@ -102,15 +92,15 @@
                         <ControlTemplate.Triggers>
                             <!-- Selected Tab -->
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="White"/>
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="Border" Property="BorderThickness" Value="0,0,0,3"/>
                                 <Setter Property="Panel.ZIndex" Value="100"/>
-                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                                 <Setter TargetName="Border" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0" 
+                                        <DropShadowEffect Color="{Binding Source={x:Static SystemParameters.HighContrast}, Converter={x:Null}}" Direction="270" ShadowDepth="0" 
                                                           BlurRadius="8" Opacity="0.15"/>
                                     </Setter.Value>
                                 </Setter>
@@ -118,21 +108,14 @@
                             
                             <!-- Hover Effect -->
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#F0F9FF" Offset="0"/>
-                                            <GradientStop Color="#E0F2FE" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="Foreground" Value="#0369A1"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                             </Trigger>
                             
                             <!-- Disabled -->
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Border" Property="Background" Value="#F8FAFC"/>
-                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource DisabledBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -142,14 +125,7 @@
         
         <!-- Modern Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#3B82F6" Offset="0"/>
-                        <GradientStop Color="#2563EB" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource ButtonGradient}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8"/>
@@ -171,14 +147,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#2563EB" Offset="0"/>
-                                            <GradientStop Color="#1D4ED8" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverGradient}"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
                                         <DropShadowEffect Color="Black" Direction="270" ShadowDepth="6" 
@@ -187,18 +156,11 @@
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#1D4ED8" Offset="0"/>
-                                            <GradientStop Color="#1E3A8A" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource ButtonHoverGradient}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="border" Property="Background" Value="#CBD5E1"/>
-                                <Setter Property="Foreground" Value="#64748B"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DisabledBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -218,44 +180,24 @@
         </Style>
 
         <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#10B981" Offset="0"/>
-                        <GradientStop Color="#059669" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
         </Style>
 
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#EF4444" Offset="0"/>
-                        <GradientStop Color="#DC2626" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
         </Style>
+        
         <Style x:Key="WarningButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#FF8C00" Offset="0"/>
-                        <GradientStop Color="#FF7700" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource WarningBrush}"/>
         </Style>
-
 
         <!-- Modern TextBox Style -->
         <Style TargetType="TextBox">
             <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Template">
@@ -271,11 +213,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
                                 <Setter TargetName="border" Property="BorderThickness" Value="2"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#3B82F6" BlurRadius="8" 
+                                        <DropShadowEffect Color="{Binding Source={x:Static SystemParameters.HighContrast}, Converter={x:Null}}" BlurRadius="8" 
                                                           Direction="0" ShadowDepth="0" Opacity="0.3"/>
                                     </Setter.Value>
                                 </Setter>
@@ -288,9 +230,10 @@
 
         <!-- Modern ListBox Style -->
         <Style TargetType="ListBox">
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Padding" Value="8"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -312,6 +255,7 @@
         <Style TargetType="ListBoxItem">
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="Margin" Value="2"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
@@ -323,19 +267,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#DBEAFE" Offset="0"/>
-                                            <GradientStop Color="#BFDBFE" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="Foreground" Value="#1E40AF"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource SelectedBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                 <Setter Property="FontWeight" Value="Medium"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -345,33 +282,27 @@
 
         <!-- DataGrid Style -->
         <Style TargetType="DataGrid">
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="SelectionMode" Value="Single"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
+            <Setter Property="RowBackground" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource DataGridAlternatingRowBrush}"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
         
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#F8FAFC" Offset="0"/>
-                        <GradientStop Color="#F1F5F9" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Background" Value="{DynamicResource DataGridHeaderBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
         
@@ -379,13 +310,18 @@
             <Setter Property="Height" Value="36"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0F9FF"/>
+                    <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#DBEAFE"/>
-                    <Setter Property="Foreground" Value="#1E40AF"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+        
+        <!-- Modern TextBlock Styles -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         </Style>
     </UserControl.Resources>
 
@@ -403,8 +339,8 @@
                     
                     <!-- Setup Panel -->
                     <Border Grid.Column="0" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -417,8 +353,8 @@
                             
                             <!-- Phase Info -->
                             <Border DockPanel.Dock="Top" 
-                                    Background="#EFF6FF" 
-                                    BorderBrush="#3B82F6" 
+                                    Background="{DynamicResource HoverBrush}" 
+                                    BorderBrush="{DynamicResource AccentBrush}" 
                                     BorderThickness="1" 
                                     CornerRadius="8" 
                                     Padding="12" 
@@ -428,7 +364,7 @@
                                            Text="Aktuelle Phase: Gruppenphase" 
                                            FontWeight="SemiBold" 
                                            FontSize="13" 
-                                           Foreground="#1E40AF"/>
+                                           Foreground="{DynamicResource AccentBrush}"/>
                             </Border>
                             
                             <!-- Next Phase Button -->
@@ -452,7 +388,7 @@
                             
                             <!-- Group Management -->
                             <TextBlock DockPanel.Dock="Top" Name="GroupsHeaderText" Text="📁 Gruppen:" 
-                                       Margin="0,0,0,12" FontWeight="SemiBold" FontSize="15" Foreground="#374151"/>
+                                       Margin="0,0,0,12" FontWeight="SemiBold" FontSize="15"/>
 
                             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,16">
                                 <Button Name="AddGroupButton" Content="➕ Gruppe hinzufügen" 
@@ -471,7 +407,7 @@
                             
                             <!-- Player Management -->
                             <TextBlock DockPanel.Dock="Top" Name="PlayersHeaderText" Text="👥 Spieler:" 
-                                       Margin="0,0,0,12" FontWeight="SemiBold" FontSize="15" Foreground="#374151"/>
+                                       Margin="0,0,0,12" FontWeight="SemiBold" FontSize="15"/>
 
                             <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
@@ -515,8 +451,8 @@
                     
                     <!-- Preview Panel -->
                     <Border Grid.Column="2" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -527,7 +463,6 @@
                                            Text="Turnier-Übersicht" 
                                            FontWeight="SemiBold" 
                                            FontSize="16" 
-                                           Foreground="#374151" 
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -535,7 +470,7 @@
                                            TextWrapping="Wrap" 
                                            VerticalAlignment="Top"
                                            LineHeight="20"
-                                           Foreground="#6B7280"
+                                           Foreground="{DynamicResource SecondaryTextBrush}"
                                            FontSize="13"/>
                             </ScrollViewer>
                         </DockPanel>
@@ -554,8 +489,8 @@
                     
                     <!-- Groups Selection -->
                     <Border Grid.Column="0" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -566,7 +501,6 @@
                                            Text="Gruppen auswählen:" 
                                            FontWeight="SemiBold" 
                                            FontSize="15" 
-                                           Foreground="#374151" 
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             <ListBox Name="GroupPhaseGroupsList" 
@@ -576,8 +510,8 @@
                     
                     <!-- Matches and Standings -->
                     <Border Grid.Column="2" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -590,7 +524,6 @@
                                                    Text="Spiele:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="MatchesDataGrid" MouseDoubleClick="MatchesDataGrid_MouseDoubleClick">
@@ -611,7 +544,6 @@
                                                    Text="Tabelle:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="StandingsDataGrid">
@@ -642,8 +574,8 @@
                     
                     <!-- Finalists -->
                     <Border Grid.Column="0" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -653,7 +585,6 @@
                                 <TextBlock Text="Finalisten:" 
                                            FontWeight="SemiBold" 
                                            FontSize="15" 
-                                           Foreground="#374151" 
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             
@@ -671,8 +602,8 @@
                     
                     <!-- Finals Matches -->
                     <Border Grid.Column="2" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -684,7 +615,6 @@
                                         <TextBlock Text="Finalspiele:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="FinalsMatchesDataGrid" MouseDoubleClick="FinalsMatchesDataGrid_MouseDoubleClick">
@@ -704,7 +634,6 @@
                                         <TextBlock Text="Finale Platzierung:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="FinalsStandingsDataGrid">
@@ -735,8 +664,8 @@
                     
                     <!-- KO Participants -->
                     <Border Grid.Column="0" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
@@ -746,7 +675,6 @@
                                 <TextBlock Name="KOParticipantsHeaderText" Text="KO-Teilnehmer:" 
                                            FontWeight="SemiBold" 
                                            FontSize="15" 
-                                           Foreground="#374151" 
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                             
@@ -764,15 +692,15 @@
                     
                     <!-- KO Matches and Bracket View -->
                     <Border Grid.Column="2" 
-                            Background="{StaticResource CardBackgroundBrush}"
-                            BorderBrush="#E5E7EB" 
+                            Background="{DynamicResource SurfaceBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}" 
                             BorderThickness="1" 
                             CornerRadius="12"
                             Effect="{StaticResource ModernCardShadow}">
                         <TabControl Margin="20">
                             <TabItem Header="🌳 Turnierbaum">
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                    <Canvas Name="BracketCanvas" Background="White" MinWidth="800" MinHeight="600"/>
+                                    <Canvas Name="BracketCanvas" Background="{DynamicResource BackgroundBrush}" MinWidth="800" MinHeight="600"/>
                                 </ScrollViewer>
                             </TabItem>
                             
@@ -783,7 +711,6 @@
                                         <TextBlock Name="WinnerBracketHeaderText" Text="Winner Bracket:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="KnockoutMatchesDataGrid" 
@@ -834,7 +761,6 @@
                                         <TextBlock Name="LoserBracketHeaderText" Text="Loser Bracket:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
-                                                   Foreground="#374151" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid Name="LoserBracketDataGrid" 
@@ -880,7 +806,7 @@
                             
                             <TabItem Name="LoserBracketTreeTab" Header="🌳 Loser Bracket Baum" Visibility="Collapsed">
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                                    <Canvas Name="LoserBracketCanvas" Background="White" MinWidth="800" MinHeight="600"/>
+                                    <Canvas Name="LoserBracketCanvas" Background="{DynamicResource BackgroundBrush}" MinWidth="800" MinHeight="600"/>
                                 </ScrollViewer>
                             </TabItem>
                         </TabControl>

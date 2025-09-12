@@ -271,7 +271,52 @@ class DartScoringCache {
     }
 
     /**
-     * 🗑️ Lösche gespeicherten State (nach Match-Ende)
+     * � Reset Match zu ursprünglichem Zustand
+     */
+    async resetMatchToOriginal() {
+        try {
+            console.log('🔄 [DART-CACHE] Resetting match to original state...');
+
+            // Stop auto-save während Reset
+            this.stopAutoSave();
+
+            // Lösche cached state vom Server
+            await this.clearCachedState();
+
+            // Reset core game state
+            this.core.initializeGameState();
+
+            // Reset internal cache state
+            this.lastSaveState = null;
+            this.hasCachedState = false;
+            this.saveInProgress = false;
+            this.lastSaveTime = null;
+
+            console.log('✅ [DART-CACHE] Match reset completed');
+
+            // Starte auto-save wieder
+            this.startAutoSave();
+
+            return {
+                success: true,
+                message: 'Match erfolgreich zurückgesetzt'
+            };
+
+        } catch (error) {
+            console.error('❌ [DART-CACHE] Failed to reset match:', error);
+            
+            // Starte auto-save wieder auch bei Fehler
+            this.startAutoSave();
+            
+            return {
+                success: false,
+                message: `Fehler beim Zurücksetzen: ${error.message}`
+            };
+        }
+    }
+
+    /**
+     * �🗑️ Lösche gespeicherten State (nach Match-Ende)
      */
     async clearCachedState() {
         if (!this.core.matchData) return;

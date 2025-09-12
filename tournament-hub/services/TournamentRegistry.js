@@ -10,7 +10,9 @@ class TournamentRegistry {
         this.statistics = {
             activeTournaments: 0,
             totalConnections: 0,
-            totalMatchesProcessed: 0
+            totalMatchesProcessed: 0,
+            dailyMatchesProcessed: 0,
+            lastResetDate: new Date().toDateString()
         };
     }
 
@@ -52,7 +54,7 @@ class TournamentRegistry {
                 connectedClients: 0,
                 matchesProcessed: 0,
                 matches: [],
-                
+
                 // Enhanced class support with default Dart Tournament classes
                 classes: classes || [
                     { id: 1, name: 'Platin', playerCount: 0, groupCount: 0, matchCount: 0 },
@@ -60,22 +62,20 @@ class TournamentRegistry {
                     { id: 3, name: 'Silber', playerCount: 0, groupCount: 0, matchCount: 0 },
                     { id: 4, name: 'Bronze', playerCount: 0, groupCount: 0, matchCount: 0 }
                 ],
-                gameRules: gameRules || [
-                    {
-                        id: 1,
-                        name: 'Standard 501',
-                        gamePoints: 501,
-                        setsToWin: 3,
-                        legsToWin: 3,
-                        legsPerSet: 5,
-                        maxSets: 5,
-                        maxLegsPerSet: 5
-                    }
-                ],
+                gameRules: gameRules || [{
+                    id: 1,
+                    name: 'Standard 501',
+                    gamePoints: 501,
+                    setsToWin: 3,
+                    legsToWin: 3,
+                    legsPerSet: 5,
+                    maxSets: 5,
+                    maxLegsPerSet: 5
+                }],
                 totalPlayers: totalPlayers || 0,
                 startTime: startTime ? new Date(startTime) : new Date(),
                 metadata: metadata || {},
-                
+
                 // Klassen-spezifische Daten
                 currentClassId: null, // Aktuell ausgewählte Klasse
                 matchesByClass: new Map(), // Matches gruppiert nach Klassen
@@ -87,7 +87,7 @@ class TournamentRegistry {
             console.log(`✅ Tournament registered: ${tournamentId} - ${name}`);
             console.log(`📚 Classes: ${tournament.classes.length}, GameRules: ${tournament.gameRules.length}`);
             console.log(`🎮 Game Rules: ${tournament.gameRules.map(gr => gr.name).join(', ')}`);
-            
+
             return {
                 success: true,
                 tournament: tournament,
@@ -121,18 +121,18 @@ class TournamentRegistry {
 
             tournament.lastHeartbeat = new Date();
             tournament.status = heartbeatData.status || 'active';
-            
+
             if (heartbeatData.activeMatches !== undefined) {
                 tournament.activeMatches = heartbeatData.activeMatches;
             }
-            
+
             if (heartbeatData.totalPlayers !== undefined) {
                 tournament.totalPlayers = heartbeatData.totalPlayers;
             }
 
             // Update metadata if provided
             if (heartbeatData.metadata) {
-                tournament.metadata = { ...tournament.metadata, ...heartbeatData.metadata };
+                tournament.metadata = {...tournament.metadata, ...heartbeatData.metadata };
             }
 
             console.log(`?? Heartbeat updated for tournament: ${tournamentId}`);
@@ -151,65 +151,65 @@ class TournamentRegistry {
      * @returns {boolean} Success status
      */
     syncMatches(tournamentId, matches, classId = null) {
-        try {
-            const tournament = this.tournaments.get(tournamentId);
-            if (!tournament) {
-                console.warn(`⚠️ Match sync for unknown tournament: ${tournamentId}`);
-                return false;
-            }
-
-            // Store the matches with detailed logging and class support
-            if (matches && Array.isArray(matches)) {
-                const processedMatches = matches.map(match => ({
-                    ...match,
-                    syncedAt: new Date(),
-                    // Ensure consistent field names and proper class handling
-                    matchId: match.matchId || match.id || match.Match?.Id,
-                    classId: match.classId || match.ClassId || classId || 1,
-                    className: match.className || match.ClassName || this.getClassNameById(match.classId || match.ClassId || classId),
-                    status: match.status || match.Status || 'NotStarted',
-                    player1: match.player1 || match.Player1?.Name || match.Player1 || 'Player 1',
-                    player2: match.player2 || match.Player2?.Name || match.Player2 || 'Player 2',
-                    player1Sets: match.player1Sets || match.Player1Sets || 0,
-                    player2Sets: match.player2Sets || match.Player2Sets || 0,
-                    player1Legs: match.player1Legs || match.Player1Legs || 0,
-                    player2Legs: match.player2Legs || match.Player2Legs || 0,
-                    notes: match.notes || match.Notes || '',
-                    matchType: match.matchType || match.MatchType || 'Group',
-                    groupName: match.groupName || match.GroupName || '',
-                    
-                    // GameRules-bezogene Felder
-                    gameRulesId: match.gameRulesId || match.GameRulesId || 1,
-                    currentScore1: match.currentScore1 || match.CurrentScore1 || null,
-                    currentScore2: match.currentScore2 || match.CurrentScore2 || null,
-                }));
-                
-                // Store matches both globally and by class
-                tournament.matches = processedMatches;
-                
-                // Initialize matchesByClass if needed
-                if (!tournament.matchesByClass) {
-                    tournament.matchesByClass = new Map();
+            try {
+                const tournament = this.tournaments.get(tournamentId);
+                if (!tournament) {
+                    console.warn(`⚠️ Match sync for unknown tournament: ${tournamentId}`);
+                    return false;
                 }
-                
-                // Group matches by class
-                const matchesByClass = new Map();
-                processedMatches.forEach(match => {
-                    const classId = match.classId || 1;
-                    if (!matchesByClass.has(classId)) {
-                        matchesByClass.set(classId, []);
+
+                // Store the matches with detailed logging and class support
+                if (matches && Array.isArray(matches)) {
+                    const processedMatches = matches.map(match => ({
+                        ...match,
+                        syncedAt: new Date(),
+                        // Ensure consistent field names and proper class handling
+                        matchId: match.matchId || match.id || (match.Match && match.Match.Id),
+                        classId: match.classId || match.ClassId || classId || 1,
+                        className: match.className || match.ClassName || this.getClassNameById(match.classId || match.ClassId || classId),
+                        status: match.status || match.Status || 'NotStarted',
+                        player1: match.player1 || (match.Player1 && match.Player1.Name) || match.Player1 || 'Player 1',
+                        player2: match.player2 || (match.Player2 && match.Player2.Name) || match.Player2 || 'Player 2',
+                        player1Sets: match.player1Sets || match.Player1Sets || 0,
+                        player2Sets: match.player2Sets || match.Player2Sets || 0,
+                        player1Legs: match.player1Legs || match.Player1Legs || 0,
+                        player2Legs: match.player2Legs || match.Player2Legs || 0,
+                        notes: match.notes || match.Notes || '',
+                        matchType: match.matchType || match.MatchType || 'Group',
+                        groupName: match.groupName || match.GroupName || '',
+
+                        // GameRules-bezogene Felder
+                        gameRulesId: match.gameRulesId || match.GameRulesId || 1,
+                        currentScore1: match.currentScore1 || match.CurrentScore1 || null,
+                        currentScore2: match.currentScore2 || match.CurrentScore2 || null,
+                    }));
+
+                    // Store matches both globally and by class
+                    tournament.matches = processedMatches;
+
+                    // Initialize matchesByClass if needed
+                    if (!tournament.matchesByClass) {
+                        tournament.matchesByClass = new Map();
                     }
-                    matchesByClass.get(classId).push(match);
-                });
-                
-                tournament.matchesByClass = matchesByClass;
-                
-                console.log(`📊 Match sync details for ${tournamentId}:`);
-                console.log(`   📦 Total matches: ${matches.length}`);
-                console.log(`   📚 Classes with matches: ${matchesByClass.size}`);
-                console.log(`   🎮 Match IDs: [${processedMatches.map(m => m.matchId).join(', ')}]`);
-                console.log(`   📋 Match statuses: [${processedMatches.map(m => m.status).join(', ')}]`);
-                console.log(`   👥 Players sample: ${processedMatches.slice(0, 3).map(m => `${m.player1} vs ${m.player2}`).join(', ')}`);
+
+                    // Group matches by class
+                    const matchesByClass = new Map();
+                    processedMatches.forEach(match => {
+                        const classId = match.classId || 1;
+                        if (!matchesByClass.has(classId)) {
+                            matchesByClass.set(classId, []);
+                        }
+                        matchesByClass.get(classId).push(match);
+                    });
+
+                    tournament.matchesByClass = matchesByClass;
+
+                    console.log(`📊 Match sync details for ${tournamentId}:`);
+                    console.log(`   📦 Total matches: ${matches.length}`);
+                    console.log(`   📚 Classes with matches: ${matchesByClass.size}`);
+                    console.log(`   🎮 Match IDs: [${processedMatches.map(m => m.matchId).join(', ')}]`);
+                    console.log(`   📋 Match statuses: [${processedMatches.map(m => m.status).join(', ')}]`);
+                    console.log(`   👥 Players sample: ${processedMatches.slice(0, 3).map(m => `${m.player1} vs ${m.player2}`).join(', ')}`);
                 
                 // Log class distribution with names
                 for (const [classId, classMatches] of matchesByClass) {
@@ -227,9 +227,19 @@ class TournamentRegistry {
             tournament.activeMatches = tournament.matches.filter(m => m.status === 'InProgress').length;
             tournament.totalMatches = tournament.matches.length;
             
-            // Update processed count (cumulative)
+            // Update processed count (cumulative and daily)
             const newMatches = matches ? matches.length : 0;
             this.statistics.totalMatchesProcessed += newMatches;
+            
+            // Check if we need to reset daily counter
+            const today = new Date().toDateString();
+            if (this.statistics.lastResetDate !== today) {
+                this.statistics.dailyMatchesProcessed = 0;
+                this.statistics.lastResetDate = today;
+                console.log(`🔄 Daily match counter reset for new day: ${today}`);
+            }
+            
+            this.statistics.dailyMatchesProcessed += newMatches;
 
             console.log(`✅ Matches synced for tournament: ${tournamentId} (${newMatches} matches)`);
             return true;
@@ -358,18 +368,45 @@ class TournamentRegistry {
     }
 
     /**
+     * Increment daily match counter (for individual match submissions)
+     */
+    incrementDailyMatchCounter() {
+        // Check if we need to reset daily counter
+        const today = new Date().toDateString();
+        if (this.statistics.lastResetDate !== today) {
+            this.statistics.dailyMatchesProcessed = 0;
+            this.statistics.lastResetDate = today;
+            console.log(`🔄 Daily match counter reset for new day: ${today}`);
+        }
+        
+        this.statistics.dailyMatchesProcessed += 1;
+        this.statistics.totalMatchesProcessed += 1;
+        
+        console.log(`📊 Match counters updated - Daily: ${this.statistics.dailyMatchesProcessed}, Total: ${this.statistics.totalMatchesProcessed}`);
+    }
+
+    /**
      * Get current statistics
      * @returns {Object} Statistics object
      */
     getStatistics() {
         this.updateStatistics();
+        
+        // Check if we need to reset daily counter
+        const today = new Date().toDateString();
+        if (this.statistics.lastResetDate !== today) {
+            this.statistics.dailyMatchesProcessed = 0;
+            this.statistics.lastResetDate = today;
+            console.log(`🔄 Daily match counter reset for new day: ${today}`);
+        }
+        
         const stats = {
             ...this.statistics,
             totalTournaments: this.tournaments.size,
             activeTournaments: this.getActiveTournaments().length
         };
         
-        console.log(`?? Statistics requested:`, stats);
+        console.log(`📊 Statistics requested:`, stats);
         return stats;
     }
 

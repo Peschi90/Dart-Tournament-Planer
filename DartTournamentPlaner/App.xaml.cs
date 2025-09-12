@@ -17,6 +17,7 @@ public partial class App : Application
     public static DataService? DataService { get; private set; }
     public static UpdateService? UpdateService { get; private set; }
     public static IApiIntegrationService? ApiIntegrationService { get; private set; }
+    public static ThemeService? ThemeService { get; private set; } // ✅ NEU: Theme Service
 
     /// <summary>
     /// Global event that fires when the application language changes
@@ -37,6 +38,7 @@ public partial class App : Application
             LocalizationService = new LocalizationService();
             DataService = new DataService();
             UpdateService = new UpdateService(LocalizationService);
+            ThemeService = new ThemeService(ConfigService); // ✅ NEU: Theme Service initialisieren
             
             // NEU: Verwende LicensedApiIntegrationService statt ApiIntegrationService
             // Der lizenzierte Service wird später mit LicenseFeatureService initialisiert
@@ -48,6 +50,9 @@ public partial class App : Application
 
             // Load configuration first
             await ConfigService.LoadConfigAsync();
+            
+            // ✅ NEU: Theme nach dem Laden der Config anwenden
+            ThemeService.InitializeTheme();
             
             // Set initial language from config
             System.Diagnostics.Debug.WriteLine($"App.OnStartup: Setting initial language to '{ConfigService.Config.Language}'");

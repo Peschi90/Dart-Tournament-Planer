@@ -204,7 +204,7 @@ public static class TournamentUIHelper
     {
         canvas.MinWidth = 800;
         canvas.MinHeight = 600;
-        canvas.Background = Brushes.White;
+        canvas.Background = GetThemeBrush("BackgroundBrush", Brushes.White);
 
         var messagePanel = new StackPanel
         {
@@ -226,7 +226,7 @@ public static class TournamentUIHelper
             FontSize = 18,
             FontWeight = FontWeights.Bold,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = Brushes.DarkGray
+            Foreground = GetThemeBrush("SecondaryTextBrush", Brushes.DarkGray)
         };
 
         var subText = new TextBlock
@@ -234,7 +234,7 @@ public static class TournamentUIHelper
             Text = localizationService?.GetString("TournamentTreeWillShow") ?? "Der Turnierbaum wird angezeigt sobald die KO-Phase beginnt",
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = Brushes.Gray,
+            Foreground = GetThemeBrush("SecondaryTextBrush", Brushes.Gray),
             Margin = new Thickness(0, 10, 0, 0)
         };
 
@@ -245,6 +245,29 @@ public static class TournamentUIHelper
         Canvas.SetLeft(messagePanel, 250);
         Canvas.SetTop(messagePanel, 200);
         canvas.Children.Add(messagePanel);
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Theme-Ressourcen zu holen
+    /// </summary>
+    private static object? GetThemeResource(string resourceKey)
+    {
+        try
+        {
+            return Application.Current?.Resources[resourceKey];
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Hilfsmethode um Brush aus Theme-Ressourcen zu holen
+    /// </summary>
+    private static Brush GetThemeBrush(string resourceKey, Brush fallback)
+    {
+        return GetThemeResource(resourceKey) as Brush ?? fallback;
     }
 
     /// <summary>

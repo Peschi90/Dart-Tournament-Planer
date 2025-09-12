@@ -4,7 +4,7 @@ using DartTournamentPlaner.Services.Languages; // Assuming the ILanguageSection 
 namespace DartTournamentPlaner.Services.Languages.German;
 
 /// <summary>
-/// Deutsche Übersetzungen für UI-Elemente und allgemeine Anwendungskomponenten
+/// Deutsche Übersetzungen für UI-Elemente und allgemeine Benutzeroberfläche
 /// </summary>
 public class GermanUILanguageProvider : ILanguageSection
 {
@@ -12,10 +12,24 @@ public class GermanUILanguageProvider : ILanguageSection
     {
         return new Dictionary<string, string>
         {
+            // =====================================
+            // THEME & DARK MODE
+            // =====================================
+            
+            ["Theme"] = "Design",
+            ["DarkMode"] = "Dunkler Modus",
+            ["LightMode"] = "Heller Modus",
+            ["SwitchToDarkMode"] = "Zu dunklem Modus wechseln",
+            ["SwitchToLightMode"] = "Zu hellem Modus wechseln",
+            ["ThemeSettings"] = "Design-Einstellungen",
+            
+            // =====================================
+            // ALLGEMEINE UI-ELEMENTE
+            // =====================================
+            
             // Anwendungseinstellungen
             ["Settings"] = "Einstellungen",
             ["Language"] = "Sprache",
-            ["Theme"] = "Design",
             ["AutoSave"] = "Automatisches Speichern",
             ["AutoSaveInterval"] = "Speicherintervall (Minuten)",
             ["Save"] = "Speichern",

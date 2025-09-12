@@ -4,15 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
-             d:DesignHeight="800" d:DesignWidth="1200">
+             d:DesignHeight="800" d:DesignWidth="1200"
+             Background="{DynamicResource BackgroundBrush}">
     
     <UserControl.Resources>
         <Style x:Key="StatCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="#F8F9FA"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="15"/>
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="BorderBrush" Value="#E9ECEF"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Effect">
                 <Setter.Value>
@@ -24,28 +25,29 @@
         <Style x:Key="StatHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
             <Setter Property="Margin" Value="0,0,0,5"/>
         </Style>
         
         <Style x:Key="StatValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="20"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#007BFF"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
         </Style>
         
-        <!-- ✅ NEU: DataGrid Styling -->
+        <!-- ✅ DataGrid Styling mit Dark Mode Support -->
         <Style TargetType="DataGrid">
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#F1F5F9"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
             <Setter Property="IsReadOnly" Value="True"/>
             <Setter Property="SelectionMode" Value="Single"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
+            <Setter Property="RowBackground" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource DataGridAlternatingRowBrush}"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="CanUserReorderColumns" Value="False"/>
@@ -54,18 +56,11 @@
         </Style>
         
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#F8FAFC" Offset="0"/>
-                        <GradientStop Color="#F1F5F9" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Background" Value="{DynamicResource DataGridHeaderBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
         </Style>
         
@@ -73,13 +68,51 @@
             <Setter Property="Height" Value="40"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0F9FF"/>
+                    <Setter Property="Background" Value="{DynamicResource HoverBrush}"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#DBEAFE"/>
-                    <Setter Property="Foreground" Value="#1E40AF"/>
+                    <Setter Property="Background" Value="{DynamicResource DataGridSelectedBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                 </Trigger>
             </Style.Triggers>
+        </Style>
+        
+        <!-- Button Style -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource SuccessBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ButtonHoverGradient}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <!-- ComboBox Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        
+        <!-- TextBlock Default Style -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
         </Style>
     </UserControl.Resources>
 
@@ -93,7 +126,7 @@
         <!-- Titel und Zusammenfassung -->
         <StackPanel Grid.Row="0" Orientation="Vertical" Margin="10">
             <TextBlock x:Name="TitleTextBlock" Text="📊 Spieler-Statistiken" FontSize="24" FontWeight="Bold" 
-                       Foreground="#007BFF" HorizontalAlignment="Center" Margin="0,10"/>
+                       Foreground="{DynamicResource AccentBrush}" HorizontalAlignment="Center" Margin="0,10"/>
             
             <!-- Klassen-Zusammenfassung -->
             <Border Style="{StaticResource StatCardStyle}" HorizontalAlignment="Center" MinWidth="600">
@@ -129,30 +162,12 @@
         <!-- Filter und Aktionen -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,5" HorizontalAlignment="Center">
             <Button x:Name="RefreshButton" Content="🔄 Aktualisieren" Margin="10,0" 
-                    Padding="15,8" Click="RefreshButton_Click" 
-                    Background="#28A745" Foreground="White" BorderBrush="#28A745" 
-                    FontWeight="Bold">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}" 
-                                            CornerRadius="6" 
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Padding="15,8" Click="RefreshButton_Click"/>
             
             <TextBlock Text="{Binding Players.Count}" Margin="20,0,5,0" VerticalAlignment="Center" FontWeight="Bold"/>
             <TextBlock x:Name="PlayersWithStatsText" Text="Spieler mit Statistiken" VerticalAlignment="Center"/>
             
-            <!-- ✅ NEU: Sortierung -->
+            <!-- ✅ Sortierung -->
             <TextBlock x:Name="SortByText" Text="Sortieren nach:" Margin="20,0,5,0" VerticalAlignment="Center" FontWeight="Bold"/>
             <ComboBox x:Name="SortComboBox" Margin="5,0" VerticalAlignment="Center" 
                       SelectionChanged="SortComboBox_SelectionChanged" SelectedIndex="1" MinWidth="120">
@@ -165,7 +180,7 @@
             </ComboBox>
         </StackPanel>
 
-        <!-- ✅ NEU: Übersichtliche DataGrid-Tabelle -->
+        <!-- ✅ Übersichtliche DataGrid-Tabelle -->
         <Border Grid.Row="2" Margin="10" Style="{StaticResource StatCardStyle}">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                 <DataGrid x:Name="PlayersDataGrid" ItemsSource="{Binding Players}" Margin="5">
@@ -173,7 +188,7 @@
                         <DataGridTextColumn x:Name="PlayerColumn" Header="🎯 Spieler" Binding="{Binding PlayerName}" Width="150" FontWeight="Bold">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#2563EB"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -183,6 +198,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
@@ -191,7 +207,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#16A34A"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -201,7 +217,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#DC2626"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -211,7 +227,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#EA580C"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource WarningBrush}"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -262,24 +278,24 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#EF4444"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <!-- ✅ NEU: Schnellstes Match -->
+                        <!-- ✅ Schnellstes Match -->
                         <DataGridTextColumn x:Name="FastestMatchColumn" Header="Schnellstes Match" Binding="{Binding FastestMatchFormatted}" Width="120">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#059669"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <!-- ✅ NEU: Wenigste Würfe -->
+                        <!-- ✅ Wenigste Würfe -->
                         <DataGridTextColumn x:Name="FewestThrowsColumn" Header="Wenigste Würfe" Binding="{Binding FewestThrowsInMatch}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
@@ -294,7 +310,7 @@
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
-                                    <Setter Property="Foreground" Value="#6B7280"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}"/>
                                     <Setter Property="FontSize" Value="11"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
@@ -304,10 +320,10 @@
             </ScrollViewer>
         </Border>
 
-        <!-- ✅ NEU: Debug-Information -->
+        <!-- ✅ Debug-Information -->
         <TextBlock Grid.Row="2" x:Name="DebugInfoBlock" 
                    HorizontalAlignment="Right" VerticalAlignment="Bottom" 
-                   Margin="20" FontSize="10" Foreground="Gray"
+                   Margin="20" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"
                    Text="{Binding DebugMessage}"/>
     </Grid>
 </UserControl>

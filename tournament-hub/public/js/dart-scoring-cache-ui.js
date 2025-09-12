@@ -7,11 +7,10 @@ class DartScoringCacheUI {
         this.core = core;
         this.ui = ui;
         this.cache = cache;
-
+        
         this.restoreButton = null;
-        this.statusIndicator = null;
-
-        console.log('🎨 [DART-CACHE-UI] Cache UI initialized');
+        this.resetButton = null;
+        this.statusIndicator = null;        console.log('🎨 [DART-CACHE-UI] Cache UI initialized');
     }
 
     /**
@@ -85,9 +84,37 @@ class DartScoringCacheUI {
             this.restoreButton.style.transform = 'translateY(0)';
         });
 
+        // Reset-Button (immer sichtbar während des Spiels)
+        this.resetButton = document.createElement('button');
+        this.resetButton.id = 'cacheResetButton';
+        this.resetButton.innerHTML = '🔄 Match zurücksetzen';
+        this.resetButton.style.cssText = `
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #e53e3e;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 8px;
+        `;
+
+        this.resetButton.addEventListener('mouseenter', () => {
+            this.resetButton.style.background = '#c53030';
+            this.resetButton.style.transform = 'translateY(-1px)';
+        });
+
+        this.resetButton.addEventListener('mouseleave', () => {
+            this.resetButton.style.background = '#e53e3e';
+            this.resetButton.style.transform = 'translateY(0)';
+        });
+
         // Zusammenbauen
         cacheStatusContainer.appendChild(this.statusIndicator);
         cacheStatusContainer.appendChild(this.restoreButton);
+        cacheStatusContainer.appendChild(this.resetButton);
 
         // Als erstes Element in header-controls einfügen
         headerControls.insertBefore(cacheStatusContainer, headerControls.firstChild);
@@ -171,6 +198,104 @@ class DartScoringCacheUI {
             this.restoreButton.innerHTML = '🔄 Kein Spielstand';
         } else {
             this.restoreButton.style.display = 'none';
+        }
+    }
+
+    /**
+     * 💬 Zeige Reset-Dialog
+     */
+    async showResetDialog() {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'resetModal';
+            
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 600px;">
+                    <h2>🔄 Match zurücksetzen</h2>
+                    <div style="margin: 25px 0; text-align: left; line-height: 1.6;">
+                        <div style="background: #fff5f5; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #fed7d7;">
+                            <p style="margin-bottom: 15px; color: #742a2a;">
+                                <strong>⚠️ Achtung: Diese Aktion kann nicht rückgängig gemacht werden!</strong>
+                            </p>
+                            <p style="color: #4a5568; margin-bottom: 15px;">
+                                Das Match wird vollständig zurückgesetzt und alle Spielfortschritte gehen verloren:
+                            </p>
+                            <ul style="margin: 15px 0 15px 20px; color: #4a5568;">
+                                <li>✗ Alle Würfe und Scores werden gelöscht</li>
+                                <li>✗ Leg- und Set-Fortschritt wird zurückgesetzt</li>
+                                <li>✗ Wurf-Historie wird geleert</li>
+                                <li>✗ Gespeicherte Cache-Daten werden entfernt</li>
+                            </ul>
+                        </div>
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <h4 style="color: #2d3748; margin-bottom: 10px;">Wann sollten Sie das Match zurücksetzen?</h4>
+                            <div style="margin-left: 15px; color: #4a5568;">
+                                <p style="margin: 8px 0;">• Falsches Match wurde versehentlich gestartet</p>
+                                <p style="margin: 8px 0;">• Falsche Spieler wurden eingegeben</p>
+                                <p style="margin: 8px 0;">• Spiel soll komplett neu gestartet werden</p>
+                            </div>
+                        </div>
+                        <div style="background: #edf2f7; padding: 15px; border-radius: 8px;">
+                            <p style="color: #4a5568; font-size: 0.9em; margin: 0;">
+                                💡 <strong>Alternative:</strong> Wenn Sie nur den aktuellen Wurf korrigieren möchten, verwenden Sie die "Wurf rückgängig" Funktion im Spiel.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="btn-secondary" id="resetCancel" style="font-size: 1.1em; padding: 12px 24px;">
+                            ❌ Abbrechen
+                        </button>
+                        <button class="btn-primary" id="resetConfirm" style="font-size: 1.1em; padding: 12px 24px; background: #e53e3e; border-color: #c53030;">
+                            🔄 Match zurücksetzen
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            const cleanup = () => {
+                document.body.removeChild(modal);
+            };
+
+            document.getElementById('resetCancel').onclick = () => {
+                cleanup();
+                resolve(false);
+            };
+
+            document.getElementById('resetConfirm').onclick = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            // ESC-Taste Handling
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    cleanup();
+                    document.removeEventListener('keydown', escHandler);
+                    resolve(false);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        });
+    }
+
+    /**
+     * 💬 Zeige Reset-Erfolg-Nachricht
+     */
+    showResetSuccess() {
+        if (this.ui && this.ui.showMessage) {
+            this.ui.showMessage('🔄 Match erfolgreich zurückgesetzt!', 'success', 3000);
+        }
+    }
+
+    /**
+     * 💬 Zeige Reset-Fehler-Nachricht
+     */
+    showResetError(error) {
+        if (this.ui && this.ui.showMessage) {
+            this.ui.showMessage(`❌ Reset fehlgeschlagen: ${error}`, 'error', 5000);
         }
     }
 
@@ -329,6 +454,45 @@ class DartScoringCacheUI {
             });
         }
 
+        // Reset-Button Click
+        if (this.resetButton) {
+            this.resetButton.addEventListener('click', async () => {
+                console.log('🔄 [DART-CACHE-UI] Reset match triggered');
+                
+                // Zeige Bestätigungs-Dialog
+                const shouldReset = await this.showResetDialog();
+                
+                if (!shouldReset) {
+                    console.log('🔄 [DART-CACHE-UI] Reset cancelled by user');
+                    return;
+                }
+
+                this.resetButton.disabled = true;
+                this.resetButton.innerHTML = '🔄 Setzt zurück...';
+                
+                try {
+                    const result = await this.cache.resetMatchToOriginal();
+                    
+                    if (result.success) {
+                        // Update UI komplett
+                        this.ui.updateDisplay();
+                        this.showResetSuccess();
+                        this.updateRestoreButton(false);
+                        this.updateStatusIndicator('idle');
+                    } else {
+                        this.showResetError(result.message);
+                    }
+
+                } catch (error) {
+                    console.error('❌ [DART-CACHE-UI] Reset failed:', error);
+                    this.showResetError(error.message);
+                } finally {
+                    this.resetButton.disabled = false;
+                    this.resetButton.innerHTML = '🔄 Match zurücksetzen';
+                }
+            });
+        }
+
         // Listen to cache events
         if (this.cache) {
             // Override cache save method to update UI
@@ -394,6 +558,10 @@ class DartScoringCacheUI {
 
         if (this.restoreButton && this.restoreButton.parentNode) {
             this.restoreButton.parentNode.removeChild(this.restoreButton);
+        }
+
+        if (this.resetButton && this.resetButton.parentNode) {
+            this.resetButton.parentNode.removeChild(this.resetButton);
         }
 
         console.log('🧹 [DART-CACHE-UI] Cache UI cleaned up');

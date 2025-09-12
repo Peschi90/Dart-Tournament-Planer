@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
@@ -11,6 +11,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
 {
     private readonly ConfigService _configService;
     private readonly LocalizationService _localizationService;
+    private readonly ThemeService _themeService;
     private AppConfig _config;
 
     public AppConfig Config
@@ -24,10 +25,11 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         }
     }
 
-    public SettingsWindow(ConfigService configService, LocalizationService localizationService)
+    public SettingsWindow(ConfigService configService, LocalizationService localizationService, ThemeService themeService)
     {
         _configService = configService;
         _localizationService = localizationService;
+        _themeService = themeService;
         
         InitializeComponent();
         DataContext = this;
@@ -57,7 +59,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     private void UpdateUI()
     {
         LanguageComboBox.SelectedValue = Config.Language;
-        ThemeComboBox.Text = Config.Theme;
+        ThemeComboBox.SelectedValue = Config.Theme ?? "Light";
         AutoSaveCheckBox.IsChecked = Config.AutoSave;
         AutoSaveIntervalTextBox.Text = Config.AutoSaveInterval.ToString();
     }
@@ -67,9 +69,24 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         System.Diagnostics.Debug.WriteLine($"SettingsWindow.UpdateTranslations: Updating with language '{_localizationService.CurrentLanguage}'");
         
         Title = _localizationService.GetString("Settings");
+        HeaderTitle.Text = _localizationService.GetString("Settings");
         SaveButton.Content = _localizationService.GetString("Save");
         CancelButton.Content = _localizationService.GetString("Cancel");
         AutoSaveCheckBox.Content = _localizationService.GetString("AutoSave");
+        
+        // Theme ComboBox Items aktualisieren
+        try
+        {
+            var lightItem = (System.Windows.Controls.ComboBoxItem)ThemeComboBox.Items[0];
+            var darkItem = (System.Windows.Controls.ComboBoxItem)ThemeComboBox.Items[1];
+            
+            lightItem.Content = "☀️ " + _localizationService.GetString("LightMode");
+            darkItem.Content = "🌙 " + _localizationService.GetString("DarkMode");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SettingsWindow.UpdateTranslations: Error updating theme combo items: {ex.Message}");
+        }
         
         // Update other UI elements if they exist
         try
@@ -88,12 +105,15 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         try
         {
             var newLanguage = LanguageComboBox.SelectedValue?.ToString() ?? "de";
+            var newTheme = ThemeComboBox.SelectedValue?.ToString() ?? "Light";
             var languageChanged = _configService.Config.Language != newLanguage;
+            var themeChanged = _configService.Config.Theme != newTheme;
             
             System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: Current language: {_configService.Config.Language}, New language: {newLanguage}, Changed: {languageChanged}");
+            System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: Current theme: {_configService.Config.Theme}, New theme: {newTheme}, Changed: {themeChanged}");
             
-            // Update other config settings (but NOT language yet)
-            _configService.Config.Theme = ThemeComboBox.Text;
+            // Update config settings
+            _configService.Config.Theme = newTheme;
             _configService.Config.AutoSave = AutoSaveCheckBox.IsChecked ?? false;
             
             if (int.TryParse(AutoSaveIntervalTextBox.Text, out int interval) && interval > 0)
@@ -119,9 +139,13 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
                 
                 System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: Language change completed");
             }
-            else
+
+            // Theme ändern wenn nötig
+            if (themeChanged)
             {
-                System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: No language change needed");
+                System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: Applying theme change to '{newTheme}'");
+                _themeService.ApplyTheme(newTheme);
+                System.Diagnostics.Debug.WriteLine($"SettingsWindow.SaveButton_Click: Theme change completed");
             }
 
             DialogResult = true;
@@ -144,7 +168,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Event-Handler f�r das Verschieben des Fensters �ber den Header
+    /// Event-Handler für das Verschieben des Fensters über den Header
     /// </summary>
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {

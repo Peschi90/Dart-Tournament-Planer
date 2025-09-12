@@ -17,6 +17,18 @@ class MatchPageCore {
     }
 
     /**
+     * Get translation helper
+     */
+    t(key, params = {}) {
+        if (window.i18nManager) {
+            return window.i18nManager.t(key, params);
+        } else if (typeof t !== 'undefined') {
+            return t(key, params);
+        }
+        return key; // Fallback if i18n not available
+    }
+
+    /**
      * Extract URL parameters from query string or path with enhanced UUID support
      */
     extractUrlParameters() {
@@ -148,7 +160,7 @@ class MatchPageCore {
             console.log('📋 [MATCH-CORE] URL Parameters:', urlParams);
 
             if (!urlParams.matchId) {
-                throw new Error('Ungültige Match-URL: Match ID fehlt');
+                throw new Error((typeof t !== 'undefined') ? t('matchPage.errors.invalidMatchUrl') : 'Invalid match URL: Match ID missing');
             }
 
             this.matchId = urlParams.matchId;
@@ -186,7 +198,8 @@ class MatchPageCore {
             this.startPeriodicUpdates();
 
             console.log('🎉 [MATCH-CORE] Match page initialization complete!');
-            this.showInfo('Match-Seite erfolgreich geladen', 'success');
+            const successMessage = (typeof t !== 'undefined') ? t('matchPage.messages.loadedSuccessfully') : 'Match page loaded successfully';
+            this.showInfo(successMessage, 'success');
 
             // 🆔 ERWEITERT: Zeige UUID-Status in der UI
             if (this.matchUniqueId) {
@@ -201,7 +214,8 @@ class MatchPageCore {
 
         } catch (error) {
             console.error('🚫 [MATCH-CORE] Initialization error:', error);
-            this.showError(`Initialisierungsfehler: ${error.message}`);
+            const errorMessage = (typeof t !== 'undefined') ? t('matchPage.errors.initializationError') : 'Initialization error';
+            this.showError(`${errorMessage}: ${error.message}`);
             return false;
         }
     }
@@ -419,7 +433,13 @@ class MatchPageCore {
         }
 
         if (text) {
-            text.textContent = connected ? 'Verbunden' : 'Getrennt';
+            if (connected) {
+                text.textContent = this.t('matchPage.connection.connected');
+                text.setAttribute('data-i18n', 'matchPage.connection.connected');
+            } else {
+                text.textContent = this.t('matchPage.connection.connecting');
+                text.setAttribute('data-i18n', 'matchPage.connection.connecting');
+            }
         }
     }
 
@@ -448,7 +468,7 @@ class MatchPageCore {
         if (loadingContainer) {
             loadingContainer.innerHTML = `
                 <span class="icon">❌</span>
-                <strong>Fehler</strong><br>
+                <strong>${this.t('common.error')}</strong><br>
                 ${message}
             `;
         }
@@ -460,7 +480,7 @@ class MatchPageCore {
      * Show connection error
      */
     showConnectionError() {
-        this.showError('Verbindung zum Server fehlgeschlagen. Bitte Seite neu laden.');
+        this.showError(this.t('matchPage.errors.connectionFailed'));
     }
 
     /**
@@ -1053,15 +1073,15 @@ function openMatchPage(matchId) {
 
         if (!matchId) {
             console.error('❌ [GLOBAL] Cannot open match page - match ID is missing');
-            alert('Fehler: Match-ID fehlt.');
+            alert(this.t('matchPage.errors.matchIdNotAvailable'));
             return;
         }
 
         // Determine if this is a UUID match (enhanced detection)
         const isLikelyUuid = matchId.length >= 32 && matchId.includes('-');
-        
+
         let matchPageUrl;
-        
+
         if (isLikelyUuid && (!tournamentId || tournamentId === 'null' || tournamentId === null)) {
             // Use simplified URL for UUID matches when no tournament available
             matchPageUrl = `/match/${matchId}`;
@@ -1105,6 +1125,6 @@ function openMatchPage(matchId) {
 
     } catch (error) {
         console.error('❌ [GLOBAL] Error opening match page:', error);
-        alert(`Fehler beim Öffnen der Match-Seite: ${error.message}`);
+        alert(this.t('matchPage.errors.openingMatchPage') + ': ' + error.message);
     }
 }

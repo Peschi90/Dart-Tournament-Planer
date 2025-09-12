@@ -45,6 +45,14 @@ public class EnglishTournamentLanguageProvider : ILanguageSection
             ["ResetFinalsPhase"] = "Reset Finals Phase",
             ["RefreshUI"] = "Refresh UI",
             ["RefreshUITooltip"] = "Refreshes the user interface",
+            
+            // ✅ NEU: For Group.ToString() - pure plural forms without colon
+            ["PlayersPlural"] = "Players",
+            ["MatchesPlural"] = "Matches",
+
+            // ✅ NEU: Group phase sub-tabs
+            ["GamesTab"] = "🎯 Games",
+            ["TableTab"] = "📊 Table",
 
             // Tournament Process Phases
             ["GroupPhase"] = "Group Phase",

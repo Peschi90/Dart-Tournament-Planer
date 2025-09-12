@@ -6,8 +6,20 @@ class MatchPageMain {
     constructor() {
         this.isInitialized = false;
         this.pageLoadTime = Date.now();
-        
+
         console.log('🚀 [MATCH-MAIN] Match Page Main initialized');
+    }
+
+    /**
+     * Get translation helper
+     */
+    t(key, params = {}) {
+        if (window.i18nManager) {
+            return window.i18nManager.t(key, params);
+        } else if (typeof t !== 'undefined') {
+            return t(key, params);
+        }
+        return key; // Fallback if i18n not available
     }
 
     /**
@@ -45,7 +57,7 @@ class MatchPageMain {
 
             // Mark as initialized
             this.isInitialized = true;
-            
+
             const initTime = Date.now() - this.pageLoadTime;
             console.log(`✅ [MATCH-MAIN] Match page initialized successfully in ${initTime}ms`);
 
@@ -64,19 +76,19 @@ class MatchPageMain {
     async waitForDependencies(maxRetries = 5, delayMs = 200) {
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             console.log(`🔍 [MATCH-MAIN] Checking dependencies (attempt ${attempt}/${maxRetries})`);
-            
+
             if (this.checkDependencies()) {
                 console.log('✅ [MATCH-MAIN] All dependencies are ready');
                 return true;
             }
-            
+
             if (attempt < maxRetries) {
                 console.log(`⏳ [MATCH-MAIN] Dependencies not ready, waiting ${delayMs}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delayMs));
                 delayMs *= 1.5; // Exponential backoff
             }
         }
-        
+
         console.error('❌ [MATCH-MAIN] Dependencies still not ready after all retries');
         return false;
     }
@@ -87,19 +99,22 @@ class MatchPageMain {
     checkDependencies() {
         const requiredModules = [
             'matchPageCore',
-            'matchPageDisplay', 
+            'matchPageDisplay',
             'matchPageScoring',
-            'matchPageAPI'
+            'matchPageAPI',
+            'i18nManager'
         ];
 
         console.log('🔍 [MATCH-MAIN] Checking dependencies...');
-        
+
         // Log current state of all window objects
         console.log('📋 [MATCH-MAIN] Current window objects:', {
             matchPageCore: !!window.matchPageCore,
             matchPageDisplay: !!window.matchPageDisplay,
             matchPageScoring: !!window.matchPageScoring,
-            matchPageAPI: !!window.matchPageAPI
+            matchPageAPI: !!window.matchPageAPI,
+            i18nManager: !!window.i18nManager,
+            globalT: !!window.t
         });
 
         const missingModules = [];
@@ -208,16 +223,16 @@ class MatchPageMain {
      */
     handleBeforeUnload(event) {
         console.log('🔄 [MATCH-MAIN] Page unloading...');
-        
+
         // Cleanup resources
         if (window.matchPageCore) {
             window.matchPageCore.cleanup();
         }
-        
+
         if (window.matchPageScoring) {
             window.matchPageScoring.cleanup();
         }
-        
+
         // Note: Modern browsers ignore custom messages
         // event.returnValue = 'Are you sure you want to leave this match page?';
     }
@@ -267,7 +282,7 @@ class MatchPageMain {
      */
     handlePageFocus() {
         console.log('🎯 [MATCH-MAIN] Page focused - checking for updates');
-        
+
         // Request fresh data when page regains focus
         if (window.matchPageCore && window.matchPageCore.isSocketConnected()) {
             window.matchPageCore.requestMatchData();
@@ -304,7 +319,7 @@ class MatchPageMain {
      */
     handleOnlineStatus(isOnline) {
         console.log(`🌐 [MATCH-MAIN] Network status: ${isOnline ? 'online' : 'offline'}`);
-        
+
         if (isOnline) {
             // Attempt to reconnect and sync data
             setTimeout(() => {
@@ -313,7 +328,7 @@ class MatchPageMain {
                 }
             }, 1000);
         }
-        
+
         // Update UI to reflect connection status
         this.updateConnectionStatusUI(isOnline);
     }
@@ -324,7 +339,13 @@ class MatchPageMain {
     updateConnectionStatusUI(isOnline) {
         const statusElement = document.getElementById('connectionText');
         if (statusElement) {
-            statusElement.textContent = isOnline ? 'Online' : 'Offline';
+            if (isOnline) {
+                statusElement.textContent = this.t('matchPage.connection.connected');
+                statusElement.setAttribute('data-i18n', 'matchPage.connection.connected');
+            } else {
+                statusElement.textContent = this.t('matchPage.connection.disconnected');
+                statusElement.setAttribute('data-i18n', 'matchPage.connection.disconnected');
+            }
         }
     }
 
@@ -367,12 +388,12 @@ class MatchPageMain {
     async performInitialHealthCheck() {
         try {
             console.log('🏥 [MATCH-MAIN] Performing initial health check...');
-            
+
             const apiHealthy = await window.matchPageAPI.healthCheck();
             const socketHealthy = await window.matchPageAPI.testSocketConnection();
-            
+
             console.log(`📊 [MATCH-MAIN] Health check results: API=${apiHealthy}, Socket=${socketHealthy}`);
-            
+
             if (!apiHealthy && !socketHealthy) {
                 console.warn('⚠️ [MATCH-MAIN] Both API and Socket connections failed');
                 this.showConnectionWarning();
@@ -388,14 +409,14 @@ class MatchPageMain {
     showConnectionWarning() {
         const warningHTML = `
             <div id="connectionWarning" class="connection-warning">
-                ⚠️ <strong>Verbindungsproblem</strong><br>
-                Die Verbindung zum Server ist instabil. Einige Funktionen sind möglicherweise eingeschränkt.
+                ⚠️ <strong>${this.t('matchPage.connection.error')}</strong><br>
+                ${this.t('matchPage.errors.connectionFailed')}
                 <button onclick="this.parentElement.style.display='none'">✖</button>
             </div>
         `;
-        
+
         document.body.insertAdjacentHTML('afterbegin', warningHTML);
-        
+
         // Auto-hide after 10 seconds
         setTimeout(() => {
             const warning = document.getElementById('connectionWarning');
@@ -410,7 +431,7 @@ class MatchPageMain {
      */
     handleInitializationError(error) {
         console.error('🚫 [MATCH-MAIN] Handling initialization error:', error);
-        
+
         const errorContainer = document.getElementById('loadingContainer');
         if (errorContainer) {
             errorContainer.innerHTML = `
@@ -432,9 +453,9 @@ class MatchPageMain {
             timestamp: new Date().toISOString(),
             type: type,
             error: {
-                message: error?.message || 'Unknown error',
-                stack: error?.stack,
-                name: error?.name
+                message: (error && error.message) || 'Unknown error',
+                stack: error && error.stack,
+                name: error && error.name
             },
             context: context,
             url: window.location.href,
@@ -446,7 +467,7 @@ class MatchPageMain {
         try {
             const existingLogs = JSON.parse(localStorage.getItem('matchPageErrors') || '[]');
             existingLogs.push(errorLog);
-            
+
             // Keep only last 10 errors
             const recentLogs = existingLogs.slice(-10);
             localStorage.setItem('matchPageErrors', JSON.stringify(recentLogs));
@@ -473,11 +494,11 @@ class MatchPageMain {
             },
             connection: {
                 online: navigator.onLine,
-                socketConnected: window.matchPageCore?.isSocketConnected() || false
+                socketConnected: (window.matchPageCore && window.matchPageCore.isSocketConnected && window.matchPageCore.isSocketConnected()) || false
             },
             tournament: {
-                id: window.matchPageCore?.tournamentId || null,
-                matchId: window.matchPageCore?.matchId || null
+                id: (window.matchPageCore && window.matchPageCore.tournamentId) || null,
+                matchId: (window.matchPageCore && window.matchPageCore.matchId) || null
             },
             errors: JSON.parse(localStorage.getItem('matchPageErrors') || '[]')
         };
@@ -490,14 +511,14 @@ class MatchPageMain {
         const diagnostics = this.getDiagnosticInfo();
         const dataStr = JSON.stringify(diagnostics, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
+
         const link = document.createElement('a');
         link.href = URL.createObjectURL(dataBlob);
         link.download = `match-page-diagnostics-${Date.now()}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         console.log('📊 [MATCH-MAIN] Diagnostics exported');
     }
 }
@@ -602,15 +623,16 @@ document.head.insertAdjacentHTML('beforeend', mainStyles);
 window.matchPageMain = new MatchPageMain();
 
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('📄 [MATCH-MAIN] DOM ready - initializing match page');
-    
-    // Add delay to ensure all modules are loaded
-    setTimeout(() => {
-        console.log('⏰ [MATCH-MAIN] Starting delayed initialization to ensure all modules are loaded');
-        window.matchPageMain.initialize();
-    }, 100); // Short delay to let all scripts finish loading
-});
+// Remove automatic initialization - will be started from HTML after i18n is ready
+// document.addEventListener('DOMContentLoaded', () => {
+//     console.log('📄 [MATCH-MAIN] DOM ready - initializing match page');
+//     
+//     // Add delay to ensure all modules are loaded
+//     setTimeout(() => {
+//         console.log('⏰ [MATCH-MAIN] Starting delayed initialization to ensure all modules are loaded');
+//         window.matchPageMain.initialize();
+//     }, 100); // Short delay to let all scripts finish loading
+// });
 
 // Expose global debug function for development
 window.getMatchPageDiagnostics = () => {

@@ -44,6 +44,11 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             ["ResetFinalsPhase"] = "Finalrunde zurücksetzen",
             ["RefreshUI"] = "UI aktualisieren",
             ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche",
+            ["PlayersPlural"] = "Spieler", // ✅ NEU: Für Group.ToString() - reine Plural-Formen ohne Doppelpunkt
+            ["MatchesPlural"] = "Spiele",    // ✅ NEU: Gruppenphasen-Untertabs
+            ["GamesTab"] = "🎯 Spiele",
+            ["TableTab"] = "📊 Tabelle",
+
 
             // Turnierprozessphasen
             ["GroupPhase"] = "Gruppenphase",

@@ -1,5 +1,19 @@
 ﻿// tournament-interface-match-card.js - Match card creation and handling
 
+/**
+ * Get translation helper
+ */
+function t(key, params = {}) {
+    if (window.i18n && window.i18n.t) {
+        return window.i18n.t(key, params);
+    }
+    if (window.I18nManager && window.I18nManager.t) {
+        return window.I18nManager.t(key, params);
+    }
+    console.warn(`🌐 t() called but i18n not available for key: ${key}`);
+    return key; // Fallback if i18n not available
+}
+
 function createMatchCard(match) {
     const canSubmitResult = match.status !== 'Finished' && match.status !== 'finished';
 
@@ -25,8 +39,8 @@ function createMatchCard(match) {
     });
 
     // Handle different player name formats
-    let player1Name = 'Spieler 1';
-    let player2Name = 'Spieler 2';
+    let player1Name = t('tournamentInterface.players.player') + ' 1';
+    let player2Name = t('tournamentInterface.players.player') + ' 2';
 
     if (match.player1) {
         if (typeof match.player1 === 'string') {
@@ -73,7 +87,7 @@ function createMatchCard(match) {
     let className = match.className || match.ClassName || null;
     if (!className) {
         const foundClass = window.tournamentClasses.find(c => c.id == classId);
-        className = foundClass ? .name || `Klasse ${classId}`;
+        className = foundClass && foundClass.name || `${t('tournamentInterface.classes.class')} ${classId}`;
     }
 
     const groupName = match.groupName || match.GroupName || null;
@@ -110,22 +124,22 @@ function createMatchCard(match) {
     // Match-Type Display
     const getMatchTypeDisplay = (type) => {
         const matchTypeIndicator = {
-            'Group': '🔸 Gruppe',
-            'Finals': '🏆 Finale',
-            'Knockout-WB-Best64': '⚡ K.O. Beste 64',
-            'Knockout-WB-Best32': '⚡ K.O. Beste 32',
-            'Knockout-WB-Best16': '⚡ K.O. Beste 16',
-            'Knockout-WB-Quarterfinal': '⚡ K.O. Viertelfinale',
-            'Knockout-WB-Semifinal': '⚡ K.O. Halbfinale',
-            'Knockout-WB-Final': '🏆 K.O. Finale',
-            'Knockout-WB-GrandFinal': '🏆 K.O. Grand Final',
-            'Knockout-LB-LoserRound1': '🔄 K.O. Loser Runde 1',
-            'Knockout-LB-LoserRound2': '🔄 K.O. Loser Runde 2',
-            'Knockout-LB-LoserRound3': '🔄 K.O. Loser Runde 3',
-            'Knockout-LB-LoserRound4': '🔄 K.O. Loser Runde 4',
-            'Knockout-LB-LoserRound5': '🔄 K.O. Loser Runde 5',
-            'Knockout-LB-LoserRound6': '🔄 K.O. Loser Runde 6',
-            'Knockout-LB-LoserFinal': '🔄 K.O. Loser Final'
+            'Group': `🔸 ${t('tournamentInterface.matchTypes.group')}`,
+            'Finals': `🏆 ${t('tournamentInterface.matchTypes.finals')}`,
+            'Knockout-WB-Best64': `⚡ ${t('tournamentInterface.matchTypes.koBest64')}`,
+            'Knockout-WB-Best32': `⚡ ${t('tournamentInterface.matchTypes.koBest32')}`,
+            'Knockout-WB-Best16': `⚡ ${t('tournamentInterface.matchTypes.koBest16')}`,
+            'Knockout-WB-Quarterfinal': `⚡ ${t('tournamentInterface.matchTypes.koQuarterfinal')}`,
+            'Knockout-WB-Semifinal': `⚡ ${t('tournamentInterface.matchTypes.koSemifinal')}`,
+            'Knockout-WB-Final': `🏆 ${t('tournamentInterface.matchTypes.koFinal')}`,
+            'Knockout-WB-GrandFinal': `🏆 ${t('tournamentInterface.matchTypes.koGrandFinal')}`,
+            'Knockout-LB-LoserRound1': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound1')}`,
+            'Knockout-LB-LoserRound2': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound2')}`,
+            'Knockout-LB-LoserRound3': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound3')}`,
+            'Knockout-LB-LoserRound4': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound4')}`,
+            'Knockout-LB-LoserRound5': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound5')}`,
+            'Knockout-LB-LoserRound6': `🔄 ${t('tournamentInterface.matchTypes.koLoserRound6')}`,
+            'Knockout-LB-LoserFinal': `🔄 ${t('tournamentInterface.matchTypes.koLoserFinal')}`
         };
 
         if (matchTypeIndicator[type]) {
@@ -133,17 +147,17 @@ function createMatchCard(match) {
         }
 
         if (type.startsWith('Knockout-WB')) {
-            if (type.includes('Final')) return '🏆 K.O. Finale';
-            return '⚡ K.O. Winner Bracket';
+            if (type.includes('Final')) return `🏆 ${t('tournamentInterface.matchTypes.koFinal')}`;
+            return `⚡ ${t('tournamentInterface.matchTypes.koWinnerBracket')}`;
         }
 
         if (type.startsWith('Knockout-LB')) {
-            if (type.includes('LoserFinal')) return '🔄 K.O. Loser Final';
-            return '🔄 K.O. Loser Bracket';
+            if (type.includes('LoserFinal')) return `🔄 ${t('tournamentInterface.matchTypes.koLoserFinal')}`;
+            return `🔄 ${t('tournamentInterface.matchTypes.koLoserBracket')}`;
         }
 
-        if (type === 'Finals') return '🏆 Finalrunde';
-        if (type === 'Group') return '🔸 Gruppe';
+        if (type === 'Finals') return `🏆 ${t('tournamentInterface.matchTypes.finalRound')}`;
+        if (type === 'Group') return `🔸 ${t('tournamentInterface.matchTypes.group')}`;
 
         return `🎯 ${type.replace('Knockout-', 'K.O. ').replace('WB', 'Winner').replace('LB', 'Loser')}`;
     };
@@ -162,8 +176,8 @@ function createMatchCard(match) {
 
     // 🔑 ERWEITERTE Match-Header mit UUID-Anzeige
     const matchHeaderDisplay = hasValidUuid ?
-        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🆔 UUID</span>` :
-        `Match ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🔢 ID</span>`;
+        `${t('tournamentInterface.match.match')} ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🆔 UUID</span>` :
+        `${t('tournamentInterface.match.match')} ${matchId} <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">🔢 ID</span>`;
 
     return `
         <div class="match-card" 
@@ -196,7 +210,7 @@ function createMatchCard(match) {
                         ${getMatchTypeDisplay(matchType)}
                     </div>
                     ${groupName ? `<div style="font-size: 0.8em; margin-top: 2px; opacity: 0.9;">📋 ${groupName}</div>` : ''}
-                    ${hasValidUuid ? `<div style="font-size: 0.75em; margin-top: 4px; opacity: 0.8; background: rgba(0,255,0,0.2); padding: 2px 6px; border-radius: 4px;">🆔 UUID-kompatibel</div>` : ''}
+                    ${hasValidUuid ? `<div style="font-size: 0.75em; margin-top: 4px; opacity: 0.8; background: rgba(0,255,0,0.2); padding: 2px 6px; border-radius: 4px;">🆔 ${t('tournamentInterface.match.uuidCompatible')}</div>` : ''}
                 </div>
             </div>
             
@@ -208,12 +222,12 @@ function createMatchCard(match) {
                     <div class="player-scores">
                         ${playWithSets ? `
                             <div class="score-item">
-                                <span class="score-label">Sets</span>
+                                <span class="score-label" data-i18n="tournamentInterface.scoring.sets">${t('tournamentInterface.scoring.sets')}</span>
                                 <span class="score-value">${p1Sets}</span>
                             </div>
                         ` : '' }
                         <div class="score-item">
-                            <span class="score-label">Legs</span>
+                            <span class="score-label" data-i18n="tournamentInterface.scoring.legs">${t('tournamentInterface.scoring.legs')}</span>
                             <span class="score-value">${p1Legs}</span>
                         </div>
                     </div>
@@ -223,12 +237,12 @@ function createMatchCard(match) {
                     <div class="player-scores">
                         ${playWithSets ? `
                             <div class="score-item">
-                                <span class="score-label">Sets</span>
+                                <span class="score-label" data-i18n="tournamentInterface.scoring.sets">${t('tournamentInterface.scoring.sets')}</span>
                                 <span class="score-value">${p2Sets}</span>
                             </div>
                         ` : '' }
                         <div class="score-item">
-                            <span class="score-label">Legs</span>
+                            <span class="score-label" data-i18n="tournamentInterface.scoring.legs">${t('tournamentInterface.scoring.legs')}</span>
                             <span class="score-value">${p2Legs}</span>
                         </div>
                     </div>
@@ -237,77 +251,77 @@ function createMatchCard(match) {
 
             ${canSubmitResult ? `
                 <div class="result-form">
-                    <h4 style="margin-bottom: 15px; color: #4a5568;">🎯 Ergebnis eingeben für: ${gameRule.name}</h4>
+                    <h4 style="margin-bottom: 15px; color: #4a5568;" data-i18n="tournamentInterface.form.enterResultFor">🎯 ${t('tournamentInterface.form.enterResultFor')}: ${gameRule.name}</h4>
                     
                     ${playWithSets ? `
                         <div class="form-row">
                             <div class="input-group">
-                                <label>${player1Name} - Sets (max ${maxSets}, benötigt: ${setsToWin})</label>
+                                <label data-i18n="tournamentInterface.form.setsMax">${player1Name} - ${t('tournamentInterface.scoring.sets')} (${t('tournamentInterface.form.max')} ${maxSets}, ${t('tournamentInterface.form.required')}: ${setsToWin})</label>
                                 <input type="number" min="0" max="${maxSets}" value="${p1Sets}" 
                                        id="p1Sets_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
-                                       title="Sets für ${player1Name} (${setsToWin} Sets zum Sieg)">
+                                       title="${t('tournamentInterface.form.setsFor')} ${player1Name} (${setsToWin} ${t('tournamentInterface.form.setsToWin')})">
                             </div>
                             <div class="input-group">
-                                <label>${player2Name} - Sets (max ${maxSets}, benötigt: ${setsToWin})</label>
+                                <label data-i18n="tournamentInterface.form.setsMax">${player2Name} - ${t('tournamentInterface.scoring.sets')} (${t('tournamentInterface.form.max')} ${maxSets}, ${t('tournamentInterface.form.required')}: ${setsToWin})</label>
                                 <input type="number" min="0" max="${maxSets}" value="${p2Sets}" 
                                        id="p2Sets_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
-                                       title="Sets für ${player2Name} (${setsToWin} Sets zum Sieg)">
+                                       title="${t('tournamentInterface.form.setsFor')} ${player2Name} (${setsToWin} ${t('tournamentInterface.form.setsToWin')})">
                             </div>
                         </div>
                     ` : `
                         <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9em; border: 1px solid #ffeaa7;">
-                            <strong>📊 NUR LEGS-MODUS:</strong> Dieses Match verwendet die Regel "${gameRule.name}" - nur Legs werden gezählt (keine Sets)
+                            <strong data-i18n="tournamentInterface.form.legsOnlyMode">📊 ${t('tournamentInterface.form.legsOnlyMode')}:</strong> ${t('tournamentInterface.form.thisMatchUses')} "${gameRule.name}" - ${t('tournamentInterface.form.onlyLegsCountedNoSets')}
                         </div>
                     `}
 
                     <div class="form-row">
                         <div class="input-group">
-                            <label>${player1Name} - Legs${playWithSets ? ` (max ${maxLegs}/Set)` : ` (benötigt: ${legsToWin})`}</label>
+                            <label data-i18n="tournamentInterface.form.legsFor">${player1Name} - ${t('tournamentInterface.scoring.legs')}${playWithSets ? ` (${t('tournamentInterface.form.max')} ${maxLegs}/${t('tournamentInterface.form.set')})` : ` (${t('tournamentInterface.form.required')}: ${legsToWin})`}</label>
                             <input type="number" min="0" max="${playWithSets ? maxLegs : 99}" value="${p1Legs}" 
                                    id="p1Legs_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
-                                   title="Legs für ${player1Name} (${legsToWin} Legs zum Sieg)">
+                                   title="${t('tournamentInterface.form.legsFor')} ${player1Name} (${legsToWin} ${t('tournamentInterface.form.legsToWin')})">
                         </div>
                         <div class="input-group">
-                            <label>${player2Name} - Legs${playWithSets ? ` (max ${maxLegs}/Set)` : ` (benötigt: ${legsToWin})`}</label>
+                            <label data-i18n="tournamentInterface.form.legsFor">${player2Name} - ${t('tournamentInterface.scoring.legs')}${playWithSets ? ` (${t('tournamentInterface.form.max')} ${maxLegs}/${t('tournamentInterface.form.set')})` : ` (${t('tournamentInterface.form.required')}: ${legsToWin})`}</label>
                             <input type="number" min="0" max="${playWithSets ? maxLegs : 99}" value="${p2Legs}" 
                                    id="p2Legs_${uniqueCardId}" onchange="validateMatchResult('${uniqueCardId}')"
-                                   title="Legs für ${player2Name} (${legsToWin} Legs zum Sieg)">
+                                   title="${t('tournamentInterface.form.legsFor')} ${player2Name} (${legsToWin} ${t('tournamentInterface.form.legsToWin')})">
                         </div>
                     </div>
 
                     <div class="input-group">
-                        <label>Notizen (optional)</label>
-                        <textarea rows="2" placeholder="Match-Details, besondere Ereignisse..." 
+                        <label data-i18n="tournamentInterface.form.notesOptional">${t('tournamentInterface.form.notesOptional')}</label>
+                        <textarea rows="2" placeholder="${t('tournamentInterface.form.matchDetailsPlaceholder')}" 
                                  id="notes_${uniqueCardId}">${notes}</textarea>
                     </div>
 
                     <div id="validationMessage_${uniqueCardId}" style="display: none; padding: 12px; margin: 10px 0; border-radius: 8px; font-size: 0.9em; font-weight: bold;"></div>
 
                     <button class="submit-button" onclick="submitResultFromCard('${uniqueCardId}')" 
-                            id="submitBtn_${uniqueCardId}">
-                        🎯 Ergebnis übertragen (${gameRule.name})
+                            id="submitBtn_${uniqueCardId}" data-i18n="tournamentInterface.form.submitResult">
+                        🎯 ${t('tournamentInterface.form.submitResult')} (${gameRule.name})
                     </button>
 
                     <button class="match-page-button" onclick="openMatchPage('${primaryMatchId}')" 
-                            title="Zur Einzel-Match-Seite wechseln (${hasValidUuid ? 'UUID' : 'numerische ID'})"
-                            style="position: relative;">
-                        📄 Match-Seite öffnen ${hasValidUuid ? '🆔' : '🔢'}
+                            title="${t('tournamentInterface.form.switchToMatchPage')} (${hasValidUuid ? 'UUID' : t('tournamentInterface.form.numericId')})"
+                            style="position: relative;" data-i18n="tournamentInterface.form.openMatchPage">
+                        📄 ${t('tournamentInterface.form.openMatchPage')} ${hasValidUuid ? '🆔' : '🔢'}
                     </button>
 
                     <div class="message" id="message_${uniqueCardId}"></div>
                 </div>
             ` : `
                 <div style="text-align: center; padding: 20px; background: #f0f8ff; border-radius: 10px; margin-top: 15px; border: 2px solid #e6f3ff;">
-                    <strong style="color: #2b6cb0; font-size: 1.1em;">✅ Match abgeschlossen</strong>
-                    <div style="margin-top: 8px; color: #4a90b8; font-size: 0.9em;">
-                        Regeln: ${gameRule.name} • Klasse: ${className}
+                    <strong style="color: #2b6cb0; font-size: 1.1em;" data-i18n="tournamentInterface.match.completed">✅ ${t('tournamentInterface.match.completed')}</strong>
+                    <div style="margin-top: 8px; color: #4a90b8; font-size: 0.9em;" data-i18n="tournamentInterface.match.rulesAndClass">
+                        ${t('tournamentInterface.match.rules')}: ${gameRule.name} • ${t('tournamentInterface.classes.class')}: ${className}
                     </div>
                     ${notes ? `<p style="margin-top: 12px; font-size: 0.9em; color: #666; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px;">"${notes}"</p>` : '' }
                     
                     <button class="match-page-button" onclick="openMatchPage('${primaryMatchId}')" 
                             style="margin-top: 12px;"
-                            title="Zur Einzel-Match-Seite wechseln (${hasValidUuid ? 'UUID' : 'numerische ID'})">
-                        📄 Match-Seite öffnen ${hasValidUuid ? '🆔' : '🔢'}
+                            title="${t('tournamentInterface.form.switchToMatchPage')} (${hasValidUuid ? 'UUID' : t('tournamentInterface.form.numericId')})" data-i18n="tournamentInterface.form.openMatchPage">
+                        📄 ${t('tournamentInterface.form.openMatchPage')} ${hasValidUuid ? '🆔' : '🔢'}
                     </button>
                 </div>
             `}
@@ -622,7 +636,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
     if (matchType === 'Group') {
         return {
             ...baseRules,
-            name: `${className} Gruppenphase`,
+            name: `${className} ${t('tournamentInterface.gameRules.groupPhase')}`,
             setsToWin: 3,
             legsToWin: 3,
             legsPerSet: 5
@@ -632,7 +646,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
     if (matchType === 'Finals') {
         return {
             ...baseRules,
-            name: `${className} Finalrunde`,
+            name: `${className} ${t('tournamentInterface.gameRules.finalRound')}`,
             setsToWin: 3,
             legsToWin: 3,
             legsPerSet: 5
@@ -644,7 +658,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('GrandFinal')) {
             return {
                 ...baseRules,
-                name: `${className} Grand Final`,
+                name: `${className} ${t('tournamentInterface.gameRules.grandFinal')}`,
                 setsToWin: 5,
                 legsToWin: 5,
                 legsPerSet: 7
@@ -653,7 +667,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Final')) {
             return {
                 ...baseRules,
-                name: `${className} KO Finale`,
+                name: `${className} ${t('tournamentInterface.gameRules.koFinal')}`,
                 setsToWin: 4,
                 legsToWin: 4,
                 legsPerSet: 6
@@ -662,7 +676,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Semifinal')) {
             return {
                 ...baseRules,
-                name: `${className} KO Halbfinale`,
+                name: `${className} ${t('tournamentInterface.gameRules.koSemifinal')}`,
                 setsToWin: 3,
                 legsToWin: 4,
                 legsPerSet: 5
@@ -671,7 +685,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Quarterfinal')) {
             return {
                 ...baseRules,
-                name: `${className} KO Viertelfinale`,
+                name: `${className} ${t('tournamentInterface.gameRules.koQuarterfinal')}`,
                 setsToWin: 3,
                 legsToWin: 3,
                 legsPerSet: 5
@@ -681,7 +695,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Best16')) {
             return {
                 ...baseRules,
-                name: `${className} KO Beste 16`,
+                name: `${className} ${t('tournamentInterface.gameRules.koBest16')}`,
                 setsToWin: 3,
                 legsToWin: 3,
                 legsPerSet: 5
@@ -690,7 +704,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Best32')) {
             return {
                 ...baseRules,
-                name: `${className} KO Beste 32`,
+                name: `${className} ${t('tournamentInterface.gameRules.koBest32')}`,
                 setsToWin: 2,
                 legsToWin: 3,
                 legsPerSet: 4
@@ -699,7 +713,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('Best64')) {
             return {
                 ...baseRules,
-                name: `${className} KO Beste 64`,
+                name: `${className} ${t('tournamentInterface.gameRules.koBest64')}`,
                 setsToWin: 2,
                 legsToWin: 3,
                 legsPerSet: 3
@@ -708,7 +722,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         
         return {
             ...baseRules,
-            name: `${className} KO Winner`,
+            name: `${className} ${t('tournamentInterface.gameRules.koWinner')}`,
             setsToWin: 3,
             legsToWin: 3,
             legsPerSet: 5
@@ -720,7 +734,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         if (matchType.includes('LoserFinal')) {
             return {
                 ...baseRules,
-                name: `${className} Loser Final`,
+                name: `${className} ${t('tournamentInterface.gameRules.loserFinal')}`,
                 setsToWin: 3,
                 legsToWin: 4,
                 legsPerSet: 5
@@ -729,7 +743,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
         
         return {
             ...baseRules,
-            name: `${className} KO Loser`,
+            name: `${className} ${t('tournamentInterface.gameRules.koLoser')}`,
             setsToWin: 2,
             legsToWin: 3,
             legsPerSet: 4
@@ -739,7 +753,7 @@ function createIntelligentDefaultGameRules(matchType, classId, className) {
     // Fallback
     return {
         ...baseRules,
-        name: `${className} Standard`,
+        name: `${className} ${t('tournamentInterface.gameRules.standard')}`,
         setsToWin: 3,
         legsToWin: 3,
         legsPerSet: 5
@@ -786,8 +800,8 @@ function createGameRulesDisplay(gameRule, matchType, className) {
                 <span title="Legs zum Sieg" style="font-weight: bold;">📊 ${legsToWin} Legs</span>
                 <span title="Finish-Modus">🏁 ${finishMode}</span>
             </div>
-            ${!playWithSets ? `<div style="font-size: 0.85em; color: #e68900; margin-top: 6px; font-weight: bold; padding: 4px 8px; background: rgba(230,137,0,0.1); border-radius: 6px;">⚠️ NUR LEGS (keine Sets)</div>` : '' }
-            ${matchType.startsWith('Knockout-') ? `<div style="font-size: 0.8em; margin-top: 6px; opacity: 0.8;">⚔️ Knockout-Spezial-Regeln</div>` : '' }
+            ${!playWithSets ? `<div style="font-size: 0.85em; color: #e68900; margin-top: 6px; font-weight: bold; padding: 4px 8px; background: rgba(230,137,0,0.1); border-radius: 6px;" data-i18n="tournamentInterface.gameRules.onlyLegsNoSets">⚠️ ${t('tournamentInterface.gameRules.onlyLegsNoSets')}</div>` : '' }
+            ${matchType.startsWith('Knockout-') ? `<div style="font-size: 0.8em; margin-top: 6px; opacity: 0.8;" data-i18n="tournamentInterface.gameRules.knockoutSpecialRules">⚔️ ${t('tournamentInterface.gameRules.knockoutSpecialRules')}</div>` : '' }
         </div>
     `;
 }
@@ -850,13 +864,13 @@ function openMatchPage(matchId) {
         
         if (!tournamentId) {
             console.error('❌ [MATCH_PAGE] Tournament ID not found - cannot open match page');
-            alert('Fehler: Tournament ID konnte nicht ermittelt werden.');
+            alert(t('tournamentInterface.messages.tournamentIdMissing'));
             return;
         }
         
         if (!finalMatchId) {
             console.error('❌ [MATCH_PAGE] Match ID not provided - cannot open match page');
-            alert('Fehler: Match ID fehlt.');
+            alert(t('tournamentInterface.messages.matchIdMissing'));
             return;
         }
         
@@ -935,7 +949,7 @@ function openMatchPage(matchId) {
         
     } catch (error) {
         console.error('❌ [MATCH_PAGE] Error opening match page:', error);
-        alert(`Fehler beim Öffnen der Match-Seite: ${error.message}`);
+        alert(`${t('tournamentInterface.messages.openingMatchPage')}: ${error.message}`);
     }
 }
 

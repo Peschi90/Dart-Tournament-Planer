@@ -437,6 +437,7 @@ document.addEventListener('DOMContentLoaded', async() => {
                 saveState: () => window.dartScoringApp.cache.saveCurrentState(),
                 loadState: () => window.dartScoringApp.cache.loadCachedState(),
                 clearCache: () => window.dartScoringApp.cache.clearCachedState(),
+                resetMatch: () => window.dartScoringApp.cache.resetMatchToOriginal(),
                 // ✅ NEU: Force Submit für Debugging
                 forceSubmit: async() => {
                     console.warn('🔧 [DEBUG] Force submitting match result...');
@@ -540,6 +541,7 @@ document.addEventListener('DOMContentLoaded', async() => {
             console.log('   window.debugDartScoring.saveState() // ✅ NEU');
             console.log('   window.debugDartScoring.loadState() // ✅ NEU');
             console.log('   window.debugDartScoring.clearCache() // ✅ NEU');
+            console.log('   window.debugDartScoring.resetMatch() // ✅ NEU');
             console.log('   window.debugDartScoring.triggerSubmission()');
             console.log('   window.debugDartScoring.forceSubmit() // ⚠️ Debugging only');
             console.log('   window.debugDartScoring.setGameFinished(true/false) // ⚠️ Testing only');

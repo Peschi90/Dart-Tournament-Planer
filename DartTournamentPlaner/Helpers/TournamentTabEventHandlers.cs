@@ -14,7 +14,7 @@ namespace DartTournamentPlaner.Helpers;
 /// <summary>
 /// Event Handlers für TournamentTab - ausgelagert für bessere Übersichtlichkeit
 /// </summary>
-public class TournamentTabEventHandlers
+public class TournamentTabEventHandlers : IDisposable
 {
     private readonly TournamentClass _tournamentClass;
     private readonly LocalizationService _localizationService;
@@ -478,6 +478,28 @@ public class TournamentTabEventHandlers
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"❌ [HUB_SEND] Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Dispose-Pattern für ordnungsgemäße Ressourcenverwaltung
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Geschützte Dispose-Methode
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Hier könnten Event-Subscriptions abgemeldet werden, falls vorhanden
+            // Derzeit keine expliziten Events zu cleanen
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabEventHandlers] Disposed successfully");
         }
     }
 }

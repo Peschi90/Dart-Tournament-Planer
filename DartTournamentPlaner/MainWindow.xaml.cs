@@ -98,15 +98,15 @@ public partial class MainWindow : Window
         _uiHelper.HubStatusIndicator = HubStatusIndicator;
         _uiHelper.HubStatusText = HubStatusText;
         _uiHelper.HubSyncStatus = HubSyncStatus;
-        _uiHelper.ApiStatusIndicator = ApiStatusIndicator;
-        _uiHelper.ApiStatusText = ApiStatusText;
+        //_uiHelper.ApiStatusIndicator = ApiStatusIndicator;
+        //_uiHelper.ApiStatusText = ApiStatusText;
         _uiHelper.StatusTextBlock = StatusTextBlock;
         _uiHelper.LastSavedBlock = LastSavedBlock;
         _uiHelper.LanguageStatusBlock = LanguageStatusBlock;
-        _uiHelper.ApiStatusMenuItem = ApiStatusMenuItem;
-        _uiHelper.StartApiMenuItem = StartApiMenuItem;
-        _uiHelper.StopApiMenuItem = StopApiMenuItem;
-        _uiHelper.OpenApiDocsMenuItem = OpenApiDocsMenuItem;
+        //_uiHelper.ApiStatusMenuItem = ApiStatusMenuItem;
+        //_uiHelper.StartApiMenuItem = StartApiMenuItem;
+        //_uiHelper.StopApiMenuItem = StopApiMenuItem;
+        //_uiHelper.OpenApiDocsMenuItem = OpenApiDocsMenuItem;
 
         // Event-Handler
         _localizationService.PropertyChanged += (s, e) => UpdateTranslations();
@@ -283,12 +283,12 @@ public partial class MainWindow : Window
         _uiHelper.UpdateMenuTranslations(
             FileMenuItem, NewMenuItem, OpenMenuItem, SaveMenuItem, SaveAsMenuItem, 
             PrintMenuItem, ExitMenuItem, ViewMenuItem, OverviewModeMenuItem,
-            ApiMenuItem, StartApiMenuItem, StopApiMenuItem, OpenApiDocsMenuItem,
             TournamentHubMenuItem, RegisterWithHubMenuItem, UnregisterFromHubMenuItem,
             ShowJoinUrlMenuItem, ManualSyncMenuItem, HubSettingsMenuItem,
             LicenseMenuItem, LicenseStatusMenuItem, ActivateLicenseMenuItem, LicenseInfoMenuItem, RemoveLicenseMenuItem, PurchaseLicenseMenuItem,
             SettingsMenuItem, HelpMenuItem, HelpContentMenuItem, BugReportMenuItem, AboutMenuItem
         );
+        //ApiMenuItem, StartApiMenuItem, StopApiMenuItem, OpenApiDocsMenuItem,
 
         // Tab-Header aktualisieren
         _uiHelper.UpdateTabHeaders(PlatinTabItem, GoldTabItem, SilverTabItem, BronzeTabItem);
@@ -414,7 +414,7 @@ public partial class MainWindow : Window
 
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
-        var settingsWindow = new SettingsWindow(_configService, _localizationService);
+        var settingsWindow = new SettingsWindow(_configService, _localizationService, App.ThemeService);
         settingsWindow.Owner = this;
         
         if (settingsWindow.ShowDialog() == true)
@@ -793,14 +793,14 @@ public partial class MainWindow : Window
             var message = _localizationService.GetString("RegisterTournamentSuccess", 
                 _hubService.GetCurrentTournamentId(), joinUrl);
             
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             System.Windows.Clipboard.SetText(joinUrl);
         }
         else
         {
             var title = _localizationService.GetString("Error");
             var message = _localizationService.GetString("RegisterTournamentError");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+            //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -955,6 +955,44 @@ public partial class MainWindow : Window
             var title = _localizationService.GetString("Error");
             var message = _localizationService.GetString("HubSettingsError", ex.Message);
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
+    // ✅ NEU: Dark Mode Toggle Event Handler
+    private void ToggleDarkMode_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            App.ThemeService?.ToggleTheme();
+            
+            // Menü-Text aktualisieren basierend auf aktuellem Theme
+            var currentTheme = App.ThemeService?.GetCurrentTheme() ?? "Light";
+            var isDark = currentTheme.ToLower() == "dark";
+            var newText = isDark ? "☀️ Switch to Light Mode" : "🌙 Switch to Dark Mode";
+            
+            // Versuche Übersetzung zu finden
+            var translationKey = isDark ? "SwitchToLightMode" : "SwitchToDarkMode";
+            var translatedText = _localizationService.GetString(translationKey);
+            
+            if (!string.IsNullOrEmpty(translatedText) && translatedText != translationKey)
+            {
+                newText = isDark ? "☀️ " + translatedText : "🌙 " + translatedText;
+            }
+            
+            if (sender is MenuItem menuItem)
+            {
+                menuItem.Header = newText;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"🎨 Theme toggled to: {currentTheme}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error toggling dark mode: {ex.Message}");
+            
+            var title = _localizationService.GetString("Error") ?? "Error";
+            var message = $"Error switching theme: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
     

@@ -11,6 +11,18 @@ class MatchPageDisplay {
     }
 
     /**
+     * Get translation helper
+     */
+    t(key, params = {}) {
+        if (window.i18nManager) {
+            return window.i18nManager.t(key, params);
+        } else if (typeof t !== 'undefined') {
+            return t(key, params);
+        }
+        return key; // Fallback if i18n not available
+    }
+
+    /**
      * Update the entire display with new match and game rules data
      */
     updateDisplay(matchData, gameRules) {
@@ -44,16 +56,35 @@ class MatchPageDisplay {
         const metaElement = document.getElementById('matchMeta');
 
         if (titleElement && this.currentMatch) {
-            const player1 = this.currentMatch.player1 || 'Spieler 1';
-            const player2 = this.currentMatch.player2 || 'Spieler 2';
-            titleElement.textContent = `🎯 ${player1} vs ${player2}`;
+            const player1 = this.currentMatch.player1 || this.t('matchPage.match.players.placeholder', { number: 1 });
+            const player2 = this.currentMatch.player2 || this.t('matchPage.match.players.placeholder', { number: 2 });
+
+            // Create header with data-i18n structure for better translation support
+            titleElement.innerHTML = `
+                🎯 ${player1} <span data-i18n="matchPage.match.players.vs">vs</span> ${player2}
+            `;
+
+            // Apply translations to the newly created content
+            if (window.i18nManager && window.i18nManager.applyTranslationsToElement) {
+                window.i18nManager.applyTranslationsToElement(titleElement);
+            } else if (window.i18n && window.i18n.applyTranslationsToElement) {
+                window.i18n.applyTranslationsToElement(titleElement);
+            }
         }
 
         if (metaElement && this.currentMatch) {
             const status = this.getMatchStatusText(this.currentMatch.status);
-            const group = this.currentMatch.group ? ` • Gruppe: ${this.currentMatch.group}` : '';
-            const round = this.currentMatch.round ? ` • Runde: ${this.currentMatch.round}` : '';
-            metaElement.textContent = `Status: ${status}${group}${round}`;
+            const group = this.currentMatch.group ? ` • <span data-i18n="common.group">Gruppe</span>: ${this.currentMatch.group}` : '';
+            const round = this.currentMatch.round ? ` • <span data-i18n="common.round">Runde</span>: ${this.currentMatch.round}` : '';
+
+            metaElement.innerHTML = `<span data-i18n="matchPage.match.status.label">Status</span>: <span data-i18n="matchPage.match.status.${this.currentMatch.status}">${status}</span>${group}${round}`;
+
+            // Apply translations to the newly created content
+            if (window.i18nManager && window.i18nManager.applyTranslationsToElement) {
+                window.i18nManager.applyTranslationsToElement(metaElement);
+            } else if (window.i18n && window.i18n.applyTranslationsToElement) {
+                window.i18n.applyTranslationsToElement(metaElement);
+            }
         }
     }
 
@@ -88,14 +119,14 @@ class MatchPageDisplay {
         let html = `
             <div class="match-header">
                 <h2 class="match-title">Match #${this.currentMatch.id || 'N/A'}</h2>
-                <div class="match-status-badge ${this.getStatusClass(this.currentMatch.status)}">
+                <div class="match-status-badge ${this.getStatusClass(this.currentMatch.status)}" data-i18n="matchPage.match.status.${this.currentMatch.status}">
                     ${this.getMatchStatusText(this.currentMatch.status)}
                 </div>
             </div>
 
             <div class="players-section">
                 ${this.renderPlayerScoreCard(this.currentMatch.player1, this.getPlayerSets(1), this.getPlayerLegs(1), '1')}
-                <div class="vs-divider">VS</div>
+                <div class="vs-divider" data-i18n="matchPage.match.players.vs">VS</div>
                 ${this.renderPlayerScoreCard(this.currentMatch.player2, this.getPlayerSets(2), this.getPlayerLegs(2), '2')}
             </div>
 
@@ -103,6 +134,13 @@ class MatchPageDisplay {
         `;
 
         mainArea.innerHTML = html;
+
+        // Apply i18n translations to the newly created content
+        if (window.i18nManager && window.i18nManager.applyTranslationsToElement) {
+            window.i18nManager.applyTranslationsToElement(mainArea);
+        } else if (window.i18n && window.i18n.applyTranslationsToElement) {
+            window.i18n.applyTranslationsToElement(mainArea);
+        }
 
         // Add event listeners for the result form if it exists and match is not finished
         if (!isFinished) {
@@ -221,7 +259,7 @@ class MatchPageDisplay {
      * Render a player score card
      */
     renderPlayerScoreCard(playerName, sets, legs, playerNumber) {
-            const displayName = playerName || `Spieler ${playerNumber}`;
+            const displayName = playerName || t('matchPage.match.players.placeholder', { number: playerNumber });
 
             // ✅ KORRIGIERT: Bessere Anzeige-Logik für Sets und Legs
             const playWithSets = this.currentGameRules && this.currentGameRules.playWithSets || false;
@@ -246,12 +284,12 @@ class MatchPageDisplay {
                 <div class="player-scores">
                     ${playWithSets ? `
                         <div class="score-item">
-                            <span class="score-label">Sets</span>
+                            <span class="score-label" data-i18n="matchPage.match.sets">Sets</span>
                             <span class="score-value">${displaySets}</span>
                         </div>
                     ` : ''}
                     <div class="score-item">
-                        <span class="score-label">Legs</span>
+                        <span class="score-label" data-i18n="matchPage.match.legs">Legs</span>
                         <span class="score-value">${displayLegs}</span>
                     </div>
                 </div>
@@ -282,26 +320,24 @@ class MatchPageDisplay {
         
         return `
             <div class="match-result-section">
-                <h3>🏆 Endergebnis</h3>
+                <h3 data-i18n="matchPage.match.result.title">🏆 Endergebnis</h3>
                 <div class="final-result">
                     <div class="result-display">
-                        ${playWithSets ? `Sets: ${player1Sets || 0} - ${player2Sets || 0}<br>` : ''}
-
-                        Legs: ${player1Legs || 0} - ${player2Legs || 0}
+                        ${playWithSets ? `<span data-i18n="matchPage.match.sets">Sets</span>: ${player1Sets || 0} - ${player2Sets || 0}<br>` : ''}
+                        <span data-i18n="matchPage.match.legs">Legs</span>: ${player1Legs || 0} - ${player2Legs || 0}
                     </div>
-                    ${winner ? `<div class="winner-announcement">🎉 Gewinner: ${winner}</div>` : ''}
-
+                    ${winner ? `<div class="winner-announcement">🎉 <span data-i18n="matchPage.match.result.winner" data-i18n-params='{"player":"${winner}"}'>Gewinner: ${winner}</span></div>` : ''}
                 </div>
                 ${this.currentMatch.notes || this.currentMatch.result?.notes ? `
                     <div class="match-notes">
-                        <strong>Notizen:</strong> ${this.currentMatch.notes || this.currentMatch.result?.notes}
+                        <strong data-i18n="matchPage.forms.resultForm.notes">Notizen:</strong> ${this.currentMatch.notes || this.currentMatch.result?.notes}
                     </div>
                 ` : '' }
-                <div class="match-completed-badge">
+                <div class="match-completed-badge" data-i18n="matchPage.match.result.completed">
                     ✅ Match abgeschlossen
                 </div>
                 <div class="match-result-actions">
-                    <button onclick="window.history.back()" class="secondary-button">
+                    <button onclick="window.history.back()" class="secondary-button" data-i18n="matchPage.navigation.backToTournament">
                         ← Zurück zur Übersicht
                     </button>
                 </div>
@@ -351,39 +387,37 @@ class MatchPageDisplay {
         
         return `
             <div class="result-form-section">
-                <h3>📊 Ergebnis eingeben</h3>
+                <h3 data-i18n="matchPage.forms.resultForm.title">📊 Ergebnis eingeben</h3>
                 ${playWithSets ? `
                     <div class="game-rules-info">
-                        <span class="rules-hint">📋 Spiel-Modus: Sets (Best of ${setsToWin}, Legs pro Set: ${legsToWin})</span>
+                        <span class="rules-hint">📋 <span data-i18n="matchPage.gameRules.gameMode">Spiel-Modus</span>: <span data-i18n="matchPage.gameRules.sets">Sets</span> (<span data-i18n="matchPage.gameRules.bestOf">Best of</span> ${setsToWin}, <span data-i18n="matchPage.gameRules.legsPerSet">Legs pro Set</span>: ${legsToWin})</span>
                     </div>
                 ` : `
                     <div class="game-rules-info">
-                        <span class="rules-hint">📋 Spiel-Modus: Legs Only (Best of ${legsToWin})</span>
+                        <span class="rules-hint">📋 <span data-i18n="matchPage.gameRules.gameMode">Spiel-Modus</span>: <span data-i18n="matchPage.gameRules.legsOnly">Legs Only</span> (<span data-i18n="matchPage.gameRules.bestOf">Best of</span> ${legsToWin})</span>
                     </div>
                 `}
                 
                 <div class="dart-scoring-section">
-                    <h4>🎯 Live-Dart-Scoring</h4>
-                    <p>Spielen Sie das Match mit echtem Dart-Scoring!</p>
-                    <button id="openDartScoringBtn" class="dart-scoring-button">
-                        🎯 Live-Dart-Scoring öffnen
-                    </button>
+                    <h4 data-i18n="matchPage.dartScoring.title">🎯 Live-Dart-Scoring</h4>
+                    <p data-i18n="matchPage.dartScoring.description">Spielen Sie das Match mit echtem Dart-Scoring!</p>
+                    <button id="openDartScoringBtn" class="dart-scoring-button" data-i18n="matchPage.dartScoring.openButton">🎯 Dart Scoring öffnen</button>
                     <div class="divider">
-                        <span>oder</span>
+                        <span data-i18n="common.or">oder</span>
                     </div>
                 </div>
                 
                 <form id="matchResultForm" class="result-form">
                     ${playWithSets ? `
                         <div class="form-section">
-                            <h4>Sets</h4>
+                            <h4 data-i18n="matchPage.match.sets">Sets</h4>
                             <div class="form-row">
                                 <div class="input-group">
-                                    <label for="sets1">${this.currentMatch.player1 || 'Spieler 1'} - Sets:</label>
+                                    <label for="sets1">${this.currentMatch.player1 || this.t('matchPage.match.players.placeholder', {number: 1})} - <span data-i18n="matchPage.match.sets">Sets</span>:</label>
                                     <input type="number" id="sets1" name="sets1" min="0" max="${setsToWin}" value="0" required>
                                 </div>
                                 <div class="input-group">
-                                    <label for="sets2">${this.currentMatch.player2 || 'Spieler 2'} - Sets:</label>
+                                    <label for="sets2">${this.currentMatch.player2 || this.t('matchPage.match.players.placeholder', {number: 2})} - <span data-i18n="matchPage.match.sets">Sets</span>:</label>
                                     <input type="number" id="sets2" name="sets2" min="0" max="${setsToWin}" value="0" required>
                                 </div>
                             </div>
@@ -391,14 +425,14 @@ class MatchPageDisplay {
                     ` : ''}
                     
                     <div class="form-section">
-                        <h4>${playWithSets ? 'Legs (Gesamt)' : 'Legs'}</h4>
+                        <h4 data-i18n="matchPage.forms.resultForm.legsSection">${playWithSets ? 'Legs (Gesamt)' : 'Legs'}</h4>
                         <div class="form-row">
                             <div class="input-group">
-                                <label for="legs1">${this.currentMatch.player1 || 'Spieler 1'} - Legs:</label>
+                                <label for="legs1">${this.currentMatch.player1 || this.t('matchPage.match.players.placeholder', {number: 1})} - <span data-i18n="matchPage.match.legs">Legs</span>:</label>
                                 <input type="number" id="legs1" name="legs1" min="0" max="99" value="0" required>
                             </div>
                             <div class="input-group">
-                                <label for="legs2">${this.currentMatch.player2 || 'Spieler 2'} - Legs:</label>
+                                <label for="legs2">${this.currentMatch.player2 || this.t('matchPage.match.players.placeholder', {number: 2})} - <span data-i18n="matchPage.match.legs">Legs</span>:</label>
                                 <input type="number" id="legs2" name="legs2" min="0" max="99" value="0" required>
                             </div>
                         </div>
@@ -406,12 +440,12 @@ class MatchPageDisplay {
                     
                     <div class="form-row">
                         <div class="input-group full-width">
-                            <label for="notes">Notizen (optional):</label>
-                            <textarea id="notes" name="notes" rows="3" placeholder="Zusätzliche Informationen zum Match..."></textarea>
+                            <label for="notes" data-i18n="matchPage.forms.resultForm.notes">Notizen (optional):</label>
+                            <textarea id="notes" name="notes" rows="3" data-i18n-placeholder="matchPage.forms.resultForm.notesPlaceholder" placeholder="Zusätzliche Informationen zum Match..."></textarea>
                         </div>
                     </div>
                     
-                    <button type="submit" class="submit-button" id="submitResultBtn">
+                    <button type="submit" class="submit-button" id="submitResultBtn" data-i18n="matchPage.forms.resultForm.submit">
                         📤 Ergebnis übertragen
                     </button>
                     
@@ -496,7 +530,7 @@ class MatchPageDisplay {
 
             if (!matchId) {
                 console.error('❌ [MATCH-DISPLAY] Missing match ID for dart scoring');
-                alert('Fehler: Match-ID nicht verfügbar für Dart-Scoring');
+                alert(this.t('matchPage.errors.matchIdNotAvailable', 'Fehler: Match-ID nicht verfügbar für Dart-Scoring'));
                 return;
             }
 
@@ -520,7 +554,7 @@ class MatchPageDisplay {
                 console.log('🔄 [MATCH-DISPLAY] Using legacy dart scoring URL');
             } else {
                 console.error('❌ [MATCH-DISPLAY] Insufficient data for dart scoring URL');
-                alert('Fehler: Unvollständige Match-Daten für Dart-Scoring');
+                alert(this.t('matchPage.errors.incompleteMatchData', 'Fehler: Unvollständige Match-Daten für Dart-Scoring'));
                 return;
             }
 
@@ -531,7 +565,7 @@ class MatchPageDisplay {
 
         } catch (error) {
             console.error('❌ [MATCH-DISPLAY] Error opening dart scoring:', error);
-            alert('Fehler beim Öffnen der Dart-Scoring-Seite: ' + error.message);
+            alert(this.t('matchPage.errors.openingDartScoring', 'Fehler beim Öffnen der Dart-Scoring-Seite') + ': ' + error.message);
         }
     }
 
@@ -611,7 +645,7 @@ class MatchPageDisplay {
     openDartScoring() {
         const matchId = this.currentMatch.id;
         if (!matchId) {
-            alert('Keine gültige Match-ID gefunden');
+            alert(this.t('matchPage.errors.noValidMatchId', 'Keine gültige Match-ID gefunden'));
             return;
         }
         
@@ -721,37 +755,37 @@ class MatchPageDisplay {
         const legsPerSet = rules.legsPerSet || 'Standard';
         
         section.innerHTML = `
-            <h3>📋 Spielregeln</h3>
+            <h3 data-i18n="matchPage.sections.gameRules">📋 Spielregeln</h3>
             <div class="rules-grid">
                 <div class="rule-item">
-                    <span class="rule-label">Spiel-Punkte:</span>
+                    <span class="rule-label" data-i18n="matchPage.gameRules.gamePoints">Spiel-Punkte:</span>
                     <span class="rule-value">${gamePoints}</span>
                 </div>
                 <div class="rule-item">
-                    <span class="rule-label">Spielmodus:</span>
+                    <span class="rule-label" data-i18n="matchPage.gameRules.gameMode">Spielmodus:</span>
                     <span class="rule-value">${gameMode}</span>
                 </div>
                 <div class="rule-item">
-                    <span class="rule-label">Finish-Modus:</span>
+                    <span class="rule-label" data-i18n="matchPage.gameRules.finishMode">Finish-Modus:</span>
                     <span class="rule-value">${finishMode}</span>
                 </div>
                 <div class="rule-item">
-                    <span class="rule-label">Legs zum Sieg:</span>
+                    <span class="rule-label" data-i18n="matchPage.gameRules.legsToWin">Legs zum Sieg:</span>
                     <span class="rule-value">${legsToWin}</span>
                 </div>
                 ${rules.playWithSets ? `
                     <div class="rule-item">
-                        <span class="rule-label">Sets zum Sieg:</span>
+                        <span class="rule-label" data-i18n="matchPage.gameRules.setsToWin">Sets zum Sieg:</span>
                         <span class="rule-value">${setsToWin}</span>
                     </div>
                     <div class="rule-item">
-                        <span class="rule-label">Legs pro Set:</span>
+                        <span class="rule-label" data-i18n="matchPage.gameRules.legsPerSet">Legs pro Set:</span>
                         <span class="rule-value">${legsPerSet}</span>
                     </div>
                 ` : ''}
                 ${rules.maxThrowsPerLeg ? `
                     <div class="rule-item">
-                        <span class="rule-label">Max. Würfe:</span>
+                        <span class="rule-label" data-i18n="matchPage.gameRules.maxThrows">Max. Würfe:</span>
                         <span class="rule-value">${rules.maxThrowsPerLeg}</span>
                     </div>
                 ` : ''}
@@ -764,11 +798,18 @@ class MatchPageDisplay {
             </div>
             ${rules.description ? `
                 <div class="rules-description">
-                    <strong>Beschreibung:</strong><br>
+                    <strong data-i18n="matchPage.gameRules.description">Beschreibung:</strong><br>
                     ${rules.description}
                 </div>
             ` : ''}
         `;
+        
+        // Apply i18n translations to the newly created content
+        if (window.i18nManager && window.i18nManager.applyTranslationsToElement) {
+            window.i18nManager.applyTranslationsToElement(section);
+        } else if (window.i18n && window.i18n.applyTranslationsToElement) {
+            window.i18n.applyTranslationsToElement(section);
+        }
     }
 
     /**
@@ -811,40 +852,47 @@ class MatchPageDisplay {
             new Date(this.currentMatch.endTime).toLocaleString('de-DE') : '-' ;
 
         section.innerHTML = `
-            <h3>ℹ️ Match-Info</h3>
+            <h3 data-i18n="matchPage.sections.matchInfo">ℹ️ Match-Info</h3>
             <div class="info-grid">
                 <div class="info-item">
-                    <span class="info-label">Match-ID:</span>
+                    <span class="info-label" data-i18n="matchPage.messages.matchId">Match-ID:</span>
                     <span class="info-value">${this.currentMatch.id || 'N/A'}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value status-${this.currentMatch.status}">
+                    <span class="info-label" data-i18n="matchPage.match.status.label">Status:</span>
+                    <span class="info-value status-${this.currentMatch.status}" data-i18n="matchPage.match.status.${this.currentMatch.status}">
                         ${this.getMatchStatusText(this.currentMatch.status)}
                     </span>
                 </div>
                 ${this.currentMatch.group ? `
                     <div class="info-item">
-                        <span class="info-label">Gruppe:</span>
+                        <span class="info-label" data-i18n="common.group">Gruppe:</span>
                         <span class="info-value">${this.currentMatch.group}</span>
                     </div>
                 ` : ''}
                 ${this.currentMatch.round ? `
                     <div class="info-item">
-                        <span class="info-label">Runde:</span>
+                        <span class="info-label" data-i18n="common.round">Runde:</span>
                         <span class="info-value">${this.currentMatch.round}</span>
                     </div>
                 ` : ''}
                 <div class="info-item">
-                    <span class="info-label">Gestartet:</span>
+                    <span class="info-label" data-i18n="matchPage.match.startTime">Gestartet:</span>
                     <span class="info-value">${startTime}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">Beendet:</span>
+                    <span class="info-label" data-i18n="matchPage.match.endTime">Beendet:</span>
                     <span class="info-value">${endTime}</span>
                 </div>
             </div>
         `;
+        
+        // Apply i18n translations to the newly created content
+        if (window.i18nManager && window.i18nManager.applyTranslationsToElement) {
+            window.i18nManager.applyTranslationsToElement(section);
+        } else if (window.i18n && window.i18n.applyTranslationsToElement) {
+            window.i18n.applyTranslationsToElement(section);
+        }
     }
 
     /**
@@ -901,17 +949,11 @@ class MatchPageDisplay {
     }
 
     /**
-     * Get match status text in German
+     * Get match status text in translated form
      */
     getMatchStatusText(status) {
-        const statusMap = {
-            'pending': 'Ausstehend',
-            'notstarted': 'Nicht gestartet',
-            'inprogress': 'Läuft',
-            'finished': 'Beendet',
-            'bye': 'Freilos'
-        };
-        return statusMap[status] || 'Unbekannt';
+        const statusKey = `matchPage.match.status.${status || 'pending'}`;
+        return this.t(statusKey);
     }
 
     /**

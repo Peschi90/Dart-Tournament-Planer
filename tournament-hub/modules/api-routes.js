@@ -203,8 +203,8 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     websocketUrl,
                     registeredAt: registrationData.registeredAt,
                     server: 'dtp.i3ull3t.de:9443',
-                    classes: classes ? .length || 0,
-                    gameRules: gameRules ? .length || 0
+                    classes: classes && classes.length ? classes.length : 0,
+                    gameRules: gameRules && gameRules.length ? gameRules.length : 0
                 }
             };
 
@@ -242,19 +242,19 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
 
             // ERWEITERT: Detailliertes Logging für Game Rules
             console.log(`?? [API] Tournament sync data for ${tournamentId}:`);
-            console.log(`   ?? Classes: ${tournamentData.classes?.length || 0}`);
-            console.log(`   ?? Game Rules: ${tournamentData.gameRules?.length || 0}`);
-            console.log(`   ?? Matches: ${tournamentData.matches?.length || 0}`);
+            console.log(`   ?? Classes: ${tournamentData.classes && tournamentData.classes.length ? tournamentData.classes.length : 0}`);
+            console.log(`   ?? Game Rules: ${tournamentData.gameRules && tournamentData.gameRules.length ? tournamentData.gameRules.length : 0}`);
+            console.log(`   ?? Matches: ${tournamentData.matches && tournamentData.matches.length ? tournamentData.matches.length : 0}`);
 
             const updated = tournamentRegistry.updateTournament(tournamentId, tournamentData);
 
             if (updated && socketIOHandlers) {
                 socketIOHandlers.broadcastTournamentUpdate(tournamentId, {
                     type: 'full-sync',
-                    classes: tournamentData.classes ? .length || 0,
-                    matches: tournamentData.matches ? .length || 0,
-                    gameRules: tournamentData.gameRules ? .length || 0,
-                    gameRulesNames: tournamentData.gameRules ? .map(gr => gr.name || `Rule ${gr.id}`) || []
+                    classes: tournamentData.classes && tournamentData.classes.length ? tournamentData.classes.length : 0,
+                    matches: tournamentData.matches && tournamentData.matches.length ? tournamentData.matches.length : 0,
+                    gameRules: tournamentData.gameRules && tournamentData.gameRules.length ? tournamentData.gameRules.length : 0,
+                    gameRulesNames: tournamentData.gameRules && tournamentData.gameRules.map ? tournamentData.gameRules.map(gr => gr.name || `Rule ${gr.id}`) : []
                 });
 
                 console.log(`? [API] Tournament synced successfully: ${tournamentId}`);
@@ -269,8 +269,8 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                     syncedAt: new Date().toISOString(),
                     websocketBroadcast: updated,
                     server: 'dtp.i3ull3t.de:9443',
-                    gameRulesSynced: tournamentData.gameRules ? .length || 0,
-                    matchesWithRules: tournamentData.matches ? .filter(m => m.gameRulesUsed || m.gameRulesId).length || 0
+                    gameRulesSynced: tournamentData.gameRules && tournamentData.gameRules.length ? tournamentData.gameRules.length : 0,
+                    matchesWithRules: tournamentData.matches && tournamentData.matches.filter ? tournamentData.matches.filter(m => m.gameRulesUsed || m.gameRulesId).length : 0
                 }
             });
 
@@ -827,6 +827,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 // Broadcast to tournament interface
                 socketIOHandlers.broadcastTournamentUpdate(tournamentId, broadcastData);
                 
+                // ZUSÄTZLICH: Sende das spezifische Event, das die Clients erwarten
+                io.to(`tournament-${tournamentId}`).emit('tournament-match-updated', broadcastData);
+                
                 // 🚨 KORRIGIERT: Auch WebSocket-Direct Broadcasting aufrufen!
                 if (websocketHandlers) {
                     console.log(`📡 [API] Triggering WebSocket-Direct broadcast for Tournament Planner`);
@@ -859,6 +862,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 }
                 
                 console.log(`✅ [API] Match result submitted and broadcasted: ${tournamentId}/${submitMatchId} (UUID: ${match.uniqueId || 'none'})`);
+                
+                // Increment daily match counter for dashboard statistics
+                tournamentRegistry.incrementDailyMatchCounter();
                 
                 res.json({
                     success: true,
@@ -965,6 +971,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 // Broadcast to tournament interface
                 socketIOHandlers.broadcastTournamentUpdate(foundTournament.id, broadcastData);
                 
+                // ZUSÄTZLICH: Sende das spezifische Event, das die Clients erwarten
+                io.to(`tournament-${foundTournament.id}`).emit('tournament-match-updated', broadcastData);
+                
                 // WebSocket-Direct Broadcasting
                 if (websocketHandlers) {
                     console.log(`📡 [API] Triggering WebSocket-Direct broadcast for simplified dart scoring result`);
@@ -999,6 +1008,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 }
                 
                 console.log(`✅ [API] Simplified dart scoring result submitted and broadcasted: ${submitMatchId}`);
+                
+                // Increment daily match counter for dashboard statistics
+                tournamentRegistry.incrementDailyMatchCounter();
                 
                 res.json({
                     success: true,
@@ -1107,6 +1119,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 // Broadcast to tournament interface
                 socketIOHandlers.broadcastTournamentUpdate(tournamentId, broadcastData);
                 
+                // ZUSÄTZLICH: Sende das spezifische Event, das die Clients erwarten
+                io.to(`tournament-${tournamentId}`).emit('tournament-match-updated', broadcastData);
+                
                 // Auch WebSocket-Direct Broadcasting auslösen
                 if (websocketHandlers) {
                     console.log(`📡 [API] Triggering WebSocket-Direct broadcast for dart scoring result`);
@@ -1141,6 +1156,9 @@ function createApiRoutes(tournamentRegistry, matchService, socketIOHandlers, io,
                 }
                 
                 console.log(`✅ [API] Dart scoring result submitted and broadcasted: ${tournamentId}/${submitMatchId}`);
+                
+                // Increment daily match counter for dashboard statistics
+                tournamentRegistry.incrementDailyMatchCounter();
                 
                 res.json({
                     success: true,

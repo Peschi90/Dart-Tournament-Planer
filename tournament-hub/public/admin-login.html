@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="adminLogin.title">🔐 Tournament Hub - Admin Login</title>
+    <script src="/js/i18n.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            min-width: 400px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .login-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .login-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .login-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid #feb2b2;
+            display: none;
+        }
+        
+        .info-message {
+            background: #bee3f8;
+            color: #2b6cb0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #90cdf4;
+            font-size: 0.9em;
+        }
+        
+        .back-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .attempts-info {
+            background: #fef5e7;
+            color: #d69e2e;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9em;
+            border: 1px solid #f6e05e;
+        }
+        
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 30px 20px;
+                min-width: auto;
+            }
+            .logo {
+                font-size: 3em;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="logo">🏆</div>
+        <h1>Tournament Hub</h1>
+        <p class="subtitle" data-i18n="adminLogin.subtitle">Admin-Bereich</p>
+
+        <div class="info-message">
+            <strong data-i18n="adminLogin.securityNotice">🔐 Sicherheitshinweis:</strong><br>
+            <span data-i18n="adminLogin.adminOnlyAccess">Dieser Bereich ist nur für autorisierte Administratoren zugänglich.</span><br>
+            <span data-i18n="adminLogin.enterPassword">Bitte geben Sie das Admin-Passwort ein.</span>
+        </div>
+
+        <!-- Language Selector -->
+        <div id="languageSelectorContainer"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="password" data-i18n="adminLogin.password">Admin-Passwort:</label>
+                <input type="password" id="password" name="password" required data-i18n-target="placeholder" data-i18n="adminLogin.passwordPlaceholder" placeholder="Passwort eingeben..." autofocus>
+            </div>
+
+            <button type="submit" class="login-button" id="loginButton" data-i18n="adminLogin.login">
+                🔓 Anmelden
+            </button>
+        </form>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="attempts-info" id="attemptsInfo" style="display: none;"></div>
+
+        <a href="/join" class="back-link" data-i18n="adminLogin.backToParticipants">← Zurück zur Teilnehmer-Seite</a>
+    </div>
+
+    <script>
+        let loginAttempts = 0;
+        const maxAttempts = 5;
+        const lockoutTime = 300000; // 5 Minuten in Milliseconds
+
+        // Initialize i18n when page loads
+        document.addEventListener('DOMContentLoaded', async() => {
+            // Initialize i18n
+            await i18n.init();
+
+            // Create language selector  
+            i18n.createLanguageSelector('languageSelectorContainer');
+
+            // Apply translations
+            i18n.applyTranslations();
+
+            // Add language change listener
+            i18n.onLanguageChange((newLanguage) => {
+                console.log(`🌐 Language changed to: ${newLanguage}`);
+                document.title = i18n.t('adminLogin.title');
+                i18n.applyTranslations();
+            });
+
+            // Auto-focus password field after translations
+            document.getElementById('password').focus();
+        });
+
+        // Check if locked out
+        const lockoutEnd = localStorage.getItem('loginLockout');
+        if (lockoutEnd && Date.now() < parseInt(lockoutEnd)) {
+            setTimeout(() => lockUser(), 100); // Wait for i18n to load
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            const loginButton = document.getElementById('loginButton');
+            const attemptsDiv = document.getElementById('attemptsInfo');
+
+            // Disable button during request
+            loginButton.disabled = true;
+            loginButton.textContent = i18n.t('adminLogin.checking', '🔄 Überprüfe...');
+
+            try {
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store admin token
+                    localStorage.setItem('adminToken', result.token);
+                    localStorage.removeItem('loginLockout');
+
+                    // Success - redirect to dashboard with token
+                    errorDiv.style.display = 'none';
+                    loginButton.textContent = i18n.t('adminLogin.success', '✅ Erfolgreich!');
+                    loginButton.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
+
+                    setTimeout(() => {
+                        // Redirect to admin dashboard with token parameter
+                        window.location.href = `/admin/dashboard?token=${result.token}`;
+                    }, 1000);
+
+                } else {
+                    // Login failed
+                    loginAttempts++;
+
+                    if (loginAttempts >= maxAttempts) {
+                        lockUser();
+                    } else {
+                        showError(i18n.t('adminLogin.invalidPassword', `❌ Ungültiges Passwort! (${loginAttempts}/${maxAttempts} Versuche)`));
+
+                        attemptsDiv.style.display = 'block';
+                        attemptsDiv.innerHTML = i18n.t('adminLogin.attemptsRemaining', `⚠️ Noch ${maxAttempts - loginAttempts} Versuche übrig`);
+                    }
+
+                    // Clear password field
+                    document.getElementById('password').value = '';
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(i18n.t('adminLogin.connectionError', '❌ Verbindungsfehler. Bitte versuchen Sie es erneut.'));
+            }
+
+            // Re-enable button
+            loginButton.disabled = false;
+            if (loginButton.textContent !== i18n.t('adminLogin.success', '✅ Erfolgreich!')) {
+                loginButton.textContent = i18n.t('adminLogin.login', '🔓 Anmelden');
+            }
+        });
+
+        function lockUser() {
+            const lockoutEnd = Date.now() + lockoutTime;
+            localStorage.setItem('loginLockout', lockoutEnd.toString());
+
+            const errorDiv = document.getElementById('errorMessage');
+            const loginButton = document.getElementById('loginButton');
+            const passwordInput = document.getElementById('password');
+
+            loginButton.disabled = true;
+            passwordInput.disabled = true;
+
+            showError(i18n.t('adminLogin.tooManyAttempts', `🚫 Zu viele fehlgeschlagene Versuche! Zugang gesperrt für 5 Minuten.`));
+
+            // Start countdown
+            updateLockoutTimer(lockoutEnd);
+        }
+
+        function updateLockoutTimer(lockoutEnd) {
+            const timer = setInterval(() => {
+                const remaining = lockoutEnd - Date.now();
+
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    location.reload(); // Reload page to reset
+                } else {
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+
+                    const errorDiv = document.getElementById('errorMessage');
+                    errorDiv.innerHTML = i18n.t('adminLogin.lockoutTimer', `🚫 Zugang gesperrt. Verbleibende Zeit: ${minutes}:${seconds.toString().padStart(2, '0')}`);
+                }
+            }, 1000);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

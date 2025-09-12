@@ -3,21 +3,21 @@
 function updateTournamentInfo(tournament) {
     console.log('📋 ===== UPDATING TOURNAMENT INFO =====');
     console.log('📋 Tournament data received:', tournament);
-    
+
     try {
         const nameElement = document.getElementById('tournamentName');
         const metaElement = document.getElementById('tournamentMeta');
-        
+
         if (!nameElement) {
             console.error('❌ Tournament name element not found!');
             return;
         }
-        
+
         if (!metaElement) {
             console.error('❌ Tournament meta element not found!');
             return;
         }
-        
+
         // Robuste Tournament-Name Extraktion
         let tournamentName = 'Tournament';
         if (tournament.name) {
@@ -33,39 +33,46 @@ function updateTournamentInfo(tournament) {
             tournamentName = `Tournament ${window.tournamentId}`;
             console.log('⚠️ Using fallback name with global ID:', tournamentName);
         }
-        
+
         nameElement.textContent = `🎯 ${tournamentName}`;
         console.log('✅ Tournament name updated');
-        
+
         // Robuste Meta-Information
-        const location = tournament.location || tournament.Location || 'Unbekannter Ort';
+        const location = tournament.location || tournament.Location || t('tournamentInterface.tournament.unknownLocation');
         const description = tournament.description || tournament.Description || '';
         const descriptionText = description ? ` • ${description}` : '';
-        
+
         // Tournament Statistics
-        const totalMatches = tournament.totalMatches || tournament.matches?.length || window.matches?.length || 0;
+        const totalMatches = tournament.totalMatches || (tournament.matches && tournament.matches.length) || (window.matches && window.matches.length) || 0;
         const totalPlayers = tournament.totalPlayers || tournament.playerCount || 0;
-        const classCount = tournament.classes?.length || window.tournamentClasses?.length || 0;
-        
+        const classCount = (tournament.classes && tournament.classes.length) || (window.tournamentClasses && window.tournamentClasses.length) || 0;
+
         console.log('📊 Tournament stats:', { totalMatches, totalPlayers, classCount });
-        
+
         const tournamentIdDisplay = tournament.id || window.tournamentId || 'Unknown';
-        
+
         metaElement.innerHTML = `
-            Tournament-ID: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace;">${tournamentIdDisplay}</code> 
+            <span data-i18n="tournamentInterface.messages.tournamentId">Tournament-ID</span>: <code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace;">${tournamentIdDisplay}</code> 
             • 📍 ${location}${descriptionText}
             <br><small style="color: #666;">
-                👥 ${totalPlayers} Spieler • 🎮 ${totalMatches} Matches • 📚 ${classCount} Klassen
+                👥 ${totalPlayers} <span data-i18n="tournamentInterface.tournament.players">Spieler</span> • 🎮 ${totalMatches} <span data-i18n="tournamentInterface.tournament.matches">Matches</span> • 📚 ${classCount} <span data-i18n="tournamentInterface.tournament.classes">Klassen</span>
             </small>
         `;
-        
+
+        // Apply i18n translations to the newly created content
+        if (window.applyTranslationsToElement) {
+            window.applyTranslationsToElement(metaElement);
+        } else if (window.i18n && window.i18n.applyTranslations) {
+            window.i18n.applyTranslations();
+        }
+
         console.log('✅ Tournament meta information updated');
         console.log('📋 ===== TOURNAMENT INFO UPDATE COMPLETE =====');
-        
+
     } catch (error) {
         console.error('❌ Error updating tournament info:', error);
         console.error('❌ Error stack:', error.stack);
-        
+
         // Fallback update
         try {
             const nameElement = document.getElementById('tournamentName');
@@ -80,10 +87,10 @@ function updateTournamentInfo(tournament) {
 
 function displayMatches(matches) {
     const container = document.getElementById('matchContainer');
-    
-    console.log('🎮 displayMatches called with:', matches?.length, 'matches');
-    console.log('📊 Sample match data:', matches?.[0]);
-    
+
+    console.log('🎮 displayMatches called with:', (matches && matches.length) || 0, 'matches');
+    console.log('📊 Sample match data:', matches && matches[0]);
+
     if (!matches || matches.length === 0) {
         displayNoMatches();
         return;
@@ -97,7 +104,7 @@ function displayMatches(matches) {
         const classId = match.classId || match.ClassId;
         const className = match.className || match.ClassName;
         const groupName = match.groupName || match.GroupName;
-        
+
         if (!classId) {
             console.warn(`⚠️ [VALIDATION] Match ${matchId}: Missing class ID`);
             validationWarnings++;
@@ -111,7 +118,7 @@ function displayMatches(matches) {
             validationWarnings++;
         }
     });
-    
+
     if (validationWarnings > 0) {
         console.warn(`⚠️ [AUTO-VALIDATION] Found ${validationWarnings} data integrity warnings`);
         showNotification(`⚠️ ${validationWarnings} Datenwarnungen gefunden - siehe Konsole für Details`, 'warning');
@@ -124,17 +131,17 @@ function displayMatches(matches) {
         const status = match.status || match.Status || 'NotStarted';
         return status.toLowerCase();
     };
-    
+
     const pending = matches.filter(m => {
         const status = getMatchStatus(m);
         return status === 'notstarted' || status === 'pending';
     });
-    
+
     const inProgress = matches.filter(m => {
         const status = getMatchStatus(m);
         return status === 'inprogress' || status === 'active';
     });
-    
+
     const finished = matches.filter(m => {
         const status = getMatchStatus(m);
         return status === 'finished' || status === 'completed';
@@ -163,9 +170,14 @@ function displayMatches(matches) {
 
     html += '</div>';
     container.innerHTML = html;
-    
+
+    // 🌐 Apply translations to the newly generated match cards
+    if (window.applyTranslationsToElement) {
+        window.applyTranslationsToElement(container);
+    }
+
     console.log(`✅ Successfully displayed ${orderedMatches.length} matches`);
-    
+
     if (validationWarnings > 0) {
         const warningDiv = document.createElement('div');
         warningDiv.style.cssText = `
@@ -188,17 +200,17 @@ function displayMatches(matches) {
 
 function displayNoMatches(errorMessage = null) {
     const container = document.getElementById('matchContainer');
-    
+
     if (errorMessage) {
         container.innerHTML = `
             <div class="no-matches">
                 <span class="icon">❌</span>
-                <strong>Fehler beim Laden der Matches</strong><br>
+                <strong>${t('tournamentInterface.messages.loadingMatchesError')}</strong><br>
                 ${errorMessage}<br>
-                <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;" data-i18n="tournamentInterface.matches.retryButton">
                     🔄 Erneut versuchen
                 </button>
-                <button onclick="debugMatches()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <button onclick="debugMatches()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background: #ff6b6b; color: white; border: none; border-radius: 8px; cursor: pointer;" data-i18n="tournamentInterface.matches.debugButton">
                     🔧 Debug
                 </button>
             </div>
@@ -207,9 +219,10 @@ function displayNoMatches(errorMessage = null) {
         container.innerHTML = `
             <div class="no-matches">
                 <span class="icon">🎯</span>
-                <strong>Keine Matches verfügbar</strong><br>
-                <small>Matches werden vom Tournament Planner synchronisiert...</small><br>
-                <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                <strong>${t('tournamentInterface.matches.noMatches')}</strong><br>
+                <small>${t('tournamentInterface.messages.noMatchesDescription')}</small>
+                <small>${t('tournamentInterface.messages.syncDescription')}</small><br>
+                <button onclick="loadMatches()" style="margin-top: 15px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;" data-i18n="tournamentInterface.matches.refreshButton">
                     🔄 Aktualisieren
                 </button>
                 <button onclick="debugMatches()" style="margin-top: 10px; margin-left: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer;">
@@ -221,37 +234,51 @@ function displayNoMatches(errorMessage = null) {
             </div>
         `;
     }
+
+    // 🌐 Apply translations to the newly generated content
+    if (window.applyTranslationsToElement) {
+        window.applyTranslationsToElement(container);
+    }
 }
 
 function updateClassSelector(classes) {
     const classSelector = document.getElementById('classSelector');
     const classSelect = document.getElementById('classSelect');
-    
+
     if (!classSelector || !classSelect) return;
-    
+
     console.log('📚 Updating class selector with:', classes);
-    
+
     // Clear existing options (except "All")
-    classSelect.innerHTML = '<option value="">Alle Klassen</option>';
-    
+    classSelect.innerHTML = `<option value="" data-i18n="tournamentInterface.classes.allClasses">${t('tournamentInterface.classes.allClasses')}</option>`;
+
     if (classes && classes.length > 0) {
         classes.forEach(cls => {
             const option = document.createElement('option');
-            option.value = cls.id;
-            option.textContent = `${cls.name} (${cls.playerCount || 0} Spieler)`;
+            // Support both naming conventions
+            const classId = cls.classId || cls.ClassId || cls.id || cls.Id;
+            const className = cls.className || cls.ClassName || cls.name || cls.Name;
+            const playerCount = cls.playerCount || cls.PlayerCount || 0;
+
+            option.value = classId;
+            option.textContent = `${className} (${playerCount} ${t('tournamentInterface.classes.players')})`;
             classSelect.appendChild(option);
+
+            console.log('📚 Added class option:', { classId, className, playerCount });
         });
-        
+
         // Show class selector
         classSelector.style.display = 'block';
+        console.log('✅ Class selector updated with', classes.length, 'classes');
     } else {
         classSelector.style.display = 'none';
+        console.log('⚠️ No classes provided, hiding class selector');
     }
 }
 
 function showNotification(message, type = 'info') {
     console.log(`📢 [${type.toUpperCase()}] ${message}`);
-    
+
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
@@ -266,7 +293,7 @@ function showNotification(message, type = 'info') {
         word-wrap: break-word;
         animation: slideIn 0.3s ease-out;
     `;
-    
+
     switch (type) {
         case 'success':
             notification.style.background = 'linear-gradient(135deg, #48bb78 0%, #38a169 100%)';
@@ -280,10 +307,10 @@ function showNotification(message, type = 'info') {
         default:
             notification.style.background = 'linear-gradient(135deg, #4299e1 0%, #3182ce 100%)';
     }
-    
+
     notification.textContent = message;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         if (notification.parentNode) {
             notification.parentNode.removeChild(notification);
@@ -291,15 +318,97 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
+/**
+ * Get translation helper
+ */
+function t(key, params = {}) {
+    if (window.i18n && window.i18n.t) {
+        return window.i18n.t(key, params);
+    }
+    if (window.I18nManager && window.I18nManager.t) {
+        return window.I18nManager.t(key, params);
+    }
+    console.warn(`🌐 t() called but i18n not available for key: ${key}`);
+    return key; // Fallback if i18n not available
+}
+
 function updateConnectionStatus(connected) {
     const indicator = document.getElementById('connectionIndicator');
     const text = document.getElementById('connectionText');
-    
+
     if (connected) {
         indicator.classList.add('connected');
-        text.textContent = 'Verbunden';
+        text.textContent = t('tournamentInterface.connection.connected');
     } else {
         indicator.classList.remove('connected');
-        text.textContent = 'Getrennt';
+        text.textContent = t('tournamentInterface.connection.disconnected');
     }
 }
+
+/**
+ * 🌐 Refresh all dynamic translations in the Tournament Interface
+ * This function is called when the language changes to ensure
+ * all dynamic content is properly translated
+ */
+function refreshDisplayTranslations() {
+    console.log('🌐 [TOURNAMENT] Refreshing display translations...');
+
+    try {
+        // 1. Update connection status
+        const indicator = document.getElementById('connectionIndicator');
+        const text = document.getElementById('connectionText');
+        if (indicator && text) {
+            if (indicator.classList.contains('connected')) {
+                text.textContent = t('tournamentInterface.connection.connected');
+            } else {
+                text.textContent = t('tournamentInterface.connection.disconnected');
+            }
+        }
+
+        // 2. Update tournament meta info if available
+        if (window.currentTournament) {
+            updateTournamentInfo(window.currentTournament);
+        }
+
+        // 3. Update class selector if available
+        const classSelect = document.getElementById('classSelect');
+        if (classSelect && window.tournamentClasses) {
+            const currentValue = classSelect.value;
+            // Clear options
+            classSelect.innerHTML = `<option value="" data-i18n="tournamentInterface.classes.allClasses">${t('tournamentInterface.classes.allClasses')}</option>`;
+
+            // Re-add class options
+            window.tournamentClasses.forEach(cls => {
+                const option = document.createElement('option');
+                // Support both naming conventions
+                const classId = cls.classId || cls.ClassId || cls.id || cls.Id;
+                const className = cls.className || cls.ClassName || cls.name || cls.Name;
+                const playerCount = cls.playerCount || cls.PlayerCount || 0;
+
+                option.value = classId;
+                option.textContent = `${className} (${playerCount} ${t('tournamentInterface.classes.players')})`;
+                classSelect.appendChild(option);
+            });
+
+            // Restore selection
+            classSelect.value = currentValue;
+        }
+
+        // 4. Update match cards - regenerate all match cards with new translations
+        if (window.matches && window.matches.length > 0) {
+            console.log('🌐 [TOURNAMENT] Regenerating match cards with new translations...');
+            displayMatches(window.matches);
+        }
+
+        // 5. Update any notification that might be visible
+        // (notifications auto-translate on next showing)
+
+        console.log('✅ [TOURNAMENT] Display translations refreshed');
+
+    } catch (error) {
+        console.error('❌ [TOURNAMENT] Error refreshing display translations:', error);
+    }
+}
+
+// Make function globally available
+window.refreshDisplayTranslations = refreshDisplayTranslations;

@@ -6,7 +6,7 @@ namespace DartTournamentPlaner.Helpers;
 /// <summary>
 /// Translation Manager für TournamentTab - verwaltet alle Übersetzungen
 /// </summary>
-public class TournamentTabTranslationManager
+public class TournamentTabTranslationManager : IDisposable
 {
     private readonly LocalizationService _localizationService;
 
@@ -33,6 +33,7 @@ public class TournamentTabTranslationManager
     public TextBlock? StandingsHeaderText { get; set; }
     public TextBlock? SelectGroupText { get; set; }
     public TextBlock? TournamentOverviewHeader { get; set; }
+    public TextBlock? PlayersHeaderText {get;set;}
     public TabItem? GamesTabItem { get; set; }
     public TabItem? TableTabItem { get; set; }
     public DataGrid? MatchesDataGrid { get; set; }
@@ -49,6 +50,9 @@ public class TournamentTabTranslationManager
     public TabItem? WinnerBracketTabItem { get; set; }
     public TabItem? LoserBracketTabItem { get; set; }
     public TabItem? LoserBracketTreeTabItem { get; set; }
+    
+    // ✅ NEU: Dark Mode Toggle Support
+    public MenuItem? ToggleDarkModeMenuItem { get; set; }
 
     public TournamentTabTranslationManager(LocalizationService localizationService)
     {
@@ -62,6 +66,7 @@ public class TournamentTabTranslationManager
         UpdateHeaderTexts();
         UpdateDataGridHeaders();
         UpdateKnockoutSpecificElements(); // ✅ NEU: KO-spezifische Übersetzungen
+        
     }
 
     private void UpdateTabHeaders()
@@ -78,6 +83,12 @@ public class TournamentTabTranslationManager
         // ✅ NEU: Statistiken-Tab
         if (StatisticsTabItem != null)
             StatisticsTabItem.Header = _localizationService.GetString("StatisticsTab");
+
+        // ✅ NEU: Gruppenphasen-Untertabs
+        if (GamesTabItem != null)
+            GamesTabItem.Header = _localizationService.GetString("GamesTab");
+        if (TableTabItem != null)
+            TableTabItem.Header = _localizationService.GetString("TableTab");
 
         // ✅ NEU: KO-Tab interne Tabs
         if (TournamentTreeTabItem != null)
@@ -126,6 +137,8 @@ public class TournamentTabTranslationManager
     {
         if (GroupsHeaderText != null)
             GroupsHeaderText.Text = _localizationService.GetString("Groups");
+        if (PlayersHeaderText != null)
+            PlayersHeaderText.Text = "👥 " + _localizationService.GetString("Players");
         if (MatchesHeaderText != null)
             MatchesHeaderText.Text = _localizationService.GetString("Matches");
         if (StandingsHeaderText != null)
@@ -195,5 +208,56 @@ public class TournamentTabTranslationManager
             WinnerBracketHeaderText.Text = _localizationService.GetString("WinnerBracketHeader");
         if (LoserBracketHeaderText != null)
             LoserBracketHeaderText.Text = _localizationService.GetString("LoserBracketHeader");
+            
+        // ✅ NEU: Dark Mode Toggle aktualisieren
+        UpdateDarkModeToggle();
+    }
+    
+    /// <summary>
+    /// ✅ NEU: Aktualisiert den Dark Mode Toggle basierend auf aktuellem Theme
+    /// </summary>
+    private void UpdateDarkModeToggle()
+    {
+        if (ToggleDarkModeMenuItem != null)
+        {
+            // Aktuelles Theme ermitteln
+            var currentTheme = App.ThemeService?.GetCurrentTheme() ?? "Light";
+            var isDark = currentTheme.ToLower() == "dark";
+            
+            // Menü-Text basierend auf aktuellem Theme setzen
+            var translationKey = isDark ? "SwitchToLightMode" : "SwitchToDarkMode";
+            var translatedText = _localizationService.GetString(translationKey);
+            var icon = isDark ? "☀️" : "🌙";
+            
+            // Fallback falls Übersetzung nicht vorhanden
+            if (string.IsNullOrEmpty(translatedText) || translatedText == translationKey)
+            {
+                translatedText = isDark ? "Switch to Light Mode" : "Switch to Dark Mode";
+            }
+            
+            ToggleDarkModeMenuItem.Header = $"{icon} {translatedText}";
+        }
+    }
+
+    /// <summary>
+    /// Dispose-Pattern für ordnungsgemäße Ressourcenverwaltung
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Geschützte Dispose-Methode
+    /// </summary>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            // Hier könnten Event-Subscriptions abgemeldet werden, falls vorhanden
+            // Derzeit keine expliziten Events zu cleanen
+            System.Diagnostics.Debug.WriteLine($"[TournamentTabTranslationManager] Disposed successfully");
+        }
     }
 }

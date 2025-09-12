@@ -27,9 +27,9 @@ class MatchService {
             console.log(`   GameRules classId: ${result.gameRulesUsed?.classId}`);
             console.log(`   GameRules className: ${result.gameRulesUsed?.className}`);
             console.log(`?? [MatchService] Full result:`, JSON.stringify(result, null, 2));
-            
+
             if (!tournamentId || !matchId || !result) {
-                throw new Error('Tournament ID, Match ID, and result are required'); 
+                throw new Error('Tournament ID, Match ID, and result are required');
             }
 
             const tournament = this.tournamentRegistry.getTournament(tournamentId);
@@ -51,13 +51,13 @@ class MatchService {
 
             // ERWEITERT: UUID-bewusste Match-Suche
             const matches = tournament.matches || [];
-            const matchIndex = matches.findIndex(m => 
+            const matchIndex = matches.findIndex(m =>
                 // Priorisiere UniqueId (UUID)
                 (m.uniqueId && m.uniqueId === matchId) ||
                 // Fallback auf numerische IDs
-                (m.id === matchId || m.matchId === matchId || 
-                 String(m.id) === String(matchId) || 
-                 String(m.matchId) === String(matchId))
+                (m.id === matchId || m.matchId === matchId ||
+                    String(m.id) === String(matchId) ||
+                    String(m.matchId) === String(matchId))
             );
 
             if (matchIndex === -1) {
@@ -145,7 +145,7 @@ class MatchService {
             console.log(`   Game Rules: ${updatedMatch.gameRulesUsed ? updatedMatch.gameRulesUsed.name || 'Default' : 'None'}`);
 
             // Process the result for queue handling (Tournament Planner API forwarding)
-            // Verwende UUID wenn verfügbar, sonst numerische ID
+            // Verwende UUID wenn verfï¿½gbar, sonst numerische ID
             const forwardMatchId = originalMatch.uniqueId || matchId;
             const processedResult = {
                 matchId: forwardMatchId,
@@ -161,9 +161,9 @@ class MatchService {
             };
 
             // Store pending result with enhanced key
-            const resultKey = originalMatch.uniqueId 
-                ? `${tournamentId}_${originalMatch.uniqueId}`
-                : `${tournamentId}_${matchId}`;
+            const resultKey = originalMatch.uniqueId ?
+                `${tournamentId}_${originalMatch.uniqueId}` :
+                `${tournamentId}_${matchId}`;
             this.pendingResults.set(resultKey, processedResult);
 
             // Add to processing queue for Tournament Planner API
@@ -188,10 +188,10 @@ class MatchService {
 
             console.log(`?? [MatchService] Match result submitted successfully for ${finalClassName} (Class ID: ${finalClassId})`);
             console.log(`?? [MatchService] ===== MATCH RESULT SUBMISSION COMPLETE =====`);
-            
+
             // Return success - WebSocket broadcasting is handled by server.js
             return true;
-            
+
         } catch (error) {
             console.error('? [MatchService] submitMatchResult error:', error.message);
             console.error('Stack trace:', error.stack);
@@ -218,7 +218,7 @@ class MatchService {
 
             const matches = tournament.matches || [];
             console.log(`?? Retrieved ${matches.length} matches for tournament: ${tournamentId}`);
-            
+
             return matches;
         } catch (error) {
             console.error('? Get matches error:', error.message);
@@ -239,15 +239,15 @@ class MatchService {
             }
 
             const matches = await this.getTournamentMatches(tournamentId);
-            
+
             // ERWEITERT: UUID-bewusste Match-Suche
-            const match = matches.find(m => 
+            const match = matches.find(m =>
                 // Priorisiere UniqueId (UUID)
                 (m.uniqueId && m.uniqueId === matchId) ||
                 // Fallback auf numerische IDs
                 (m.id === matchId || m.matchId === matchId)
             );
-            
+
             if (match) {
                 console.log(`?? Retrieved match: ${tournamentId}/${matchId} (UUID: ${match.uniqueId || 'none'})`);
                 return match;
@@ -269,9 +269,9 @@ class MatchService {
     async getPendingMatches(tournamentId) {
         try {
             const matches = await this.getTournamentMatches(tournamentId);
-            const pendingMatches = matches.filter(match => 
-                match.status === 'NotStarted' || 
-                match.status === 'pending' || 
+            const pendingMatches = matches.filter(match =>
+                match.status === 'NotStarted' ||
+                match.status === 'pending' ||
                 (!match.status && !match.winner)
             );
 
@@ -291,9 +291,9 @@ class MatchService {
     async getCompletedMatches(tournamentId) {
         try {
             const matches = await this.getTournamentMatches(tournamentId);
-            const completedMatches = matches.filter(match => 
-                match.status === 'Finished' || 
-                match.status === 'completed' || 
+            const completedMatches = matches.filter(match =>
+                match.status === 'Finished' ||
+                match.status === 'completed' ||
                 match.winner
             );
 
@@ -313,7 +313,7 @@ class MatchService {
     validateMatchResultWithGameRules(result) {
         try {
             console.log(`?? [API] Validating match result with game rules:`, JSON.stringify(result, null, 2));
-            
+
             if (!result || typeof result !== 'object') {
                 return { valid: false, error: 'Result must be an object' };
             }
@@ -342,7 +342,7 @@ class MatchService {
             const hasSetWinner = p1Sets > 0 || p2Sets > 0;
             const hasLegWinner = p1Legs > 0 || p2Legs > 0;
             const isExplicitlyFinished = result.status === 'Finished';
-            
+
             console.log(`?? [API] Winner validation:`);
             console.log(`   Has set winner: ${hasSetWinner} (${p1Sets} vs ${p2Sets})`);
             console.log(`   Has leg winner: ${hasLegWinner} (${p1Legs} vs ${p2Legs})`);
@@ -351,9 +351,9 @@ class MatchService {
             // Accept the match if any of these conditions are met:
             if (!hasSetWinner && !hasLegWinner && !isExplicitlyFinished) {
                 console.error(`? [API] Validation failed: No clear winner - no sets, no legs, and not marked as finished`);
-                return { 
-                    valid: false, 
-                    error: 'Match result must have a winner (either sets > 0, legs > 0, or status = Finished)' 
+                return {
+                    valid: false,
+                    error: 'Match result must have a winner (either sets > 0, legs > 0, or status = Finished)'
                 };
             }
 
@@ -361,24 +361,24 @@ class MatchService {
             if (result.gameRulesUsed && typeof result.gameRulesUsed === 'object') {
                 const gameRules = result.gameRulesUsed;
                 console.log(`?? [API] Game rules found:`, gameRules);
-                
+
                 // Validate sets against game rules
                 if (gameRules.playWithSets && gameRules.setsToWin) {
                     const maxSets = Number(gameRules.setsToWin) || 3;
                     if (p1Sets > maxSets || p2Sets > maxSets) {
                         console.error(`? [API] Validation failed: Sets exceed maximum (${maxSets})`);
-                        return { 
-                            valid: false, 
-                            error: `Sets cannot exceed maximum of ${maxSets} based on game rules` 
+                        return {
+                            valid: false,
+                            error: `Sets cannot exceed maximum of ${maxSets} based on game rules`
                         };
                     }
-                    
+
                     // Check if match is properly finished based on sets
                     if ((p1Sets >= maxSets || p2Sets >= maxSets) && Math.abs(p1Sets - p2Sets) < 1) {
                         console.warn(`?? [API] Match may not be properly finished - winner should have ${maxSets} sets`);
                     }
                 }
-                
+
                 // Validate legs against game rules  
                 if (gameRules.legsToWin) {
                     const maxLegs = Number(gameRules.legsToWin) * (Math.max(p1Sets, p2Sets) || 1) * 2; // Rough estimation
@@ -386,7 +386,7 @@ class MatchService {
                         console.warn(`?? [API] Legs count seems high compared to game rules (${maxLegs} estimated max)`);
                     }
                 }
-                
+
                 console.log(`? [API] Game rules validation passed for: ${gameRules.name || 'Unknown Rules'}`);
             } else {
                 console.log(`?? [API] No game rules provided - using basic validation only`);
@@ -394,7 +394,7 @@ class MatchService {
 
             console.log(`? [API] Match result validation passed`);
             return { valid: true };
-            
+
         } catch (error) {
             console.error(`? [API] Validation error:`, error);
             return { valid: false, error: error.message };
@@ -452,7 +452,7 @@ class MatchService {
                             pendingResult.processed = true;
                             pendingResult.processedAt = new Date();
                         }
-                        
+
                         processed.push(queueItem);
                         console.log(`? Result forwarded: ${queueItem.tournamentId}/${queueItem.matchId}`);
                     } else {
@@ -467,7 +467,7 @@ class MatchService {
                 } catch (error) {
                     queueItem.attempts++;
                     console.error(`? Error processing result: ${error.message}`);
-                    
+
                     if (queueItem.attempts >= queueItem.maxAttempts) {
                         failed.push(queueItem);
                     }
@@ -475,7 +475,7 @@ class MatchService {
             }
 
             // Remove processed and failed items from queue
-            this.processingQueue = this.processingQueue.filter(item => 
+            this.processingQueue = this.processingQueue.filter(item =>
                 !processed.includes(item) && !failed.includes(item)
             );
 
@@ -508,11 +508,10 @@ class MatchService {
 
             // Use axios for HTTP requests
             const axios = require('axios');
-            
+
             const response = await axios.put(
                 `${tournament.apiEndpoint}/api/matches/${matchId}/result`,
-                result,
-                {
+                result, {
                     timeout: 5000,
                     headers: {
                         'Content-Type': 'application/json',
@@ -548,7 +547,7 @@ class MatchService {
             const matches = await this.getTournamentMatches(tournamentId);
             const pending = await this.getPendingMatches(tournamentId);
             const completed = await this.getCompletedMatches(tournamentId);
-            const inProgress = matches.filter(m => 
+            const inProgress = matches.filter(m =>
                 m.status === 'InProgress' || m.status === 'active'
             );
 
@@ -557,9 +556,8 @@ class MatchService {
                 pending: pending.length,
                 completed: completed.length,
                 inProgress: inProgress.length,
-                completionRate: matches.length > 0 
-                    ? Math.round((completed.length / matches.length) * 100) 
-                    : 0
+                completionRate: matches.length > 0 ?
+                    Math.round((completed.length / matches.length) * 100) : 0
             };
         } catch (error) {
             console.error('? Get match statistics error:', error.message);
