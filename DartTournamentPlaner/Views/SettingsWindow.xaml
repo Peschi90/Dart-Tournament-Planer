@@ -7,7 +7,12 @@
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextFormattingMode="Display"
+        RenderOptions.BitmapScalingMode="HighQuality">
     <Window.Resources>
         <!-- Moderne Button-Styles basierend auf dem Dialog-System -->
         <Style x:Key="ModernButton" TargetType="Button">
@@ -26,12 +31,16 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Name="border" Background="{TemplateBinding Background}" 
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -71,8 +80,10 @@
                         <Border Name="border" Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -92,6 +103,8 @@
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
@@ -99,7 +112,8 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8">
+                                CornerRadius="8"
+                                UseLayoutRounding="True" SnapsToDevicePixels="True">
                             <Grid>
                                 <ToggleButton Name="toggleButton" 
                                               Background="Transparent" 
@@ -116,12 +130,14 @@
                                                           Margin="{TemplateBinding Padding}"
                                                           HorizontalAlignment="Left" 
                                                           VerticalAlignment="Center"
-                                                          Content="{TemplateBinding SelectionBoxItem}"/>
+                                                          Content="{TemplateBinding SelectionBoxItem}"
+                                                          UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                                         <Path Grid.Column="1" Name="arrow" 
                                               HorizontalAlignment="Center" 
                                               VerticalAlignment="Center"
                                               Data="M 0 0 L 4 4 L 8 0 Z" 
-                                              Fill="#6B7280"/>
+                                              Fill="#6B7280"
+                                              UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                                     </Grid>
                                 </ToggleButton>
                                 <Popup Name="popup" 
@@ -133,7 +149,8 @@
                                     <Border Background="White" 
                                             BorderBrush="#E5E7EB" 
                                             BorderThickness="1" 
-                                            CornerRadius="8">
+                                            CornerRadius="8"
+                                            UseLayoutRounding="True" SnapsToDevicePixels="True">
                                         <Border.Effect>
                                             <DropShadowEffect Color="Black" Direction="270" ShadowDepth="4" 
                                                               BlurRadius="12" Opacity="0.15"/>
@@ -161,6 +178,8 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
@@ -171,14 +190,17 @@
                                     BorderBrush="#CBD5E1" 
                                     BorderThickness="1" 
                                     CornerRadius="4"
-                                    VerticalAlignment="Center">
+                                    VerticalAlignment="Center"
+                                    UseLayoutRounding="True" SnapsToDevicePixels="True">
                                 <Path Name="checkMark" 
                                       Data="M 2 6 L 6 10 L 14 2" 
                                       Stroke="#3B82F6" 
                                       StrokeThickness="2" 
-                                      Visibility="Collapsed"/>
+                                      Visibility="Collapsed"
+                                      UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                             </Border>
-                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"
+                                              UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
@@ -203,6 +225,8 @@
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -210,7 +234,8 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="8" Padding="2">
+                                CornerRadius="8" Padding="2"
+                                UseLayoutRounding="True" SnapsToDevicePixels="True">
                             <ScrollViewer x:Name="PART_ContentHost" 
                                           Margin="{TemplateBinding Padding}"/>
                         </Border>
@@ -230,20 +255,29 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Baseline Style für alle TextBlocks -->
+        <Style TargetType="TextBlock">
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        </Style>
     </Window.Resources>
     
     <!-- Hauptcontainer mit modernem Design -->
-    <Border Background="Transparent" Margin="10">
+    <Border Background="Transparent" Margin="10" UseLayoutRounding="True" SnapsToDevicePixels="True">
         <Border Background="{x:Static SystemColors.WindowBrush}" 
                 CornerRadius="12" 
                 BorderBrush="#E2E8F0" 
-                BorderThickness="1">
+                BorderThickness="1"
+                UseLayoutRounding="True" SnapsToDevicePixels="True">
             <Border.Effect>
                 <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" 
                                   BlurRadius="20" Opacity="0.15"/>
             </Border.Effect>
             
-            <Grid>
+            <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>

@@ -1,4 +1,8 @@
-﻿## v0.1.8
+﻿## v0.1.9
+- Bugfixes
+	- improve sharpness and overall clearance.
+
+## v0.1.8
 
 ### 🎯 Neue Features
 - **🔑 Vollständiges Lizenz-System**: Umfassendes Feature-Management mit Core/Premium-Features, Offline-Validierung und Lizenz-Verwaltung

@@ -11,7 +11,12 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
-        Opacity="0">
+        Opacity="0"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextFormattingMode="Display"
+        RenderOptions.BitmapScalingMode="HighQuality">
 
     <Window.Resources>
         <!-- Card Shadow Effect -->
@@ -29,6 +34,14 @@
                           ShadowDepth="0" 
                           BlurRadius="20" 
                           Opacity="0.4"/>
+
+        <!-- Baseline Style für alle TextBlocks -->
+        <Style TargetType="TextBlock">
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+        </Style>
 
         <!-- Pulse Animation für Icon -->
         <Storyboard x:Key="IconPulseAnimation" RepeatBehavior="Forever" AutoReverse="True">
@@ -98,7 +111,8 @@
     <Border CornerRadius="20" 
             BorderThickness="1"
             BorderBrush="#E5E7EB"
-            Effect="{StaticResource CardShadow}">
+            Effect="{StaticResource CardShadow}"
+            UseLayoutRounding="True" SnapsToDevicePixels="True">
         
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -108,7 +122,7 @@
             </LinearGradientBrush>
         </Border.Background>
 
-        <Grid x:Name="MainContent" Opacity="0">
+        <Grid x:Name="MainContent" Opacity="0" UseLayoutRounding="True" SnapsToDevicePixels="True">
             <Grid.RenderTransform>
                 <TranslateTransform x:Name="ContentTransform" Y="30"/>
             </Grid.RenderTransform>
@@ -123,13 +137,15 @@
             <!-- Header mit animiertem App-Icon und Titel -->
             <Border Grid.Row="0" 
                     Padding="32,24,32,20"
-                    Background="Transparent">
+                    Background="Transparent"
+                    UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <StackPanel HorizontalAlignment="Center">
                     <!-- Animiertes App Icon -->
                     <Border x:Name="AppIconBorder"
                             Width="150" Height="150" 
                             CornerRadius="16" 
-                            Margin="0,0,0,20">
+                            Margin="0,0,0,20"
+                            UseLayoutRounding="True" SnapsToDevicePixels="True">
                         <Border.Background>
                             <RadialGradientBrush>
                                 <GradientStop Color="#3B82F6" Offset="0"/>
@@ -143,7 +159,7 @@
                         </Border.Effect>
                         
                         <!-- Layered Icon: Echtes App Icon mit Emoji Fallback -->
-                        <Grid>
+                        <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
                             <!-- Primäres App Icon (zunächst versteckt) -->
                             <Image x:Name="AppIconImage"
                                    Source="pack://application:,,,/Assets/Images/favicon.ico" 
@@ -153,7 +169,8 @@
                                    VerticalAlignment="Center"
                                    RenderOptions.BitmapScalingMode="HighQuality"
                                    Stretch="Uniform"
-                                   Visibility="Collapsed"/>
+                                   Visibility="Collapsed"
+                                   UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                             
                             <!-- Fallback Emoji (standardmäßig sichtbar) -->
                             <TextBlock x:Name="FallbackIconText"
@@ -193,7 +210,8 @@
             <!-- Erweiterter Loading Bereich mit animiertem Ring und Fortschrittsbalken -->
             <Grid Grid.Row="1" 
                   Margin="32,24,32,24"
-                  VerticalAlignment="Center">
+                  VerticalAlignment="Center"
+                  UseLayoutRounding="True" SnapsToDevicePixels="True">
                 
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -207,7 +225,8 @@
                     <Ellipse Width="100" Height="100" 
                              Stroke="#E2E8F0" 
                              StrokeThickness="6" 
-                             Fill="Transparent"/>
+                             Fill="Transparent"
+                             UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                     
                     <!-- Animierter Progress Ring -->
                     <Ellipse Width="100" Height="100" 
@@ -215,7 +234,8 @@
                              StrokeThickness="6" 
                              Fill="Transparent"
                              StrokeDashArray="20 80"
-                             RenderTransformOrigin="0.5,0.5">
+                             RenderTransformOrigin="0.5,0.5"
+                             UseLayoutRounding="True" SnapsToDevicePixels="True">
                         <Ellipse.RenderTransform>
                             <RotateTransform x:Name="LoadingRingRotation"/>
                         </Ellipse.RenderTransform>
@@ -224,7 +244,8 @@
                     <!-- Zentraler Punkt -->
                     <Ellipse Width="12" Height="12" 
                              Fill="#3B82F6" 
-                             Canvas.Left="44" Canvas.Top="44"/>
+                             Canvas.Left="44" Canvas.Top="44"
+                             UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                 </Canvas>
 
                 <!-- Abstand zwischen Ring und Fortschrittsbalken -->
@@ -236,13 +257,15 @@
                         Background="#E2E8F0" 
                         CornerRadius="3"
                         MaxWidth="300"
-                        HorizontalAlignment="Center">
+                        HorizontalAlignment="Center"
+                        UseLayoutRounding="True" SnapsToDevicePixels="True">
                     <Border x:Name="ProgressFill"
                             Width="0"
                             Height="6"
                             Background="#3B82F6"
                             CornerRadius="3"
-                            HorizontalAlignment="Left"/>
+                            HorizontalAlignment="Left"
+                            UseLayoutRounding="True" SnapsToDevicePixels="True"/>
                 </Border>
 
                 <!-- Fallback LoadingSpinner (falls der Ring nicht funktioniert) -->
@@ -256,7 +279,8 @@
 
             <!-- Animierter Status-Text -->
             <Border Grid.Row="2" 
-                    Padding="32,0,32,20">
+                    Padding="32,0,32,20"
+                    UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <TextBlock Name="StatusTextBlock"
                            Text="Starte Anwendung..."
                            FontSize="13"
@@ -277,7 +301,8 @@
                     Padding="20,16"
                     CornerRadius="0,0,20,20"
                     BorderBrush="#E5E7EB"
-                    BorderThickness="0,1,0,0">
+                    BorderThickness="0,1,0,0"
+                    UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <StackPanel Orientation="Horizontal" 
                             HorizontalAlignment="Center">
                     <TextBlock Name="VersionTextBlock"

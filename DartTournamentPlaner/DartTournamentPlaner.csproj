@@ -9,6 +9,9 @@
 	<LangVersion>13.0</LangVersion>
 	<!-- App Icon für Executable -->
 	<ApplicationIcon>Assets\Images\favicon.ico</ApplicationIcon>
+	<!-- DPI-Unterstützung aktivieren - Manifest temporär deaktiviert -->
+	<!-- <ApplicationManifest>app.manifest</ApplicationManifest> -->
+	<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
 	<!-- Assembly Info -->
 	<AssemblyTitle>Dart Tournament Planner</AssemblyTitle>
@@ -16,8 +19,8 @@
 	<AssemblyCompany>by I3uLL3t aka Peschi90</AssemblyCompany>
 	<AssemblyProduct>Dart Tournament Planner</AssemblyProduct>
 	<AssemblyCopyright>Copyright © 2025</AssemblyCopyright>
-	<AssemblyVersion>0.1.8</AssemblyVersion>
-	<AssemblyFileVersion>0.1.8</AssemblyFileVersion>
+	<AssemblyVersion>0.1.9</AssemblyVersion>
+	<AssemblyFileVersion>0.1.9</AssemblyFileVersion>
   </PropertyGroup>
 
   <ItemGroup>
