@@ -6,7 +6,7 @@ Eine moderne WPF-Anwendung für die Verwaltung von Dart-Turnieren mit profession
 ![C#](https://img.shields.io/badge/C%23-13.0-blue)
 ![WPF](https://img.shields.io/badge/WPF-Windows-lightgrey)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Version](https://img.shields.io/badge/Version-0.1.8-brightgreen)
+![Version](https://img.shields.io/badge/Version-0.1.11-brightgreen)
 
 ## 🏆 Features
 
@@ -320,13 +320,61 @@ DartTournamentPlaner/
 
 ## 📈 Versionshistorie
 
-### Aktuell: v0.1.8 (Neueste) - Erweiterte Statistiken & Hub-Integration
-- 📊 **NEU**: Erweiterte Spieler-Statistiken mit "Schnellstes Match" und "Wenigste Würfe"
-- 🌐 **VERBESSERT**: WebSocket-Statistik-Integration mit vollständiger Datenextraktion
-- 🎯 **NEU**: Tournament Hub Integration mit Echtzeit-Synchronisation
-- 🎭 **NEU**: Statistiken-Tab für detaillierte Spieler-Analysen
-- 🐛 **BEHOBEN**: Reset-Button-Probleme und UI-Synchronisation
-- 🏗️ **VERBESSERT**: Manager-Klassen für bessere Code-Organisation
+### Aktuell: v0.1.11 (Neueste) - Update-System Verbesserungen
+- 🔄 **NEU**: Erweiterte Update-Download-Erfahrung mit animierter Fortschrittsanzeige
+- 📊 **VERBESSERT**: Echtzeit-Download-Fortschritt mit detaillierter Statusanzeige
+- 🎨 **NEU**: Sanfte UI-Übergänge zwischen Update-Dialog und Download-Ansicht
+- 🌐 **BEHOBEN**: Übersetzungsfehler in mehreren UI-Komponenten
+- 💾 **VERBESSERT**: Robuste Update-Download-Mechanismen mit Fehlerbehandlung
+
+### v0.1.10 - Lizenz-System Korrekturen
+- 🐛 **BEHOBEN**: Korrektur von Fehlern im Lizenz-Request-Mail-System
+- 📧 **VERBESSERT**: Verbesserte E-Mail-Verarbeitung für Lizenzanfragen
+- 🔑 **STABILITÄT**: Robustere Lizenz-Aktivierungsprozesse
+
+### v0.1.9 - UI-Verbesserungen
+- 🎨 **VERBESSERT**: Verbesserte Bildschärfe und allgemeine UI-Klarheit
+- 📱 **OPTIMIERT**: Bessere Darstellung auf verschiedenen Bildschirmauflösungen
+- 🖼️ **VERBESSERT**: Optimierte Icon- und Grafik-Rendering
+
+### v0.1.8 - Vollständiges Lizenz-System & Theme-Integration
+- **🔑 Vollständiges Lizenz-System**: Umfassendes Feature-Management mit Core/Premium-Features, Offline-Validierung und Lizenz-Verwaltung
+- **🎨 Dark/Light Theme-System**: Vollständiger Theme-Wechsel mit persistenten Einstellungen und Ein-Klick-Toggle
+- **📊 Erweiterte Spieler-Statistiken**: Neue Statistik-Spalten "Schnellstes Match" und "Wenigste Würfe" mit detaillierter Performance-Analyse
+- **🌐 Tournament Hub Integration**: Verbesserte Echtzeit-Synchronisation mit WebSocket-Verbindungen und QR-Code-Unterstützung
+- **📱 Professioneller Startup**: Animierter Splash Screen mit Fortschrittsanzeigen und modernen Animationen
+- **🎭 Statistiken-Tab**: Neuer dedizierter Tab für detaillierte Spieler-Statistiken in jeder Turnierklasse
+
+#### 🔑 Lizenz-System Features
+- **Premium-Feature-Management**: Granulare Kontrolle über erweiterte Funktionen
+- **Offline-Lizenz-Validierung**: Funktionalität auch ohne Internetverbindung
+- **Lizenz-Dialoge**: Benutzerfreundliche Aktivierung, Status-Anzeige und Verwaltung
+- **Feature-gesteuerte UI**: Dynamische Anzeige basierend auf Lizenz-Status
+- **Sicherheits-Features**: Hardware-ID-basierte Lizenzierung mit Aktivierungslimits
+
+#### 🎨 Theme-System
+- **Light/Dark Mode Toggle**: Vollständiger Theme-Wechsel über Menü-Button
+- **Konsistente Theme-Anwendung**: Einheitliche Darstellung über alle UI-Elemente
+- **Theme-Persistierung**: Speicherung der Theme-Auswahl zwischen App-Starts
+- **Moderne Farbpaletten**: Professionelle Farb-Schemata für beide Modi
+- **Echtzeit-Theme-Wechsel**: Theme-Änderung ohne Anwendungsneustart
+
+#### 🌐 Hub-Integration Verbesserungen
+- **WebSocket-Statistik-Integration**: Vollständige Extraktion und Verarbeitung von Dart-Statistiken
+- **QR-Code-Support**: QRCoder-Integration für einfachen Tournament-Zugang
+- **Erweiterte Match-Daten**: Verarbeitung von `dartScoringResult` für detaillierte Spielanalysen
+- **Automatische Synchronisation**: Echtzeit-Updates der Spieler-Statistiken bei Match-Abschluss
+- **Debug-Konsole**: Globale Debug-Konsole für Hub-Verbindungsdiagnose
+- **Fallback-Mechanismen**: Robuste Verarbeitung bei verschiedenen Datenformaten
+
+#### 📊 Statistik-Features
+- **Match-Effizienz**: Anzeige der schnellsten Spieldauer (MM:SS Format)
+- **Wurf-Effizienz**: Tracking der wenigsten Würfe pro Match
+- **Detaillierte Daten**: High Finish Details mit Darts-Aufschlüsselung
+- **Leg-Averages**: Verfolgung individueller Leg-Performance
+- **Checkout-Statistiken**: Anzahl und Details aller erfolgreichen Checkouts
+- **180er-Tracking**: Vollständige Verfolgung aller Maximum-Scores
+- **Score-Analyse**: Tracking von 26er-Scores und Performance-Trends
 
 ### Früher: v0.1.7 - Print System & Lokalisierung
 - 🖨️ **NEU**: Professionelles Drucksystem mit umfassenden Turnierberichten
@@ -392,7 +440,6 @@ Sie lieben den Dart Tournament Planner? So können Sie die Entwicklung unterstü
 
 ### 💰 Finanzielle Unterstützung
 - **In-App-Spenden**: Verwenden Sie den integrierten Spenden-Dialog (**Hilfe** → **Spenden**)
-- **GitHub Sponsors**: [Auf GitHub sponsern](https://github.com/sponsors/Peschi90)
 - **Einmalige Spenden**: [PayPal](https://www.paypal.com/paypalme/I3ull3t)
 - **Professioneller Support**: Individuelle Entwicklung und Enterprise-Features
 
@@ -436,3 +483,4 @@ Für Unternehmen, die diese Software verwenden:
 *Entwickelt mit ❤️ für die Dart Community*
 
 **"Perfekte Turniere beginnen mit perfekter Planung - analysiere sie intelligent!"** 🎯📊
+

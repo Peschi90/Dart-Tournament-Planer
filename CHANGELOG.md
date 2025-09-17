@@ -1,4 +1,10 @@
-﻿## v0.1.10
+﻿## v0.1.11
+- adds
+	- Progressbar for update to new version implemented. 
+- Bugfixes
+	- fixed some translation bugs.
+
+## v0.1.10
 - Bugfixes
 	- fixed bug for license request Mail.
 

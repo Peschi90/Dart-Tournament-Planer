@@ -5,6 +5,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using System.Windows.Media.Animation;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Controls;
 
@@ -22,6 +23,13 @@ public partial class UpdateDialog : Window
     private readonly UpdateService? _updateService;
     private bool _downloadRequested = false;
     private bool _isDownloading = false;
+
+    // UI-Elemente für Progress-Anzeige
+    private ProgressBar? _progressBar;
+    private TextBlock? _progressStatusText;
+    private StackPanel? _downloadProgressPanel;
+    private Grid? _originalContentGrid;
+    private StackPanel? _originalButtonPanel;
 
     public bool DownloadRequested => _downloadRequested;
     public bool InstallationStarted { get; private set; } = false;
@@ -131,13 +139,13 @@ public partial class UpdateDialog : Window
         Grid.SetRow(headerBorder, 0);
 
         // Content-Bereich
-        var contentPanel = new Grid
+        _originalContentGrid = new Grid
         {
             Margin = new Thickness(24, 24, 24, 20)
         };
 
-        contentPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Release Info
-        contentPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Changelog
+        _originalContentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Release Info
+        _originalContentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Changelog
 
         // Release-Informationen
         var releaseInfoPanel = new StackPanel
@@ -239,12 +247,12 @@ public partial class UpdateDialog : Window
         changelogPanel.Children.Add(changelogBorder);
         Grid.SetRow(changelogPanel, 1);
 
-        contentPanel.Children.Add(releaseInfoPanel);
-        contentPanel.Children.Add(changelogPanel);
-        Grid.SetRow(contentPanel, 1);
+        _originalContentGrid.Children.Add(releaseInfoPanel);
+        _originalContentGrid.Children.Add(changelogPanel);
+        Grid.SetRow(_originalContentGrid, 1);
 
         // Button-Bereich
-        var buttonPanel = new StackPanel
+        _originalButtonPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -315,14 +323,17 @@ public partial class UpdateDialog : Window
         downloadButton.Style = CreateModernButtonStyle(true, Color.FromRgb(22, 163, 74));
         downloadButton.Click += DownloadButton_Click;
 
-        buttonPanel.Children.Add(remindLaterButton);
-        buttonPanel.Children.Add(skipButton);
-        buttonPanel.Children.Add(downloadButton);
-        Grid.SetRow(buttonPanel, 2);
+        _originalButtonPanel.Children.Add(remindLaterButton);
+        _originalButtonPanel.Children.Add(skipButton);
+        _originalButtonPanel.Children.Add(downloadButton);
+        Grid.SetRow(_originalButtonPanel, 2);
+
+        // Download-Progress-Panel (initial versteckt)
+        CreateDownloadProgressPanel();
 
         mainGrid.Children.Add(headerBorder);
-        mainGrid.Children.Add(contentPanel);
-        mainGrid.Children.Add(buttonPanel);
+        mainGrid.Children.Add(_originalContentGrid);
+        mainGrid.Children.Add(_originalButtonPanel);
         mainBorder.Child = mainGrid;
 
         Content = mainBorder;
@@ -346,6 +357,147 @@ public partial class UpdateDialog : Window
 
         // Focus auf Download-Button
         Loaded += (s, e) => downloadButton.Focus();
+    }
+
+    /// <summary>
+    /// Erstellt das Download-Progress-Panel
+    /// </summary>
+    private void CreateDownloadProgressPanel()
+    {
+        _downloadProgressPanel = new StackPanel
+        {
+            Margin = new Thickness(24, 40, 24, 40),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = Visibility.Collapsed
+        };
+
+        // Download-Icon mit Rotation
+        var downloadIcon = new TextBlock
+        {
+            Text = "💾",
+            FontSize = 48,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+
+        // Erstelle Rotations-Animation für das Icon
+        var rotateTransform = new RotateTransform();
+        downloadIcon.RenderTransform = rotateTransform;
+        downloadIcon.RenderTransformOrigin = new Point(0.5, 0.5);
+
+        var rotationAnimation = new DoubleAnimation
+        {
+            From = 0,
+            To = 360,
+            Duration = TimeSpan.FromSeconds(2),
+            RepeatBehavior = RepeatBehavior.Forever
+        };
+
+        // Status-Text
+        _progressStatusText = new TextBlock
+        {
+            Text = _localizationService?.GetTranslation("PreparingDownload") ?? "Bereite Download vor...",
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Color.FromRgb(30, 41, 59)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20),
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        // Progress Bar
+        _progressBar = new ProgressBar
+        {
+            Width = 400,
+            Height = 8,
+            Background = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            Foreground = new LinearGradientBrush(
+                Color.FromRgb(34, 197, 94),
+                Color.FromRgb(22, 163, 74),
+                0),
+            BorderThickness = new Thickness(0),
+            Margin = new Thickness(0, 0, 0, 16),
+            Minimum = 0,
+            Maximum = 100,
+            Value = 0
+        };
+
+        // Custom Progress Bar Style für abgerundete Ecken
+        var progressBarStyle = new Style(typeof(ProgressBar));
+        var template = new ControlTemplate(typeof(ProgressBar));
+        
+        var border = new FrameworkElementFactory(typeof(Border));
+        border.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(226, 232, 240)));
+        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+        
+        var progressBorder = new FrameworkElementFactory(typeof(Border));
+        progressBorder.Name = "PART_Track";
+        progressBorder.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+        progressBorder.SetValue(Border.BackgroundProperty, new LinearGradientBrush(
+            Color.FromRgb(34, 197, 94),
+            Color.FromRgb(22, 163, 74),
+            0));
+        
+        border.AppendChild(progressBorder);
+        template.VisualTree = border;
+        progressBarStyle.Setters.Add(new Setter(ProgressBar.TemplateProperty, template));
+        _progressBar.Style = progressBarStyle;
+
+        // Prozentanzeige
+        var percentageText = new TextBlock
+        {
+            Text = "0%",
+            FontSize = 14,
+            FontWeight = FontWeights.Medium,
+            Foreground = new SolidColorBrush(Color.FromRgb(100, 116, 139)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 20)
+        };
+
+        // Bind Percentage Text an Progress Bar Value
+        var binding = new System.Windows.Data.Binding("Value")
+        {
+            Source = _progressBar,
+            StringFormat = "{0:0}%"
+        };
+        percentageText.SetBinding(TextBlock.TextProperty, binding);
+
+        // Abbrechen-Button (für manuelle Abbrüche)
+        var cancelButton = new Button
+        {
+            Content = "Abbrechen",
+            Width = 120,
+            Height = 35,
+            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+            BorderThickness = new Thickness(1),
+            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            FontWeight = FontWeights.Medium,
+            FontSize = 12,
+            Cursor = Cursors.Hand,
+            Visibility = Visibility.Collapsed // Standardmäßig versteckt
+        };
+
+        cancelButton.Style = CreateModernButtonStyle(false);
+        cancelButton.Click += (s, e) => {
+            if (_isDownloading)
+            {
+                _isDownloading = false;
+                _downloadRequested = false;
+                SwitchToOriginalView();
+            }
+        };
+
+        _downloadProgressPanel.Children.Add(downloadIcon);
+        _downloadProgressPanel.Children.Add(_progressStatusText);
+        _downloadProgressPanel.Children.Add(_progressBar);
+        _downloadProgressPanel.Children.Add(percentageText);
+        _downloadProgressPanel.Children.Add(cancelButton);
+
+        // Starte Icon-Animation
+        rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotationAnimation);
     }
 
     /// <summary>
@@ -386,8 +538,8 @@ public partial class UpdateDialog : Window
         {
             _isDownloading = true;
             
-            // UI für Download-Modus vorbereiten
-            await ShowDownloadProgressAsync();
+            // Wechsle zur Download-Ansicht
+            await SwitchToDownloadViewAsync();
             
             var progress = new Progress<(string Status, int Percentage)>(update =>
             {
@@ -409,7 +561,7 @@ public partial class UpdateDialog : Window
                 
                 Dispatcher.BeginInvoke(() =>
                 {
-                    UpdateDownloadProgress("Installation gestartet - Anwendung wird beendet", 100);
+                    UpdateDownloadProgress(_localizationService?.GetTranslation("InstallationStarted") ?? "Installation gestartet - Anwendung wird beendet", 100);
                 });
                 
                 // Kurz warten damit User die Nachricht sieht
@@ -456,23 +608,74 @@ public partial class UpdateDialog : Window
     }
 
     /// <summary>
-    /// Zeigt Download-Progress UI an
+    /// Wechselt zur Download-Ansicht mit Animation
     /// </summary>
-    private async Task ShowDownloadProgressAsync()
+    private async Task SwitchToDownloadViewAsync()
     {
         await Dispatcher.InvokeAsync(() =>
         {
-            // Dialog auf Download-Modus umstellen
+            // Titel ändern
             Title = _localizationService?.GetTranslation("DownloadingUpdate") ?? "Update wird heruntergeladen";
             
-            // Buttons deaktivieren
-            foreach (Button button in FindVisualChildren<Button>(this))
+            // Fade-out Animation für Original-Content
+            var fadeOut = new DoubleAnimation
             {
-                button.IsEnabled = false;
-            }
+                To = 0,
+                Duration = TimeSpan.FromMilliseconds(300),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+            };
+
+            fadeOut.Completed += (s, e) =>
+            {
+                // Original-Content verstecken
+                _originalContentGrid!.Visibility = Visibility.Collapsed;
+                _originalButtonPanel!.Visibility = Visibility.Collapsed;
+                
+                // Download-Panel anzeigen
+                if (_downloadProgressPanel!.Parent == null)
+                {
+                    var mainGrid = (Grid)((Border)Content).Child;
+                    Grid.SetRow(_downloadProgressPanel, 1);
+                    Grid.SetRowSpan(_downloadProgressPanel, 2);
+                    mainGrid.Children.Add(_downloadProgressPanel);
+                }
+                
+                _downloadProgressPanel.Visibility = Visibility.Visible;
+                _downloadProgressPanel.Opacity = 0;
+
+                // Fade-in Animation für Download-Panel
+                var fadeIn = new DoubleAnimation
+                {
+                    To = 1,
+                    Duration = TimeSpan.FromMilliseconds(300),
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+
+                _downloadProgressPanel.BeginAnimation(OpacityProperty, fadeIn);
+            };
+
+            _originalContentGrid!.BeginAnimation(OpacityProperty, fadeOut);
+            _originalButtonPanel!.BeginAnimation(OpacityProperty, fadeOut);
+        });
+    }
+
+    /// <summary>
+    /// Wechselt zurück zur Original-Ansicht
+    /// </summary>
+    private void SwitchToOriginalView()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            Title = _localizationService?.GetTranslation("UpdateAvailable") ?? "Update verfügbar";
             
-            // Progress-Anzeige hinzufügen (vereinfacht - in einer echten Implementierung würde man das Layout anpassen)
-            System.Diagnostics.Debug.WriteLine("UpdateDialog: UI switched to download mode");
+            // Download-Panel verstecken
+            _downloadProgressPanel!.Visibility = Visibility.Collapsed;
+            
+            // Original-Content anzeigen
+            _originalContentGrid!.Visibility = Visibility.Visible;
+            _originalButtonPanel!.Visibility = Visibility.Visible;
+            _originalContentGrid.Opacity = 1;
+            _originalButtonPanel.Opacity = 1;
         });
     }
 
@@ -483,8 +686,34 @@ public partial class UpdateDialog : Window
     {
         System.Diagnostics.Debug.WriteLine($"UpdateDialog: Download progress: {status} ({percentage}%)");
         
-        // Hier könnte man eine Progress-Bar oder Status-Text aktualisieren
-        // Für diese Implementierung loggen wir nur den Fortschritt
+        if (_progressStatusText != null)
+        {
+            _progressStatusText.Text = status;
+        }
+
+        if (_progressBar != null && percentage >= 0)
+        {
+            // Animiere Progress Bar smooth
+            var animation = new DoubleAnimation
+            {
+                To = percentage,
+                Duration = TimeSpan.FromMilliseconds(200),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+
+            _progressBar.BeginAnimation(ProgressBar.ValueProperty, animation);
+        }
+
+        // Bei Fehlern (percentage = -1) zeige Error-Style
+        if (percentage == -1 && _progressStatusText != null)
+        {
+            _progressStatusText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+            
+            if (_progressBar != null)
+            {
+                _progressBar.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+            }
+        }
     }
 
     /// <summary>

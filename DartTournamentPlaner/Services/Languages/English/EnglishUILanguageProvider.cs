@@ -123,7 +123,30 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["ErrorOpeningHelp"] = "Error opening help:",
             ["ErrorOpeningOverview"] = "Error opening tournament overview:",
             ["ErrorSavingData"] = "Error saving data:",
-            
+
+            // Donation and Bug Report Functions
+            ["Donate"] = "💝",
+            ["DonateTooltip"] = "Support the development of this project",
+            ["BugReport"] = "🐛 Report Bug",
+            ["BugReportTooltip"] = "Report bugs or suggest improvements",
+            ["BugReportTitle"] = "Bug Report",
+            ["BugReportDescription"] = "Describe the problem or your improvement idea:",
+            ["BugReportEmailSubject"] = "Dart Tournament Planner - Bug Report",
+            ["BugReportSteps"] = "Steps to reproduce:",
+            ["BugReportExpected"] = "Expected behavior:",
+            ["BugReportActual"] = "Actual behavior:",
+            ["BugReportSystemInfo"] = "System Information:",
+            ["BugReportVersion"] = "Version:",
+            ["BugReportOS"] = "Operating System:",
+            ["BugReportSubmitEmail"] = "Send via Email",
+            ["BugReportSubmitGitHub"] = "Open on GitHub",
+            ["ThankYouSupport"] = "Thank you for your support!",
+            ["BugReportSent"] = "Bug report has been successfully sent. Thank you!",
+            ["ErrorSendingBugReport"] = "Error sending bug report:",
+            ["SupportDevelopment"] = "Support Development",
+            ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps with improving and maintaining the software.",
+            ["OpenDonationPage"] = "Open Donation Page",
+
             // Main window
             ["AppTitle"] = "Dart Tournament Planner",
             ["Platinum"] = "Platinum",
