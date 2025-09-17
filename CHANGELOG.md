@@ -1,4 +1,8 @@
-﻿## v0.1.9
+﻿## v0.1.10
+- Bugfixes
+	- fixed bug for license request Mail.
+
+## v0.1.9
 - Bugfixes
 	- improve sharpness and overall clearance.
 

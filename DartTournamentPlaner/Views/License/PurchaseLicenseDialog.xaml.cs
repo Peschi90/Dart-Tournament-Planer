@@ -199,7 +199,7 @@ public partial class PurchaseLicenseDialog : Window
         {
             var title = _localizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Öffnen des E-Mail-Clients:\n\n{ex.Message}\n\n" +
-                         "Bitte wenden Sie sich direkt an support@dart-tournament-planner.com";
+                         "Bitte wenden Sie sich direkt an support@license-dtp.i3ull3t.de";
             
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -352,12 +352,29 @@ public partial class PurchaseLicenseDialog : Window
     {
         try
         {
-            var recipient = "support@dart-tournament-planner.com";
+            var recipient = "support@license-dtp.i3ull3t.de";
             var subject = "License Request - Dart Tournament Planner";
-            var body = Uri.EscapeDataString(emailContent.Replace("\r\n", "%0D%0A"));
+            
+            // Split content to extract subject and body properly
+            var lines = emailContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var bodyLines = new List<string>();
+            bool skipFirstLines = true;
+            
+            foreach (var line in lines)
+            {
+                if (skipFirstLines && (line.StartsWith("Subject:") || string.IsNullOrEmpty(line)))
+                {
+                    if (line.StartsWith("Subject:"))
+                        skipFirstLines = false;
+                    continue;
+                }
+                bodyLines.Add(line);
+            }
+            
+            var body = string.Join("\n", bodyLines);
             
             // Mailto-URL erstellen
-            var mailtoUrl = $"mailto:{recipient}?subject={Uri.EscapeDataString(subject)}&body={body}";
+            var mailtoUrl = $"mailto:{recipient}?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(body)}";
             
             // Standard-E-Mail-Client öffnen
             var processInfo = new System.Diagnostics.ProcessStartInfo
@@ -374,7 +391,7 @@ public partial class PurchaseLicenseDialog : Window
             // Fallback: Zeige E-Mail-Inhalt in MessageBox
             var title = "E-Mail-Inhalt kopieren";
             var message = "E-Mail-Client konnte nicht geöffnet werden. Hier ist der E-Mail-Inhalt zum manuellen Kopieren:\n\n" +
-                         "Empfänger: support@dart-tournament-planner.com\n\n" +
+                         "Empfänger: support@license-dtp.i3ull3t.de\n\n" +
                          emailContent + "\n\n" +
                          $"Fehler: {ex.Message}";
             
