@@ -1,7 +1,0 @@
-# Ignore service files with specific formatting
-services/TournamentRegistry.js
-services/MatchService.js
-
-# Ignore WebSocket handlers with optional chaining formatting issues
-modules/socketio-handlers.js
-modules/websocket-handlers.js

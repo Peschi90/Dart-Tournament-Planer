@@ -1,4 +1,11 @@
-﻿## v0.1.11
+﻿## v0.1.12
+- moved
+	- tournament Hub out of the Repo.
+
+- bugfixes
+	- fixed some bugs in the license system.
+	
+## v0.1.11
 - adds
 	- Progressbar for update to new version implemented. 
 - Bugfixes
