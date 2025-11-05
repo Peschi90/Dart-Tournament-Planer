@@ -21,10 +21,13 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
         /// <param name="owner">Das Besitzerfenster für den Dialog</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
-        public static bool ShowPrintDialog(TournamentClass tournamentClass, Window? owner = null, LocalizationService? localizationService = null)
+        public static bool ShowPrintDialog(TournamentClass tournamentClass, Window? owner = null, 
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
         {
-            return ShowPrintDialog(new List<TournamentClass> { tournamentClass }, tournamentClass, owner, localizationService);
+            return ShowPrintDialog(new List<TournamentClass> { tournamentClass }, tournamentClass, owner, 
+                localizationService, null, null, hubService);
         }
 
         /// <summary>
@@ -36,11 +39,13 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="localizationService">Service für Übersetzungen</param>
         /// <param name="licenseFeatureService">Service für Lizenzprüfung (optional)</param>
         /// <param name="licenseManager">Lizenz Manager für Dialog (optional)</param>
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
         public static bool ShowPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, 
             Window? owner = null, LocalizationService? localizationService = null, 
             DartTournamentPlaner.Services.License.LicenseFeatureService? licenseFeatureService = null, 
-            DartTournamentPlaner.Services.License.LicenseManager? licenseManager = null)
+            DartTournamentPlaner.Services.License.LicenseManager? licenseManager = null,
+            HubIntegrationService? hubService = null)
         {
             try
             {
@@ -126,9 +131,9 @@ namespace DartTournamentPlaner.Helpers
 
                 System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Opening print dialog with {printableClasses.Count} printable classes, initial selection: {initialSelection.Name}");
 
-                // Öffne Druckdialog
-                var printDialog = new TournamentPrintDialog(tournamentClasses, initialSelection, localizationService);
-                
+                // ? Öffne Druckdialog MIT HubService für QR-Code Support
+                var printDialog = new TournamentPrintDialog(tournamentClasses, initialSelection, localizationService, hubService);
+     
                 if (owner != null)
                 {
                     printDialog.Owner = owner;
@@ -139,8 +144,8 @@ namespace DartTournamentPlaner.Helpers
                 if (result == true && printDialog.PrintConfirmed)
                 {
                     System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print confirmed, executing print...");
-                    // Führe den tatsächlichen Druckvorgang aus
-                    return ExecutePrint(initialSelection, printDialog.PrintOptions, localizationService);
+                    // Führe den tatsächlichen Druckvorgang aus - mit HubService für QR-Codes
+                    return ExecutePrint(initialSelection, printDialog.PrintOptions, localizationService, hubService);
                 }
                 else
                 {
@@ -160,17 +165,19 @@ namespace DartTournamentPlaner.Helpers
         }
 
         /// <summary>
-        /// Führt den Druckvorgang mit den angegebenen Optionen aus
+        /// Führt den Druckvorgang with den angegebenen Optionen aus
         /// </summary>
         /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
         /// <param name="printOptions">Die Druckoptionen</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
-        private static bool ExecutePrint(TournamentClass tournamentClass, TournamentPrintOptions printOptions, LocalizationService? localizationService)
+        private static bool ExecutePrint(TournamentClass tournamentClass, TournamentPrintOptions printOptions, 
+            LocalizationService? localizationService, HubIntegrationService? hubService = null)
         {
             try
             {
-                var printService = new PrintService(localizationService);
+                var printService = new PrintService(localizationService, hubService);
                 var success = printService.PrintTournamentStatistics(tournamentClass, printOptions);
 
                 if (success)
@@ -285,8 +292,10 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="tournamentClass">Die Turnierklasse</param>
         /// <param name="owner">Besitzerfenster</param>
         /// <param name="localizationService">Lokalisierungsservice</param>
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <returns>True wenn Vorschau angezeigt wurde</returns>
-        public static bool ShowQuickPreview(TournamentClass tournamentClass, Window? owner = null, LocalizationService? localizationService = null)
+        public static bool ShowQuickPreview(TournamentClass tournamentClass, Window? owner = null, 
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
         {
             try
             {
@@ -295,7 +304,7 @@ namespace DartTournamentPlaner.Helpers
                     return false;
                 }
 
-                var printService = new PrintService(localizationService);
+                var printService = new PrintService(localizationService, hubService);
                 var options = CreateDefaultPrintOptions(tournamentClass);
                 var preview = printService.CreatePrintPreview(tournamentClass, options);
                 
@@ -355,8 +364,10 @@ namespace DartTournamentPlaner.Helpers
         /// </summary>
         /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
         /// <param name="localizationService">Lokalisierungsservice</param>
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt</returns>
-        public static bool QuickPrint(TournamentClass tournamentClass, LocalizationService? localizationService = null)
+        public static bool QuickPrint(TournamentClass tournamentClass, LocalizationService? localizationService = null,
+            HubIntegrationService? hubService = null)
         {
             try
             {
@@ -365,7 +376,7 @@ namespace DartTournamentPlaner.Helpers
                     return false;
                 }
 
-                var printService = new PrintService(localizationService);
+                var printService = new PrintService(localizationService, hubService);
                 var options = CreateDefaultPrintOptions(tournamentClass);
                 options.ShowPrintDialog = true; // Zeige System-Druckdialog
                 

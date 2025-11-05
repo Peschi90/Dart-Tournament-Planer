@@ -32,12 +32,14 @@ namespace DartTournamentPlaner.Views
         public bool PrintConfirmed { get; private set; } = false;
 
         /// <summary>
-        /// Konstruktor für den Druckdialog mit Klassenauswahl
+        /// Konstruktor für den Druckdialog mit Klassenauswahl und HubService
         /// </summary>
         /// <param name="tournamentClasses">Alle verfügbaren Turnierklassen</param>
         /// <param name="selectedTournamentClass">Die initial ausgewählte Turnierklasse</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
-        public TournamentPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, LocalizationService? localizationService = null)
+        /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+        public TournamentPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, 
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
         {
             InitializeComponent();
             
@@ -47,9 +49,12 @@ namespace DartTournamentPlaner.Views
                 
             _selectedTournamentClass = selectedTournamentClass ?? _tournamentClasses.First();
             _localizationService = localizationService;
-            _printService = new PrintService(localizationService);
+      
+       // ✅ NEU: PrintService MIT HubService initialisieren für QR-Code Support
+      _printService = new PrintService(localizationService, hubService);
+            System.Diagnostics.Debug.WriteLine($"[TournamentPrintDialog] PrintService initialized with HubService: {hubService != null}");
             
-            PrintOptions = new TournamentPrintOptions();
+   PrintOptions = new TournamentPrintOptions();
             
             InitializeDialog();
             UpdatePreview();
@@ -61,9 +66,9 @@ namespace DartTournamentPlaner.Views
         /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
         public TournamentPrintDialog(TournamentClass tournamentClass, LocalizationService? localizationService = null)
-            : this(new List<TournamentClass> { tournamentClass }, tournamentClass, localizationService)
-        {
-        }
+      : this(new List<TournamentClass> { tournamentClass }, tournamentClass, localizationService, null)
+   {
+   }
 
         /// <summary>
         /// Initialisiert den Dialog mit den verfügbaren Optionen

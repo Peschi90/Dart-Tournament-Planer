@@ -11,19 +11,34 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using DartTournamentPlaner.Models;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Services
 {
     /// <summary>
     /// Service für Druckoperationen von Turnierstatistiken
+    /// Unterstützt QR-Codes für Matches wenn Tournament beim Hub registriert ist
     /// </summary>
     public class PrintService
     {
         private readonly LocalizationService? _localizationService;
+        private readonly PrintQRCodeHelper? _qrCodeHelper;
 
-        public PrintService(LocalizationService? localizationService = null)
+        public PrintService(LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
         {
             _localizationService = localizationService;
+     
+            // QR-Code Helper initialisieren wenn HubService verfügbar
+      if (hubService != null)
+            {
+                _qrCodeHelper = new PrintQRCodeHelper(hubService);
+     System.Diagnostics.Debug.WriteLine($"[PrintService] QR Code Helper initialized - Available: {_qrCodeHelper.AreQRCodesAvailable}");
+      System.Diagnostics.Debug.WriteLine($"[PrintService] Hub registered: {hubService.IsRegisteredWithHub}");
+ }
+            else
+         {
+      System.Diagnostics.Debug.WriteLine($"[PrintService] No HubService provided - QR Codes will not be available");
+            }
         }
 
         /// <summary>
@@ -801,358 +816,443 @@ namespace DartTournamentPlaner.Services
                 BorderBrush = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
                 BorderThickness = new Thickness(2),
                 CornerRadius = new CornerRadius(4),
-                Child = grid,
-                Effect = new DropShadowEffect
-                {
-                    Color = Colors.Gray,
-                    Direction = 315,
-                    ShadowDepth = 2,
-                    BlurRadius = 4,
-                    Opacity = 0.3
-                }
+                Child = grid
             };
         }
 
         private FrameworkElement CreateMatchesTable(List<Match> matches)
         {
+            // ? QR-Code Verfügbarkeit prüfen
+    bool showQRCodes = _qrCodeHelper?.AreQRCodesAvailable ?? false;
+ 
+         System.Diagnostics.Debug.WriteLine($"[CreateMatchesTable] Creating table for {matches.Count} matches");
+            System.Diagnostics.Debug.WriteLine($"[CreateMatchesTable] QR Codes available: {showQRCodes}");
+
             var grid = new Grid
             {
-                Background = Brushes.White,
-                MaxWidth = 700
-            };
+       Background = Brushes.White,
+       MaxWidth = showQRCodes ? 850 : 700
+     };
 
-            // Spalten definieren
+            // Spalten definieren - mit QR-Code Spalte wenn verfügbar
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+      grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(showQRCodes ? 180 : 200) });
+   grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+      grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+       grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+    
+if (showQRCodes)
+    {
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) }); // QR-Code Spalte
+            }
 
-            // Header-Zeile mit lokalisierten Texten
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
-            var headers = new[] { 
-                _localizationService?.GetString("MatchNumber") ?? "Nr",
-                _localizationService?.GetString("MatchHeader") ?? "Spiel",
+            // Header-Zeile
+    grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
+ 
+        var headersList = new List<string> { 
+           _localizationService?.GetString("MatchNumber") ?? "Nr",
+       _localizationService?.GetString("MatchHeader") ?? "Spiel",
                 _localizationService?.GetString("StatusHeader") ?? "Status",
-                _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
-                _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
-            };
+             _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
+      _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
+          };
+   
+            if (showQRCodes)
+       {
+    headersList.Add("QR");
+            }
             
-            for (int col = 0; col < headers.Length; col++)
+         for (int col = 0; col < headersList.Count; col++)
             {
-                var headerBorder = new Border
-                {
-                    Background = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
-                    BorderBrush = Brushes.White,
-                    BorderThickness = new Thickness(1),
-                    Padding = new Thickness(5)
+         var headerBorder = new Border
+          {
+        Background = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
+     BorderBrush = Brushes.White,
+         BorderThickness = new Thickness(1),
+      Padding = new Thickness(5)
                 };
-                
-                var headerText = new TextBlock
-                {
-                    Text = headers[col],
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 11,
-                    TextAlignment = col == 1 ? TextAlignment.Left : TextAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                
-                headerBorder.Child = headerText;
-                Grid.SetRow(headerBorder, 0);
-                Grid.SetColumn(headerBorder, col);
+    
+              var headerText = new TextBlock
+       {
+     Text = headersList[col],
+           Foreground = Brushes.White,
+      FontWeight = FontWeights.Bold,
+     FontSize = 11,
+        TextAlignment = col == 1 ? TextAlignment.Left : TextAlignment.Center,
+          VerticalAlignment = VerticalAlignment.Center
+};
+        
+     headerBorder.Child = headerText;
+         Grid.SetRow(headerBorder, 0);
+   Grid.SetColumn(headerBorder, col);
                 grid.Children.Add(headerBorder);
             }
 
-            // Datenzeilen
+// Datenzeilen
             for (int row = 0; row < matches.Count; row++)
             {
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(25) });
-                var match = matches[row];
+    grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(showQRCodes ? 105 : 25) });
+             var match = matches[row];
 
-                string statusText;
-                string resultText;
-                string winnerText;
-                Brush textColor = Brushes.Black;
-                
-                if (match.IsBye || match.Status == MatchStatus.Bye)
-                {
-                    statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
-                    resultText = _localizationService?.GetString("Unknown") ?? "-";
-                    winnerText = match.Player1?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
-                }
-                else if (match.Status == MatchStatus.Finished)
-                {
-                    statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
-                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
-                    textColor = new SolidColorBrush(Color.FromRgb(25, 135, 84));
-                }
+             string statusText;
+      string resultText;
+     string winnerText;
+        
+            if (match.IsBye || match.Status == MatchStatus.Bye)
+      {
+           statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
+  resultText = _localizationService?.GetString("Unknown") ?? "-";
+           winnerText = match.Player1?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
+    }
+     else if (match.Status == MatchStatus.Finished)
+         {
+         statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
+    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+      winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
+      }
                 else if (match.Status == MatchStatus.InProgress)
-                {
-                    statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
-                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
-                    textColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
-                }
-                else
-                {
-                    statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
-                    resultText = _localizationService?.GetString("Unknown") ?? "-";
-                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
-                    textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
-                }
+    {
+            statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
+      resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+       winnerText = _localizationService?.GetString("Unknown") ?? "-";
+          }
+       else
+     {
+     statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
+          resultText = _localizationService?.GetString("Unknown") ?? "-";
+      winnerText = _localizationService?.GetString("Unknown") ?? "-";
+    }
 
-                var gameText = match.IsBye 
-                    ? _localizationService?.GetString("ByeGame", match.Player1?.Name) ?? $"{match.Player1?.Name} (Freilos)"
-                    : _localizationService?.GetString("VersusGame", match.Player1?.Name, match.Player2?.Name) ?? $"{match.Player1?.Name} vs {match.Player2?.Name}";
+    var gameText = match.IsBye 
+? _localizationService?.GetString("ByeGame", match.Player1?.Name) ?? $"{match.Player1?.Name} (Freilos)"
+        : _localizationService?.GetString("VersusGame", match.Player1?.Name, match.Player2?.Name) ?? $"{match.Player1?.Name} vs {match.Player2?.Name}";
 
-                var values = new string[]
-                {
-                    (row + 1).ToString(),
-                    gameText,
-                    statusText,
-                    resultText,
-                    winnerText
-                };
+     var values = new string[]
+        {
+       (row + 1).ToString(),
+      gameText,
+         statusText,
+     resultText,
+          winnerText
+        };
 
-                for (int col = 0; col < values.Length; col++)
-                {
-                    var cellBorder = new Border
-                    {
-                        Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
-                        BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
-                        BorderThickness = new Thickness(0.5),
-                        Padding = new Thickness(4)
-                    };
-                    
-                    var cellText = new TextBlock
-                    {
-                        Text = values[col],
-                        FontSize = 10,
-                        TextAlignment = col == 1 ? TextAlignment.Left : TextAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis
-                    };
-                    
-                    cellBorder.Child = cellText;
-                    Grid.SetRow(cellBorder, row + 1);
-                    Grid.SetColumn(cellBorder, col);
-                    grid.Children.Add(cellBorder);
-                }
-            }
+       for (int col = 0; col < values.Length; col++)
+             {
+ var cellBorder = new Border
+   {
+              Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
+   BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+    BorderThickness = new Thickness(0.5),
+  Padding = new Thickness(4)
+   };
+      
+    var cellText = new TextBlock
+  {
+              Text = values[col],
+       FontSize = 10,
+         TextAlignment = col == 1 ? TextAlignment.Left : TextAlignment.Center,
+      VerticalAlignment = VerticalAlignment.Center,
+        TextTrimming = TextTrimming.CharacterEllipsis
+            };
 
-            return new Border
+          cellBorder.Child = cellText;
+        Grid.SetRow(cellBorder, row + 1);
+         Grid.SetColumn(cellBorder, col);
+          grid.Children.Add(cellBorder);
+      }
+   
+          // ? QR-Code Zelle hinzufügen wenn verfügbar
+                if (showQRCodes)
+       {
+            var qrCellBorder = new Border
+ {
+ Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
+               BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+                 BorderThickness = new Thickness(0.5),
+       Padding = new Thickness(2)
+         };
+         
+     System.Diagnostics.Debug.WriteLine($"[CreateMatchesTable] Generating QR for match {match.Id}, UniqueId: {match.UniqueId}");
+      var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, 5);
+     System.Diagnostics.Debug.WriteLine($"[CreateMatchesTable] QR Image generated: {qrImage != null}");
+             
+           if (qrImage != null)
+        {
+  var image = new System.Windows.Controls.Image
+     {
+              Source = qrImage,
+    Width = 100,
+     Height = 100,
+      Stretch = System.Windows.Media.Stretch.Uniform
+     };
+             qrCellBorder.Child = image;
+          }
+    else
+  {
+     qrCellBorder.Child = new TextBlock
+     {
+                Text = "-",
+                   FontSize = 10,
+                TextAlignment = TextAlignment.Center,
+   VerticalAlignment = VerticalAlignment.Center,
+   Foreground = Brushes.LightGray
+     };
+  }
+        
+                Grid.SetRow(qrCellBorder, row + 1);
+        Grid.SetColumn(qrCellBorder, values.Length);
+   grid.Children.Add(qrCellBorder);
+       }
+   }
+
+         return new Border
             {
-                BorderBrush = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
-                BorderThickness = new Thickness(2),
-                CornerRadius = new CornerRadius(4),
-                Child = grid,
-                Effect = new DropShadowEffect
-                {
-                    Color = Colors.Gray,
-                    Direction = 315,
-                    ShadowDepth = 2,
-                    BlurRadius = 4,
-                    Opacity = 0.3
-                }
+    BorderBrush = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
+       BorderThickness = new Thickness(2),
+       CornerRadius = new CornerRadius(4),
+            Child = grid
             };
         }
 
         private FrameworkElement CreateKnockoutMatchesTable(List<KnockoutMatch> matches)
         {
+    // ? QR-Code Verfügbarkeit prüfen
+            bool showQRCodes = _qrCodeHelper?.AreQRCodesAvailable ?? false;
+  
+   System.Diagnostics.Debug.WriteLine($"[CreateKnockoutMatchesTable] Creating table for {matches.Count} matches");
+   System.Diagnostics.Debug.WriteLine($"[CreateKnockoutMatchesTable] QR Codes available: {showQRCodes}");
+
             var grid = new Grid
             {
-                Background = Brushes.White,
-                MaxWidth = 750
-            };
+    Background = Brushes.White,
+   MaxWidth = showQRCodes ? 900 : 750
+  };
 
-            // Spalten definieren
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-
-            // Header-Zeile mit lokalisierten Texten
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
-            var headers = new[] { 
-                _localizationService?.GetString("MatchNumber") ?? "Nr",
-                _localizationService?.GetString("RoundHeader") ?? "Runde",
-                _localizationService?.GetString("MatchHeader") ?? "Spiel",
-                _localizationService?.GetString("StatusHeader") ?? "Status",
-                _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
-                _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
-            };
+// Spalten definieren - mit QR-Code Spalte wenn verfügbar
+   grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+  grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(showQRCodes ? 180 : 200) });
+   grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(80) });
+       grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+   grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
             
-            for (int col = 0; col < headers.Length; col++)
+            if (showQRCodes)
             {
-                var headerBorder = new Border
-                {
-                    Background = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
-                    BorderBrush = Brushes.White,
-                    BorderThickness = new Thickness(1),
-                    Padding = new Thickness(5)
-                };
-                
-                var headerText = new TextBlock
-                {
-                    Text = headers[col],
-                    Foreground = Brushes.White,
-                    FontWeight = FontWeights.Bold,
-                    FontSize = 11,
-                    TextAlignment = col == 2 ? TextAlignment.Left : TextAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                
-                headerBorder.Child = headerText;
-                Grid.SetRow(headerBorder, 0);
-                Grid.SetColumn(headerBorder, col);
-                grid.Children.Add(headerBorder);
-            }
+     grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) }); // QR-Code Spalte
+       }
 
-            // Datenzeilen
+            // Header-Zeile
+     grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(30) });
+            
+  var headersList = new List<string> { 
+   _localizationService?.GetString("MatchNumber") ?? "Nr",
+     _localizationService?.GetString("RoundHeader") ?? "Runde",
+ _localizationService?.GetString("MatchHeader") ?? "Spiel",
+     _localizationService?.GetString("StatusHeader") ?? "Status",
+     _localizationService?.GetString("ResultHeader") ?? "Ergebnis",
+ _localizationService?.GetString("WinnerHeader") ?? "Gewinner"
+      };
+            
+  if (showQRCodes)
+   {
+    headersList.Add("QR");
+   }
+            
+            for (int col = 0; col < headersList.Count; col++)
+     {
+         var headerBorder = new Border
+      {
+            Background = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
+        BorderBrush = Brushes.White,
+        BorderThickness = new Thickness(1),
+            Padding = new Thickness(5)
+     };
+           
+            var headerText = new TextBlock
+           {
+Text = headersList[col],
+   Foreground = Brushes.White,
+             FontWeight = FontWeights.Bold,
+      FontSize = 11,
+             TextAlignment = col == 2 ? TextAlignment.Left : TextAlignment.Center,
+           VerticalAlignment = VerticalAlignment.Center
+      };
+     
+ headerBorder.Child = headerText;
+         Grid.SetRow(headerBorder, 0);
+Grid.SetColumn(headerBorder, col);
+ grid.Children.Add(headerBorder);
+   }
+
+ // Datenzeilen
             for (int row = 0; row < matches.Count; row++)
             {
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(25) });
-                var match = matches[row];
+           grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(showQRCodes ? 105 : 25) });
+   var match = matches[row];
 
-                string statusText;
-                string resultText;
-                string winnerText;
-                Brush textColor = Brushes.Black;
+        string statusText;
+        string resultText;
+         string winnerText;
+  
+        bool isBye = match.Status == MatchStatus.Bye || 
+     (match.Player1 != null && match.Player2 == null) || 
+   (match.Player1 == null && match.Player2 != null);
+    
+           if (isBye)
+    {
+statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
+            resultText = _localizationService?.GetString("Unknown") ?? "-";
+      winnerText = match.Player1?.Name ?? match.Player2?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
+    }
+          else if (match.Status == MatchStatus.Finished)
+       {
+    statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
+   resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+           winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
+    }
+            else if (match.Status == MatchStatus.InProgress)
+                {
+        statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
+           resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
+    winnerText = _localizationService?.GetString("Unknown") ?? "-";
+}
+           else
+   {
+              statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
+            resultText = _localizationService?.GetString("Unknown") ?? "-";
+       winnerText = _localizationService?.GetString("Unknown") ?? "-";
+          }
+
+   var player1Name = match.Player1?.Name ?? "TBD";
+            var player2Name = match.Player2?.Name ?? "TBD";
+     var matchText = isBye 
+          ? _localizationService?.GetString("ByeGame", player1Name) ?? $"{player1Name} (Freilos)"
+            : _localizationService?.GetString("VersusGame", player1Name, player2Name) ?? $"{player1Name} vs {player2Name}";
+
+          var values = new string[]
+ {
+      $"#{match.Id}",
+        GetRoundDisplayName(match.Round),
+    matchText,
+  statusText,
+     resultText,
+            winnerText
+             };
+
+      for (int col = 0; col < values.Length; col++)
+                {
+          var cellBorder = new Border
+         {
+          Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
+              BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+              BorderThickness = new Thickness(0.5),
+              Padding = new Thickness(4)
+   };
+              
+            var cellText = new TextBlock
+ {
+         Text = values[col],
+        FontSize = 10,
+  TextAlignment = col == 2 ? TextAlignment.Left : TextAlignment.Center,
+           VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis
+      };
+
+       if (values[col].Contains("TBD"))
+           {
+                  cellText.FontStyle = FontStyles.Italic;
+  cellText.Foreground = new SolidColorBrush(Color.FromRgb(108, 117, 125));
+         }
+    
+            cellBorder.Child = cellText;
+      Grid.SetRow(cellBorder, row + 1);
+             Grid.SetColumn(cellBorder, col);
+       grid.Children.Add(cellBorder);
+      }
                 
-                bool isBye = match.Status == MatchStatus.Bye || 
-                            (match.Player1 != null && match.Player2 == null) || 
-                            (match.Player1 == null && match.Player2 != null);
-                
-                if (isBye)
-                {
-                    statusText = _localizationService?.GetString("ByeStatus") ?? "FREILOS";
-                    resultText = _localizationService?.GetString("Unknown") ?? "-";
-                    winnerText = match.Player1?.Name ?? match.Player2?.Name ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
-                }
-                else if (match.Status == MatchStatus.Finished)
-                {
-                    statusText = _localizationService?.GetString("FinishedStatus") ?? "BEENDET";
-                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    winnerText = match.Winner?.Name ?? (_localizationService?.GetString("Draw") ?? "Unentschieden");
-                    textColor = new SolidColorBrush(Color.FromRgb(25, 135, 84));
-                }
-                else if (match.Status == MatchStatus.InProgress)
-                {
-                    statusText = _localizationService?.GetString("InProgressStatus") ?? "LÄUFT";
-                    resultText = match.ScoreDisplay ?? (_localizationService?.GetString("Unknown") ?? "-");
-                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
-                    textColor = new SolidColorBrush(Color.FromRgb(255, 193, 7));
-                }
-                else
-                {
-                    statusText = _localizationService?.GetString("PendingStatus") ?? "AUSSTEHEND";
-                    resultText = _localizationService?.GetString("Unknown") ?? "-";
-                    winnerText = _localizationService?.GetString("Unknown") ?? "-";
-                    textColor = new SolidColorBrush(Color.FromRgb(108, 117, 125));
-                }
-
-                var player1Name = match.Player1?.Name ?? "TBD";
-                var player2Name = match.Player2?.Name ?? "TBD";
-                var matchText = isBye 
-                    ? _localizationService?.GetString("ByeGame", player1Name) ?? $"{player1Name} (Freilos)"
-                    : _localizationService?.GetString("VersusGame", player1Name, player2Name) ?? $"{player1Name} vs {player2Name}";
-
-                var values = new string[]
-                {
-                    $"#{match.Id}",
-                    GetRoundDisplayName(match.Round),
-                    matchText,
-                    statusText,
-                    resultText,
-                    winnerText
-                };
-
-                for (int col = 0; col < values.Length; col++)
-                {
-                    var cellBorder = new Border
-                    {
-                        Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
-                        BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
-                        BorderThickness = new Thickness(0.5),
-                        Padding = new Thickness(4)
-                    };
-                    
-                    var cellText = new TextBlock
-                    {
-                        Text = values[col],
-                        FontSize = 10,
-                        TextAlignment = col == 2 ? TextAlignment.Left : TextAlignment.Center,
-                        VerticalAlignment = VerticalAlignment.Center,
-                        TextTrimming = TextTrimming.CharacterEllipsis,
-                        Foreground = col == 3 ? textColor : Brushes.Black
-                    };
-
-                    if (values[col].Contains("TBD"))
-                    {
-                        cellText.FontStyle = FontStyles.Italic;
-                        cellText.Foreground = new SolidColorBrush(Color.FromRgb(108, 117, 125));
-                    }
-                    
-                    cellBorder.Child = cellText;
-                    Grid.SetRow(cellBorder, row + 1);
-                    Grid.SetColumn(cellBorder, col);
-                    grid.Children.Add(cellBorder);
-                }
+          // ? QR-Code Zelle hinzufügen wenn verfügbar
+             if (showQRCodes)
+{
+      var qrCellBorder = new Border
+             {
+  Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(248, 249, 250)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+        BorderThickness = new Thickness(0.5),
+            Padding = new Thickness(2)
+          };
+      
+     System.Diagnostics.Debug.WriteLine($"[CreateKnockoutMatchesTable] Generating QR for match {match.Id}, UniqueId: {match.UniqueId}");
+         var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, 5);
+      System.Diagnostics.Debug.WriteLine($"[CreateKnockoutMatchesTable] QR Image generated: {qrImage != null}");
+           
+            if (qrImage != null)
+    {
+      var image = new System.Windows.Controls.Image
+   {
+       Source = qrImage,
+     Width = 100,
+          Height = 100,
+         Stretch = System.Windows.Media.Stretch.Uniform
+          };
+ qrCellBorder.Child = image;
+              }
+          else
+       {
+          qrCellBorder.Child = new TextBlock
+   {
+              Text = "-",
+            FontSize = 10,
+         TextAlignment = TextAlignment.Center,
+      VerticalAlignment = VerticalAlignment.Center,
+  Foreground = Brushes.LightGray
+         };
+          }
+        
+       Grid.SetRow(qrCellBorder, row + 1);
+         Grid.SetColumn(qrCellBorder, values.Length);
+            grid.Children.Add(qrCellBorder);
+      }
             }
 
             return new Border
             {
-                BorderBrush = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
-                BorderThickness = new Thickness(2),
-                CornerRadius = new CornerRadius(4),
-                Child = grid,
-                Effect = new DropShadowEffect
-                {
-                    Color = Colors.Gray,
-                    Direction = 315,
-                    ShadowDepth = 2,
-                    BlurRadius = 4,
-                    Opacity = 0.3
-                }
-            };
-        }
+ BorderBrush = new SolidColorBrush(Color.FromRgb(52, 58, 64)),
+              BorderThickness = new Thickness(2),
+      CornerRadius = new CornerRadius(4),
+         Child = grid
+ };
+ }
 
         private string GetRoundDisplayName(KnockoutRound round)
         {
             return round switch
             {
-                KnockoutRound.Best64 => _localizationService?.GetString("Best64") ?? "Beste 64",
-                KnockoutRound.Best32 => _localizationService?.GetString("Best32") ?? "Beste 32", 
-                KnockoutRound.Best16 => _localizationService?.GetString("Best16") ?? "Beste 16",
-                KnockoutRound.Quarterfinal => _localizationService?.GetString("Quarterfinal") ?? "Viertelfinale",
-                KnockoutRound.Semifinal => _localizationService?.GetString("Semifinal") ?? "Halbfinale", 
-                KnockoutRound.Final => _localizationService?.GetString("Final") ?? "Finale",
-                KnockoutRound.GrandFinal => _localizationService?.GetString("GrandFinal") ?? "Grand Final",
-                KnockoutRound.LoserRound1 => "LR1",
-                KnockoutRound.LoserRound2 => "LR2",
-                KnockoutRound.LoserRound3 => "LR3",
-                KnockoutRound.LoserRound4 => "LR4",
-                KnockoutRound.LoserRound5 => "LR5",
-                KnockoutRound.LoserRound6 => "LR6",
-                KnockoutRound.LoserRound7 => "LR7",
-                KnockoutRound.LoserRound8 => "LR8",
-                KnockoutRound.LoserRound9 => "LR9",
-                KnockoutRound.LoserRound10 => "LR10",
+   KnockoutRound.Best64 => _localizationService?.GetString("Best64") ?? "Beste 64",
+    KnockoutRound.Best32 => _localizationService?.GetString("Best32") ?? "Beste 32", 
+      KnockoutRound.Best16 => _localizationService?.GetString("Best16") ?? "Beste 16",
+    KnockoutRound.Quarterfinal => _localizationService?.GetString("Quarterfinal") ?? "Viertelfinale",
+      KnockoutRound.Semifinal => _localizationService?.GetString("Semifinal") ?? "Halbfinale", 
+       KnockoutRound.Final => _localizationService?.GetString("Final") ?? "Finale",
+ KnockoutRound.GrandFinal => _localizationService?.GetString("GrandFinal") ?? "Grand Final",
+       KnockoutRound.LoserRound1 => "LR1",
+ KnockoutRound.LoserRound2 => "LR2",
+   KnockoutRound.LoserRound3 => "LR3",
+    KnockoutRound.LoserRound4 => "LR4",
+     KnockoutRound.LoserRound5 => "LR5",
+ KnockoutRound.LoserRound6 => "LR6",
+        KnockoutRound.LoserRound7 => "LR7",
+         KnockoutRound.LoserRound8 => "LR8",
+      KnockoutRound.LoserRound9 => "LR9",
+        KnockoutRound.LoserRound10 => "LR10",
                 KnockoutRound.LoserRound11 => "LR11",
-                KnockoutRound.LoserRound12 => "LR12",
-                KnockoutRound.LoserFinal => "LF",
-                _ => ""
+           KnockoutRound.LoserRound12 => "LR12",
+       KnockoutRound.LoserFinal => "LF",
+      _ => ""
             };
         }
 
         #endregion
-    }
+ }
 
     /// <summary>
     /// Konfigurationsklasse für Druckoptionen
@@ -1160,10 +1260,10 @@ namespace DartTournamentPlaner.Services
     public class TournamentPrintOptions
     {
         public bool ShowPrintDialog { get; set; } = true;
-        public bool IncludeOverview { get; set; } = true;
-        public bool IncludeGroupPhase { get; set; } = true;
-        public List<int> SelectedGroups { get; set; } = new List<int>();
-        public bool IncludeFinalsPhase { get; set; } = true;
+   public bool IncludeOverview { get; set; } = true;
+ public bool IncludeGroupPhase { get; set; } = true;
+    public List<int> SelectedGroups { get; set; } = new List<int>();
+  public bool IncludeFinalsPhase { get; set; } = true;
         public bool IncludeKnockoutPhase { get; set; } = true;
         public bool IncludeWinnerBracket { get; set; } = true;
         public bool IncludeLoserBracket { get; set; } = true;

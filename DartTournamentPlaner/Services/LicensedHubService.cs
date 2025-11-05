@@ -22,6 +22,11 @@ public class LicensedHubService
     public bool IsSyncing => _innerHubService.IsSyncing;
     public DateTime? LastSyncTime => _innerHubService.LastSyncTime;
     public ITournamentHubService? TournamentHubService => _innerHubService.TournamentHubService;
+    
+    /// <summary>
+    /// ✅ NEU: Direkter Zugriff auf den inneren HubIntegrationService für QR-Code Generierung
+    /// </summary>
+    public HubIntegrationService InnerHubService => _innerHubService;
 
     // Events
     public event Action<HubMatchUpdateEventArgs>? MatchResultReceived

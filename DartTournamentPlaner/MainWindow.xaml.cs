@@ -671,28 +671,43 @@ public partial class MainWindow : Window
     {
         try
         {
-            // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
-            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
-            {
-                Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
-                return;
+     // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
+   if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
+     {
+ Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
+   return;
             }
             
-            // Verwende PrintHelper mit Lizenzprüfung
-            Helpers.PrintHelper.ShowPrintDialog(
+     // ✅ Hole den inneren HubIntegrationService direkt vom LicensedHubService
+          HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
+       
+          if (hubIntegrationService != null)
+      {
+ System.Diagnostics.Debug.WriteLine("[Print_Click] HubIntegrationService erfolgreich extrahiert für QR-Codes");
+          System.Diagnostics.Debug.WriteLine($"[Print_Click] Hub registered: {hubIntegrationService.IsRegisteredWithHub}");
+   }
+            else
+     {
+                System.Diagnostics.Debug.WriteLine("[Print_Click] Kein HubIntegrationService verfügbar - Drucke ohne QR-Codes");
+       }
+ 
+     // Verwende PrintHelper mit Lizenzprüfung und Hub Service für QR-Codes
+   Helpers.PrintHelper.ShowPrintDialog(
                 _tournamentService.AllTournamentClasses, 
-                _tournamentService.PlatinClass, 
-                this, 
-                _localizationService,
-                _licenseFeatureService,  // NEU: LicenseFeatureService für Lizenzprüfung
-                _licenseManager         // NEU: LicenseManager für Dialog
-            );
-        }
+     _tournamentService.PlatinClass, 
+    this, 
+       _localizationService,
+              _licenseFeatureService,  // LicenseFeatureService für Lizenzprüfung
+                _licenseManager,         // LicenseManager für Dialog
+         hubIntegrationService    // HubService für QR-Codes
+          );
+     }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
+   var title = _localizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+     MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+       System.Diagnostics.Debug.WriteLine($"[Print_Click] Fehler: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
