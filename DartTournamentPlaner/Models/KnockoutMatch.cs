@@ -667,8 +667,8 @@ public class KnockoutMatch : INotifyPropertyChanged
                 _ => 1 // Default Wert
             };
 
-            // Verwende die statische Methode für die finale Namensauflösung
-            return GetKnockoutRoundName(bracketSize, logicalRound, localizationService);
+            // Verwende die statische Methode für die finale Namensauflösung (die weiter unten in der Datei definiert ist)
+            return KnockoutMatch.GetKnockoutRoundName(bracketSize, logicalRound, localizationService);
         }
         catch (Exception ex)
         {
@@ -692,33 +692,33 @@ public class KnockoutMatch : INotifyPropertyChanged
     /// <summary>
     /// Berechnet die logische Runde für "Beste 32" basierend auf der Bracket-Größe
     /// </summary>
-    private static int GetBest32LogicalRound(int bracketSize)
-    {
-        var totalRounds = (int)Math.Log2(bracketSize);
-        return Math.Max(1, totalRounds - 4); // Best32 ist 5 Runden vor dem Ende
-    }
-    
+  private static int GetBest32LogicalRound(int bracketSize)
+  {
+      var totalRounds = (int)Math.Log2(bracketSize);
+  return Math.Max(1, totalRounds - 4); // Best32 ist 5 Runden vor dem Ende
+  }
+  
     /// <summary>
-    /// Berechnet die logische Runde für "Beste 16" basierend auf der Bracket-Größe
-    /// </summary>
+ /// Berechnet die logische Runde für "Beste 16" basierend auf der Bracket-Größe
+ /// </summary>
     private static int GetBest16LogicalRound(int bracketSize)
     {
         var totalRounds = (int)Math.Log2(bracketSize);
-        return Math.Max(1, totalRounds - 3); // Best16 ist 4 Runden vor dem Ende
-    }
+    return Math.Max(1, totalRounds - 3); // Best16 ist 4 Runden vor dem Ende
+  }
     
     /// <summary>
     /// Berechnet die logische Runde für das Viertelfinale basierend auf der Bracket-Größe
     /// </summary>
     private static int GetQuarterfinalLogicalRound(int bracketSize)
     {
-        var totalRounds = (int)Math.Log2(bracketSize);
+    var totalRounds = (int)Math.Log2(bracketSize);
         return Math.Max(1, totalRounds - 2); // Viertelfinale ist 3 Runden vor dem Ende
     }
     
     /// <summary>
     /// Berechnet die logische Runde für das Halbfinale basierend auf der Bracket-Größe
-    /// </summary>
+ /// </summary>
     private static int GetSemifinalLogicalRound(int bracketSize)
     {
         var totalRounds = (int)Math.Log2(bracketSize);
@@ -727,10 +727,10 @@ public class KnockoutMatch : INotifyPropertyChanged
     
     /// <summary>
     /// Berechnet die logische Runde für das Finale basierend auf der Bracket-Größe
-    /// </summary>
+  /// </summary>
     private static int GetFinalLogicalRound(int bracketSize)
     {
-        return (int)Math.Log2(bracketSize); // Finale ist die letzte Runde
+  return (int)Math.Log2(bracketSize); // Finale ist die letzte Runde
     }
 
     /// <summary>
@@ -739,70 +739,70 @@ public class KnockoutMatch : INotifyPropertyChanged
     /// </summary>
     /// <param name="player1Sets">Gewonnene Sets von Spieler 1</param>
     /// <param name="player2Sets">Gewonnene Sets von Spieler 2</param>
-    /// <param name="player1Legs">Gewonnene Legs von Spieler 1</param>
-    /// <param name="player2Legs">Gewonnene Legs von Spieler 2</param>
+ /// <param name="player1Legs">Gewonnene Legs von Spieler 1</param>
+/// <param name="player2Legs">Gewonnene Legs von Spieler 2</param>
     public void SetResult(int player1Sets, int player2Sets, int player1Legs, int player2Legs)
     {
         // Bestimme automatisch ob Sets verwendet werden basierend auf Eingabe
-        UsesSets = player1Sets > 0 || player2Sets > 0;
-        
+      UsesSets = player1Sets > 0 || player2Sets > 0;
+     
         // Setze die Ergebniswerte
-        Player1Sets = player1Sets;
-        Player2Sets = player2Sets;
+    Player1Sets = player1Sets;
+    Player2Sets = player2Sets;
         Player1Legs = player1Legs;
-        Player2Legs = player2Legs;
+   Player2Legs = player2Legs;
 
-        // Bestimme Gewinner und Verlierer basierend auf UsesSets Flag
+// Bestimme Gewinner und Verlierer basierend auf UsesSets Flag
         if (UsesSets)
-        {
-            // Bei Sets: Erst Sets vergleichen, bei Gleichstand Legs
-            if (player1Sets > player2Sets)
-            {
-                Winner = Player1;
-                Loser = Player2;
+      {
+    // Bei Sets: Erst Sets vergleichen, bei Gleichstand Legs
+if (player1Sets > player2Sets)
+{
+       Winner = Player1;
+    Loser = Player2;
+ }
+          else if (player2Sets > player1Sets)
+    {
+         Winner = Player2;
+         Loser = Player1;
             }
-            else if (player2Sets > player1Sets)
-            {
-                Winner = Player2;
-                Loser = Player1;
-            }
-            else if (player1Legs > player2Legs) // Sets gleich, Legs entscheiden
-            {
-                Winner = Player1;
-                Loser = Player2;
-            }
+   else if (player1Legs > player2Legs) // Sets gleich, Legs entscheiden
+    {
+          Winner = Player1;
+      Loser = Player2;
+   }
             else if (player2Legs > player1Legs)
-            {
-                Winner = Player2;
-                Loser = Player1;
-            }
-        }
-        else
-        {
+{
+        Winner = Player2;
+       Loser = Player1;
+   }
+  }
+    else
+      {
             // Ohne Sets: Nur Legs zählen
-            if (player1Legs > player2Legs)
+        if (player1Legs > player2Legs)
             {
-                Winner = Player1;
-                Loser = Player2;
-            }
+    Winner = Player1;
+  Loser = Player2;
+  }
             else if (player2Legs > player1Legs)
             {
-                Winner = Player2;
-                Loser = Player1;
-            }
-        }
+     Winner = Player2;
+       Loser = Player1;
+}
+      }
 
         // Setze Match als beendet und erfasse Endzeit
-        Status = MatchStatus.Finished;
+    Status = MatchStatus.Finished;
         EndTime = DateTime.Now;
-        
-        // Wichtige PropertyChanged Events für komplette UI-Aktualisierung
-        // Diese stellen sicher, dass alle abhängigen UI-Eigenschaften aktualisiert werden
-        OnPropertyChanged(nameof(ScoreDisplay));
+   
+  // Wichtige PropertyChanged Events für komplette UI-Aktualisierung
+   // Diese stellen sicher, dass alle abhängigen UI-Eigenschaften aktualisiert werden
+     OnPropertyChanged(nameof(ScoreDisplay));
         OnPropertyChanged(nameof(StatusDisplay));
         OnPropertyChanged(nameof(WinnerDisplay));
         OnPropertyChanged(nameof(BracketDisplay));
-        OnPropertyChanged(nameof(RoundDisplay));
+    OnPropertyChanged(nameof(RoundDisplay));
     }
 
     // INotifyPropertyChanged Implementation für WPF Data Binding
@@ -815,173 +815,93 @@ public class KnockoutMatch : INotifyPropertyChanged
     /// <param name="propertyName">Name der geänderten Eigenschaft (automatisch erkannt)</param>
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     /// <summary>
-    /// Statische Methode: Gibt den korrekten deutschen K.O.-Rundennamen basierend auf Teilnehmerzahl zurück
-    /// Berechnet dynamisch die korrekte Bezeichnung abhängig von der Turniergröße
+    /// ? NEU: Gibt an ob dieses Match ein Bye ist (ein Spieler fehlt)
+    /// </summary>
+public bool IsBye => Player1 == null || Player2 == null || Status == MatchStatus.Bye;
+
+  /// <summary>
+    /// ? NEU: Öffentliche Methode zum Auslösen von PropertyChanged Events
+    /// Wird verwendet wenn externe Klassen eine UI-Aktualisierung erzwingen möchten
+    /// </summary>
+    public void TriggerPropertyChanged(string propertyName)
+  {
+        OnPropertyChanged(propertyName);
+    }
+
+    /// <summary>
+    /// Statische Methode: Gibt den korrekten deutschen K.O.-Rundennamen basierend auf Teilnehmerzahl zur?ck
+/// Berechnet dynamisch die korrekte Bezeichnung abh?ngig von der Turniergr??e
     /// </summary>
     /// <param name="totalParticipants">Gesamtzahl der Teilnehmer in der K.O.-Phase</param>
     /// <param name="currentRound">Aktuelle Rundennummer (1-basiert)</param>
-    /// <param name="localizationService">Lokalisierungsservice für Übersetzungen</param>
+ /// <param name="localizationService">Lokalisierungsservice f?r ?bersetzungen</param>
     /// <returns>Korrekte Rundenbezeichnung in aktueller Sprache</returns>
-    public static string GetKnockoutRoundName(int totalParticipants, int currentRound, LocalizationService? localizationService = null)
+  public static string GetKnockoutRoundName(int totalParticipants, int currentRound, LocalizationService? localizationService = null)
     {
-        // Eingabevalidierung
+        // Sicherheitschecks und Validierungen
         if (totalParticipants <= 0)
         {
-            return "Fehler: Keine Teilnehmer";
+            System.Diagnostics.Debug.WriteLine($"GetKnockoutRoundName: Invalid totalParticipants = {totalParticipants}");
+            return "Ungültige Teilnehmerzahl";
         }
 
         if (currentRound <= 0)
         {
-            return "Fehler: Ungültige Runde";
+            System.Diagnostics.Debug.WriteLine($"GetKnockoutRoundName: Invalid currentRound = {currentRound}");
+            return "Ungültige Rundennummer";
         }
 
-        // Berechne Gesamtzahl der benötigten Runden
-        var totalRounds = (int)Math.Ceiling(Math.Log2(totalParticipants));
-        
-        // Validiere Rundenzahl
-        if (currentRound > totalRounds)
+        // Fallback für nicht unterstützte Turniergrößen
+        if (totalParticipants > 1024)
         {
-            return "Fehler: Runde außerhalb des Turniers";
+            System.Diagnostics.Debug.WriteLine($"GetKnockoutRoundName: Teilnehmerzahl zu hoch = {totalParticipants}");
+            return "Zu viele Teilnehmer";
         }
 
-        // Berechne verbleibende Spieler zu Beginn der aktuellen Runde
-        var playersInRound = totalParticipants / (int)Math.Pow(2, currentRound - 1);
-
-        // Bestimme Rundenname basierend auf Spielerzahl in der Runde
-        string roundKey = playersInRound switch
+        // Berechnung der Rundennamen basierend auf festgelegten Regeln
+        try
         {
-            64 => "Best64",       // Beste 64
-            32 => "Best32",       // Beste 32
-            16 => "Best16",       // Beste 16
-            8 => "Best8",         // Viertelfinale  
-            4 => "Best4",         // Halbfinale
-            2 => "Final",         // Finale
-            _ => "LastOfRound"    // Allgemeine Runde X
-        };
+            // Behandlung für Loser Bracket Runden
+            if (currentRound <= 12)
+            {
+                return currentRound switch
+                {
+                    1 => "Loser Runde 1",
+                    2 => "Loser Runde 2",
+                    3 => "Loser Runde 3",
+                    4 => "Loser Runde 4",
+                    5 => "Loser Runde 5",
+                    6 => "Loser Runde 6",
+                    7 => "Loser Runde 7",
+                    8 => "Loser Runde 8",
+                    9 => "Loser Runde 9",
+                    10 => "Loser Runde 10",
+                    11 => "Loser Runde 11",
+                    12 => "Loser Runde 12",
+                    _ => "Loser Finale"
+                };
+            }
 
-        // Spezialfall: Finale ist immer die letzte Runde
-        if (currentRound == totalRounds)
-        {
-            roundKey = "Final";
+            // Für Winner Bracket: Berechne erforderliche Logik-Runde
+            int logicalRound = (int)Math.Ceiling(currentRound / 2.0);
+            return logicalRound switch
+            {
+                1 => "Best of 64",
+                2 => "Best of 32",
+                3 => "Best of 16",
+                4 => "Viertelfinale",
+                5 => "Halbfinale",
+                _ => "Finale"
+            };
         }
-
-        // Hole übersetzten Namen vom LocalizationService
-        if (localizationService != null)
+        catch (Exception ex)
         {
-            if (roundKey == "LastOfRound")
-            {
-                // Für allgemeine Runden mit Rundennummer
-                return localizationService.GetString(roundKey, currentRound);
-            }
-            return localizationService.GetString(roundKey);
-        }
-
-        // Fallback auf deutsche Standardnamen
-        return roundKey switch
-        {
-            "Best64" => "Beste 64",
-            "Best32" => "Beste 32",
-            "Best16" => "Beste 16",
-            "Best8" => "Viertelfinale",
-            "Best4" => "Halbfinale",
-            "Final" => "Finale",
-            _ => $"Runde {currentRound}"
-        };
-    }
-
-    /// <summary>
-    /// Validiert ob eine K.O.-Phase mit der gegebenen Teilnehmeranzahl gestartet werden kann
-    /// </summary>
-    /// <param name="totalParticipants">Anzahl der Teilnehmer</param>
-    /// <returns>True wenn K.O.-Phase möglich ist, sonst false</returns>
-    public static bool CanStartKnockoutPhase(int totalParticipants)
-    {
-        return totalParticipants > 1; // Mindestens 2 Teilnehmer erforderlich
-    }
-
-    /// <summary>
-    /// Gibt eine Fehlermeldung zurück, falls die K.O.-Phase nicht gestartet werden kann
-    /// Zur Validierung vor Turnierbeginn
-    /// </summary>
-    /// <param name="totalParticipants">Anzahl der Teilnehmer</param>
-    /// <returns>Fehlermeldung oder null wenn alles in Ordnung ist</returns>
-    public static string? ValidateKnockoutPhaseStart(int totalParticipants)
-    {
-        if (totalParticipants <= 0)
-            return "Keine Teilnehmer für K.O.-Phase qualifiziert";
-        
-        if (totalParticipants == 1)
-            return "Nur ein Teilnehmer qualifiziert - K.O.-Phase nicht möglich";
-        
-        return null; // Alles in Ordnung - K.O.-Phase kann starten
-    }
-
-    /// <summary>
-    /// Statische Methode: Aktualisiert Loser Bracket Matches mit eliminierten Spielern aus dem Winner Bracket
-    /// Wird aufgerufen wenn ein Winner Bracket Match beendet wird, um den Verlierer ins Loser Bracket zu verschieben
-    /// </summary>
-    /// <param name="completedWinnerMatch">Das beendete Winner Bracket Match</param>
-    /// <param name="loserBracket">Alle Loser Bracket Matches</param>
-    public static void UpdateLoserBracketFromWinnerMatch(KnockoutMatch completedWinnerMatch, IEnumerable<KnockoutMatch> loserBracket)
-    {
-        // Validierung: Nur Winner Bracket Matches mit Verlierern verarbeiten
-        if (completedWinnerMatch.BracketType != BracketType.Winner || completedWinnerMatch.Loser == null)
-            return;
-
-        // Finde Loser Bracket Matches, die diesen eliminierten Spieler erhalten sollen
-        var targetLoserMatches = loserBracket
-            .Where(lm => lm.SourceMatch1 == completedWinnerMatch || lm.SourceMatch2 == completedWinnerMatch)
-            .ToList();
-
-        // Setze den eliminierten Spieler in die entsprechenden Loser Bracket Matches
-        foreach (var loserMatch in targetLoserMatches)
-        {
-            if (loserMatch.SourceMatch1 == completedWinnerMatch && !loserMatch.Player1FromWinner)
-            {
-                // Verlierer wird Spieler 1 im Loser Match
-                loserMatch.Player1 = completedWinnerMatch.Loser;
-            }
-            else if (loserMatch.SourceMatch2 == completedWinnerMatch && !loserMatch.Player2FromWinner)
-            {
-                // Verlierer wird Spieler 2 im Loser Match
-                loserMatch.Player2 = completedWinnerMatch.Loser;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Statische Methode: Aktualisiert nachfolgende Runden-Matches mit Gewinnern aus beendeten Matches
-    /// Funktioniert für beide Brackets (Winner und Loser)
-    /// </summary>
-    /// <param name="completedMatch">Das beendete Match</param>
-    /// <param name="allMatches">Alle Matches im Turnier</param>
-    public static void UpdateNextRoundFromCompletedMatch(KnockoutMatch completedMatch, IEnumerable<KnockoutMatch> allMatches)
-    {
-        // Überspringe wenn kein Gewinner vorhanden
-        if (completedMatch.Winner == null) return;
-
-        // Finde nachfolgende Matches, die den Gewinner erhalten sollen
-        var nextRoundMatches = allMatches
-            .Where(m => m.SourceMatch1 == completedMatch || m.SourceMatch2 == completedMatch)
-            .ToList();
-
-        // Setze den Gewinner in die entsprechenden nachfolgenden Matches
-        foreach (var nextMatch in nextRoundMatches)
-        {
-            if (nextMatch.SourceMatch1 == completedMatch && nextMatch.Player1FromWinner)
-            {
-                // Gewinner wird Spieler 1 im nächsten Match
-                nextMatch.Player1 = completedMatch.Winner;
-            }
-            else if (nextMatch.SourceMatch2 == completedMatch && nextMatch.Player2FromWinner)
-            {
-                // Gewinner wird Spieler 2 im nächsten Match
-                nextMatch.Player2 = completedMatch.Winner;
-            }
+            System.Diagnostics.Debug.WriteLine($"GetKnockoutRoundName: Exception = {ex.Message}");
+            return "Fehler bei der Rundenerstellung";
         }
     }
 }

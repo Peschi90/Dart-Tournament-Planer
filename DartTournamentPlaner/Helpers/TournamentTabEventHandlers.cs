@@ -240,26 +240,86 @@ public class TournamentTabEventHandlers : IDisposable
 
     public void ResetMatchesButton_Click(object sender, RoutedEventArgs e)
     {
-        var selectedGroup = _getSelectedGroup();
-        if (selectedGroup == null) return;
-
+// ✅ GEÄNDERT: Kontextabhängiger Reset basierend auf aktiver Phase
         try
         {
-            if (TournamentDialogHelper.ShowResetMatchesConfirmation(_getWindow(), selectedGroup.Name, _localizationService))
-            {
-                selectedGroup.ResetMatches();
-                _updateMatchesView();
-                _onDataChanged();
+   // Bestimme die Phase und erstelle passende Bestätigungsnachricht
+  string phaseDescription = _tournamentClass.CurrentPhase?.PhaseType switch
+     {
+  TournamentPhaseType.KnockoutPhase => _localizationService.GetString("KnockoutPhase") ?? "K.O.-Phase",
+        TournamentPhaseType.RoundRobinFinals => _localizationService.GetString("Finals") ?? "Finalrunde",
+  _ => _localizationService.GetString("GroupPhase") ?? "Gruppenphase"
+            };
+   
+         var confirmMessage = string.Format(
+   _localizationService.GetString("ConfirmResetMatchResults") ?? "Möchten Sie alle Match-Ergebnisse in der {0} zurücksetzen?\n\n⚠ Nur die Ergebnisse werden gelöscht, die Matches bleiben erhalten!",
+     phaseDescription
+   );
+       
+     var title = _localizationService.GetString("ResetMatches") ?? "Match-Ergebnisse zurücksetzen";
+   
+    // Verwende den modernen Bestätigungsdialog direkt
+  var dialog = new Window
+      {
+  Title = title,
+           Width = 450,
+       Height = 280,
+  WindowStartupLocation = WindowStartupLocation.CenterOwner,
+          ResizeMode = ResizeMode.NoResize,
+      WindowStyle = WindowStyle.None,
+  AllowsTransparency = true,
+   Background = System.Windows.Media.Brushes.Transparent,
+   ShowInTaskbar = false
+     };
 
-                var successMessage = _localizationService.GetString("MatchesResetSuccess") ?? "Spiele wurden zurückgesetzt!";
-                TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
-            }
+   if (_getWindow() != null)
+      {
+  dialog.Owner = _getWindow();
         }
-        catch (Exception ex)
+
+  // Einfacher Bestätigungsdialog - Hole Bestätigung
+    var result = MessageBox.Show(
+    confirmMessage,
+      title,
+ MessageBoxButton.YesNo,
+           MessageBoxImage.Warning,
+         MessageBoxResult.No
+        );
+    
+      if (result == MessageBoxResult.Yes)
+      {
+ System.Diagnostics.Debug.WriteLine($"ResetMatchesButton_Click: Resetting matches for phase {_tournamentClass.CurrentPhase?.PhaseType}");
+       
+      // Verwende die neue kontextabhängige Reset-Methode
+ _tournamentClass.ResetCurrentPhaseMatchResults();
+      
+        // UI aktualisieren
+   _updateMatchesView();
+    
+       // Spezifische View-Updates je nach Phase
+    if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+       {
+          _refreshKnockoutView();
+      }
+  else if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+     {
+  _refreshFinalsView();
+ }
+  
+    _onDataChanged();
+
+     var successMessage = string.Format(
+       _localizationService.GetString("MatchResultsResetSuccess") ?? "Match-Ergebnisse in der {0} wurden zurückgesetzt!",
+        phaseDescription
+    );
+          TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
+    }
+        }
+   catch (Exception ex)
         {
-            var errorMessage = $"Fehler beim Zurücksetzen der Spiele: {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
-        }
+     var errorMessage = $"Fehler beim Zurücksetzen der Match-Ergebnisse: {ex.Message}";
+ TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
+   }
     }
 
     public void AdvanceToNextPhaseButton_Click(object sender, RoutedEventArgs e, Action<TournamentPhaseType> switchToTab)

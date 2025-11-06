@@ -89,22 +89,26 @@ public partial class TournamentOverviewWindow : Window
         
         // Scroll Manager
         _scrollManager = new TournamentOverviewScrollManager(
-            GetCurrentActiveDataGrid,
+   () => GetCurrentActiveDataGrid() as DataGrid, // ✅ KORRIGIERT: Cast zu DataGrid für Kompatibilität
             () => { }, // Kein Callback mehr nötig - Scrollen blockiert Tab-Wechsel nicht
-            UpdateStatus);
+UpdateStatus);
         
         // Cycle Manager
         _cycleManager = new TournamentOverviewCycleManager(
-            _localizationService,
-            () => MainTabControl,
-            () => _activeTournamentTabs,
+          _localizationService,
+          () => MainTabControl,
+() => _activeTournamentTabs,
             () => _currentClassIndex,
             () => _currentSubTabIndex,
-            (index) => _currentClassIndex = index,
-            (index) => _currentSubTabIndex = index,
-            SetCurrentSubTab,
+    (index) => _currentClassIndex = index,
+          (index) => _currentSubTabIndex = index,
+        SetCurrentSubTab,
             UpdateStatus,
-            () => _scrollManager.StartScrolling());
+            () => {
+     // ✅ AKTUALISIERT: Übergebe Cycle-Dauer an Scroll-Manager
+      var cycleDuration = _cycleManager.GetCurrentSubTabInterval();
+      _scrollManager.StartScrolling(cycleDuration);
+            });
         
         // ✅ NEW: Hub-Status-Event-Handler hinzufügen
         if (_hubService != null)
@@ -830,99 +834,175 @@ public partial class TournamentOverviewWindow : Window
     }
 
     /// <summary>
-    /// Findet das aktuell aktive DataGrid
+    /// ✅ ERWEITERT: Findet das aktuell aktive DataGrid oder scrollbaren Content im Sub-Tab
+    /// Navigiert durch: MainTab → SubTabControl → aktueller SubTab → Content
     /// </summary>
-    private DataGrid? GetCurrentActiveDataGrid()
+    private object? GetCurrentActiveDataGrid()
     {
         try
         {
-            var currentClassTab = MainTabControl.SelectedItem as TabItem;
-            if (currentClassTab?.Content is not TabControl subTabControl) 
-            {
-                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No sub-tab control found");
-                return null;
-            }
-
-            var currentSubTab = subTabControl.SelectedItem as TabItem;
-            if (currentSubTab?.Content == null) 
-            {
-                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No current sub-tab content");
-                return null;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Current sub-tab header: {currentSubTab.Header}, Content type: {currentSubTab.Content.GetType().Name}");
-
-            // Für Group Tabs: Suche in der Grid-Struktur
-            if (currentSubTab.Content is Grid grid)
-            {
-                var dataGrid = grid.Children.OfType<DataGrid>().FirstOrDefault();
-                if (dataGrid != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid in Grid - Items count: {dataGrid.Items.Count}");
-                    return dataGrid;
-                }
-                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] No DataGrid found in Grid - Children: {grid.Children.Count}");
-                foreach (var child in grid.Children)
-                {
-                    System.Diagnostics.Debug.WriteLine($"  - Child type: {child.GetType().Name}");
-                }
-            }
-
-            // Für andere Tab-Typen: Direkte DataGrid-Suche
-            if (currentSubTab.Content is DataGrid directGrid)
-            {
-                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found direct DataGrid - Items count: {directGrid.Items.Count}");
-                return directGrid;
-            }
-
-            // Recursive search in complex layouts
-            var recursiveResult = FindDataGridRecursive(currentSubTab.Content);
-            if (recursiveResult != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid recursively - Items count: {recursiveResult.Items.Count}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No DataGrid found recursively");
-            }
-            
-            return recursiveResult;
-        }
-        catch (Exception ex)
+            // 1. Hole das aktuell ausgewählte Haupttab (Tournament-Klasse: Platin, Gold, etc.)
+   var currentClassTab = MainTabControl.SelectedItem as TabItem;
+   if (currentClassTab == null)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [AutoScroll] Error finding DataGrid: {ex.Message}");
+       System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No main tab selected");
+         return null;
+            }
+
+System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Main tab: {currentClassTab.Header}");
+
+            // 2. Das Content des Haupttabs ist ein TabControl mit Sub-Tabs (Gruppenphase, Winner Bracket, etc.)
+            if (currentClassTab.Content is not TabControl subTabControl)
+            {
+    System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] Main tab content is not a TabControl");
+      return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] SubTabControl found with {subTabControl.Items.Count} sub-tabs");
+
+    // 3. Hole den aktuell ausgewählten Sub-Tab
+    var currentSubTab = subTabControl.SelectedItem as TabItem;
+      if (currentSubTab == null)
+            {
+     System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No sub-tab selected");
+        return null;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Current sub-tab: {currentSubTab.Header}, Content type: {currentSubTab.Content?.GetType().Name ?? "null"}");
+
+            // 4. Analysiere den Content des Sub-Tabs
+         if (currentSubTab.Content == null)
+            {
+ System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] Sub-tab content is null");
+                return null;
+          }
+
+            // Fall 1: Content ist direkt ein ScrollViewer (z.B. TreeView mit Canvas)
+            if (currentSubTab.Content is ScrollViewer scrollViewer)
+       {
+    System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found direct ScrollViewer - ScrollableHeight: {scrollViewer.ScrollableHeight}");
+         return scrollViewer;
+            }
+
+   // Fall 2: Content ist ein Grid mit DataGrids (z.B. Gruppenphase mit Matches + Standings)
+ if (currentSubTab.Content is Grid grid)
+ {
+  System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found Grid with {grid.Children.Count} children");
+  
+                // Suche nach DataGrids im Grid
+                var dataGrids = grid.Children.OfType<DataGrid>().ToList();
+  if (dataGrids.Count > 0)
+    {
+      // Nimm das erste DataGrid (normalerweise die Matches)
+          var dataGrid = dataGrids[0];
+           System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid in Grid - Items: {dataGrid.Items.Count}");
+         return dataGrid;
+         }
+
+        // Wenn kein DataGrid, suche nach ScrollViewer im Grid
+         var scrollViewerInGrid = grid.Children.OfType<ScrollViewer>().FirstOrDefault();
+      if (scrollViewerInGrid != null)
+          {
+    System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] Found ScrollViewer in Grid");
+        return scrollViewerInGrid;
+        }
+            }
+
+     // Fall 3: Content ist direkt ein DataGrid (z.B. KO-Phase Matches, Finals)
+       if (currentSubTab.Content is DataGrid directGrid)
+   {
+    System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found direct DataGrid - Items: {directGrid.Items.Count}");
+    return directGrid;
+            }
+
+            // Fall 4: Content ist ein FrameworkElement (z.B. TreeView, PlayerStatisticsView)
+      if (currentSubTab.Content is FrameworkElement frameworkElement)
+ {
+              System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found FrameworkElement: {frameworkElement.GetType().Name}");
+      
+   // Suche rekursiv nach ScrollViewer oder DataGrid
+      var foundScrollViewer = FindVisualChildRecursive<ScrollViewer>(frameworkElement);
+     if (foundScrollViewer != null)
+   {
+     System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found ScrollViewer recursively - ScrollableHeight: {foundScrollViewer.ScrollableHeight}");
+      return foundScrollViewer;
+           }
+
+ var foundDataGrid = FindVisualChildRecursive<DataGrid>(frameworkElement);
+   if (foundDataGrid != null)
+       {
+        System.Diagnostics.Debug.WriteLine($"🔍 [AutoScroll] Found DataGrid recursively - Items: {foundDataGrid.Items.Count}");
+return foundDataGrid;
+          }
+  }
+
+       System.Diagnostics.Debug.WriteLine("🔍 [AutoScroll] No scrollable content found");
             return null;
         }
+        catch (Exception ex)
+  {
+    System.Diagnostics.Debug.WriteLine($"❌ [AutoScroll] Error finding active content: {ex.Message}\n{ex.StackTrace}");
+          return null;
+    }
+    }
+
+/// <summary>
+    /// ✅ NEU: Rekursive Suche nach einem bestimmten Visual Child-Typ in der Visual Tree
+    /// </summary>
+    private T? FindVisualChildRecursive<T>(DependencyObject parent) where T : DependencyObject
+    {
+        if (parent == null) return null;
+
+ // Prüfe zuerst ob der Parent selbst der gesuchte Typ ist
+        if (parent is T typedParent)
+        return typedParent;
+
+        // Durchsuche alle Children
+        var childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < childrenCount; i++)
+   {
+            var child = VisualTreeHelper.GetChild(parent, i);
+         
+            // Prüfe das Child
+            if (child is T typedChild)
+        return typedChild;
+
+    // Rekursive Suche in den Children des Childs
+            var result = FindVisualChildRecursive<T>(child);
+ if (result != null)
+return result;
+     }
+
+        return null;
     }
 
     /// <summary>
-    /// Rekursive Suche nach DataGrid in komplexen Layouts
+    /// OBSOLETE: Alte rekursive Suche - ersetzt durch GetCurrentActiveDataGrid
     /// </summary>
+    [Obsolete("Use GetCurrentActiveDataGrid instead")]
     private DataGrid? FindDataGridRecursive(object content)
     {
-        if (content is DataGrid dataGrid)
-            return dataGrid;
+   if (content is DataGrid dataGrid)
+        return dataGrid;
 
         if (content is Panel panel)
         {
-            // Convert UIElementCollection to IEnumerable for LINQ
-            var dataGridFromChildren = panel.Children.OfType<DataGrid>().FirstOrDefault();
-            if (dataGridFromChildren != null) return dataGridFromChildren;
-            
-            // Search recursively in child elements
-            foreach (UIElement child in panel.Children)
-            {
-                var result = FindDataGridRecursive(child);
-                if (result != null) return result;
+var dataGridFromChildren = panel.Children.OfType<DataGrid>().FirstOrDefault();
+      if (dataGridFromChildren != null) return dataGridFromChildren;
+    
+          foreach (UIElement child in panel.Children)
+          {
+     var result = FindDataGridRecursive(child);
+       if (result != null) return result;
             }
         }
 
         if (content is ContentControl contentControl && contentControl.Content != null)
         {
-            return FindDataGridRecursive(contentControl.Content);
+   return FindDataGridRecursive(contentControl.Content);
         }
 
-        return null;
+  return null;
     }
 
     // ✅ NEW: Event handler for hub status changes

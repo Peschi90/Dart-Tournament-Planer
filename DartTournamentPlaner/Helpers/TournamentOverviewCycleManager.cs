@@ -172,51 +172,51 @@ public class TournamentOverviewCycleManager
             // ✅ KORRIGIERT: Zeige exakte Timer-Performance
             var actualElapsed = (DateTime.Now - _tabStartTime).TotalSeconds;
             var expectedTime = _subTabInterval;
-            var timingDifference = actualElapsed - expectedTime;
+     var timingDifference = actualElapsed - expectedTime;
 
-            // Hole aktuelle Sub-Tab-Informationen
-            var currentClassTab = mainTabControl.SelectedItem as TabItem;
-            if (currentClassTab?.Content is TabControl subTabControl && subTabControl.Items.Count > 0)
-            {
-                // Nächster Sub-Tab in der gleichen Klasse
-                var nextSubTabIndex = currentSubTabIndex + 1;
-                
-                if (nextSubTabIndex < subTabControl.Items.Count)
-                {
-                    // Bleibe in der gleichen Klasse, wechsle Sub-Tab
-                    _setCurrentSubTabIndex(nextSubTabIndex);
-                    _setCurrentSubTab();
-                    
-                    System.Diagnostics.Debug.WriteLine($"📑 [AutoCycle] Switched to sub-tab {nextSubTabIndex + 1}/{subTabControl.Items.Count} in class {currentClassIndex + 1} " +
-                        $"(precise: {actualElapsed:F3}s, expected: {expectedTime}s, diff: {timingDifference:+0.000;-0.000}s)");
-                }
-                else
-                {
-                    // Alle Sub-Tabs durch, wechsle zur nächsten Klasse
-                    SwitchToNextClass();
-                    return;
+        // Hole aktuelle Sub-Tab-Informationen
+     var currentClassTab = mainTabControl.SelectedItem as TabItem;
+if (currentClassTab?.Content is TabControl subTabControl && subTabControl.Items.Count > 0)
+          {
+  // Nächster Sub-Tab in der gleichen Klasse
+     var nextSubTabIndex = currentSubTabIndex + 1;
+      
+       if (nextSubTabIndex < subTabControl.Items.Count)
+        {
+   // Bleibe in der gleichen Klasse, wechsle Sub-Tab
+          _setCurrentSubTabIndex(nextSubTabIndex);
+_setCurrentSubTab();
+       
+   System.Diagnostics.Debug.WriteLine($"📑 [AutoCycle] Switched to sub-tab {nextSubTabIndex + 1}/{subTabControl.Items.Count} in class {currentClassIndex + 1} " +
+         $"(precise: {actualElapsed:F3}s, expected: {expectedTime}s, diff: {timingDifference:+0.000;-0.000}s)");
+         }
+      else
+     {
+        // Alle Sub-Tabs durch, wechsle zur nächsten Klasse
+      SwitchToNextClass();
+               return;
                 }
             }
             else
-            {
+{
                 // Keine Sub-Tabs, direkt zur nächsten Klasse
-                SwitchToNextClass();
-                return;
-            }
+         SwitchToNextClass();
+     return;
+          }
 
             // ✅ KORRIGIERT: Exakte Timer-Zurücksetzung
-            _tabStartTime = DateTime.Now;
-            
+         _tabStartTime = DateTime.Now;
+ 
             // Starte Scrollen für den neuen Tab nach kurzer Verzögerung
             Task.Delay(200).ContinueWith(_ =>
-            {
-                if (_isRunning)
-                {
-                    Application.Current.Dispatcher.BeginInvoke(() =>
-                    {
-                        _startScrolling();
-                    });
-                }
+       {
+ if (_isRunning)
+             {
+         Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+      _startScrolling();
+   });
+            }
             });
         }
         catch (Exception ex)
@@ -230,51 +230,51 @@ public class TournamentOverviewCycleManager
     /// </summary>
     private void SwitchToNextClass()
     {
-        try
-        {
+   try
+    {
             var mainTabControl = _getMainTabControl();
-            var activeTournamentTabs = _getActiveTournamentTabs();
-            var currentClassIndex = _getCurrentClassIndex();
+  var activeTournamentTabs = _getActiveTournamentTabs();
+  var currentClassIndex = _getCurrentClassIndex();
 
-            if (activeTournamentTabs.Count <= 1) 
-            {
-                // Nur eine Klasse - starte Sub-Tabs von vorne
+if (activeTournamentTabs.Count <= 1) 
+        {
+       // Nur eine Klasse - starte Sub-Tabs von vorne
                 _setCurrentSubTabIndex(0);
-                _setCurrentSubTab();
-                
-                System.Diagnostics.Debug.WriteLine("🔄 [AutoCycle] Only one class - restarting sub-tabs");
+   _setCurrentSubTab();
+  
+             System.Diagnostics.Debug.WriteLine("🔄 [AutoCycle] Only one class - restarting sub-tabs");
             }
-            else
-            {
-                // Nächste Klasse
-                var nextClassIndex = (currentClassIndex + 1) % activeTournamentTabs.Count;
+     else
+         {
+          // Nächste Klasse
+         var nextClassIndex = (currentClassIndex + 1) % activeTournamentTabs.Count;
                 
-                mainTabControl.SelectedIndex = nextClassIndex;
-                _setCurrentClassIndex(nextClassIndex);
+  mainTabControl.SelectedIndex = nextClassIndex;
+    _setCurrentClassIndex(nextClassIndex);
                 _setCurrentSubTabIndex(0); // Beginne mit erstem Sub-Tab
                 _setCurrentSubTab();
-                
-                System.Diagnostics.Debug.WriteLine($"🏆 [AutoCycle] Switched to class {nextClassIndex + 1}/{activeTournamentTabs.Count}");
+          
+ System.Diagnostics.Debug.WriteLine($"🏆 [AutoCycle] Switched to class {nextClassIndex + 1}/{activeTournamentTabs.Count}");
             }
 
             // ✅ KORRIGIERT: Exakte Timer-Zurücksetzung
-            _tabStartTime = DateTime.Now;
-            
-            // Starte Scrollen für den neuen Tab nach kurzer Verzögerung
-            Task.Delay(200).ContinueWith(_ =>
-            {
-                if (_isRunning)
-                {
-                    Application.Current.Dispatcher.BeginInvoke(() =>
-                    {
-                        _startScrolling();
-                    });
-                }
-            });
+    _tabStartTime = DateTime.Now;
+     
+       // Starte Scrollen für den neuen Tab nach kurzer Verzögerung
+     Task.Delay(200).ContinueWith(_ =>
+       {
+  if (_isRunning)
+           {
+            Application.Current.Dispatcher.BeginInvoke(() =>
+      {
+            _startScrolling();
+     });
+    }
+       });
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [AutoCycle] Error switching class: {ex.Message}");
+         System.Diagnostics.Debug.WriteLine($"❌ [AutoCycle] Error switching class: {ex.Message}");
         }
     }
 

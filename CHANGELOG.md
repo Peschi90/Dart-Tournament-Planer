@@ -4,7 +4,35 @@
 
 - bugfixes
 	- fixed some bugs in the license system.
-	
+	- **Reset Buttons Functionality**: Fixed reset buttons behavior to preserve match structure
+		- Reset KO Phase button now only resets KO phase data (preserves group phase results)
+		- Reset Finals button now only resets finals phase data (preserves group phase results)
+		- Reset Matches button now context-aware (works in Group, KO, and Finals phases)
+
+- improvements
+	- **Landscape Format Support**: Automatic landscape format (1122.5 x 793.7px) when QR codes are available
+	- **Larger Font Sizes**: Doubled font sizes (22pt headers, 20pt cells) for better readability
+	- **Multi-Page Support**: Automatic creation of continuation pages for many matches
+		- Intelligent calculation of matches per page based on available space
+		- Page numbering for overflow pages ("Page 2", "Page 3", etc.)
+		- Support for group phase, finals and knockout brackets
+	- **QR Code Optimization**: 90x90px QR codes in 110px wide columns
+	- **Optimized Table Layouts**: 
+		- Widened match number column (60px instead of 40px)
+		- Adjusted row height (95px) for optimal space utilization
+		- 5 matches with QR codes fit on one page
+	- Better code organization and reusability
+	- **Context-Aware Match Reset**: 
+		- Reset Matches button now intelligently resets only match results based on current phase
+		- Preserves match generation and tournament structure
+		- Works across Group Phase, KO Phase, and Finals Phase
+		- Button activation logic improved for all tournament phases
+	- **Tournament Overview Auto-Scroll**: 
+		- Auto-scroll feature now synchronized with auto-cycle timing
+		- ✅ **Intelligent Scroll Strategies**:
+			- **Small Content (<10px)**: Delayed single-scroll at 50% of cycle time for optimal visibility
+			- **Large Content (≥10px)**: Smooth animated scrolling over entire cycle duration with easing
+
 ## v0.1.11
 - adds
 	- Progressbar for update to new version implemented. 

@@ -472,4 +472,173 @@ public static class TournamentKnockoutHelper
             throw; // Re-throw to be handled by caller
         }
     }
+
+    /// <summary>
+    /// ✅ NEU: Setzt nur die K.O.-Phase zurück, behält aber die Gruppenphase und deren Ergebnisse
+    /// Dies ist die korrekte Methode für den "Reset KO Phase" Button
+    /// </summary>
+    /// <param name="tournamentClass">Die TournamentClass</param>
+    public static void ResetKnockoutPhaseOnly(TournamentClass tournamentClass)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseOnly: Starting KO phase reset");
+            
+            // 1. Finde und entferne nur die KO-Phase
+            var knockoutPhase = tournamentClass.Phases
+              .FirstOrDefault(p => p.PhaseType == TournamentPhaseType.KnockoutPhase);
+            
+         if (knockoutPhase != null)
+            {
+         System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseOnly: Found KO phase, removing it");
+     
+  // Explizit alle KO-Daten löschen
+       if (knockoutPhase.WinnerBracket != null)
+        {
+         System.Diagnostics.Debug.WriteLine($"  - Clearing {knockoutPhase.WinnerBracket.Count} Winner Bracket matches");
+    knockoutPhase.WinnerBracket.Clear();
+           }
+       
+            if (knockoutPhase.LoserBracket != null)
+        {
+           System.Diagnostics.Debug.WriteLine($"  - Clearing {knockoutPhase.LoserBracket.Count} Loser Bracket matches");
+         knockoutPhase.LoserBracket.Clear();
+      }
+                
+         if (knockoutPhase.QualifiedPlayers != null)
+  {
+       System.Diagnostics.Debug.WriteLine($"  - Clearing {knockoutPhase.QualifiedPlayers.Count} qualified players");
+           knockoutPhase.QualifiedPlayers.Clear();
+                }
+         
+            // Entferne die Phase
+           tournamentClass.Phases.Remove(knockoutPhase);
+ }
+      else
+   {
+            System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseOnly: No KO phase found");
+            }
+     
+         // 2. Stelle sicher dass die GroupPhase existiert und aktiv ist
+         var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+   if (groupPhase == null)
+            {
+      System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseOnly: WARNING - No GroupPhase found, creating one");
+                groupPhase = new TournamentPhase
+  {
+       PhaseType = TournamentPhaseType.GroupPhase,
+            Name = "Gruppenphase",
+      IsActive = true,
+     IsCompleted = false,
+             Groups = tournamentClass.Groups
+          };
+ tournamentClass.Phases.Add(groupPhase);
+    }
+  else
+     {
+         System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseOnly: Found existing GroupPhase, marking as completed");
+  // Setze die Gruppenphase als abgeschlossen (damit sie nicht nochmal gespielt werden muss)
+             groupPhase.IsCompleted = true;
+       groupPhase.IsActive = true; // Aber aktiv für Navigation
+          }
+ 
+  // 3. Setze CurrentPhase zurück zur Gruppenphase
+     tournamentClass.CurrentPhase = groupPhase;
+   
+       // 4. Trigge UI-Refresh um alle Views zu aktualisieren
+         tournamentClass.TriggerUIRefresh();
+   
+          System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseOnly: Successfully reset KO phase");
+  System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseOnly: Current phase: {tournamentClass.CurrentPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseOnly: Total phases remaining: {tournamentClass.Phases.Count}");
+      System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseOnly: Group phase results preserved");
+        }
+        catch (Exception ex)
+     {
+      System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseOnly: ERROR: {ex.Message}");
+    throw; // Re-throw to be handled by caller
+      }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Setzt nur die Finals-Phase zurück, behält aber die Gruppenphase und deren Ergebnisse
+    /// Dies ist die korrekte Methode für den "Reset Finals" Button
+    /// </summary>
+    /// <param name="tournamentClass">Die TournamentClass</param>
+    public static void ResetFinalsPhaseOnly(TournamentClass tournamentClass)
+    {
+        try
+ {
+  System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseOnly: Starting Finals phase reset");
+            
+// 1. Finde und entferne nur die Finals-Phase
+      var finalsPhase = tournamentClass.Phases
+     .FirstOrDefault(p => p.PhaseType == TournamentPhaseType.RoundRobinFinals);
+    
+        if (finalsPhase != null)
+            {
+    System.Diagnostics.Debug.WriteLine($"ResetFinalsPhaseOnly: Found Finals phase, removing it");
+     
+        // Explizit alle Finals-Daten löschen
+                if (finalsPhase.FinalsGroup != null)
+    {
+   System.Diagnostics.Debug.WriteLine($"  - Clearing finals group with {finalsPhase.FinalsGroup.Players.Count} players");
+        finalsPhase.FinalsGroup.Players.Clear();
+        finalsPhase.FinalsGroup.Matches.Clear();
+            }
+   
+      if (finalsPhase.QualifiedPlayers != null)
+                {
+          System.Diagnostics.Debug.WriteLine($"  - Clearing {finalsPhase.QualifiedPlayers.Count} qualified players");
+   finalsPhase.QualifiedPlayers.Clear();
+      }
+           
+      // Entferne die Phase
+          tournamentClass.Phases.Remove(finalsPhase);
+ }
+          else
+   {
+                System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseOnly: No Finals phase found");
+     }
+     
+            // 2. Stelle sicher dass die GroupPhase existiert und aktiv ist
+            var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+      if (groupPhase == null)
+            {
+        System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseOnly: WARNING - No GroupPhase found, creating one");
+                groupPhase = new TournamentPhase
+       {
+    PhaseType = TournamentPhaseType.GroupPhase,
+      Name = "Gruppenphase",
+                    IsActive = true,
+         IsCompleted = false,
+           Groups = tournamentClass.Groups
+   };
+        tournamentClass.Phases.Add(groupPhase);
+    }
+            else
+          {
+      System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseOnly: Found existing GroupPhase, marking as completed");
+                // Setze die Gruppenphase als abgeschlossen (damit sie nicht nochmal gespielt werden muss)
+     groupPhase.IsCompleted = true;
+        groupPhase.IsActive = true; // Aber aktiv für Navigation
+   }
+            
+ // 3. Setze CurrentPhase zurück zur Gruppenphase
+            tournamentClass.CurrentPhase = groupPhase;
+        
+            // 4. Trigge UI-Refresh um alle Views zu aktualisieren
+        tournamentClass.TriggerUIRefresh();
+            
+ System.Diagnostics.Debug.WriteLine($"ResetFinalsPhaseOnly: Successfully reset Finals phase");
+            System.Diagnostics.Debug.WriteLine($"ResetFinalsPhaseOnly: Current phase: {tournamentClass.CurrentPhase?.PhaseType}");
+      System.Diagnostics.Debug.WriteLine($"ResetFinalsPhaseOnly: Total phases remaining: {tournamentClass.Phases.Count}");
+         System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseOnly: Group phase results preserved");
+        }
+        catch (Exception ex)
+        {
+System.Diagnostics.Debug.WriteLine($"ResetFinalsPhaseOnly: ERROR: {ex.Message}");
+     throw; // Re-throw to be handled by caller
+        }
+    }
 }

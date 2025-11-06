@@ -628,51 +628,213 @@ public partial class TournamentClass : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// ✅ NEU: Setzt nur die Match-Ergebnisse zurück (kontextabhängig je nach aktiver Phase)
+    /// Verwendet für den "Reset Matches" Button im Setup-Tab
+    /// </summary>
+    public void ResetCurrentPhaseMatchResults()
+    {
+        System.Diagnostics.Debug.WriteLine($"=== ResetCurrentPhaseMatchResults START for {Name} ===");
+   System.Diagnostics.Debug.WriteLine($"Current Phase: {CurrentPhase?.PhaseType}");
+    
+        try
+        {
+      if (CurrentPhase == null)
+            {
+                System.Diagnostics.Debug.WriteLine("No current phase - cannot reset matches");
+     return;
+         }
+
+            switch (CurrentPhase.PhaseType)
+            {
+           case TournamentPhaseType.GroupPhase:
+          ResetGroupPhaseMatchResults();
+       break;
+         
+      case TournamentPhaseType.KnockoutPhase:
+            ResetKnockoutPhaseMatchResults();
+  break;
+             
+      case TournamentPhaseType.RoundRobinFinals:
+ ResetFinalsPhaseMatchResults();
+     break;
+   
+        default:
+        System.Diagnostics.Debug.WriteLine($"  Unknown phase type: {CurrentPhase.PhaseType}");
+   break;
+         }
+    
+    // UI-Refresh auslösen
+  TriggerUIRefresh();
+            
+    System.Diagnostics.Debug.WriteLine($"=== ResetCurrentPhaseMatchResults END ===");
+        }
+     catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ResetCurrentPhaseMatchResults ERROR: {ex.Message}");
+        throw;
+     }
+    }
+
+    /// <summary>
+ /// ✅ NEU: Setzt nur Gruppenphase Match-Ergebnisse zurück
+    /// </summary>
+    private void ResetGroupPhaseMatchResults()
+    {
+        System.Diagnostics.Debug.WriteLine("ResetGroupPhaseMatchResults: Resetting group phase matches");
+        
+        int totalMatchesReset = 0;
+        foreach (var group in Groups)
+        {
+      if (group.MatchesGenerated && group.Matches.Count > 0)
+            {
+          System.Diagnostics.Debug.WriteLine($"  Resetting {group.Matches.Count} matches in group '{group.Name}'");
+       group.ResetMatchResults();
+     totalMatchesReset += group.Matches.Count;
+  }
+    }
+        
+        System.Diagnostics.Debug.WriteLine($"ResetGroupPhaseMatchResults: Reset {totalMatchesReset} matches total");
+    }
+
+    /// <summary>
+    /// ✅ NEU: Setzt nur K.O.-Phase Match-Ergebnisse zurück
+    /// </summary>
+    private void ResetKnockoutPhaseMatchResults()
+    {
+        System.Diagnostics.Debug.WriteLine("ResetKnockoutPhaseMatchResults: Resetting knockout phase matches");
+    
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+        {
+      System.Diagnostics.Debug.WriteLine("  Not in knockout phase - cannot reset");
+   return;
+        }
+
+     int matchesReset = 0;
+        
+        // Reset Winner Bracket matches
+      if (CurrentPhase.WinnerBracket != null)
+        {
+     System.Diagnostics.Debug.WriteLine($"  Resetting {CurrentPhase.WinnerBracket.Count} Winner Bracket matches");
+     foreach (var match in CurrentPhase.WinnerBracket)
+            {
+       if (!match.IsBye)
+     {
+           ResetKnockoutMatchResult(match);
+        matchesReset++;
+       }
+    }
+        }
+
+        // Reset Loser Bracket matches
+        if (CurrentPhase.LoserBracket != null)
+        {
+ System.Diagnostics.Debug.WriteLine($"  Resetting {CurrentPhase.LoserBracket.Count} Loser Bracket matches");
+   foreach (var match in CurrentPhase.LoserBracket)
+         {
+              if (!match.IsBye)
+         {
+             ResetKnockoutMatchResult(match);
+  matchesReset++;
+                }
+   }
+      }
+     
+     System.Diagnostics.Debug.WriteLine($"ResetKnockoutPhaseMatchResults: Reset {matchesReset} matches total");
+    }
+
+    /// <summary>
+    /// ✅ NEU: Setzt ein einzelnes KnockoutMatch zurück
+    /// </summary>
+    private void ResetKnockoutMatchResult(KnockoutMatch match)
+    {
+    match.Player1Sets = 0;
+        match.Player2Sets = 0;
+  match.Player1Legs = 0;
+        match.Player2Legs = 0;
+        match.Winner = null;
+        match.Loser = null;
+        match.Status = MatchStatus.NotStarted;
+  match.Notes = null;
+  match.FinishedAt = null;
+        match.EndTime = null;
+   
+ // Force PropertyChanged für UI-Update mit öffentlicher Methode
+   match.TriggerPropertyChanged(nameof(match.Status));
+     match.TriggerPropertyChanged(nameof(match.Winner));
+        match.TriggerPropertyChanged(nameof(match.ScoreDisplay));
+        match.TriggerPropertyChanged(nameof(match.StatusDisplay));
+        
+    System.Diagnostics.Debug.WriteLine($"  Reset KO match {match.Id}: {match.Player1?.Name} vs {match.Player2?.Name}");
+    }
+
+    /// <summary>
+    /// ✅ NEU: Setzt nur Finals-Phase Match-Ergebnisse zurück
+    /// </summary>
+    private void ResetFinalsPhaseMatchResults()
+    {
+    System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseMatchResults: Resetting finals phase matches");
+   
+        if (CurrentPhase?.PhaseType != TournamentPhaseType.RoundRobinFinals)
+  {
+      System.Diagnostics.Debug.WriteLine("  Not in finals phase - cannot reset");
+      return;
+        }
+
+    if (CurrentPhase.FinalsGroup != null && CurrentPhase.FinalsGroup.Matches.Count > 0)
+        {
+ System.Diagnostics.Debug.WriteLine($"  Resetting {CurrentPhase.FinalsGroup.Matches.Count} Finals matches");
+     CurrentPhase.FinalsGroup.ResetMatchResults();
+    }
+ 
+     System.Diagnostics.Debug.WriteLine("ResetFinalsPhaseMatchResults: Completed");
+    }
+
+    /// <summary>
     /// ✅ VEREINFACHT: Validiert und repariert Statistiken nach JSON-Loading
     /// </summary>
     public void ValidateAndRepairStatistics()
     {
-        try
+ try
         {
             System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Validating and repairing statistics for class: {Name}");
 
-            if (PlayerStatisticsData.Count > 0)
+    if (PlayerStatisticsData.Count > 0)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Found {PlayerStatisticsData.Count} player statistics in JSON data");
-                
-                // ✅ VEREINFACHT: Validiere jede PlayerStatistics-Instanz
-                foreach (var kvp in PlayerStatisticsData.ToList())
-                {
-                    var playerName = kvp.Key;
-                    var playerStats = kvp.Value;
-                    
-                    // Stelle sicher dass PlayerName korrekt gesetzt ist
-                    if (string.IsNullOrEmpty(playerStats.PlayerName))
-                    {
-                        playerStats.PlayerName = playerName;
-                    }
-                    
-                    // Stelle sicher dass berechnete Eigenschaften aktualisiert sind
-                    playerStats.RecalculateStatistics();
-                    
-                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Validated statistics for player: {playerName} " +
-                        $"({playerStats.TotalMatches} matches, {playerStats.OverallAverage:F1} avg, {playerStats.TotalMaximums} max, {playerStats.TotalHighFinishes} HF)");
-                }
-                
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Successfully validated statistics for {PlayerStatisticsData.Count} players");
-                
-                // ✅ NEU: Trigger PropertyChanged für UI-Updates
-                StatisticsManager.TriggerPropertyChanged(nameof(StatisticsManager.PlayerStatistics));
-            }
-            else
+       System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Found {PlayerStatisticsData.Count} player statistics in JSON data");
+     
+       // ✅ VEREINFACHT: Validiere jede PlayerStatistics-Instanz
+        foreach (var kvp in PlayerStatisticsData.ToList())
             {
-                System.Diagnostics.Debug.WriteLine("[TOURNAMENT-CLASS] No player statistics found in JSON data");
-            }
-        }
-        catch (Exception ex)
-        {
+    var playerName = kvp.Key;
+               var playerStats = kvp.Value;
+               
+      // Stelle sicher dass PlayerName korrekt gesetzt ist
+   if (string.IsNullOrEmpty(playerStats.PlayerName))
+           {
+        playerStats.PlayerName = playerName;
+    }
+           
+            // Stelle sicher dass berechnete Eigenschaften aktualisiert sind
+          playerStats.RecalculateStatistics();
+         
+         System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Validated statistics for player: {playerName} " +
+           $"({playerStats.TotalMatches} matches, {playerStats.OverallAverage:F1} avg, {playerStats.TotalMaximums} max, {playerStats.TotalHighFinishes} HF)");
+         }
+                
+             System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Successfully validated statistics for {PlayerStatisticsData.Count} players");
+     
+ // ✅ NEU: Trigger PropertyChanged für UI-Updates
+      StatisticsManager.TriggerPropertyChanged(nameof(StatisticsManager.PlayerStatistics));
+  }
+        else
+          {
+            System.Diagnostics.Debug.WriteLine("[TOURNAMENT-CLASS] No player statistics found in JSON data");
+         }
+    }
+     catch (Exception ex)
+   {
             System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Error validating statistics: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Stack trace: {ex.StackTrace}");
+     System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Stack trace: {ex.StackTrace}");
         }
     }
 
@@ -692,11 +854,11 @@ public class ByeValidationResult
     public bool CanGiveBye { get; }
     public bool CanUndoBye { get; }
 
-    public ByeValidationResult(bool isValid, string message, bool canGiveBye, bool canUndoBye)
+  public ByeValidationResult(bool isValid, string message, bool canGiveBye, bool canUndoBye)
     {
-        IsValid = isValid;
+IsValid = isValid;
         Message = message;
-        CanGiveBye = canGiveBye;
+    CanGiveBye = canGiveBye;
         CanUndoBye = canUndoBye;
     }
 }
@@ -708,12 +870,12 @@ public class MatchByeUIStatus
 {
     public bool ShowGiveByeButton { get; }
     public bool ShowUndoByeButton { get; }
-    public string StatusMessage { get; }
+ public string StatusMessage { get; }
 
     public MatchByeUIStatus(bool showGiveByeButton, bool showUndoByeButton, string statusMessage)
     {
-        ShowGiveByeButton = showGiveByeButton;
-        ShowUndoByeButton = showUndoByeButton;
+      ShowGiveByeButton = showGiveByeButton;
+      ShowUndoByeButton = showUndoByeButton;
         StatusMessage = statusMessage;
     }
 }
@@ -724,7 +886,7 @@ public class MatchByeUIStatus
 public class MatchStatusChangedEventArgs : EventArgs
 {
     public int MatchId { get; }
-    public MatchStatus NewStatus { get; }
+public MatchStatus NewStatus { get; }
 
     public MatchStatusChangedEventArgs(int matchId, MatchStatus newStatus)
     {
@@ -748,32 +910,32 @@ public class UuidValidationReport
 
     public override string ToString()
     {
-        var status = IsValid ? "✅ VALID" : "❌ INVALID";
+     var status = IsValid ? "✅ VALID" : "❌ INVALID";
         return $"{status} - {ValidUuids}/{TotalMatches} valid UUIDs ({ValidPercentage:F1}%), {InvalidUuids} invalid, {DuplicateUuids} duplicates";
-    }
+  }
 
     /// <summary>
     /// Gibt einen detaillierten Report als String zurück
     /// </summary>
-    public string GetDetailedReport()
+  public string GetDetailedReport()
     {
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"📊 UUID Validation Report");
-        sb.AppendLine($"========================");
+     sb.AppendLine($"========================");
         sb.AppendLine($"Total Matches: {TotalMatches}");
         sb.AppendLine($"Valid UUIDs: {ValidUuids} ({ValidPercentage:F1}%)");
         sb.AppendLine($"Invalid UUIDs: {InvalidUuids}");
-        sb.AppendLine($"Duplicate UUIDs: {DuplicateUuids}");
+      sb.AppendLine($"Duplicate UUIDs: {DuplicateUuids}");
         sb.AppendLine($"Overall Status: {(IsValid ? "✅ VALID" : "❌ ISSUES FOUND")}");
-        
+     
         if (Issues.Any())
-        {
-            sb.AppendLine();
-            sb.AppendLine("🔍 Issues Found:");
-            foreach (var issue in Issues)
-            {
-                sb.AppendLine($"  • {issue}");
-            }
+  {
+     sb.AppendLine();
+      sb.AppendLine("🔍 Issues Found:");
+   foreach (var issue in Issues)
+       {
+           sb.AppendLine($"  • {issue}");
+    }
         }
         
         return sb.ToString();

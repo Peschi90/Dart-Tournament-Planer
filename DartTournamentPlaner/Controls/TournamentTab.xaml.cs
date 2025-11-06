@@ -575,22 +575,23 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         {
             if (TournamentDialogHelper.ShowResetFinalsConfirmation(Window.GetWindow(this), _localizationService))
             {
-                TournamentKnockoutHelper.ResetToGroupPhase(TournamentClass);
+                // ✅ GEÄNDERT: Verwende neue Methode die nur Finals-Phase zurücksetzt
+                TournamentKnockoutHelper.ResetFinalsPhaseOnly(TournamentClass);
                 _uiManager?.ClearKnockoutCanvases();
                 
                 _uiManager?.UpdateUI();
                 _uiManager?.UpdatePlayersView(SelectedGroup);
                 _uiManager?.UpdateMatchesView(SelectedGroup);
                 _uiManager?.UpdatePhaseDisplay();
-                
-                if (MainTabControl != null && SetupTabItem != null)
+   
+                if (MainTabControl != null && GroupPhaseTabItem != null)
                 {
-                    MainTabControl.SelectedItem = SetupTabItem;
+                    MainTabControl.SelectedItem = GroupPhaseTabItem;
                 }
                 
                 var successMessage = _localizationService?.GetString("ResetFinalsComplete") ?? "Die Finalrunde wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
-                
+  
                 DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -607,22 +608,23 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         {
             if (TournamentDialogHelper.ShowResetKnockoutConfirmation(Window.GetWindow(this), _localizationService))
             {
-                TournamentKnockoutHelper.ResetToGroupPhase(TournamentClass);
+                // ✅ GEÄNDERT: Verwende neue Methode die nur KO-Phase zurücksetzt
+                TournamentKnockoutHelper.ResetKnockoutPhaseOnly(TournamentClass);
                 _uiManager?.ClearKnockoutCanvases();
                 
                 _uiManager?.UpdateUI();
                 _uiManager?.UpdatePlayersView(SelectedGroup);
                 _uiManager?.UpdateMatchesView(SelectedGroup);
                 _uiManager?.UpdatePhaseDisplay();
-                
-                if (MainTabControl != null && SetupTabItem != null)
+   
+                if (MainTabControl != null && GroupPhaseTabItem != null)
                 {
-                    MainTabControl.SelectedItem = SetupTabItem;
+                    MainTabControl.SelectedItem = GroupPhaseTabItem;
                 }
                 
                 var successMessage = _localizationService?.GetString("ResetKnockoutComplete") ?? "Die K.-o.-Phase wurde erfolgreich zurückgesetzt.";
                 TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService, Window.GetWindow(this));
-                
+  
                 DataChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -1021,7 +1023,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
                 // ✅ NEU: Update translations first
                 statisticsView.UpdateTranslations();
 
-                // Aktualisiere die statistik-View
+                // aktualisiere die statistik-View
                 statisticsView.TournamentClass = TournamentClass;
 
                 System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics tab updated successfully with class: {TournamentClass.Name}");

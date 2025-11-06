@@ -639,12 +639,33 @@ public class TournamentTabUIManager : IDisposable
         if (ResetTournamentButton != null)
             ResetTournamentButton.IsEnabled = hasAnyData;
             
-        // ✅ NEUE LOGIK: Reset Matches Button nur für ausgewählte Gruppe mit generierten Matches
-        var selectedGroup = GroupsListBox?.SelectedItem as Group;
+        // ✅ ERWEITERTE LOGIK: Reset Matches Button basierend auf aktueller Phase
+        bool canResetMatches = false;
+        
+        if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
+        {
+            // Gruppenphase: Nur wenn Gruppe ausgewählt und Matches generiert
+            var selectedGroup = GroupsListBox?.SelectedItem as Group;
+            canResetMatches = selectedGroup != null && selectedGroup.MatchesGenerated && selectedGroup.Matches.Count > 0;
+        }
+        else if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+        {
+            // K.O.-Phase: Wenn Winner oder Loser Bracket Matches vorhanden sind
+            var hasWinnerBracketMatches = _tournamentClass.CurrentPhase.WinnerBracket?.Count > 0;
+            var hasLoserBracketMatches = _tournamentClass.CurrentPhase.LoserBracket?.Count > 0;
+            canResetMatches = hasWinnerBracketMatches || hasLoserBracketMatches;
+        }
+        else if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+        {
+            // Finals-Phase: Wenn Finals-Gruppe Matches hat
+            var finalsGroup = _tournamentClass.CurrentPhase.FinalsGroup;
+            canResetMatches = finalsGroup != null && finalsGroup.MatchesGenerated && finalsGroup.Matches.Count > 0;
+        }
+
         if (ResetMatchesButton != null)
-            ResetMatchesButton.IsEnabled = selectedGroup != null && selectedGroup.MatchesGenerated && selectedGroup.Matches.Count > 0;
+            ResetMatchesButton.IsEnabled = canResetMatches;
             
-        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: hasGroups={hasGroups}, hasMatches={hasGeneratedMatches}, isAdvanced={isInAdvancedPhase}");
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: Phase={_tournamentClass.CurrentPhase?.PhaseType}, canResetMatches={canResetMatches}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetTournamentButton.IsEnabled = {ResetTournamentButton?.IsEnabled}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetMatchesButton.IsEnabled = {ResetMatchesButton?.IsEnabled}");
     }
