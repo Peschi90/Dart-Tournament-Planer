@@ -20,26 +20,29 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     private readonly GameRules _gameRules;
     private readonly LocalizationService _localizationService;
     private readonly HubIntegrationService? _hubService;
+    private readonly string? _tournamentId;  // ⭐ NEU: Tournament-ID
     private string? _matchPageUrl;
     
-    public MatchResultWindow(Match match, GameRules gameRules, LocalizationService localizationService, HubIntegrationService? hubService = null)
+    public MatchResultWindow(Match match, GameRules gameRules, LocalizationService localizationService, HubIntegrationService? hubService = null, string? tournamentId = null)
     {
         _match = match;
         _gameRules = gameRules;
         _localizationService = localizationService;
         _hubService = hubService;
+     _tournamentId = tournamentId;  // ⭐ NEU
         
         // ✅ IMPROVED DEBUG: Detaillierte Constructor-Informationen
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Constructor called with regular Match");
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match ID: {_match.Id}");
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match UUID: {_match.UniqueId ?? "null"}");
-        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService provided: {_hubService != null}");
-        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService registered: {_hubService?.IsRegisteredWithHub}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Tournament ID: {_tournamentId ?? "null"}");  // ⭐ NEU
+   System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService provided: {_hubService != null}");
+     System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService registered: {_hubService?.IsRegisteredWithHub}");
         
-        InitializeComponent();
+    InitializeComponent();
         InitializeUI();
-        InitializeHubIntegration();
-        UpdateTranslations();
+    InitializeHubIntegration();
+      UpdateTranslations();
     }
 
     /// <summary>
@@ -50,24 +53,25 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     /// <param name="baseGameRules">Base game rules</param>
     /// <param name="localizationService">Localization service</param>
     /// <param name="hubService">Hub integration service</param>
-    public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService, HubIntegrationService? hubService = null)
-    {
+    /// <param name="tournamentId">Tournament-ID for QR codes</param>
+    public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService, HubIntegrationService? hubService = null, string? tournamentId = null)
+  {
         // Convert KnockoutMatch to Match
         _match = new Match
-        {
-            Id = knockoutMatch.Id,
+ {
+     Id = knockoutMatch.Id,
             UniqueId = knockoutMatch.UniqueId, // WICHTIG: UUID übertragen
             Player1 = knockoutMatch.Player1,
-            Player2 = knockoutMatch.Player2,
-            Player1Sets = knockoutMatch.Player1Sets,
-            Player2Sets = knockoutMatch.Player2Sets,
+       Player2 = knockoutMatch.Player2,
+         Player1Sets = knockoutMatch.Player1Sets,
+        Player2Sets = knockoutMatch.Player2Sets,
             Player1Legs = knockoutMatch.Player1Legs,
             Player2Legs = knockoutMatch.Player2Legs,
-            Winner = knockoutMatch.Winner,
-            Status = knockoutMatch.Status,
-            Notes = knockoutMatch.Notes,
-            CreatedAt = knockoutMatch.CreatedAt,
-            FinishedAt = knockoutMatch.FinishedAt
+Winner = knockoutMatch.Winner,
+   Status = knockoutMatch.Status,
+        Notes = knockoutMatch.Notes,
+     CreatedAt = knockoutMatch.CreatedAt,
+          FinishedAt = knockoutMatch.FinishedAt
         };
 
         // Create temporary GameRules with round-specific settings
@@ -75,17 +79,18 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         _gameRules = new GameRules
         {
             GameMode = baseGameRules.GameMode,
-            FinishMode = baseGameRules.FinishMode,
+  FinishMode = baseGameRules.FinishMode,
             PlayWithSets = roundRules.SetsToWin > 0, // Sets nur wenn rundenspezifisch > 0
             SetsToWin = roundRules.SetsToWin,
-            LegsToWin = roundRules.LegsToWin,
-            LegsPerSet = roundRules.LegsPerSet
+       LegsToWin = roundRules.LegsToWin,
+         LegsPerSet = roundRules.LegsPerSet
         };
 
-        _localizationService = localizationService;
+    _localizationService = localizationService;
         _hubService = hubService;
-        
-        InitializeComponent();
+  _tournamentId = tournamentId;  // ⭐ NEU
+      
+     InitializeComponent();
         InitializeUI();
         InitializeHubIntegration();
         UpdateTranslations();
@@ -582,54 +587,64 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// ✅ NEU: Initialize Hub Integration and QR Code
-    /// UPDATED: Verwendet neue dart-scoring.html URL mit Match-UUID Parameter
+    /// UPDATED: Verwendet neue dart-scoring.html URL mit Match-UUID UND Tournament-ID Parameter
     /// FIXED: Verbesserte Debug-Ausgaben
     /// </summary>
     private void InitializeHubIntegration()
     {
-        try
-        {
-            // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
-            System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] InitializeHubIntegration called");
-            System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
+     try
+      {
+  // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
+  System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] InitializeHubIntegration called");
+   System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
             System.Diagnostics.Debug.WriteLine($"   Hub registered: {_hubService?.IsRegisteredWithHub}");
-            System.Diagnostics.Debug.WriteLine($"   Match UUID: {_match.UniqueId ?? "null"}");
-            
-            // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
-            if (_hubService != null && 
-                _hubService.IsRegisteredWithHub && 
-                !string.IsNullOrEmpty(_match.UniqueId))
-            {
-                // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
-                _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={_match.UniqueId}&uuid=true";
-                
-                System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Generated dart-scoring URL: {_matchPageUrl}");
-                
-                // Zeige QR Code Section
-                QrCodeSection.Visibility = Visibility.Visible;
-                
-                // Generiere QR Code
-                GenerateQrCode(_matchPageUrl);
-                
+   System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_tournamentId ?? "null"}");  // ⭐ NEU
+  System.Diagnostics.Debug.WriteLine($"   Match UUID: {_match.UniqueId ?? "null"}");
+         
+     // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
+    if (_hubService != null && 
+     _hubService.IsRegisteredWithHub && 
+  !string.IsNullOrEmpty(_match.UniqueId))
+  {
+       // ✅ FIXED: NEW URL FORMAT mit Tournament-ID UND Match-UUID
+           if (!string.IsNullOrEmpty(_tournamentId))
+    {
+   // Mit Tournament-ID (empfohlen)
+     _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?tournament={_tournamentId}&match={_match.UniqueId}&uuid=true";
+   System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ✅ Generated dart-scoring URL with Tournament ID: {_matchPageUrl}");
+                }
+     else
+              {
+   // Fallback: Ohne Tournament-ID (legacy)
+         _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={_match.UniqueId}&uuid=true";
+         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ⚠️ Generated dart-scoring URL WITHOUT Tournament ID (legacy): {_matchPageUrl}");
+        }
+        
+        // Zeige QR Code Section
+      QrCodeSection.Visibility = Visibility.Visible;
+       
+      // Generiere QR Code
+       GenerateQrCode(_matchPageUrl);
+        
                 System.Diagnostics.Debug.WriteLine("✅ [MatchResultWindow] Hub integration initialized successfully");
             }
             else
-            {
-                // Verstecke QR Code Section
+ {
+     // Verstecke QR Code Section
                 QrCodeSection.Visibility = Visibility.Collapsed;
-                
-                var reasons = new List<string>();
-                if (_hubService == null) reasons.Add("HubService not available");
-                if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
-                if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
-                
-                System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
-            }
+  
+    var reasons = new List<string>();
+          if (_hubService == null) reasons.Add("HubService not available");
+       if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
+           if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
+     
+  System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
+          }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error initializing hub integration: {ex.Message}");
-            QrCodeSection.Visibility = Visibility.Collapsed;
+ System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error initializing hub integration: {ex.Message}");
+     QrCodeSection.Visibility = Visibility.Collapsed;
         }
     }
 

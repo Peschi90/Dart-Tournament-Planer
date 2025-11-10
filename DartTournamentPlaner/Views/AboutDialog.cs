@@ -71,17 +71,44 @@ public partial class AboutDialog : Window
         // Window title
         Title = _localizationService.GetString("About") ?? "About Dart Tournament Planner";
         
-        // Content translations
+        // Header
         TitleTextBlock.Text = _localizationService.GetString("AppTitle") ?? "Dart Tournament Planner";
         
+        // Description Card
         DescriptionTextBlock.Text = _localizationService.GetString("AboutDescription") ?? 
-            "A modern and user-friendly application for organizing dart tournaments. Supports various tournament formats, player management, and comprehensive statistics.";
+            "A comprehensive and modern application for organizing and managing dart tournaments. Supports multiple tournament formats including group stages, finals, and knockout phases.";
         
-        LicenseTextBlock.Text = _localizationService.GetString("OpenSource") ?? "Open Source";
+        // Features Card
+        FeaturesHeaderTextBlock.Text = _localizationService.GetString("Features") ?? "Features";
+        FeaturesTextBlock.Text = _localizationService.GetString("FeatureList") ?? 
+            "• Multiple tournament formats (Group, Finals, Knockout)\n" +
+            "• Real-time match tracking and score management\n" +
+            "• Comprehensive player statistics\n" +
+            "• WebSocket-based Tournament Hub integration\n" +
+            "• QR code generation for mobile access\n" +
+            "• Professional print functionality\n" +
+            "• Multi-language support (English/German)\n" +
+            "• Dark/Light theme support\n" +
+            "• Auto-save and data persistence";
         
+        // Info Card Labels
+        AppInfoHeaderTextBlock.Text = _localizationService.GetString("AppInformation") ?? "Application Information";
+        DeveloperLabelTextBlock.Text = _localizationService.GetString("Developer") ?? "Developer:";
+        FrameworkLabelTextBlock.Text = _localizationService.GetString("Framework") ?? "Framework:";
+        LicenseLabelTextBlock.Text = _localizationService.GetString("License") ?? "License:";
+        WebsiteLabelTextBlock.Text = _localizationService.GetString("Website") ?? "Website:";
+        
+        // Info Card Values
+        DeveloperTextBlock.Text = _localizationService.GetString("DeveloperName") ?? "Marcel Peschka";
+        LicenseTextBlock.Text = _localizationService.GetString("LicenseType") ?? "Open Source (MIT License)";
+        WebsiteTextBlock.Text = _localizationService.GetString("WebsiteUrl") ?? "https://github.com/Peschi90/Dart-Turnament-Planer";
+        
+        // Credits Card
+        ThanksHeaderTextBlock.Text = _localizationService.GetString("SpecialThanks") ?? "Special Thanks";
         CreditsTextBlock.Text = _localizationService.GetString("AboutCredits") ?? 
-            "Thanks to all contributors, testers, and the dart community for their valuable feedback and support in making this application better.";
+            "Special thanks to all contributors, testers, and the dart community for their valuable feedback and support. This project is continuously improved through community engagement and feedback.";
         
+        // Button
         CloseButton.Content = _localizationService.GetString("Close") ?? "Close";
     }
 

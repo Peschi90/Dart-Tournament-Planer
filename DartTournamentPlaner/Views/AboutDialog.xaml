@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="About Dart Tournament Planner" Height="450" Width="500"
+        Title="About Dart Tournament Planner" Height="700" Width="650"
         WindowStartupLocation="CenterOwner"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -88,138 +88,157 @@
             <Setter Property="Background" Value="White"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
-            <Setter Property="Padding" Value="24"/>
-            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
         </Style>
     </Window.Resources>
 
     <!-- Main container with modern design -->
     <Border Background="{StaticResource MainBackgroundBrush}" 
-            CornerRadius="16" 
-            Effect="{StaticResource HeaderShadow}"
-            Margin="8">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+     CornerRadius="16" 
+      Effect="{StaticResource HeaderShadow}"
+   Margin="8">
+   <Grid>
+ <Grid.RowDefinitions>
+           <RowDefinition Height="Auto"/>
+    <RowDefinition Height="*"/>
+<RowDefinition Height="Auto"/>
+ </Grid.RowDefinitions>
+
+        <!-- Header with modern gradient design -->
+            <Border Grid.Row="0" 
+        Background="{StaticResource HeaderGradient}" 
+   CornerRadius="16,16,0,0" 
+            BorderBrush="#E5E7EB" 
+       BorderThickness="0,0,0,1" 
+          Padding="32,24"
+     Effect="{StaticResource HeaderShadow}">
+        <StackPanel HorizontalAlignment="Center">
+  <TextBlock Text="🎯" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+    <TextBlock x:Name="TitleTextBlock" Text="Dart Tournament Planner" 
+            FontSize="28" FontWeight="Bold" 
+      Foreground="#1F2937" HorizontalAlignment="Center"/>
+          <TextBlock x:Name="VersionTextBlock" Text="Version 1.0.0" 
+            FontSize="14" Foreground="#6B7280" 
+     HorizontalAlignment="Center" Margin="0,4,0,0"/>
+   </StackPanel>
+  </Border>
+
+          <!-- Content with white background and scrolling -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0" Padding="0">
+ <Border Background="White" Padding="32,24">
+     <StackPanel>
+<!-- Description Card -->
+       <Border Style="{StaticResource CardStyle}">
+              <StackPanel>
+        <TextBlock Text="📋 About" 
+        FontSize="16" FontWeight="SemiBold" 
+         Foreground="#374151" Margin="0,0,0,12"/>
+      <TextBlock x:Name="DescriptionTextBlock"
+           Text="A modern and user-friendly application for organizing dart tournaments."
+      FontSize="13"
+         TextWrapping="Wrap"
+          LineHeight="20"
+  Foreground="#4B5563"/>
+        </StackPanel>
+           </Border>
+
+       <!-- Features Card -->
+    <Border Style="{StaticResource CardStyle}">
+          <StackPanel>
+       <TextBlock x:Name="FeaturesHeaderTextBlock" Text="✨ Features" 
+   FontSize="16" FontWeight="SemiBold" 
+           Foreground="#374151" Margin="0,0,0,12"/>
+              <TextBlock x:Name="FeaturesTextBlock"
+    Text="• Multiple tournament formats&#x0a;• Real-time tracking&#x0a;• Statistics"
+   FontSize="12"
+    TextWrapping="Wrap"
+        LineHeight="22"
+          Foreground="#4B5563"/>
+   </StackPanel>
+      </Border>
+
+    <!-- Info Card -->
+      <Border Style="{StaticResource CardStyle}">
+     <StackPanel>
+     <TextBlock x:Name="AppInfoHeaderTextBlock" Text="ℹ️ Application Information" 
+      FontSize="16" FontWeight="SemiBold" 
+      Foreground="#374151" Margin="0,0,0,12"/>
+                 
+ <Grid>
+      <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="120"/>
+    <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+       <Grid.RowDefinitions>
+         <RowDefinition Height="Auto"/>
+ <RowDefinition Height="Auto"/>
+ <RowDefinition Height="Auto"/>
+   <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header with modern gradient design -->
-            <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
-                    CornerRadius="16,16,0,0" 
-                    BorderBrush="#E5E7EB" 
-                    BorderThickness="0,0,0,1" 
-                    Padding="32,24"
-                    Effect="{StaticResource HeaderShadow}">
-                <StackPanel HorizontalAlignment="Center">
-                    <TextBlock Text="🎯" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                    <TextBlock x:Name="TitleTextBlock" Text="Dart Tournament Planner" 
-                               FontSize="28" FontWeight="Bold" 
-                               Foreground="#1F2937" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="VersionTextBlock" Text="Version 1.0.0" 
-                               FontSize="14" Foreground="#6B7280" 
-                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                </StackPanel>
-            </Border>
+  <TextBlock x:Name="DeveloperLabelTextBlock" Grid.Row="0" Grid.Column="0" Text="Developer:" 
+                  FontWeight="SemiBold" Foreground="#4B5563" 
+       VerticalAlignment="Center" Margin="0,4"/>
+  <TextBlock x:Name="DeveloperTextBlock" Grid.Row="0" Grid.Column="1" 
+        Text="Pascal Schuler" 
+         VerticalAlignment="Center" Margin="8,4"/>
 
-            <!-- Content with white background -->
-            <Border Grid.Row="1" Background="White" Margin="0" Padding="32,24">
-                <StackPanel>
-                    <!-- Description Card -->
-                    <Border Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock x:Name="DescriptionTextBlock"
-                                       Text="A modern and user-friendly application for organizing dart tournaments. Supports various tournament formats, player management, and comprehensive statistics."
-                                       FontSize="14"
-                                       TextWrapping="Wrap"
-                                       LineHeight="20"
-                                       Foreground="#374151"
-                                       TextAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+      <TextBlock x:Name="FrameworkLabelTextBlock" Grid.Row="1" Grid.Column="0" Text="Framework:" 
+            FontWeight="SemiBold" Foreground="#4B5563" 
+           VerticalAlignment="Center" Margin="0,4"/>
+    <TextBlock x:Name="FrameworkTextBlock" Grid.Row="1" Grid.Column="1" 
+      Text=".NET 9 / WPF" 
+     VerticalAlignment="Center" Margin="8,4"/>
 
-                    <!-- Info Card -->
-                    <Border Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📋 Information" 
-                                       FontSize="16" FontWeight="SemiBold" 
-                                       Foreground="#374151" Margin="0,0,0,12"/>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+      <TextBlock x:Name="LicenseLabelTextBlock" Grid.Row="2" Grid.Column="0" Text="License:" 
+                FontWeight="SemiBold" Foreground="#4B5563" 
+          VerticalAlignment="Center" Margin="0,4"/>
+            <TextBlock x:Name="LicenseTextBlock" Grid.Row="2" Grid.Column="1" 
+       Text="Open Source (MIT License)" 
+      VerticalAlignment="Center" Margin="8,4"/>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Developer:" 
-                                           FontWeight="SemiBold" Foreground="#4B5563" 
-                                           VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBlock x:Name="DeveloperTextBlock" Grid.Row="0" Grid.Column="1" 
-                                           Text="Dart Tournament Planner Team" 
-                                           VerticalAlignment="Center" Margin="8,4"/>
+          <TextBlock x:Name="WebsiteLabelTextBlock" Grid.Row="3" Grid.Column="0" Text="Website:" 
+       FontWeight="SemiBold" Foreground="#4B5563" 
+    VerticalAlignment="Center" Margin="0,4"/>
+                 <TextBlock x:Name="WebsiteTextBlock" Grid.Row="3" Grid.Column="1" 
+         Text="https://github.com/Peschi90/Dart-Turnament-Planer" 
+           VerticalAlignment="Center" Margin="8,4"
+          Foreground="#3B82F6" Cursor="Hand"
+      TextDecorations="Underline"/>
+           </Grid>
+     </StackPanel>
+ </Border>
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Framework:" 
-                                           FontWeight="SemiBold" Foreground="#4B5563" 
-                                           VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBlock x:Name="FrameworkTextBlock" Grid.Row="1" Grid.Column="1" 
-                                           Text=".NET 9 / WPF" 
-                                           VerticalAlignment="Center" Margin="8,4"/>
+      <!-- Credits Card -->
+         <Border Style="{StaticResource CardStyle}">
+            <StackPanel>
+            <TextBlock x:Name="ThanksHeaderTextBlock" Text="🙏 Special Thanks" 
+        FontSize="16" FontWeight="SemiBold" 
+      Foreground="#374151" Margin="0,0,0,12"/>
+   
+ <TextBlock x:Name="CreditsTextBlock"
+         Text="Thanks to all contributors and the dart community."
+      FontSize="12"
+         TextWrapping="Wrap"
+    LineHeight="18"
+          Foreground="#6B7280"/>
+        </StackPanel>
+      </Border>
+              </StackPanel>
+  </Border>
+      </ScrollViewer>
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="License:" 
-                                           FontWeight="SemiBold" Foreground="#4B5563" 
-                                           VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBlock x:Name="LicenseTextBlock" Grid.Row="2" Grid.Column="1" 
-                                           Text="Open Source" 
-                                           VerticalAlignment="Center" Margin="8,4"/>
-
-                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Website:" 
-                                           FontWeight="SemiBold" Foreground="#4B5563" 
-                                           VerticalAlignment="Center" Margin="0,4"/>
-                                <TextBlock x:Name="WebsiteTextBlock" Grid.Row="3" Grid.Column="1" 
-                                           Text="https://github.com/..." 
-                                           VerticalAlignment="Center" Margin="8,4"
-                                           Foreground="#3B82F6" Cursor="Hand"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Credits Card -->
-                    <Border Style="{StaticResource CardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="🙏 Special Thanks" 
-                                       FontSize="16" FontWeight="SemiBold" 
-                                       Foreground="#374151" Margin="0,0,0,12"/>
-                            
-                            <TextBlock x:Name="CreditsTextBlock"
-                                       Text="Thanks to all contributors, testers, and the dart community for their valuable feedback and support in making this application better."
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       LineHeight="18"
-                                       Foreground="#6B7280"
-                                       TextAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
-
-            <!-- Footer -->
-            <Border Grid.Row="2" 
-                    Background="White" 
-                    CornerRadius="0,0,16,16"
-                    Padding="32,20">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button x:Name="CloseButton" Content="Close" Style="{StaticResource ModernButton}"
-                            Click="CloseButton_Click"/>
-                </StackPanel>
-            </Border>
+     <!-- Footer -->
+    <Border Grid.Row="2" 
+      Background="White" 
+       CornerRadius="0,0,16,16"
+         Padding="32,20">
+       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+        <Button x:Name="CloseButton" Content="Close" Style="{StaticResource ModernButton}"
+            Click="CloseButton_Click"/>
+     </StackPanel>
+      </Border>
         </Grid>
     </Border>
 </Window>

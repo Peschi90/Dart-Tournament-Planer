@@ -155,6 +155,43 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["Bronze"] = "Bronze",
             
             // =====================================
+            // ABOUT DIALOG
+            // =====================================
+
+            ["About"] = "About",
+            ["AboutDescription"] = "A comprehensive and modern application for organizing and managing dart tournaments. " +
+                "Supports multiple tournament formats including group stages, finals, and knockout phases. " +
+                "Features real-time match tracking, detailed player statistics, tournament hub integration via WebSocket, " +
+                "QR code generation for easy mobile access, and professional tournament documentation with print functionality.",
+            ["AboutCredits"] = "Special thanks to all contributors, testers, and the dart community for their valuable feedback and support. " +
+                "This project is continuously improved through community engagement and feedback.",
+            ["Developer"] = "Developer",
+            ["DeveloperName"] = "Marcel Peschka",
+            ["Framework"] = "Framework",
+            ["License"] = "License",
+            ["LicenseType"] = "Open Source (MIT License)",
+            ["Website"] = "Website",
+            ["WebsiteUrl"] = "https://github.com/Peschi90/Dart-Turnament-Planer",
+            ["OpenSource"] = "Open Source",
+            ["SpecialThanks"] = "Special Thanks",
+            ["AppInformation"] = "Application Information",
+            ["TechnicalDetails"] = "Technical Details",
+            ["Features"] = "Features",
+            ["FeatureList"] = "• Multiple tournament formats (Group, Finals, Knockout)\n" +
+                "• Real-time match tracking and score management\n" +
+                "• Comprehensive player statistics\n" +
+                "• WebSocket-based Tournament Hub integration\n" +
+                "• QR code generation for mobile access\n" +
+                "• Professional print functionality\n" +
+                "• Multi-language support (English/German)\n" +
+                "• Dark/Light theme support\n" +
+                "• Auto-save and data persistence",
+            ["ContactSupport"] = "Support & Contact",
+            ["GitHubRepository"] = "GitHub Repository",
+            ["ReportIssue"] = "Report Issue",
+            ["VersionInfo"] = "Version Information",
+
+            // =====================================
             // THEME & DARK MODE
             // =====================================
             

@@ -22,12 +22,45 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="owner">Das Besitzerfenster für den Dialog</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+        /// <param name="tournamentId">Tournament-ID für QR-Code URLs (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
         public static bool ShowPrintDialog(TournamentClass tournamentClass, Window? owner = null, 
-            LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null,
+            string? tournamentId = null)
         {
-            return ShowPrintDialog(new List<TournamentClass> { tournamentClass }, tournamentClass, owner, 
-                localizationService, null, null, hubService);
+            // ? FIXED: Hole Tournament-ID über TournamentManagementService
+            var activeTournamentId = tournamentId;
+            if (string.IsNullOrEmpty(activeTournamentId))
+            {
+        try
+             {
+          if (Application.Current.MainWindow is MainWindow mainWindow)
+ {
+                 // ? KORRIGIERT: Hole TournamentManagementService statt direkten Zugriff auf _tournamentData
+      var tournamentServiceField = mainWindow.GetType()
+      .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+    
+     if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+         {
+              var tournamentData = tournamentService.GetTournamentData();
+     activeTournamentId = tournamentData?.TournamentId;
+     
+        System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Simple] Tournament ID from TournamentService: {activeTournamentId ?? "null"}");
+}
+      else
+     {
+         System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Simple] Could not get TournamentManagementService");
+     }
+            }
+        }
+        catch (Exception ex)
+  {
+   System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Simple] Could not get Tournament ID: {ex.Message}");
+}
+            }
+       
+      return ShowPrintDialog(new List<TournamentClass> { tournamentClass }, tournamentClass, owner, 
+       localizationService, null, null, hubService, activeTournamentId);
         }
 
         /// <summary>
@@ -40,18 +73,51 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="licenseFeatureService">Service für Lizenzprüfung (optional)</param>
         /// <param name="licenseManager">Lizenz Manager für Dialog (optional)</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+        /// <param name="tournamentId">Die Turnier-ID (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
         public static bool ShowPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, 
             Window? owner = null, LocalizationService? localizationService = null, 
             DartTournamentPlaner.Services.License.LicenseFeatureService? licenseFeatureService = null, 
             DartTournamentPlaner.Services.License.LicenseManager? licenseManager = null,
-            HubIntegrationService? hubService = null)
-        {
+            HubIntegrationService? hubService = null,
+            string? tournamentId = null)
+    {
             try
-            {
-                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Starting for {tournamentClasses?.Count ?? 0} tournament classes");
-                
-                // NEU: Lizenzprüfung für Enhanced Printing Feature
+  {
+        // ? FIXED: Hole Tournament-ID über TournamentManagementService
+  var activeTournamentId = tournamentId;
+           if (string.IsNullOrEmpty(activeTournamentId))
+ {
+        try
+         {
+              if (Application.Current.MainWindow is MainWindow mainWindow)
+      {
+        // ? KORRIGIERT: Hole TournamentManagementService statt direkten Zugriff auf _tournamentData
+   var tournamentServiceField = mainWindow.GetType()
+            .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+               
+    if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+       {
+ var tournamentData = tournamentService.GetTournamentData();
+      activeTournamentId = tournamentData?.TournamentId;
+     
+       System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Main] Tournament ID from TournamentService: {activeTournamentId ?? "null"}");
+       }
+         else
+                 {
+     System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Main] Could not get TournamentManagementService");
+       }
+    }
+              }
+   catch (Exception ex)
+             {
+   System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-Main] Could not get Tournament ID: {ex.Message}");
+ }
+       }
+    
+                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Starting for {tournamentClasses?.Count ?? 0} tournament classes, TournamentId: {activeTournamentId ?? "null"}");
+   
+     // NEU: Lizenzprüfung für Enhanced Printing Feature
                 if (licenseFeatureService != null && licenseManager != null)
                 {
                     var status = licenseFeatureService.CurrentStatus;
@@ -129,40 +195,40 @@ namespace DartTournamentPlaner.Helpers
                     ? selectedTournamentClass 
                     : printableClasses.First();
 
-                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Opening print dialog with {printableClasses.Count} printable classes, initial selection: {initialSelection.Name}");
+                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Opening print dialog with {printableClasses.Count} printable classes, initial selection: {initialSelection.Name}, TournamentId: {activeTournamentId ?? "null"}");  // ? activeTournamentId verwenden
 
-                // ? Öffne Druckdialog MIT HubService für QR-Code Support
-                var printDialog = new TournamentPrintDialog(tournamentClasses, initialSelection, localizationService, hubService);
+                // ? Öffne Druckdialog MIT HubService UND Tournament-ID für QR-Code Support
+        var printDialog = new TournamentPrintDialog(tournamentClasses, initialSelection, localizationService, hubService, activeTournamentId);  // ? activeTournamentId verwenden
      
-                if (owner != null)
-                {
-                    printDialog.Owner = owner;
-                }
+       if (owner != null)
+        {
+      printDialog.Owner = owner;
+             }
 
-                var result = printDialog.ShowDialog();
+          var result = printDialog.ShowDialog();
                 
-                if (result == true && printDialog.PrintConfirmed)
-                {
-                    System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print confirmed, executing print...");
-                    // Führe den tatsächlichen Druckvorgang aus - mit HubService für QR-Codes
-                    return ExecutePrint(initialSelection, printDialog.PrintOptions, localizationService, hubService);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print cancelled by user");
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: ERROR: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Stack trace: {ex.StackTrace}");
-                MessageBox.Show($"Fehler beim Öffnen des Druckdialogs: {ex.Message}", "Fehler", 
-                              MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
+              if (result == true && printDialog.PrintConfirmed)
+         {
+        System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print confirmed, executing print...");
+  // Führe den tatsächlichen Druckvorgang aus - mit HubService UND Tournament-ID für QR-Codes
+      return ExecutePrint(initialSelection, printDialog.PrintOptions, localizationService, hubService, activeTournamentId);  // ? activeTournamentId übergeben
+      }
+   else
+    {
+             System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print cancelled by user");
         }
+
+       return false;
+ }
+       catch (Exception ex)
+            {
+    System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: ERROR: {ex.Message}");
+          System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Stack trace: {ex.StackTrace}");
+            MessageBox.Show($"Fehler beim Öffnen des Druckdialogs: {ex.Message}", "Fehler", 
+              MessageBoxButton.OK, MessageBoxImage.Error);
+      return false;
+            }
+  }
 
         /// <summary>
         /// Führt den Druckvorgang with den angegebenen Optionen aus
@@ -171,13 +237,14 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="printOptions">Die Druckoptionen</param>
         /// <param name="localizationService">Service für Übersetzungen</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+        /// <param name="tournamentId">Die Turnier-ID für QR-Codes (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt wurde</returns>
         private static bool ExecutePrint(TournamentClass tournamentClass, TournamentPrintOptions printOptions, 
-            LocalizationService? localizationService, HubIntegrationService? hubService = null)
+            LocalizationService? localizationService, HubIntegrationService? hubService = null, string? tournamentId = null)  // ? Tournament-ID Parameter
         {
             try
             {
-                var printService = new PrintService(localizationService, hubService);
+                var printService = new PrintService(localizationService, hubService, tournamentId);  // ? Tournament-ID übergeben
                 var success = printService.PrintTournamentStatistics(tournamentClass, printOptions);
 
                 if (success)
@@ -293,43 +360,76 @@ namespace DartTournamentPlaner.Helpers
         /// <param name="owner">Besitzerfenster</param>
         /// <param name="localizationService">Lokalisierungsservice</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+        /// <param name="tournamentId">Tournament-ID für QR-Code URLs (optional)</param>
         /// <returns>True wenn Vorschau angezeigt wurde</returns>
         public static bool ShowQuickPreview(TournamentClass tournamentClass, Window? owner = null, 
-            LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null,
+            string? tournamentId = null)  // ? NEU
         {
             try
-            {
-                if (tournamentClass == null || !HasPrintableContent(tournamentClass))
-                {
-                    return false;
-                }
+{
+  if (tournamentClass == null || !HasPrintableContent(tournamentClass))
+ {
+ return false;
+ }
 
-                var printService = new PrintService(localizationService, hubService);
-                var options = CreateDefaultPrintOptions(tournamentClass);
-                var preview = printService.CreatePrintPreview(tournamentClass, options);
-                
-                if (preview != null)
-                {
-                    var previewWindow = new Window
-                    {
-                        Title = $"Schnellvorschau - {tournamentClass.Name}",
-                        Content = preview,
-                        WindowState = WindowState.Maximized,
-                        Owner = owner
-                    };
-                    
-                    previewWindow.ShowDialog();
-                    return true;
-                }
+     // ? FIXED: Hole Tournament-ID über TournamentManagementService
+var activeTournamentId = tournamentId;
+     if (string.IsNullOrEmpty(activeTournamentId))
+  {
+         try
+  {
+   if (Application.Current.MainWindow is MainWindow mainWindow)
+         {
+      // ? KORRIGIERT: Hole TournamentManagementService
+   var tournamentServiceField = mainWindow.GetType()
+    .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+         
+    if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+ {
+     var tournamentData = tournamentService.GetTournamentData();
+   activeTournamentId = tournamentData?.TournamentId;
+      
+      System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPreview] Tournament ID from TournamentService: {activeTournamentId ?? "null"}");
+    }
+    else
+       {
+         System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPreview] Could not get TournamentManagementService");
+         }
+   }
+ }
+    catch (Exception ex)
+     {
+ System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPreview] Could not get Tournament ID: {ex.Message}");
+     }
+   }
 
-                return false;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"PrintHelper.ShowQuickPreview: ERROR: {ex.Message}");
-                return false;
-            }
-        }
+     var printService = new PrintService(localizationService, hubService, activeTournamentId);
+     var options = CreateDefaultPrintOptions(tournamentClass);
+  var preview = printService.CreatePrintPreview(tournamentClass, options);
+            
+ if (preview != null)
+{
+     var previewWindow = new Window
+    {
+        Title = $"Schnellvorschau - {tournamentClass.Name}",
+Content = preview,
+       WindowState = WindowState.Maximized,
+     Owner = owner
+ };
+   
+       previewWindow.ShowDialog();
+  return true;
+   }
+
+  return false;
+      }
+   catch (Exception ex)
+    {
+    System.Diagnostics.Debug.WriteLine($"PrintHelper.ShowQuickPreview: ERROR: {ex.Message}");
+return false;
+   }
+      }
 
         /// <summary>
         /// Erstellt Standard-Druckoptionen für eine Turnierklasse
@@ -362,80 +462,63 @@ namespace DartTournamentPlaner.Helpers
         /// <summary>
         /// Schnelldruck mit Standard-Einstellungen (ohne Dialog)
         /// </summary>
-        /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
-        /// <param name="localizationService">Lokalisierungsservice</param>
+ /// <param name="tournamentClass">Die zu druckende Turnierklasse</param>
+        /// <param name="localizationService">LizenzManager für Dialog (optional)</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
+   /// <param name="tournamentId">Tournament-ID für QR-Code URLs (optional)</param>
         /// <returns>True wenn erfolgreich gedruckt</returns>
         public static bool QuickPrint(TournamentClass tournamentClass, LocalizationService? localizationService = null,
-            HubIntegrationService? hubService = null)
+            HubIntegrationService? hubService = null, string? tournamentId = null)  // ? NEU
         {
             try
-            {
-                if (tournamentClass == null || !HasPrintableContent(tournamentClass))
-                {
-                    return false;
-                }
+      {
+      if (tournamentClass == null || !HasPrintableContent(tournamentClass))
+ {
+    return false;
+     }
 
-                var printService = new PrintService(localizationService, hubService);
-                var options = CreateDefaultPrintOptions(tournamentClass);
-                options.ShowPrintDialog = true; // Zeige System-Druckdialog
-                
-                return printService.PrintTournamentStatistics(tournamentClass, options);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"PrintHelper.QuickPrint: ERROR: {ex.Message}");
-                return false;
-            }
-        }
+    // ? FIXED: Hole Tournament-ID über TournamentManagementService
+      var activeTournamentId = tournamentId;
+  if (string.IsNullOrEmpty(activeTournamentId))
+    {
+try
+      {
+ if (Application.Current.MainWindow is MainWindow mainWindow)
+      {
+      // ? KORRIGIERT: Hole TournamentManagementService
+   var tournamentServiceField = mainWindow.GetType()
+      .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+    
+       if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+      {
+var tournamentData = tournamentService.GetTournamentData();
+      activeTournamentId = tournamentData?.TournamentId;
+ 
+     System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPrint] Tournament ID from TournamentService: {activeTournamentId ?? "null"}");
+ }
+       else
+       {
+ System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPrint] Could not get TournamentManagementService");
+}
+       }
+    }
+      catch (Exception ex)
+     {
+   System.Diagnostics.Debug.WriteLine($"?? [PrintHelper-QuickPrint] Could not get Tournament ID: {ex.Message}");
+  }
+    }
 
-        /// <summary>
-        /// Generiert eine Zusammenfassung der druckbaren Inhalte
-        /// </summary>
-        /// <param name="tournamentClass">Die Turnierklasse</param>
-        /// <param name="localizationService">Lokalisierungsservice</param>
-        /// <returns>Textuelle Beschreibung der Inhalte</returns>
-        public static string GetPrintableSummary(TournamentClass tournamentClass, LocalizationService? localizationService = null)
-        {
-            if (tournamentClass == null)
-            {
-                return "Keine Daten verfügbar";
-            }
-
-            var summary = new System.Text.StringBuilder();
-            summary.AppendLine($"Turnierklasse: {tournamentClass.Name}");
-            
-            // Gruppen
-            if (tournamentClass.Groups.Any())
-            {
-                var totalPlayers = tournamentClass.Groups.SelectMany(g => g.Players).Count();
-                var totalMatches = tournamentClass.Groups.SelectMany(g => g.Matches).Count();
-                summary.AppendLine($"Gruppen: {tournamentClass.Groups.Count} ({totalPlayers} Spieler, {totalMatches} Spiele)");
-            }
-
-            // Aktuelle Phase
-            if (tournamentClass.CurrentPhase != null)
-            {
-                summary.AppendLine($"Phase: {tournamentClass.CurrentPhase.Name}");
-                
-                if (tournamentClass.CurrentPhase.PhaseType == TournamentPhaseType.RoundRobinFinals)
-                {
-                    var finalistsCount = tournamentClass.CurrentPhase.QualifiedPlayers?.Count ?? 0;
-                    summary.AppendLine($"Finalisten: {finalistsCount}");
-                }
-                else if (tournamentClass.CurrentPhase.PhaseType == TournamentPhaseType.KnockoutPhase)
-                {
-                    var winnerMatches = tournamentClass.GetWinnerBracketMatches().Count;
-                    var loserMatches = tournamentClass.GetLoserBracketMatches().Count;
-                    summary.AppendLine($"Winner Bracket: {winnerMatches} Spiele");
-                    if (loserMatches > 0)
-                    {
-                        summary.AppendLine($"Loser Bracket: {loserMatches} Spiele");
-                    }
-                }
-            }
-
-            return summary.ToString();
-        }
+var printService = new PrintService(localizationService, hubService, activeTournamentId);
+    var options = CreateDefaultPrintOptions(tournamentClass);
+      options.ShowPrintDialog = true;
+   
+   return printService.PrintTournamentStatistics(tournamentClass, options);
+    }
+ catch (Exception ex)
+   {
+    System.Diagnostics.Debug.WriteLine($"PrintHelper.QuickPrint: ERROR: {ex.Message}");
+   return false;
+   }
+      }
     }
 }

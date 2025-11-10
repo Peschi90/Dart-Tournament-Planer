@@ -12,17 +12,23 @@ namespace DartTournamentPlaner.Services.Print
     /// <summary>
     /// Factory-Klasse für die Erstellung von Print-Tabellen
     /// Verwaltet die Erstellung von Standings-, Match- und Knockout-Tabellen mit QR-Code-Support
-/// </summary>
-  public class PrintTableFactory
+    /// </summary>
+    public class PrintTableFactory
     {
-        private readonly LocalizationService? _localizationService;
+     private readonly LocalizationService? _localizationService;
         private readonly PrintQRCodeHelper? _qrCodeHelper;
+        private readonly string? _tournamentId;
 
- public PrintTableFactory(LocalizationService? localizationService, PrintQRCodeHelper? qrCodeHelper)
+     /// <summary>
+        /// Konstruktor mit Tournament-ID für QR-Code Generierung
+        /// </summary>
+        public PrintTableFactory(LocalizationService? localizationService, PrintQRCodeHelper? qrCodeHelper, string? tournamentId = null)
    {
-          _localizationService = localizationService;
+         _localizationService = localizationService;
         _qrCodeHelper = qrCodeHelper;
-        }
+  _tournamentId = tournamentId;
+            System.Diagnostics.Debug.WriteLine($"[PrintTableFactory] Initialized with TournamentId: {tournamentId ?? "null"}");
+     }
 
         /// <summary>
         /// Erstellt eine Standings-Tabelle für eine Gruppe
@@ -300,36 +306,37 @@ Grid.SetRow(cellBorder, row + 1);
              BorderThickness = new Thickness(0.5),
        Padding = new Thickness(2)
       };
-                    
-       var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, 5);
-                 
-           if (qrImage != null)
+       
+        // ? FIXED: Tournament-ID mit übergeben
+      var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, _tournamentId, 5);
+   
+if (qrImage != null)
+  {
+       var image = new System.Windows.Controls.Image
     {
-         var image = new System.Windows.Controls.Image
-      {
-         Source = qrImage,
-      Width = 90,
-  Height = 90,
-        Stretch = System.Windows.Media.Stretch.Uniform
-  };
-               qrCellBorder.Child = image;
-}
-         else
-       {
-     qrCellBorder.Child = new TextBlock
-      {
-        Text = "-",
-       FontSize = 10,
-TextAlignment = TextAlignment.Center,
-   VerticalAlignment = VerticalAlignment.Center,
-           Foreground = Brushes.LightGray
-           };
-   }
-        
-               Grid.SetRow(qrCellBorder, row + 1);
-  Grid.SetColumn(qrCellBorder, values.Length);
-       grid.Children.Add(qrCellBorder);
+          Source = qrImage,
+Width = 90,
+       Height = 90,
+Stretch = System.Windows.Media.Stretch.Uniform
+      };
+        qrCellBorder.Child = image;
  }
+    else
+     {
+       qrCellBorder.Child = new TextBlock
+   {
+    Text = "-",
+  FontSize = 10,
+       TextAlignment = TextAlignment.Center,
+     VerticalAlignment = VerticalAlignment.Center,
+ Foreground = Brushes.LightGray
+            };
+         }
+    
+       Grid.SetRow(qrCellBorder, row + 1);
+       Grid.SetColumn(qrCellBorder, values.Length);
+ grid.Children.Add(qrCellBorder);
+         }
    }
 
             return new Border
@@ -507,34 +514,34 @@ Background = row % 2 == 0 ? Brushes.White : new SolidColorBrush(Color.FromRgb(24
                 BorderThickness = new Thickness(0.5),
    Padding = new Thickness(2)
   };
-          
-     var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, 5);
+       
+  // ? FIXED: Tournament-ID mit übergeben
+        var qrImage = _qrCodeHelper?.GenerateMatchQRCode(match, _tournamentId, 5);
         
-  if (qrImage != null)
- {
-    // ? KORRIGIERT: QR-Code Größe von 100x100 auf 90x90
-       var image = new System.Windows.Controls.Image
-           {
-      Source = qrImage,
-          Width = 90,
-     Height = 90,
-           Stretch = System.Windows.Media.Stretch.Uniform
-         };
-           qrCellBorder.Child = image;
-     }
-       else
+     if (qrImage != null)
      {
-              qrCellBorder.Child = new TextBlock
-            {
-    Text = "-",
-      FontSize = 10,
-     TextAlignment = TextAlignment.Center,
-      VerticalAlignment = VerticalAlignment.Center,
+        var image = new System.Windows.Controls.Image
+{
+   Source = qrImage,
+       Width = 90,
+     Height = 90,
+Stretch = System.Windows.Media.Stretch.Uniform
+      };
+     qrCellBorder.Child = image;
+  }
+        else
+ {
+        qrCellBorder.Child = new TextBlock
+ {
+      Text = "-",
+     FontSize = 10,
+TextAlignment = TextAlignment.Center,
+   VerticalAlignment = VerticalAlignment.Center,
      Foreground = Brushes.LightGray
-              };
-       }
-             
-          Grid.SetRow(qrCellBorder, row + 1);
+     };
+    }
+      
+   Grid.SetRow(qrCellBorder, row + 1);
           Grid.SetColumn(qrCellBorder, values.Length);
    grid.Children.Add(qrCellBorder);
  }

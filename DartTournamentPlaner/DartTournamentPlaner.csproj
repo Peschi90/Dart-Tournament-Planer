@@ -18,9 +18,9 @@
 	<AssemblyDescription>Eine moderne Turnierverwaltungsanwendung für Dart-Turniere</AssemblyDescription>
 	<AssemblyCompany>by I3uLL3t aka Peschi90</AssemblyCompany>
 	<AssemblyProduct>Dart Tournament Planner</AssemblyProduct>
-	<AssemblyCopyright>Copyright © 2025</AssemblyCopyright>
-	<AssemblyVersion>0.1.12</AssemblyVersion>
-	<AssemblyFileVersion>0.1.12</AssemblyFileVersion>
+	<AssemblyCopyright>Copyright © 2025 Marcel Peschka</AssemblyCopyright>
+	<AssemblyVersion>0.1.13</AssemblyVersion>
+	<AssemblyFileVersion>0.1.13</AssemblyFileVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -19,30 +19,38 @@ namespace DartTournamentPlaner.Services
     /// </summary>
     public class PrintService
     {
-        private readonly LocalizationService? _localizationService;
-        private readonly PrintQRCodeHelper? _qrCodeHelper;
-        private readonly PrintLayoutHelper _layoutHelper;
-        private readonly PrintTableFactory _tableFactory;
-        private readonly PrintPageFactory _pageFactory;
+      private readonly LocalizationService? _localizationService;
+    private readonly PrintQRCodeHelper? _qrCodeHelper;
+    private readonly PrintLayoutHelper _layoutHelper;
+private readonly PrintTableFactory _tableFactory;
+      private readonly PrintPageFactory _pageFactory;
+  private readonly string? _tournamentId;
 
-        public PrintService(LocalizationService? localizationService = null, HubIntegrationService? hubService = null)
-        {
-            _localizationService = localizationService;
+        /// <summary>
+        /// Konstruktor mit optionaler Tournament-ID für QR-Code Generierung
+        /// </summary>
+        /// <param name="localizationService">Lokalisierungs-Service</param>
+        /// <param name="hubService">Hub-Service für QR-Code Generierung</param>
+        /// <param name="tournamentId">Tournament-ID für QR-Code URLs</param>
+  public PrintService(LocalizationService? localizationService = null, HubIntegrationService? hubService = null, string? tournamentId = null)
+   {
+      _localizationService = localizationService;
+            _tournamentId = tournamentId;
     
-            if (hubService != null)
-     {
-         _qrCodeHelper = new PrintQRCodeHelper(hubService);
-           System.Diagnostics.Debug.WriteLine($"[PrintService] QR Code Helper initialized - Available: {_qrCodeHelper.AreQRCodesAvailable}");
-      }
+    if (hubService != null)
+    {
+   _qrCodeHelper = new PrintQRCodeHelper(hubService, tournamentId);
+ System.Diagnostics.Debug.WriteLine($"[PrintService] QR Code Helper initialized - Available: {_qrCodeHelper.AreQRCodesAvailable}, TournamentId: {tournamentId ?? "null"}");
+  }
   
-            _layoutHelper = new PrintLayoutHelper(_localizationService, _qrCodeHelper);
-            _tableFactory = new PrintTableFactory(_localizationService, _qrCodeHelper);
-            _pageFactory = new PrintPageFactory(_localizationService, _layoutHelper, _tableFactory);
+ _layoutHelper = new PrintLayoutHelper(_localizationService, _qrCodeHelper);
+            _tableFactory = new PrintTableFactory(_localizationService, _qrCodeHelper, tournamentId);
+   _pageFactory = new PrintPageFactory(_localizationService, _layoutHelper, _tableFactory, tournamentId);  // ? FIXED: Tournament-ID übergeben
         }
 
         public bool PrintTournamentStatistics(TournamentClass tournamentClass, TournamentPrintOptions printOptions)
-        {
-  try
+     {
+            try
  {
          var printDialog = new PrintDialog();
    
@@ -654,16 +662,16 @@ FontStyle = FontStyles.Italic,
 
     public class TournamentPrintOptions
     {
-        public bool ShowPrintDialog { get; set; } = true;
+      public bool ShowPrintDialog { get; set; } = true;
         public bool IncludeOverview { get; set; } = true;
         public bool IncludeGroupPhase { get; set; } = true;
-    public List<int> SelectedGroups { get; set; } = new List<int>();
+ public List<int> SelectedGroups { get; set; } = new List<int>();
         public bool IncludeFinalsPhase { get; set; } = true;
-    public bool IncludeKnockoutPhase { get; set; } = true;
-        public bool IncludeWinnerBracket { get; set; } = true;
+        public bool IncludeKnockoutPhase { get; set; } = true;
+     public bool IncludeWinnerBracket { get; set; } = true;
         public bool IncludeLoserBracket { get; set; } = true;
         public bool IncludeKnockoutParticipants { get; set; } = true;
-      public string Title { get; set; } = "";
+        public string Title { get; set; } = "";
         public string Subtitle { get; set; } = "";
     }
 }

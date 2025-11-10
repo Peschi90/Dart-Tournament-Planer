@@ -45,10 +45,11 @@ public partial class TournamentOverviewWindow : Window
         List<TournamentClass> tournamentClasses,
         LocalizationService localizationService,
         HubIntegrationService? hubService = null,
-        LicenseFeatureService? licenseFeatureService = null)
+        LicenseFeatureService? licenseFeatureService = null,
+        string? tournamentId = null)  // ⭐ NEU: Tournament-ID Parameter
     {
         InitializeComponent();
-        
+     
         _tournamentClasses = tournamentClasses;
         _localizationService = localizationService;
         _hubService = hubService;
@@ -56,36 +57,67 @@ public partial class TournamentOverviewWindow : Window
         // ✅ KORRIGIERT: Hole LicenseFeatureService vom MainWindow falls nicht übergeben
         _licenseFeatureService = licenseFeatureService;
         if (_licenseFeatureService == null)
-        {
-            try
-            {
-                if (Application.Current.MainWindow is MainWindow mainWindow)
-                {
-                    var licenseServiceField = mainWindow.GetType()
-                        .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    _licenseFeatureService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
-                }
-            }
+   {
+       try
+       {
+    if (Application.Current.MainWindow is MainWindow mainWindow)
+   {
+     var licenseServiceField = mainWindow.GetType()
+       .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+_licenseFeatureService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
+   }
+         }
             catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
-            }
+       {
+  System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
+      }
         }
         
-        // Initialisiere Helper-Klassen direkt im Konstruktor
-        _qrCodeHelper = new TournamentOverviewQRCodeHelper(_hubService, _localizationService, OnOpenMatchPageClick);
+ // ⭐ NEU: Hole Tournament-ID vom MainWindow falls nicht übergeben
+        var activeTournamentId = tournamentId;
+        if (string.IsNullOrEmpty(activeTournamentId))
+        {
+            try
+    {
+     if (Application.Current.MainWindow is MainWindow mainWindow)
+          {
+    // ⭐ KORRIGIERT: Hole TournamentManagementService statt direkten Zugriff
+     var tournamentServiceField = mainWindow.GetType()
+           .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+          
+          if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+             {
+               var tournamentData = tournamentService.GetTournamentData();
+     activeTournamentId = tournamentData?.TournamentId;
+            
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Tournament ID from TournamentService: {activeTournamentId ?? "null"}");
+    }
+           else
+ {
+        System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get TournamentManagementService");
+   }
+                }
+ }
+         catch (Exception ex)
+            {
+ System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get Tournament ID: {ex.Message}");
+       }
+ }
         
-        _dataGridHelper = new TournamentOverviewDataGridHelper(
-            _localizationService, 
-            _hubService, 
-            () => _qrCodeHelper.CreateQRCodeCellTemplate());
-        
+  // Initialisiere Helper-Klassen direkt im Konstruktor MIT Tournament-ID
+   _qrCodeHelper = new TournamentOverviewQRCodeHelper(_hubService, _localizationService, OnOpenMatchPageClick, activeTournamentId);  // ⭐ Tournament-ID übergeben
+  
+    _dataGridHelper = new TournamentOverviewDataGridHelper(
+ _localizationService, 
+    _hubService, 
+     () => _qrCodeHelper.CreateQRCodeCellTemplate());
+ 
         // ✅ ERWEITERT: TabHelper mit LicenseFeatureService
         _tabHelper = new TournamentOverviewTabHelper(
-            _localizationService, 
-            _dataGridHelper, 
-            CreateTournamentTreeView,
-            _licenseFeatureService);
+     _localizationService, 
+  _dataGridHelper, 
+    CreateTournamentTreeView,
+       _licenseFeatureService);
         
         // Scroll Manager
         _scrollManager = new TournamentOverviewScrollManager(
@@ -121,7 +153,7 @@ UpdateStatus);
         UpdateTranslations();
 
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Window initialized with {_tournamentClasses.Count} classes, " +
-            $"Hub: {_hubService != null}, Hub registered: {_hubService?.IsRegisteredWithHub}, License: {_licenseFeatureService != null}");
+            $"Hub: {_hubService != null}, Hub registered: {_hubService?.IsRegisteredWithHub}, License: {_licenseFeatureService != null}, TournamentId: {activeTournamentId ?? "null"}");
     }
 
     /// <summary>

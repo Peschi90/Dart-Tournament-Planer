@@ -18,12 +18,15 @@ namespace DartTournamentPlaner.Services.Print
         private readonly LocalizationService? _localizationService;
         private readonly PrintLayoutHelper _layoutHelper;
         private readonly PrintTableFactory _tableFactory;
+        private readonly string? _tournamentId;  // ? NEU
 
-        public PrintPageFactory(LocalizationService? localizationService, PrintLayoutHelper layoutHelper, PrintTableFactory tableFactory)
+        public PrintPageFactory(LocalizationService? localizationService, PrintLayoutHelper layoutHelper, PrintTableFactory tableFactory, string? tournamentId = null)
  {
          _localizationService = localizationService;
             _layoutHelper = layoutHelper;
         _tableFactory = tableFactory;
+      _tournamentId = tournamentId;  // ? NEU
+   System.Diagnostics.Debug.WriteLine($"[PrintPageFactory] Initialized with TournamentId: {tournamentId ?? "null"}");
         }
 
         /// <summary>

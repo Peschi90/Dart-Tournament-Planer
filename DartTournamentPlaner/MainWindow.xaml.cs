@@ -671,43 +671,47 @@ public partial class MainWindow : Window
     {
         try
         {
-     // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
-   if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
-     {
- Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
-   return;
+            // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
+            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
+            {
+                Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
+                return;
             }
             
-     // ✅ Hole den inneren HubIntegrationService direkt vom LicensedHubService
-          HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
-       
-          if (hubIntegrationService != null)
-      {
- System.Diagnostics.Debug.WriteLine("[Print_Click] HubIntegrationService erfolgreich extrahiert für QR-Codes");
-          System.Diagnostics.Debug.WriteLine($"[Print_Click] Hub registered: {hubIntegrationService.IsRegisteredWithHub}");
-   }
+            // ✅ Hole den inneren HubIntegrationService direkt vom LicensedHubService
+            HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
+        
+            // ⭐ NEU: Hole Tournament-ID aus TournamentData
+            string? tournamentId = _tournamentService.GetTournamentData()?.TournamentId;
+        
+            if (hubIntegrationService != null)
+            {
+                System.Diagnostics.Debug.WriteLine("[Print_Click] HubIntegrationService erfolgreich extrahiert für QR-Codes");
+                System.Diagnostics.Debug.WriteLine($"[Print_Click] Hub registered: {hubIntegrationService.IsRegisteredWithHub}");
+                System.Diagnostics.Debug.WriteLine($"[Print_Click] Tournament ID: {tournamentId ?? "null"}");
+            }
             else
-     {
+            {
                 System.Diagnostics.Debug.WriteLine("[Print_Click] Kein HubIntegrationService verfügbar - Drucke ohne QR-Codes");
-       }
- 
-     // Verwende PrintHelper mit Lizenzprüfung und Hub Service für QR-Codes
-   Helpers.PrintHelper.ShowPrintDialog(
+            }
+            
+            // ✅ FIXED: Verwende PrintHelper mit Tournament-ID
+            Helpers.PrintHelper.ShowPrintDialog(
                 _tournamentService.AllTournamentClasses, 
-     _tournamentService.PlatinClass, 
-    this, 
-       _localizationService,
-              _licenseFeatureService,  // LicenseFeatureService für Lizenzprüfung
+                _tournamentService.PlatinClass, 
+                this, 
+                _localizationService,
+                _licenseFeatureService,  // LicenseFeatureService für Lizenzprüfung
                 _licenseManager,         // LicenseManager für Dialog
-         hubIntegrationService    // HubService für QR-Codes
-          );
-     }
+                hubIntegrationService,   // HubService für QR-Codes
+                tournamentId);         // ⭐ NEU: Tournament-ID für QR-Code URLs
+        }
         catch (Exception ex)
         {
-   var title = _localizationService.GetString("Error") ?? "Fehler";
+            var title = _localizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
-     MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-       System.Diagnostics.Debug.WriteLine($"[Print_Click] Fehler: {ex.Message}\n{ex.StackTrace}");
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"[Print_Click] Fehler: {ex.Message}\n{ex.StackTrace}");
         }
     }
 
@@ -797,25 +801,21 @@ public partial class MainWindow : Window
 
     private async void RegisterWithHub_Click(object sender, RoutedEventArgs e)
     {
-        var success = await _hubService.RegisterTournamentAsync();
-        
+        // ⭐ NEU: Verwende neuen HubRegistrationDialog mit custom ID Support
+      var success = HubRegistrationDialog.ShowDialog(
+      this,
+        _hubService,
+ _tournamentService,
+         MarkAsChanged,
+    _localizationService);
+
         if (success)
-        {
-            await _hubService.SyncTournamentAsync(_tournamentService.GetTournamentData());
-            
-            var joinUrl = _hubService.GetJoinUrl();
-            var title = _localizationService.GetString("Success");
-            var message = _localizationService.GetString("RegisterTournamentSuccess", 
-                _hubService.GetCurrentTournamentId(), joinUrl);
-            
-            //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            System.Windows.Clipboard.SetText(joinUrl);
-        }
+ {
+   System.Diagnostics.Debug.WriteLine("✅ [RegisterWithHub_Click] Hub registration successful");
+ }
         else
         {
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("RegisterTournamentError");
-            //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+    System.Diagnostics.Debug.WriteLine("⚠️ [RegisterWithHub_Click] Hub registration cancelled or failed");
         }
     }
 

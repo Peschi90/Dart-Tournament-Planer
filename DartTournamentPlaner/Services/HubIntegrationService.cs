@@ -130,14 +130,28 @@ public class HubIntegrationService : IDisposable
         }
     }
 
-    public async Task<bool> RegisterTournamentAsync()
+    public async Task<bool> RegisterTournamentAsync(string? customTournamentId = null)
     {
         try
         {
-            _currentTournamentId = $"TOURNAMENT_{DateTime.Now:yyyyMMdd_HHmmss}";
-            
+            // ⭐ ERWEITERT: Verwende custom ID oder generiere eine neue
+            if (!string.IsNullOrWhiteSpace(customTournamentId))
+            {
+                // Validiere und säubere die custom ID
+                _currentTournamentId = SanitizeTournamentId(customTournamentId);
+                System.Diagnostics.Debug.WriteLine($"🎯 Using custom Tournament ID: {_currentTournamentId}");
+                _globalHubDebugWindow?.AddDebugMessage($"🎯 Verwende benutzerdefinierte Tournament-ID: {_currentTournamentId}", "TOURNAMENT");
+            }
+            else
+            {
+                // Generiere automatische ID (wie bisher)
+                _currentTournamentId = $"TOURNAMENT_{DateTime.Now:yyyyMMdd_HHmmss}";
+                System.Diagnostics.Debug.WriteLine($"🎯 Generated automatic Tournament ID: {_currentTournamentId}");
+                _globalHubDebugWindow?.AddDebugMessage($"🎯 Automatisch generierte Tournament-ID: {_currentTournamentId}", "TOURNAMENT");
+            }
+    
             _globalHubDebugWindow?.AddDebugMessage($"🎯 Registriere Tournament: {_currentTournamentId}", "TOURNAMENT");
-            
+    
             var success = await _tournamentHubService.RegisterWithHubAsync(
                 _currentTournamentId,
                 $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
@@ -159,7 +173,7 @@ public class HubIntegrationService : IDisposable
                     httpApiService.SetCurrentTournamentId(_currentTournamentId);
                     _globalHubDebugWindow?.AddDebugMessage("🔗 API Integration benachrichtigt", "INFO");
                 }
-                
+        
                 await SubscribeToTournamentUpdates(_currentTournamentId);
                 HubStatusChanged?.Invoke(true);
                 
@@ -181,6 +195,48 @@ public class HubIntegrationService : IDisposable
             HubStatusChanged?.Invoke(false);
             return false;
         }
+    }
+
+    /// <summary>
+    /// ⭐ NEU: Validiert und säubert eine Tournament-ID
+    /// Entfernt ungültige Zeichen und stellt sicher dass die ID Hub-kompatibel ist
+    /// </summary>
+    private string SanitizeTournamentId(string rawId)
+    {
+        // Entferne führende/nachfolgende Leerzeichen
+        var sanitized = rawId.Trim();
+        
+        // Ersetze Leerzeichen durch Unterstriche
+        sanitized = sanitized.Replace(" ", "_");
+        
+        // Entferne alle Zeichen außer: A-Z, a-z, 0-9, _, -
+        sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[^a-zA-Z0-9_\-]", "");
+ 
+        // Stelle sicher dass die ID nicht leer ist und ein Präfix hat
+        if (string.IsNullOrWhiteSpace(sanitized))
+        {
+            // Fallback: Generiere automatische ID
+            sanitized = $"TOURNAMENT_{DateTime.Now:yyyyMMdd_HHmmss}";
+            System.Diagnostics.Debug.WriteLine($"⚠️ Empty custom ID provided, generated fallback: {sanitized}");
+        }
+        else if (!sanitized.StartsWith("TOURNAMENT_", StringComparison.OrdinalIgnoreCase))
+        {
+            // Füge Präfix hinzu wenn nicht vorhanden
+            sanitized = $"TOURNAMENT_{sanitized}";
+            System.Diagnostics.Debug.WriteLine($"🔧 Added TOURNAMENT_ prefix: {sanitized}");
+        }
+   
+        System.Diagnostics.Debug.WriteLine($"🔧 Sanitized Tournament ID: '{rawId}' -> '{sanitized}'");
+        
+        return sanitized;
+    }
+
+    /// <summary>
+    /// ⭐ NEU: Generiert eine neue Tournament-ID (für UI-Button)
+    /// </summary>
+    public string GenerateNewTournamentId()
+    {
+        return $"TOURNAMENT_{DateTime.Now:yyyyMMdd_HHmmss}";
     }
 
     public async Task<bool> UnregisterTournamentAsync()

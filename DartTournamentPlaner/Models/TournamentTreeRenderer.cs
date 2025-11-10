@@ -665,89 +665,109 @@ public class TournamentTreeRenderer
 
         try
         {
-            // ✅ FIX: HubIntegrationService vom MainWindow holen
-            HubIntegrationService? hubService = null;
+            // ✅ FIXED: HubIntegrationService UND Tournament-ID vom MainWindow holen
+      HubIntegrationService? hubService = null;
+         string? tournamentId = null;  // ⭐ NEU
+        
             try
             {
-                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] Getting HubService for match {match.Id}...");
+      System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] Getting HubService and TournamentId for match {match.Id}...");
+          
+     if (Application.Current.MainWindow is MainWindow mainWindow)
+ {
+           System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] MainWindow found: {mainWindow.GetType().Name}");
+         
+         // Zugriff auf den LicensedHubService über Reflection
+ var hubServiceField = mainWindow.GetType()
+            .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+           
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceField found: {hubServiceField != null}");
+         
+      var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+    
+   if (hubServiceValue is LicensedHubService licensedHubService)
+          {
+       System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] LicensedHubService found, getting inner service...");
+     
+            // Zugriff auf den inneren HubIntegrationService über Reflection
+     var innerServiceField = licensedHubService.GetType()
+            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+   
+              System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] InnerServiceField found: {innerServiceField != null}");
                 
-                if (Application.Current.MainWindow is MainWindow mainWindow)
-                {
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] MainWindow found: {mainWindow.GetType().Name}");
-                    
-                    // Zugriff auf den LicensedHubService über Reflection
-                    var hubServiceField = mainWindow.GetType()
-                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceField found: {hubServiceField != null}");
-                    
-                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
-                    
-                    if (hubServiceValue is LicensedHubService licensedHubService)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] LicensedHubService found, getting inner service...");
-                        
-                        // Zugriff auf den inneren HubIntegrationService über Reflection
-                        var innerServiceField = licensedHubService.GetType()
-                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] InnerServiceField found: {innerServiceField != null}");
-                        
-                        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
-                        
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubIntegrationService retrieved: {hubService != null}");
-                        
-                        if (hubService != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubService registered: {hubService.IsRegisteredWithHub}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] HubIntegrationService is null");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] Not a LicensedHubService or null");
-                    }
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] MainWindow not found or wrong type");
-                }
-            }
-            catch (Exception hubEx)
+           hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+      
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubIntegrationService retrieved: {hubService != null}");
+ 
+               if (hubService != null)
+  {
+              System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] HubService registered: {hubService.IsRegisteredWithHub}");
+     }
+else
             {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTreeRenderer] Could not get HubService: {hubEx.Message}");
-            }
+          System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] HubIntegrationService is null");
+      }
+             }
+         else
+         {
+   System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] Not a LicensedHubService or null");
+    }
+        
+            // ⭐ NEU: Hole Tournament-ID über TournamentManagementService
+  var tournamentServiceField = mainWindow.GetType()
+       .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+         
+           System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] TournamentServiceField found: {tournamentServiceField != null}");
+      
+           if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+        {
+     var tournamentData = tournamentService.GetTournamentData();
+     tournamentId = tournamentData?.TournamentId;
+        
+           System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTreeRenderer] Tournament ID from TournamentService: {tournamentId ?? "null"}");
+             }
+           else
+{
+        System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTreeRenderer] Could not get TournamentManagementService");
+         }
+       }
+       else
+                {
+             System.Diagnostics.Debug.WriteLine($"❌ [TournamentTreeRenderer] MainWindow not found or wrong type");
+ }
+          }
+  catch (Exception hubEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTreeRenderer] Could not get HubService or TournamentId: {hubEx.Message}");
+ }
 
-            // WICHTIG: Verwende rundenspezifische Regeln für KO-Matches
-            var roundRules = _tournament.GameRules.GetRulesForRound(match.Round);
+   // WICHTIG: Verwende rundenspezifische Regeln für KO-Matches
+   var roundRules = _tournament.GameRules.GetRulesForRound(match.Round);
             
-            System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} in {match.Round}");
+       System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} in {match.Round}");
             System.Diagnostics.Debug.WriteLine($"  Round Rules: SetsToWin={roundRules.SetsToWin}, LegsToWin={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
-            System.Diagnostics.Debug.WriteLine($"  Using SPECIALIZED constructor for KnockoutMatch with HubService: {hubService != null}");
+            System.Diagnostics.Debug.WriteLine($"  Using SPECIALIZED constructor for KnockoutMatch with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
 
-            // ✅ FIX: Übergebe HubService an das MatchResultWindow mit korrekter Parameter-Reihenfolge
-            var resultWindow = new MatchResultWindow(match, roundRules, _tournament.GameRules, localizationService, hubService);
+            // ✅ FIXED: Übergebe HubService UND Tournament-ID an das MatchResultWindow
+   var resultWindow = new MatchResultWindow(match, roundRules, _tournament.GameRules, localizationService, hubService, tournamentId);  // ⭐ Tournament-ID hinzugefügt
             
-            // Try to find parent window
+ // Try to find parent window
             var parentWindow = Application.Current.MainWindow;
-            if (parentWindow != null)
-            {
+ if (parentWindow != null)
+          {
                 resultWindow.Owner = parentWindow;
             }
 
             if (resultWindow.ShowDialog() == true)
-            {
-                var internalMatch = resultWindow.InternalMatch;
-                match.Player1Sets = internalMatch.Player1Sets;
-                match.Player2Sets = internalMatch.Player2Sets;
-                match.Player1Legs = internalMatch.Player1Legs;
-                match.Player2Legs = internalMatch.Player2Legs;
-                match.Winner = internalMatch.Winner;
-                match.Status = internalMatch.Status;
+  {
+   var internalMatch = resultWindow.InternalMatch;
+      match.Player1Sets = internalMatch.Player1Sets;
+     match.Player2Sets = internalMatch.Player2Sets;
+      match.Player1Legs = internalMatch.Player1Legs;
+           match.Player2Legs = internalMatch.Player2Legs;
+      match.Winner = internalMatch.Winner;
+   match.Status = internalMatch.Status;
                 match.Notes = internalMatch.Notes;
                 match.StartTime = internalMatch.StartTime;
                 match.EndTime = DateTime.Now;
@@ -761,9 +781,9 @@ public class TournamentTreeRenderer
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: ERROR: {ex.Message}");
-            MessageBox.Show($"Fehler beim Öffnen des Ergebnis-Fensters: {ex.Message}", 
-                           "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog ERROR: {ex.Message}");
+            MessageBox.Show($"Fehler beim Öffnen des Ergebnis-Dialogs: {ex.Message}", "Fehler", 
+    MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

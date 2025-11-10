@@ -120,74 +120,78 @@ public class LicensedHubService
     }
 
     // NEU: Verbesserte lizenzierte Hub-Methoden mit modernen Dialogen
-    public async Task<bool> RegisterTournamentAsync()
+    
+    /// <summary>
+    /// ⭐ ERWEITERT: Registriert Tournament mit optionaler custom ID
+    /// </summary>
+    /// <param name="customTournamentId">Optional: Benutzerdefinierte Tournament-ID</param>
+  public async Task<bool> RegisterTournamentAsync(string? customTournamentId = null)
     {
-        System.Diagnostics.Debug.WriteLine("🔗 LicensedHubService: RegisterTournamentAsync requested");
+   System.Diagnostics.Debug.WriteLine($"🔗 LicensedHubService: RegisterTournamentAsync requested with custom ID: {customTournamentId ?? "null"}");
         
         if (!HasHubConnectionLicense())
         {
-            System.Diagnostics.Debug.WriteLine("❌ Hub registration denied - no valid license");
-            ShowHubLicenseRequired();
+          System.Diagnostics.Debug.WriteLine("❌ Hub registration denied - no valid license");
+      ShowHubLicenseRequired();
             return false;
-        }
+ }
 
         System.Diagnostics.Debug.WriteLine("✅ Hub license verified - registering tournament...");
         
         try
-        {
-            bool registrationResult = await _innerHubService.RegisterTournamentAsync();
+  {
+      // ⭐ ERWEITERT: Übergebe custom ID an inneren Service
+            bool registrationResult = await _innerHubService.RegisterTournamentAsync(customTournamentId);
             
-            if (registrationResult)
+    if (registrationResult)
+        {
+           // Erfolgreiche Registrierung - zeige Success Dialog
+   System.Diagnostics.Debug.WriteLine("✅ Tournament registration successful - showing success dialog");
+     
+  var tournamentId = _innerHubService.GetCurrentTournamentId();
+      var joinUrl = _innerHubService.GetJoinUrl();
+   
+            ShowHubRegistrationSuccess(tournamentId, joinUrl);
+                
+         return true;
+      }
+else
             {
-                // Erfolgreiche Registrierung - zeige Success Dialog
-                System.Diagnostics.Debug.WriteLine("✅ Tournament registration successful - showing success dialog");
-                
-                var tournamentId = _innerHubService.GetCurrentTournamentId();
-                var joinUrl = _innerHubService.GetJoinUrl();
-                
-                ShowHubRegistrationSuccess(tournamentId, joinUrl);
-                
-                return true;
-            }
-            else
-            {
-                // Registrierung fehlgeschlagen - zeige Error Dialog
-                System.Diagnostics.Debug.WriteLine("❌ Tournament registration failed - showing error dialog");
-                
-                var shouldRetry = ShowHubRegistrationError(
-                    "Die Turnier-Registrierung ist fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und Hub-Einstellungen.",
-                    "HUB_REGISTRATION_FAILED",
-                    null);
-                
-                if (shouldRetry)
-                {
-                    System.Diagnostics.Debug.WriteLine("🔄 User requested retry - attempting registration again");
-                    return await RegisterTournamentAsync();
-                }
-                
+            // Registrierung fehlgeschlagen - zeige Error Dialog
+     System.Diagnostics.Debug.WriteLine("❌ Tournament registration failed - showing error dialog");
+     
+          var shouldRetry = ShowHubRegistrationError(
+     "Die Turnier-Registrierung ist fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und Hub-Einstellungen.",
+     "HUB_REGISTRATION_FAILED",
+        null);
+      
+       if (shouldRetry)
+           {
+  System.Diagnostics.Debug.WriteLine("🔄 User requested retry - attempting registration again");
+         return await RegisterTournamentAsync(customTournamentId);  // ⭐ Übergebe custom ID beim Retry
+    }
+        
                 return false;
             }
-        }
+   }
         catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Exception during tournament registration: {ex.Message}");
-            
-            // Exception - zeige Error Dialog mit Details
+      {
+     System.Diagnostics.Debug.WriteLine($"❌ Exception during tournament registration: {ex.Message}");
+    
+       // Exception - zeige Error Dialog mit Details
             var shouldRetry = ShowHubRegistrationError(
-                ex.Message,
-                "EXCEPTION",
-                ex.StackTrace);
-            
+  ex.Message,
+          "EXCEPTION",
+   ex.StackTrace);
+       
             if (shouldRetry)
-            {
-                System.Diagnostics.Debug.WriteLine("🔄 User requested retry after exception - attempting registration again");
-                return await RegisterTournamentAsync();
+         {
+       return await RegisterTournamentAsync(customTournamentId);  // ⭐ Übergebe custom ID beim Retry
             }
-            
-            return false;
+     
+         return false;
         }
     }
-
     /// <summary>
     /// Zeigt den Hub Registration Success Dialog
     /// </summary>
