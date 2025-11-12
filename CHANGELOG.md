@@ -14,13 +14,15 @@
   - Correct Tournament-ID propagation in all dialog paths (Print, Overview, Match entry)
   - Auto-load of saved Tournament-ID during Hub registration
   - QR codes remain valid after connection interruptions
-- **Complete Game Rules Synchronization**: Full synchronization of game settings with Tournament Hub
-  - ✅ Target score synchronization (501, 401, 301)
-  - ✅ Finish mode synchronization (SingleOut, DoubleOut)
-  - ✅ Sets and Legs configuration sync for all match types
-  - ✅ Round-specific rules for Knockout phases (Winner/Loser Bracket)
-  - ✅ Frontend-compatible data format for Dart Scoring apps
-  - Enhanced `TournamentDataSyncService` with complete game rules mapping
+- **✨ NEW: Live-Match-Updates**: Real-time match progress tracking from Tournament Hub
+  - Match-Start Events: Automatic detection when a match begins
+  - Leg-Completed Events: Updates after each finished leg with detailed statistics
+  - Match-Progress Events: Optional live updates during ongoing legs
+  - Live-Status indicators (🔴 LIVE) in UI
+  - Leg-Counter display (e.g. "Leg 2/5")
+  - Detailed leg statistics (winner, darts, duration, average, checkout)
+  - Automatic UI synchronization without data persistence
+  - Full internationalization (DE/EN)
 
 ### 🔧 Bug Fixes
 - **Tournament-ID in QR Codes**: Complete integration of Tournament-ID in all QR code generations

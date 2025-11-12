@@ -386,7 +386,7 @@ public class GameRules : INotifyPropertyChanged
             foreach (var rule in result.Rules)
             {
                 var roundRules = rule.Value;
-                System.Diagnostics.Debug.WriteLine($"  {rule.Key}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
+                //System.Diagnostics.Debug.WriteLine($"  {rule.Key}: Sets={roundRules.SetsToWin}, Legs={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
             }
             return result;
         }

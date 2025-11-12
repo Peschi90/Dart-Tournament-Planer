@@ -9,6 +9,7 @@ public class AppConfig : INotifyPropertyChanged
     private string _theme = "Modern";
     private bool _autoSave = true;
     private int _autoSaveInterval = 5; // minutes
+    private bool _showMatchStartNotifications = false; // ? NEU: Match-Start Benachrichtigungen
 
     public string Language
     {
@@ -46,6 +47,17 @@ public class AppConfig : INotifyPropertyChanged
         set
         {
             _autoSaveInterval = value;
+            OnPropertyChanged();
+        }
+    }
+
+    // ? NEU: Hub Live-Match-Updates Einstellungen
+    public bool ShowMatchStartNotifications
+    {
+        get => _showMatchStartNotifications;
+        set
+        {
+            _showMatchStartNotifications = value;
             OnPropertyChanged();
         }
     }

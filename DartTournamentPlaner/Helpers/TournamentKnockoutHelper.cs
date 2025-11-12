@@ -91,43 +91,48 @@ public static class TournamentKnockoutHelper
 
     /// <summary>
     /// Öffnet das Match-Result-Fenster für ein Knockout-Match
+    /// ✅ FIXED: Verwendet jetzt rundenspezifische RoundRules
     /// </summary>
     /// <param name="knockoutMatch">Das Knockout-Match</param>
     /// <param name="gameRules">Die Spielregeln</param>
     /// <param name="owner">Das übergeordnete Fenster</param>
     /// <param name="localizationService">Service für Übersetzungen</param>
+    /// <param name="hubService">Hub Integration Service (optional)</param>
+    /// <param name="tournamentId">Tournament-ID für QR codes (optional)</param>
     /// <returns>True wenn das Ergebnis gespeichert wurde, sonst False</returns>
     public static bool OpenMatchResultWindow(
-        KnockoutMatch knockoutMatch,
+    KnockoutMatch knockoutMatch,
         GameRules gameRules,
-        System.Windows.Window? owner = null,
-        LocalizationService? localizationService = null)
+     System.Windows.Window? owner = null,
+    LocalizationService? localizationService = null,
+        HubIntegrationService? hubService = null,
+        string? tournamentId = null)
     {
-        if (localizationService == null) return false;
+    if (localizationService == null) return false;
 
         try
         {
-            // Erstelle dummy RoundRules basierend auf GameRules
-            var roundRules = new RoundRules
-            {
-                LegsToWin = gameRules.LegsToWin,
-                SetsToWin = gameRules.PlayWithSets ? gameRules.SetsToWin : 0,
-                LegsPerSet = gameRules.LegsPerSet
-            };
+        // ✅ FIXED: Verwende rundenspezifische RoundRules statt dummy Rules!
+            var roundRules = gameRules.GetRulesForRound(knockoutMatch.Round);
             
-            var resultWindow = new MatchResultWindow(knockoutMatch, roundRules, gameRules, localizationService);
-            if (owner != null)
-            {
-                resultWindow.Owner = owner;
-            }
+       System.Diagnostics.Debug.WriteLine($"🎯 [TournamentKnockoutHelper] Opening MatchResultWindow for {knockoutMatch.Round}");
+         System.Diagnostics.Debug.WriteLine($"   📊 Round Rules: SetsToWin={roundRules.SetsToWin}, LegsToWin={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
+     System.Diagnostics.Debug.WriteLine($"   📊 Base GameRules: SetsToWin={gameRules.SetsToWin}, LegsToWin={gameRules.LegsToWin}");
+        System.Diagnostics.Debug.WriteLine($"   🌐 HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
             
-            return resultWindow.ShowDialog() == true;
+ var resultWindow = new MatchResultWindow(knockoutMatch, roundRules, gameRules, localizationService, hubService, tournamentId);
+ if (owner != null)
+            {
+        resultWindow.Owner = owner;
+        }
+            
+        return resultWindow.ShowDialog() == true;
         }
         catch (Exception ex)
         {
-            var errorTitle = localizationService?.GetString("Error") ?? "Fehler";
-            System.Windows.MessageBox.Show($"Fehler beim Öffnen des Match-Ergebnisfensters: {ex.Message}", errorTitle, 
-                          System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+ var errorTitle = localizationService?.GetString("Error") ?? "Fehler";
+  System.Windows.MessageBox.Show($"Fehler beim Öffnen des Match-Ergebnisfensters: {ex.Message}", errorTitle, 
+    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             return false;
         }
     }

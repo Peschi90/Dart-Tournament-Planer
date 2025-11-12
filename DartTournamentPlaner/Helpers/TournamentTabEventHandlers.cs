@@ -500,36 +500,25 @@ System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] HubService
   }
 
       // ✅ SIMPLIFIED: Verwende die bewährte Konvertierungs-Methode aber mit korrektem HubService
-        var regularMatch = new Match
-{
-     Id = match.Id,
-            UniqueId = match.UniqueId, // ✅ WICHTIG: UUID wird übertragen
-        Player1 = match.Player1,
-        Player2 = match.Player2,
-            Player1Sets = match.Player1Sets,
-       Player2Sets = match.Player2Sets,
-            Player1Legs = match.Player1Legs,
-            Player2Legs = match.Player2Legs,
-  Winner = match.Winner,
-   Status = match.Status,
-          Notes = match.Notes,
-        CreatedAt = match.CreatedAt,
- FinishedAt = match.FinishedAt,
-            UsesSets = _tournamentClass.GameRules.PlayWithSets
-   };
+        // ✅ FIXED: Verwende den KnockoutMatch-Constructor mit rundenspezifischen RoundRules!
+        var roundRules = _tournamentClass.GameRules.GetRulesForRound(match.Round);
         
-        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Creating MatchResultWindow for KnockoutMatch with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
-        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match UUID transferred: {regularMatch.UniqueId}");
-        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Converting KnockoutMatch {match.Id} to regular Match {regularMatch.Id}");
+  System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Creating MatchResultWindow for KnockoutMatch {match.Id}");
+    System.Diagnostics.Debug.WriteLine($"   📊 Match Round: {match.Round}");
+  System.Diagnostics.Debug.WriteLine($"   📊 Round Rules: SetsToWin={roundRules.SetsToWin}, LegsToWin={roundRules.LegsToWin}, LegsPerSet={roundRules.LegsPerSet}");
+        System.Diagnostics.Debug.WriteLine($"   📊 Base GameRules: SetsToWin={_tournamentClass.GameRules.SetsToWin}, LegsToWin={_tournamentClass.GameRules.LegsToWin}");
+        System.Diagnostics.Debug.WriteLine($"   🌐 HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
+    System.Diagnostics.Debug.WriteLine($"   🆔 Match UUID: {match.UniqueId}");
         
-        var resultWindow = new MatchResultWindow(regularMatch, _tournamentClass.GameRules, _localizationService, hubService, tournamentId);
+   // ✅ WICHTIG: Verwende den speziellen KnockoutMatch-Constructor mit RoundRules!
+  var resultWindow = new MatchResultWindow(match, roundRules, _tournamentClass.GameRules, _localizationService, hubService, tournamentId);
         resultWindow.Owner = _getWindow();
 
         if (resultWindow.ShowDialog() == true)
-        {
-      // Kopiere Ergebnisse zurück zum KnockoutMatch
-            var internalMatch = resultWindow.InternalMatch;
-            match.Player1Sets = internalMatch.Player1Sets;
+  {
+ // Kopiere Ergebnisse zurück zum KnockoutMatch
+  var internalMatch = resultWindow.InternalMatch;
+ match.Player1Sets = internalMatch.Player1Sets;
      match.Player2Sets = internalMatch.Player2Sets;
   match.Player1Legs = internalMatch.Player1Legs;
      match.Player2Legs = internalMatch.Player2Legs;
@@ -540,16 +529,15 @@ System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] HubService
   
  System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] KnockoutMatch {match.Id} result copied back from MatchResultWindow");
     
-        await SendKnockoutMatchResultToHub(match, _tournamentClass, bracketType);
-            _refreshKnockoutView();
+   await SendKnockoutMatchResultToHub(match, _tournamentClass, bracketType);
+     _refreshKnockoutView();
        _onDataChanged();
-        }
+      }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] MatchResultWindow was cancelled for KnockoutMatch {match.Id}");
+   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] MatchResultWindow was cancelled for KnockoutMatch {match.Id}");
         }
-    }
-
+  }
     // Vereinfachte RoundRules Klasse für interne Verwendung
     private class SimpleRoundRules
     {

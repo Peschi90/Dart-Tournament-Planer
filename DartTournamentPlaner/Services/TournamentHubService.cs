@@ -12,6 +12,7 @@ namespace DartTournamentPlaner.Services;
 
 /// <summary>
 /// Event-Argumente für Match-Updates vom Hub
+/// ERWEITERT: Unterstützt jetzt auch Leg-Updates und Match-Start
 /// </summary>
 public class HubMatchUpdateEventArgs : EventArgs
 {
@@ -27,13 +28,30 @@ public class HubMatchUpdateEventArgs : EventArgs
     public string Source { get; set; } = "hub";
     
     // Group-Information für eindeutige Match-Identifikation
-    public int? GroupId { get; set; }
+  public int? GroupId { get; set; }
     public string? GroupName { get; set; }
     public string? MatchType { get; set; }
     
     // UUID-Support für erweiterte Match-Identifikation
     public string? MatchUuid { get; set; }
     public string? OriginalMatchIdString { get; set; }
+    
+    // ✨ NEU: Leg-Update Support
+    public bool IsLegUpdate { get; set; }
+    public bool IsMatchStarted { get; set; }
+    public bool IsMatchCompleted { get; set; }
+    public int CurrentLeg { get; set; }
+    public int TotalLegs { get; set; }
+    
+    // ✨ NEU: Leg-spezifische Details
+    public List<LegResult>? LegResults { get; set; }
+    public int? CurrentPlayer1LegScore { get; set; }
+    public int? CurrentPlayer2LegScore { get; set; }
+ 
+    // ✨ NEU: Match-Timing
+    public DateTime? MatchStartTime { get; set; }
+    public TimeSpan? MatchDuration { get; set; }
+    public TimeSpan? CurrentLegDuration { get; set; }
     
     /// <summary>
     /// Gibt zurück, ob eine UUID verfügbar ist
@@ -50,7 +68,42 @@ public class HubMatchUpdateEventArgs : EventArgs
     /// </summary>
     public string GetMatchIdentificationSummary() => 
         $"Match {(HasUuid ? $"UUID: {MatchUuid}" : $"ID: {MatchId}")} " +
-        $"({MatchType ?? "Unknown"}, Class: {ClassId}, Group: {GroupName ?? GroupId?.ToString() ?? "None"})";
+  $"({MatchType ?? "Unknown"}, Class: {ClassId}, Group: {GroupName ?? GroupId?.ToString() ?? "None"})";
+    
+    /// <summary>
+    /// ✨ NEU: Gibt eine lesbare Status-Beschreibung zurück
+/// </summary>
+  public string GetStatusDescription()
+    {
+        if (IsMatchStarted && !IsMatchCompleted)
+    return $"In Progress - Leg {CurrentLeg}/{TotalLegs}";
+        if (IsMatchCompleted)
+ return "Completed";
+        return "Not Started";
+    }
+}
+
+/// <summary>
+/// ✨ NEU: Leg-Ergebnis für detaillierte Tracking
+/// </summary>
+public class LegResult
+{
+    public int LegNumber { get; set; }
+    public string? Winner { get; set; } // "Player1" oder "Player2"
+    public int Player1Score { get; set; }
+    public int Player2Score { get; set; }
+    public int Player1Darts { get; set; }
+    public int Player2Darts { get; set; }
+    public TimeSpan Duration { get; set; }
+    public DateTime CompletedAt { get; set; }
+    
+    // Optionale detaillierte Statistiken
+    public int? Player1Average { get; set; }
+    public int? Player2Average { get; set; }
+    public int? Player1HighestScore { get; set; }
+    public int? Player2HighestScore { get; set; }
+    public int? Player1Checkout { get; set; }
+    public int? Player2Checkout { get; set; }
 }
 
 /// <summary>
@@ -67,20 +120,25 @@ public interface ITournamentHubService
     Task<bool> SendHeartbeatAsync(string tournamentId, int activeMatches, int totalPlayers);
     Task<bool> SyncTournamentWithClassesAsync(string tournamentId, string name, TournamentData data);
     
-    // WebSocket Operations
+ // WebSocket Operations
     Task<bool> InitializeWebSocketAsync();
     Task<bool> SubscribeToTournamentAsync(string tournamentId);
     Task<bool> UnsubscribeFromTournamentAsync(string tournamentId);
     Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo);
     Task CloseWebSocketAsync();
-    
+ 
     // Events for WebSocket communication
     event Action<HubMatchUpdateEventArgs> OnMatchResultReceivedFromHub;
     event Action<string, object> OnTournamentUpdateReceived;
     event Action<bool, string> OnConnectionStatusChanged;
     
+ // ✨ NEU: Events für Live-Updates
+    event Action<HubMatchUpdateEventArgs> OnMatchStarted;
+    event Action<HubMatchUpdateEventArgs> OnLegCompleted;
+    event Action<HubMatchUpdateEventArgs> OnMatchProgressUpdated;
+    
     // Utility
-    string GetJoinUrl(string tournamentId);
+  string GetJoinUrl(string tournamentId);
 }
 
 /// <summary>
@@ -109,6 +167,25 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     public event Action<HubMatchUpdateEventArgs>? OnMatchResultReceivedFromHub;
     public event Action<string, object>? OnTournamentUpdateReceived;
     public event Action<bool, string>? OnConnectionStatusChanged;
+  
+    // ✨ NEU: Events für Live-Updates (delegiert an WebSocketMessageHandler)
+    public event Action<HubMatchUpdateEventArgs>? OnMatchStarted
+    {
+        add => _messageHandler.MatchStarted += value;
+        remove => _messageHandler.MatchStarted -= value;
+    }
+    
+    public event Action<HubMatchUpdateEventArgs>? OnLegCompleted
+    {
+        add => _messageHandler.LegCompleted += value;
+        remove => _messageHandler.LegCompleted -= value;
+    }
+  
+    public event Action<HubMatchUpdateEventArgs>? OnMatchProgressUpdated
+ {
+        add => _messageHandler.MatchProgressUpdated += value;
+        remove => _messageHandler.MatchProgressUpdated -= value;
+    }
 
     // Hub Debug Window Support
     private Views.HubDebugWindow? _debugWindow;

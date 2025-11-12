@@ -611,23 +611,74 @@
                             <TabItem Header="🥇 Finalspiele">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,16">
-                                        <TextBlock Text="⚔️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="🎯" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="Finalspiele:" 
                                                    FontWeight="SemiBold" 
                                                    FontSize="15" 
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
-                                    <DataGrid Name="FinalsMatchesDataGrid" MouseDoubleClick="FinalsMatchesDataGrid_MouseDoubleClick">
-                                        <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Match" Binding="{Binding DisplayName}" Width="*"/>
-                                            <DataGridTextColumn Header="Ergebnis" Binding="{Binding ScoreDisplay}" Width="100"/>
-                                            <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100"/>
-                                        </DataGrid.Columns>
-                                    </DataGrid>
-                                </DockPanel>
-                            </TabItem>
-                            
-                            <TabItem Header="📊 Finale Tabelle">
+                                    <DataGrid Name="FinalsMatchesDataGrid" 
+   MouseDoubleClick="FinalsMatchesDataGrid_MouseDoubleClick"
+           AutoGenerateColumns="False"
+  CanUserAddRows="False"
+      CanUserDeleteRows="False"
+          SelectionMode="Single">
+   <DataGrid.Columns>
+         <!-- Match-Name -->
+        <DataGridTextColumn Header="Match" 
+             Binding="{Binding DisplayName}" 
+      Width="*"
+     IsReadOnly="True"/>
+           
+          <!-- Ergebnis -->
+    <DataGridTextColumn Header="Ergebnis" 
+ Binding="{Binding ScoreDisplay}" 
+         Width="100"
+  IsReadOnly="True"/>
+            
+  <!-- ✅ NEU: Status mit farbiger Ellipse -->
+       <DataGridTemplateColumn Header="Status" Width="120">
+           <DataGridTemplateColumn.CellTemplate>
+    <DataTemplate>
+       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+           <!-- Farbige Status-Ellipse -->
+                 <Ellipse Width="10" Height="10" Margin="0,0,8,0" VerticalAlignment="Center">
+       <Ellipse.Style>
+   <Style TargetType="Ellipse">
+    <Style.Triggers>
+       <!-- Nicht gestartet = Grau -->
+          <DataTrigger Binding="{Binding Status}" Value="NotStarted">
+          <Setter Property="Fill" Value="{DynamicResource SecondaryTextBrush}"/>
+   </DataTrigger>
+    <!-- Läuft = Orange -->
+       <DataTrigger Binding="{Binding Status}" Value="InProgress">
+          <Setter Property="Fill" Value="{DynamicResource WarningBrush}"/>
+        </DataTrigger>
+        <!-- Beendet = Grün -->
+        <DataTrigger Binding="{Binding Status}" Value="Finished">
+        <Setter Property="Fill" Value="{DynamicResource SuccessBrush}"/>
+       </DataTrigger>
+     <!-- Freilos = Blau -->
+     <DataTrigger Binding="{Binding Status}" Value="Bye">
+      <Setter Property="Fill" Value="{DynamicResource AccentBrush}"/>
+     </DataTrigger>
+         </Style.Triggers>
+       </Style>
+          </Ellipse.Style>
+     </Ellipse>
+          <!-- Status-Text -->
+                 <TextBlock Text="{Binding StatusDisplay}" 
+   VerticalAlignment="Center"/>
+                      </StackPanel>
+          </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+         </DataGrid.Columns>
+    </DataGrid>
+     </DockPanel>
+       </TabItem>
+          
+  <TabItem Header="📊 Finale Tabelle">
                                 <DockPanel>
                                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,12,0,16">
                                         <TextBlock Text="🏅" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>

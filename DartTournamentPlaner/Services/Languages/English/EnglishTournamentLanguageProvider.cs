@@ -288,7 +288,7 @@ public class EnglishTournamentLanguageProvider : ILanguageSection
             // KO Match Information
             ["MatchDuration"] = "Match Duration: {0}",
             ["MatchStarted"] = "Match Started: {0}",
-            ["MatchFinished"] = "Match Finished: {0}",
+            ["MatchFinishedAt"] = "Match Finished: {0}",  // ✅ RENAMED from MatchFinished to MatchFinishedAt
             ["ElapsedTime"] = "Elapsed Time: {0}",
             ["EstimatedDuration"] = "Estimated Duration: {0}",
             ["QualificationPath"] = "Qualification Path: {0}"

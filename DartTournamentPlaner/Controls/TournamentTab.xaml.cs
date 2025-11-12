@@ -457,8 +457,23 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         {
             try
             {
-                _uiManager?.RefreshKnockoutView();
-                _uiManager?.UpdateMatchesView(SelectedGroup);
+                // ✅ FIX: Check current phase and refresh accordingly
+                if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[OnTournamentUIRefreshRequested] Refreshing Finals view");
+                    _uiManager?.RefreshFinalsView();
+                }
+                else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[OnTournamentUIRefreshRequested] Refreshing Knockout view");
+                    _uiManager?.RefreshKnockoutView();
+                }
+                else
+                {
+                    // Fallback to UpdateMatchesView for group phase
+                    System.Diagnostics.Debug.WriteLine($"[OnTournamentUIRefreshRequested] Refreshing Matches view for phase: {TournamentClass?.CurrentPhase?.PhaseType}");
+                    _uiManager?.UpdateMatchesView(SelectedGroup);
+                }
             }
             catch (Exception ex)
             {
@@ -853,7 +868,7 @@ var hubServiceField = mainWindow.GetType()
    if (hubServiceValue is LicensedHubService licensedHubService)
          {
          System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] LicensedHubService found, getting inner service...");
- 
+
 // Zugriff auf den inneren HubIntegrationService über Reflection
             var innerServiceField = licensedHubService.GetType()
     .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

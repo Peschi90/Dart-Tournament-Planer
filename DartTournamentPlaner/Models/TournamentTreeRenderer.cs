@@ -19,10 +19,44 @@ namespace DartTournamentPlaner.Models;
 public class TournamentTreeRenderer
 {
     private readonly TournamentClass _tournament;
+    // ✅ NEU: Speichere Referenzen zu aktiven Canvas-Elementen für Live-Updates
+    private Canvas? _currentWinnerBracketCanvas;
+    private Canvas? _currentLoserBracketCanvas;
+ // ✅ NEU: Statische Instanz für globalen Zugriff (z.B. von MainWindow)
+    public static TournamentTreeRenderer? CurrentInstance { get; private set; }
 
     public TournamentTreeRenderer(TournamentClass tournament)
     {
-        _tournament = tournament ?? throw new ArgumentNullException(nameof(tournament));
+    _tournament = tournament ?? throw new ArgumentNullException(nameof(tournament));
+    CurrentInstance = this; // Setze statische Referenz
+    }
+
+    /// <summary>
+    /// ✅ NEU: Aktualisiert ein spezifisches Match im Turnierbaum (für Live-Updates)
+    /// </summary>
+    public void RefreshMatchInTree(int matchId, bool isLoserBracket)
+    {
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+       try
+   {
+  var canvas = isLoserBracket ? _currentLoserBracketCanvas : _currentWinnerBracketCanvas;
+  if (canvas == null)
+       {
+          System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTree] No active canvas for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
+               return;
+  }
+
+           System.Diagnostics.Debug.WriteLine($"🔄 [TournamentTree] Match {matchId} refresh requested - canvas has {canvas.Children.Count} children");
+    
+           // Triggere ein komplettes UI-Refresh - einfachste Lösung
+             _tournament.TriggerUIRefresh();
+            }
+            catch (Exception ex)
+    {
+System.Diagnostics.Debug.WriteLine($"❌ [TournamentTree] Error: {ex.Message}");
+      }
+   });
     }
 
     /// <summary>
@@ -35,25 +69,31 @@ public class TournamentTreeRenderer
     /// <returns>Das gerenderte FrameworkElement</returns>
     public FrameworkElement? CreateTournamentTreeView(Canvas targetCanvas, bool isLoserBracket, LocalizationService? localizationService = null)
     {
-        if (_tournament.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
-        {
-            System.Diagnostics.Debug.WriteLine("CreateTournamentTreeView: Not in knockout phase");
-            return null;
-        }
+   if (_tournament.CurrentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+  {
+     System.Diagnostics.Debug.WriteLine("CreateTournamentTreeView: Not in knockout phase");
+      return null;
+     }
 
-        System.Diagnostics.Debug.WriteLine($"CreateTournamentTreeView: Creating interactive tree for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
+  System.Diagnostics.Debug.WriteLine($"CreateTournamentTreeView: Creating interactive tree for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
 
-        try
-        {
-            targetCanvas.Children.Clear();
+  // ✅ NEU: Speichere Canvas-Referenz für Live-Updates
+        if (isLoserBracket)
+  _currentLoserBracketCanvas = targetCanvas;
+       else
+   _currentWinnerBracketCanvas = targetCanvas;
 
-            var matches = isLoserBracket ? _tournament.CurrentPhase.LoserBracket.ToList() : _tournament.CurrentPhase.WinnerBracket.ToList();
+   try
+      {
+ targetCanvas.Children.Clear();
 
-            if (matches.Count == 0)
-            {
-                CreateEmptyBracketMessage(targetCanvas, isLoserBracket, localizationService);
-                return targetCanvas;
-            }
+  var matches = isLoserBracket ? _tournament.CurrentPhase.LoserBracket.ToList() : _tournament.CurrentPhase.WinnerBracket.ToList();
+
+    if (matches.Count == 0)
+      {
+   CreateEmptyBracketMessage(targetCanvas, isLoserBracket, localizationService);
+       return targetCanvas;
+      }
 
             // Set canvas properties mit Theme-Unterstützung
             targetCanvas.Background = GetThemeResource("BackgroundBrush") as Brush ?? Brushes.White;

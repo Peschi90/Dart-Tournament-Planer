@@ -416,37 +416,48 @@ public class TournamentTabUIManager : IDisposable
     {
         try
         {
-            if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+        if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
             {
-                var finalsGroup = _tournamentClass.CurrentPhase.FinalsGroup;
-                if (finalsGroup != null)
+  var finalsGroup = _tournamentClass.CurrentPhase.FinalsGroup;
+       if (finalsGroup != null)
+       {
+ // Generate matches if not done
+    if (!finalsGroup.MatchesGenerated && finalsGroup.Players.Count >= 2)
+         {
+  finalsGroup.GenerateRoundRobinMatches(_tournamentClass.GameRules);
+             }
+      
+   _dispatcher.BeginInvoke(() =>
+            {
+   try
+    {
+    if (FinalistsListBox != null)
+           FinalistsListBox.ItemsSource = finalsGroup.Players;
+      if (FinalsMatchesDataGrid != null)
+        {
+     // ✅ FIXED: Don't reset ItemsSource - just refresh the items
+            // This preserves property change notifications and live updates
+     if (FinalsMatchesDataGrid.ItemsSource == null)
+         {
+    // Only set if not already bound
+            FinalsMatchesDataGrid.ItemsSource = finalsGroup.Matches;
+   }
+   // Just refresh the existing items without resetting binding
+       FinalsMatchesDataGrid.Items.Refresh();
+    System.Diagnostics.Debug.WriteLine($"✅ [FINALS-REFRESH] DataGrid refreshed with {finalsGroup.Matches.Count} matches (preserved bindings)");
+       }
+     
+         if (FinalsStandingsDataGrid != null)
+   {
+    var standings = finalsGroup.GetStandings();
+     FinalsStandingsDataGrid.ItemsSource = standings;
+           }
+                }
+                catch (Exception ex)
                 {
-                    // Generate matches if not done
-                    if (!finalsGroup.MatchesGenerated && finalsGroup.Players.Count >= 2)
-                    {
-                        finalsGroup.GenerateRoundRobinMatches(_tournamentClass.GameRules);
-                    }
-                    
-                    _dispatcher.BeginInvoke(() =>
-                    {
-                        try
-                        {
-                            if (FinalistsListBox != null)
-                                FinalistsListBox.ItemsSource = finalsGroup.Players;
-                            if (FinalsMatchesDataGrid != null)
-                                FinalsMatchesDataGrid.ItemsSource = finalsGroup.Matches;
-                            
-                            if (FinalsStandingsDataGrid != null)
-                            {
-                                var standings = finalsGroup.GetStandings();
-                                FinalsStandingsDataGrid.ItemsSource = standings;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"RefreshFinalsView UI update: ERROR: {ex.Message}");
-                        }
-                    }, DispatcherPriority.DataBind);
+                    System.Diagnostics.Debug.WriteLine($"RefreshFinalsView UI update: ERROR: {ex.Message}");
+                }
+            }, DispatcherPriority.DataBind);
                 }
                 else
                 {

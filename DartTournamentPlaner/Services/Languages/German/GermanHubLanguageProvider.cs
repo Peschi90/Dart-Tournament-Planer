@@ -100,6 +100,18 @@ public class GermanHubLanguageProvider : ILanguageSection
             ["WebSocketReconnected"] = "WebSocket-Wiederverbindung erfolgreich",
             ["WebSocketMaxRetriesReached"] = "Maximale WebSocket-Verbindungsversuche erreicht",
 
+            // ✨ NEU: Live-Match-Updates
+            ["Hub_MatchStarted"] = "Match gestartet",
+            ["Hub_LegCompleted"] = "Leg abgeschlossen",
+            ["Hub_MatchInProgress"] = "Match läuft",
+            ["Hub_LiveIndicator"] = "🔴 LIVE",
+            ["Hub_CurrentLeg"] = "Aktuelles Leg",
+            ["Hub_LegProgress"] = "Leg {0}/{1}",
+            ["Hub_MatchDuration"] = "Spieldauer",
+            ["Hub_LegDuration"] = "Leg-Dauer",
+            ["Hub_CurrentScore"] = "Aktueller Stand",
+            ["Hub_MatchStartNotification"] = "Match gestartet:\n{0} vs {1}\n({2})",
+
             // Match Updates vom Hub
             ["MatchUpdateReceived"] = "Match-Update erhalten",
             ["MatchUpdateProcessed"] = "Match {0} erfolgreich aktualisiert",

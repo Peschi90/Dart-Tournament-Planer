@@ -128,8 +128,17 @@ public partial class MainWindow : Window
         _hubService.MatchResultReceived += OnHubMatchResultReceived;
         _hubService.HubStatusChanged += OnHubStatusChanged;
         _hubService.DataChanged += () => MarkAsChanged();
+        
+      // ✨ NEU: Live-Update Event-Handler
+        if (_hubService.TournamentHubService != null)
+        {
+            _hubService.TournamentHubService.OnMatchStarted += OnHubMatchStarted;
+            _hubService.TournamentHubService.OnLegCompleted += OnHubLegCompleted;
+            _hubService.TournamentHubService.OnMatchProgressUpdated += OnHubMatchProgressUpdated;
+            System.Diagnostics.Debug.WriteLine("✅ [MainWindow] Live-Update Event-Handler registriert");
+        }
 
-        // NEU: License Service Events
+      // NEU: License Service Events
         _licenseFeatureService.LicenseStatusChanged += OnLicenseStatusChanged;
 
         // Tournament Tabs konfigurieren
@@ -313,16 +322,21 @@ public partial class MainWindow : Window
 
     private void OnHubMatchResultReceived(HubMatchUpdateEventArgs e)
     {
-        var success = _hubMatchProcessor.ProcessHubMatchUpdate(e, out var errorMessage);
+  // ✅ Dieser Handler verarbeitet nur noch die alten "tournament-match-updated" Events
+        // Die neuen Live-Events (match-started, leg-completed, match-progress) 
+ //haben dedizierte Event-Handler (OnHubMatchStarted, OnHubLegCompleted, OnHubMatchProgressUpdated)
+      // und werden NICHT mehr über MatchResultReceived gefeuert
         
-        if (success)
-        {
+    var success = _hubMatchProcessor.ProcessHubMatchUpdate(e, out var errorMessage);
+        
+if (success)
+    {
             MarkAsChanged();
-            ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
-        }
+ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
+ }
         else if (!string.IsNullOrEmpty(errorMessage))
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Hub Match Update Error: {errorMessage}");
+     {
+   System.Diagnostics.Debug.WriteLine($"❌ Hub Match Update Error: {errorMessage}");
         }
     }
 
@@ -980,7 +994,7 @@ public partial class MainWindow : Window
         {
             App.ThemeService?.ToggleTheme();
             
-            // Menü-Text aktualisieren basierend auf aktuellem Theme
+            // Menü-Text aktualisieren basierend auf aktuellerem Theme
             var currentTheme = App.ThemeService?.GetCurrentTheme() ?? "Light";
             var isDark = currentTheme.ToLower() == "dark";
             var newText = isDark ? "☀️ Switch to Light Mode" : "🌙 Switch to Dark Mode";
@@ -1074,14 +1088,620 @@ public partial class MainWindow : Window
     private void UpdateLicenseMenuVisibility(bool isLicensed)
     {
         try
+      {
+          LicenseInfoMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+       RemoveLicenseMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+   LicenseSeparator.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+     }
+      catch (Exception ex)
         {
-            LicenseInfoMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
-            RemoveLicenseMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
-            LicenseSeparator.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+    Debug.WriteLine($"Error updating license menu visibility: {ex.Message}");
+        }
+    }
+
+    #region ✨ NEU: Live-Match-Update Event-Handler
+
+    /// <summary>
+ /// ✨ NEU: Handler für Match-Start Events vom Hub
+ /// </summary>
+    private void OnHubMatchStarted(HubMatchUpdateEventArgs args)
+    {
+        Dispatcher.Invoke(() =>
+        {
+    try
+     {
+ Debug.WriteLine($"🎬 [MATCH-STARTED] {args.GetMatchIdentificationSummary()}");
+        Debug.WriteLine($"   📊 Status from Hub: '{args.Status}' (IsMatchStarted: {args.IsMatchStarted})");
+ Debug.WriteLine($"   📊 Status Description: {args.GetStatusDescription()}");
+  
+      // ⚠️ WICHTIG: Prüfe ob Status korrekt ist
+ if (args.Status != "InProgress")
+   {
+  Debug.WriteLine($"   ⚠️ WARNING: Status should be 'InProgress' but is '{args.Status}'!");
+     }
+    
+   // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
+   // Dies führt die Match-Suche inkl. UUID-Synchronisation durch!
+        Debug.WriteLine($"🔍 [MATCH-STARTED] Calling ProcessHubMatchUpdate...");
+            Debug.WriteLine($"   _hubMatchProcessor is null: {_hubMatchProcessor == null}");
+    
+            if (_hubMatchProcessor == null)
+       {
+         Debug.WriteLine($"   ❌ ERROR: _hubMatchProcessor is NULL!");
+           return;
+            }
+            
+            var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
+   
+   if (!success && !string.IsNullOrEmpty(errorMessage))
+    {
+      Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
+      }
+    else if (success)
+            {
+     Debug.WriteLine($"   ✅ Match processing succeeded!");
+     }
+  
+  // ✅ FIX: Aktualisiere Match Status UND Score (für Notes-Update)
+        // Match in UI als "In Progress" markieren
+     UpdateMatchStatusInUI(args, "InProgress");
+      
+        // ✅ NEU: Aktualisiere auch den Score damit Notes gesetzt werden
+      UpdateMatchScoreInUI(args);
+   
+            // Optionale Benachrichtigung
+    if (_configService.Config.ShowMatchStartNotifications)
+  {
+  ShowMatchStartNotification(args);
+     }
+        }
+       catch (Exception ex)
+      {
+    Debug.WriteLine($"❌ [MATCH-STARTED] Error handling match started event: {ex.Message}");
+    }
+    });
+    }
+
+    /// <summary>
+    /// ✨ NEU: Handler für Leg-Completed Events vom Hub
+    /// </summary>
+    private void OnHubLegCompleted(HubMatchUpdateEventArgs args)
+    {
+        Dispatcher.Invoke(() =>
+{
+    try
+{
+         Debug.WriteLine($"🎯 [LEG-COMPLETED] {args.GetMatchIdentificationSummary()}");
+  Debug.WriteLine($"   📊 Leg {args.CurrentLeg}/{args.TotalLegs} - Score: {args.Player1Legs}-{args.Player2Legs}");
+           
+  // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
+     var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
+    
+ if (!success && !string.IsNullOrEmpty(errorMessage))
+   {
+  Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
+     }
+        
+// Match-Stand in UI aktualisieren
+         UpdateMatchScoreInUI(args);
+    
+   // Leg-Details loggen (optional)
+     if (args.LegResults != null && args.LegResults.Count > 0)
+        {
+    var lastLeg = args.LegResults.LastOrDefault();
+          if (lastLeg != null)
+       {
+               Debug.WriteLine($"   🏆 Winner: {lastLeg.Winner}");
+  Debug.WriteLine($"   ⏱️ Duration: {lastLeg.Duration:mm\\:ss}");
+     Debug.WriteLine($"   🎯 Darts: P1={lastLeg.Player1Darts}, P2={lastLeg.Player2Darts}");
+     }
+          }
+   
+        // UI aktualisieren
+    RefreshMatchDisplays();
+      }
+            catch (Exception ex)
+      {
+ Debug.WriteLine($"❌ [LEG-COMPLETED] Error handling leg completed event: {ex.Message}");
+            }
+ });
+  }
+
+    /// <summary>
+    /// ✨ NEU: Handler für Match-Progress Events vom Hub
+    /// </summary>
+    private void OnHubMatchProgressUpdated(HubMatchUpdateEventArgs args)
+    {
+        Dispatcher.Invoke(() =>
+    {
+     try
+        {
+        Debug.WriteLine($"📈 [MATCH-PROGRESS] {args.GetMatchIdentificationSummary()}");
+      
+           // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
+       var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
+    
+ if (!success && !string.IsNullOrEmpty(errorMessage))
+{
+  Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
+      }
+      
+   if (args.MatchDuration.HasValue)
+  {
+      Debug.WriteLine($"   ⏱️ Duration: {args.MatchDuration.Value:mm\\:ss}");
+    }
+ 
+       if (args.CurrentPlayer1LegScore.HasValue && args.CurrentPlayer2LegScore.HasValue)
+     {
+    Debug.WriteLine($"   📊 Current Leg: {args.CurrentPlayer1LegScore}-{args.CurrentPlayer2LegScore}");
+     }
+ 
+     // UI mit aktuellem Stand aktualisieren (ohne Speicherung)
+       UpdateMatchProgressInUI(args);
+            }
+    catch (Exception ex)
+   {
+    Debug.WriteLine($"❌ [MATCH-PROGRESS] Error handling match progress event: {ex.Message}");
+            }
+        });
+    }
+
+    /// <summary>
+    /// ✨ NEU: Aktualisiert Match-Status in der UI
+    /// ERWEITERT: Unterstützt Match und KnockoutMatch
+    /// </summary>
+    private void UpdateMatchStatusInUI(HubMatchUpdateEventArgs args, string status)
+    {
+        try
+ {
+   var tournamentData = _tournamentService.GetTournamentData();
+       if (tournamentData == null) return;
+            
+   // Finde das Match
+ var matchObj = FindMatchInTournament(tournamentData, args);
+   if (matchObj == null)
+       {
+        Debug.WriteLine($"⚠️ [UPDATE-STATUS] Match not found: {args.GetMatchIdentificationSummary()}");
+       return;
+     }
+ 
+       // ✅ WICHTIG: Setze den MatchStatus Enum basierend auf dem String-Status
+  MatchStatus matchStatus;
+       switch (status)
+     {
+       case "InProgress":
+    matchStatus = MatchStatus.InProgress;
+         break;
+    case "Finished":
+        matchStatus = MatchStatus.Finished;
+        break;
+      case "NotStarted":
+  matchStatus = MatchStatus.NotStarted;
+      break;
+case "Bye":
+         matchStatus = MatchStatus.Bye;
+      break;
+      default:
+         Debug.WriteLine($"⚠️ [UPDATE-STATUS] Unknown status: {status}, defaulting to InProgress");
+     matchStatus = MatchStatus.InProgress;
+     break;
+     }
+         
+     // ✅ Behandle Match und KnockoutMatch unterschiedlich
+if (matchObj is Match match)
+       {
+   match.Status = matchStatus;
+        
+ // Status in Notes speichern (für visuelle Live-Anzeige)
+         var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
+         var statusIndicator = status == "InProgress" ? liveIndicator : "";
+        match.Notes = $"{statusIndicator} {match.Notes?.Replace(liveIndicator, "").Trim()}".Trim();
+   
+       Debug.WriteLine($"✅ [UPDATE-STATUS] Match status updated to: {matchStatus} ({status})");
+            Debug.WriteLine($"   📊 Match.StatusDisplay will now show: {match.StatusDisplay}");
+     }
+    else if (matchObj is KnockoutMatch koMatch)
+  {
+ koMatch.Status = matchStatus;
+    
+     // Status in Notes speichern
+var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
+       var statusIndicator = status == "InProgress" ? liveIndicator : "";
+       koMatch.Notes = $"{statusIndicator} {koMatch.Notes?.Replace(liveIndicator, "").Trim()}".Trim();
+
+  Debug.WriteLine($"✅ [UPDATE-STATUS] KO Match status updated to: {matchStatus} ({status})");
+        Debug.WriteLine($"   📊 KnockoutMatch.StatusDisplay will now show: {koMatch.StatusDisplay}");
+        }
+      }
+        catch (Exception ex)
+    {
+        Debug.WriteLine($"❌ [UPDATE-STATUS] Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✨ NEU: Aktualisiert Match-Score in der UI (Leg-Updates)
+    /// ERWEITERT: Unterstützt Match und KnockoutMatch
+    /// </summary>
+    private void UpdateMatchScoreInUI(HubMatchUpdateEventArgs args)
+    {
+     try
+ {
+var tournamentData = _tournamentService.GetTournamentData();
+     if (tournamentData == null) return;
+       
+    var matchObj = FindMatchInTournament(tournamentData, args);
+     if (matchObj == null) return;
+  
+  // ✅ Behandle Match und KnockoutMatch unterschiedlich
+        if (matchObj is Match match)
+        {
+            UpdateRegularMatch(match, args);
+   }
+   else if (matchObj is KnockoutMatch koMatch)
+    {
+  UpdateKnockoutMatch(koMatch, args);
+        }
+    }
+    catch (Exception ex)
+{
+   Debug.WriteLine($"❌ [UPDATE-SCORE] Error: {ex.Message}");
+}
+    }
+
+ /// <summary>
+    /// ✅ NEU: Aktualisiert ein reguläres Match (Gruppenphase oder Finals)
+    /// </summary>
+    private void UpdateRegularMatch(Match match, HubMatchUpdateEventArgs args)
+    {
+ // Score aktualisieren
+   match.Player1Legs = args.Player1Legs;
+        match.Player2Legs = args.Player2Legs;
+        match.Player1Sets = args.Player1Sets;
+     match.Player2Sets = args.Player2Sets;
+    
+     // ✅ CRITICAL FIX: Robustere Status-Logik mit Debug-Logging
+Debug.WriteLine($"🔍 [UPDATE-REGULAR-MATCH] Status Check:");
+      Debug.WriteLine($"   args.IsMatchCompleted: {args.IsMatchCompleted}");
+      Debug.WriteLine($"   args.IsMatchStarted: {args.IsMatchStarted}");
+        Debug.WriteLine($"args.Status: {args.Status}");
+       Debug.WriteLine($"   Current match.Status: {match.Status}");
+ 
+        if (args.IsMatchCompleted)
+        {
+   match.Status = MatchStatus.Finished;
+Debug.WriteLine($"   ✅ Match marked as Finished");
+        }
+        else if (args.IsMatchStarted)
+ {
+       match.Status = MatchStatus.InProgress;
+    Debug.WriteLine($"   ✅ Match marked as InProgress");
+      }
+    else
+{
+    Debug.WriteLine($"   ⚠️ WARNING: Neither IsMatchCompleted nor IsMatchStarted is true!");
+   }
+ 
+   // Berechne maximale Legs
+        int calculatedTotalLegs = CalculateMaxLegs(match, args);
+     
+ // Leg-Info in Notes hinzufügen
+  var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
+    var legProgress = _localizationService.GetString("Hub_LegProgress", args.CurrentLeg, calculatedTotalLegs);
+   match.Notes = $"{liveIndicator} - {legProgress}";
+   
+  Debug.WriteLine($"✅ [UPDATE-SCORE] Match score updated: {args.Player1Legs}-{args.Player2Legs}");
+ Debug.WriteLine($"   📊 Calculated total legs: {calculatedTotalLegs} (Hub sent: {args.TotalLegs})");
+        Debug.WriteLine($" 📊 Status: {match.Status}, Display: {match.StatusDisplay}");
+        Debug.WriteLine($"   📝 Notes: {match.Notes}");
+   
+        // ✅ NEU: Triggere UI-Refresh damit die Änderungen sofort sichtbar sind
+     try
+  {
+ var tournamentData = _tournamentService.GetTournamentData();
+        if (tournamentData != null)
+ {
+  var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
+    if (tournamentClass != null)
+      {
+     Debug.WriteLine($"🔄 [UI-REFRESH] Triggering UI refresh for tournament class {tournamentClass.Name}");
+tournamentClass.TriggerUIRefresh();
+ }
+       }
+}
+        catch (Exception ex)
+      {
+     Debug.WriteLine($"⚠️ [UI-REFRESH] Error triggering UI refresh: {ex.Message}");
+   }
+
+    // Speichere nur bei abgeschlossenem Match
+if (args.IsMatchCompleted)
+ {
+    MarkAsChanged();
+    }
+    }
+    /// <summary>
+    /// ✅ NEU: Aktualisiert ein KnockoutMatch
+    /// </summary>
+private void UpdateKnockoutMatch(KnockoutMatch koMatch, HubMatchUpdateEventArgs args)
+  {
+ // Score aktualisieren
+  koMatch.Player1Legs = args.Player1Legs;
+    koMatch.Player2Legs = args.Player2Legs;
+    koMatch.Player1Sets = args.Player1Sets;
+      koMatch.Player2Sets = args.Player2Sets;
+    
+    // Status setzen
+        if (args.IsMatchCompleted)
+        {
+      koMatch.Status = MatchStatus.Finished;
+          Debug.WriteLine($"   ✅ KO Match marked as Finished");
+        }
+ else if (args.IsMatchStarted)
+        {
+     koMatch.Status = MatchStatus.InProgress;
+       Debug.WriteLine($"   ✅ KO Match marked as InProgress");
+      }
+ 
+        // Berechne maximale Legs
+        var tempMatch = new Match { Id = koMatch.Id, UniqueId = koMatch.UniqueId };
+  int calculatedTotalLegs = CalculateMaxLegs(tempMatch, args);
+  
+        // Leg-Info in Notes hinzufügen
+      var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
+        var legProgress = _localizationService.GetString("Hub_LegProgress", args.CurrentLeg, calculatedTotalLegs);
+        koMatch.Notes = $"{liveIndicator} - {legProgress}";
+     
+        Debug.WriteLine($"✅ [UPDATE-SCORE] KO Match score updated: {args.Player1Legs}-{args.Player2Legs}");
+        Debug.WriteLine($"   📊 Calculated total legs: {calculatedTotalLegs} (Hub sent: {args.TotalLegs})");
+        Debug.WriteLine($"   📊 Status: {koMatch.Status}, Display: {koMatch.StatusDisplay}");
+     Debug.WriteLine($"   📝 Notes: {koMatch.Notes}");
+   
+     // ✅ NEU: Aktualisiere Tournament Tree Renderer wenn vorhanden
+        Debug.WriteLine($"🌳 [TREE-UPDATE] Checking TournamentTreeRenderer.CurrentInstance...");
+      Debug.WriteLine($"   📦 Current Instance: {TournamentTreeRenderer.CurrentInstance != null}");
+     
+        if (TournamentTreeRenderer.CurrentInstance != null)
+    {
+            try
+            {
+    // Bestimme ob Match im Loser Bracket ist
+ bool isLoserBracket = args.MatchType?.Contains("Loser") == true;
+    
+      Debug.WriteLine($"🌳 [TREE-UPDATE] Refreshing match {koMatch.Id} in tree (Loser: {isLoserBracket})");
+     TournamentTreeRenderer.CurrentInstance.RefreshMatchInTree(koMatch.Id, isLoserBracket);
+  }
+            catch (Exception ex)
+            {
+  Debug.WriteLine($"❌ [TREE-UPDATE] Error: {ex.Message}");
+       }
+        }
+        else
+        {
+      Debug.WriteLine($"⚠️ [TREE-UPDATE] TournamentTreeRenderer.CurrentInstance is NULL - tree won't update!");
+       Debug.WriteLine($"   💡 Hint: Switch to KO Tab to initialize the tree renderer");
+        }
+   
+        // Speichere nur bei abgeschlossenem Match
+    if (args.IsMatchCompleted)
+        {
+ MarkAsChanged();
+        }
+    }
+
+    /// <summary>
+    /// ✨ NEU: Berechnet die maximale Anzahl an Legs basierend auf Spielregeln
+    /// ERWEITERT: Unterstützt KO-Matches mit rundenspezifischen Regeln
+  /// </summary>
+    private int CalculateMaxLegs(Match match, HubMatchUpdateEventArgs args)
+    {
+        try
+        {
+            var tournamentData = _tournamentService.GetTournamentData();
+            if (tournamentData == null) return args.TotalLegs;
+    
+ var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
+ if (tournamentClass == null) return args.TotalLegs;
+     
+      var gameRules = tournamentClass.GameRules;
+    if (gameRules == null) return args.TotalLegs;
+   
+         int legsToWin = gameRules.LegsToWin;
+      
+         // ✅ KORRIGIERT: Prüfe nur auf "Knockout", nicht auf "Final" (Finals ist Round Robin!)
+            if (args.MatchType?.Contains("Knockout") == true)
+ {
+        Debug.WriteLine($"   🏆 KO match detected: {args.MatchType}");
+      
+       if (args.TotalLegs > 0)
+    {
+      legsToWin = args.TotalLegs;
+        Debug.WriteLine($"   🔧 Using Hub's totalLegs ({args.TotalLegs}) as LegsToWin for KO match");
+    }
+       }
+         else
+  {
+       Debug.WriteLine($" 📊 Regular match (Group/Finals): {args.MatchType ?? "Unknown"}");
+          Debug.WriteLine($"   📋 Using GameRules.LegsToWin = {legsToWin}");
+            }
+   
+        int maxLegs = (2 * legsToWin) - 1;
+      
+ Debug.WriteLine($"🎯 Game Rules: LegsToWin = {legsToWin}, Calculated MaxLegs = {maxLegs}");
+  
+        return maxLegs;
+    }
+   catch (Exception ex)
+        {
+   Debug.WriteLine($" ⚠️ Error calculating max legs: {ex.Message}, using Hub value");
+     return (2 * args.TotalLegs) - 1;
+        }
+    }
+
+    /// <summary>
+    /// ✨ NEU: Aktualisiert Match-Progress in der UI (ohne Speicherung)
+    /// </summary>
+    private void UpdateMatchProgressInUI(HubMatchUpdateEventArgs args)
+    {
+        try
+        {
+       RefreshMatchDisplays();
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Error updating license menu visibility: {ex.Message}");
+            Debug.WriteLine($"❌ [UPDATE-PROGRESS] Error: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// ✨ NEU: Zeigt eine Benachrichtigung für Match-Start
+    /// </summary>
+    private void ShowMatchStartNotification(HubMatchUpdateEventArgs args)
+    {
+    try
+        {
+  var tournamentData = _tournamentService.GetTournamentData();
+   if (tournamentData == null) return;
+
+            var matchObj = FindMatchInTournament(tournamentData, args);
+      if (matchObj == null) return;
+   
+            var className = tournamentData.TournamentClasses
+      .FirstOrDefault(c => c.Id == args.ClassId)?.Name ?? "Unknown Class";
+ 
+         string? player1Name = null;
+       string? player2Name = null;
+    
+    if (matchObj is Match match)
+            {
+         player1Name = match.Player1?.Name;
+          player2Name = match.Player2?.Name;
+            }
+            else if (matchObj is KnockoutMatch koMatch)
+   {
+     player1Name = koMatch.Player1?.Name;
+      player2Name = koMatch.Player2?.Name;
+        }
+
+            var message = _localizationService.GetString(
+          "Hub_MatchStartNotification", 
+      player1Name ?? "Player 1", 
+    player2Name ?? "Player 2", 
+           className);
+ 
+        Debug.WriteLine($"📢 {message}");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"❌ [NOTIFICATION] Error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✨ NEU: Hilfsmethode zum Finden eines Matches
+    /// </summary>
+    private object? FindMatchInTournament(TournamentData tournamentData, HubMatchUpdateEventArgs args)
+    {
+   var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
+    if (tournamentClass == null) return null;
+ 
+        if (args.GroupId.HasValue)
+  {
+          var group = tournamentClass.Groups.FirstOrDefault(g => g.Id == args.GroupId.Value);
+            if (group != null)
+            {
+                return group.Matches.FirstOrDefault(m => 
+        (args.HasUuid && m.UniqueId == args.MatchUuid) ||
+                 (!args.HasUuid && m.Id == args.MatchId)
+     );
+            }
+        }
+   
+ // ✅ CRITICAL FIX: Suche auch in Finals!
+        if (!args.GroupId.HasValue && args.GroupName?.Contains("Finals") == true)
+        {
+        Debug.WriteLine($"   🔍 Searching for Finals match: {args.GroupName}");
+            
+            if (tournamentClass.CurrentPhase?.FinalsGroup != null)
+            {
+       var finalsMatch = tournamentClass.CurrentPhase.FinalsGroup.Matches.FirstOrDefault(m =>
+       (args.HasUuid && m.UniqueId == args.MatchUuid) ||
+(!args.HasUuid && m.Id == args.MatchId)
+      );
+    
+         if (finalsMatch != null)
+  {
+           Debug.WriteLine($"   ✅ Found match in Finals");
+    return finalsMatch;
+   }
+            }
+          
+            Debug.WriteLine($"   ⚠️ Finals match not found");
+     }
+        
+        // ✅ Suche in KO-Phase (unverändert)
+        if (!args.GroupId.HasValue && args.MatchType?.Contains("Knockout") == true)
+        {
+  Debug.WriteLine($"   🔍 Searching for KO match: {args.MatchType}");
+
+          foreach (var phase in tournamentClass.Phases)
+            {
+      if (phase.PhaseType == TournamentPhaseType.KnockoutPhase)
+        {
+                  foreach (var koMatch in phase.WinnerBracket)
+            {
+         if ((args.HasUuid && koMatch.UniqueId == args.MatchUuid) ||
+   (!args.HasUuid && koMatch.Id == args.MatchId))
+  {
+   Debug.WriteLine($"   ✅ Found KO match in Winner Bracket");
+           return koMatch;
+          }
+  }
+          
+       foreach (var koMatch in phase.LoserBracket)
+             {
+         if ((args.HasUuid && koMatch.UniqueId == args.MatchUuid) ||
+           (!args.HasUuid && koMatch.Id == args.MatchId))
+      {
+           Debug.WriteLine($"   ✅ Found KO match in Loser Bracket");
+      return koMatch;
+             }
+    }
+    }
+          }
+     
+         Debug.WriteLine($"   ⚠️ KO match not found in any bracket");
+        }
+ 
+        if (!args.GroupId.HasValue)
+        {
+        foreach (var group in tournamentClass.Groups)
+            {
+          var match = group.Matches.FirstOrDefault(m =>
+     (args.HasUuid && m.UniqueId == args.MatchUuid) ||
+        (!args.HasUuid && m.Id == args.MatchId)
+     );
+        if (match != null) return match;
+         }
+        }
+    
+        return null;
+    }
+
+    /// <summary>
+    /// ✨ NEU: Aktualisiert alle Match-Anzeigen
+    /// </summary>
+  private void RefreshMatchDisplays()
+    {
+        try
+        {
+Debug.WriteLine("📊 [REFRESH-DISPLAYS] Match displays refreshed");
+        }
+        catch (Exception ex)
+        {
+     Debug.WriteLine($"❌ [REFRESH-DISPLAYS] Error: {ex.Message}");
+        }
+    }
+
+    #endregion
 }

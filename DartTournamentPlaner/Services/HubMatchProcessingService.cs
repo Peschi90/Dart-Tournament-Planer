@@ -163,26 +163,80 @@ public class HubMatchProcessingService
             // Priorität 1: Suche über UUID (wenn verfügbar)
             if (!string.IsNullOrEmpty(e.MatchUuid))
             {
-                var uuidMatch = matches.FirstOrDefault(m => m.UniqueId == e.MatchUuid);
-                if (uuidMatch != null)
+       var uuidMatch = matches.FirstOrDefault(m => m.UniqueId == e.MatchUuid);
+     if (uuidMatch != null)
                 {
                     debugWindow?.AddDebugMessage($"✅ Match found via UUID: {e.MatchUuid}", "SUCCESS");
-                    return uuidMatch;
-                }
-            }
+         return uuidMatch;
+     }
+     else
+        {
+        debugWindow?.AddDebugMessage($"⚠️ No match found with UUID: {e.MatchUuid}, trying numeric ID", "WARNING");
+         }
+ }
             
-            // Priorität 2: Suche über numerische ID (wenn != 0)
+   // Priorität 2: Suche über numerische ID (wenn != 0)
             if (e.MatchId != 0)
             {
-                var numericMatch = matches.FirstOrDefault(m => m.Id == e.MatchId);
-                if (numericMatch != null)
+        // ✅ CRITICAL FIX: Prüfe auch Spieler-Namen zur Absicherung!
+              // Dies verhindert dass ein falsches Match geupdatet wird wenn IDs gleich sind
+    var numericMatches = matches.Where(m => m.Id == e.MatchId).ToList();
+      
+ if (numericMatches.Count == 1)
+       {
+      // Nur EIN Match mit dieser ID gefunden - eindeutig!
+        var match = numericMatches[0];
+       
+          // ✅ CRITICAL FIX: Synchronisiere UUID vom Hub zum Match!
+   // Dies stellt sicher dass zukünftige Updates die UUID-Suche verwenden können
+            if (!string.IsNullOrEmpty(e.MatchUuid) && match.UniqueId != e.MatchUuid)
+      {
+  debugWindow?.AddDebugMessage($"🔄 Updating match UUID from '{match.UniqueId}' to Hub UUID '{e.MatchUuid}'", "WARNING");
+      match.UniqueId = e.MatchUuid;
+  }
+    
+ debugWindow?.AddDebugMessage($"✅ Match found via numeric ID: {e.MatchId} (unique)", "SUCCESS");
+           return match;
+  }
+          else if (numericMatches.Count > 1)
                 {
-                    debugWindow?.AddDebugMessage($"✅ Match found via numeric ID: {e.MatchId}", "SUCCESS");
-                    return numericMatch;
-                }
-            }
+            // Mehrere Matches mit gleicher ID - verwende Spieler-Namen zur Unterscheidung!
+         debugWindow?.AddDebugMessage($"⚠️ Multiple matches with ID {e.MatchId} found - checking player names", "WARNING");
+     
+          // Hole Spieler-Namen aus dem Hub-Event (falls verfügbar)
+    var player1Name = GetPlayerNameFromEvent(e, 1);
+           var player2Name = GetPlayerNameFromEvent(e, 2);
+  
+    if (!string.IsNullOrEmpty(player1Name) || !string.IsNullOrEmpty(player2Name))
+      {
+            var playerMatch = numericMatches.FirstOrDefault(m =>
+       (string.IsNullOrEmpty(player1Name) || m.Player1?.Name == player1Name) &&
+            (string.IsNullOrEmpty(player2Name) || m.Player2?.Name == player2Name));
+        
+        if (playerMatch != null)
+     {
+     // ✅ Synchronisiere UUID
+   if (!string.IsNullOrEmpty(e.MatchUuid) && playerMatch.UniqueId != e.MatchUuid)
+         {
+     debugWindow?.AddDebugMessage($"🔄 Updating match UUID from '{playerMatch.UniqueId}' to Hub UUID '{e.MatchUuid}'", "WARNING");
+   playerMatch.UniqueId = e.MatchUuid;
+}
+          
+       debugWindow?.AddDebugMessage($"✅ Match found via numeric ID + player names: {e.MatchId}", "SUCCESS");
+      return playerMatch;
+       }
+                    }
+  
+        debugWindow?.AddDebugMessage($"❌ Could not disambiguate matches with ID {e.MatchId}", "ERROR");
+  return null; // ← Gib nichts zurück statt falsches Match!
+     }
+     else
+     {
+       debugWindow?.AddDebugMessage($"❌ No match found with numeric ID: {e.MatchId}", "WARNING");
+        }
+         }
             
-            return null;
+    return null;
         };
 
         // Helper function für UUID-aware KnockoutMatch-Suche
@@ -197,21 +251,66 @@ public class HubMatchProcessingService
                     debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via UUID: {e.MatchUuid}", "SUCCESS");
                     return uuidKoMatch;
                 }
+                else
+                {
+                    debugWindow?.AddDebugMessage($"⚠️ No knockout match found with UUID: {e.MatchUuid}, trying numeric ID", "WARNING");
+                }
             }
             
             // Priorität 2: Suche über numerische ID (wenn != 0)
             if (e.MatchId != 0)
             {
-                var numericKoMatch = knockoutMatches.FirstOrDefault(km => km.Id == e.MatchId);
-                if (numericKoMatch != null)
+                // ✅ CRITICAL FIX: Prüfe auch Spieler-Namen zur Absicherung!
+                var numericKoMatches = knockoutMatches.Where(km => km.Id == e.MatchId).ToList();
+   
+                if (numericKoMatches.Count == 1)
                 {
-                    debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via numeric ID: {e.MatchId}", "SUCCESS");
-                    return numericKoMatch;
+                    var koMatch = numericKoMatches[0];
+  
+          // ✅ CRITICAL FIX: Synchronisiere UUID vom Hub!
+   if (!string.IsNullOrEmpty(e.MatchUuid) && koMatch.UniqueId != e.MatchUuid)
+      {
+       debugWindow?.AddDebugMessage($"🔄 Updating knockout match UUID from '{koMatch.UniqueId}' to Hub UUID '{e.MatchUuid}'", "WARNING");
+       koMatch.UniqueId = e.MatchUuid;
+     }
+ 
+     debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via numeric ID: {e.MatchId} (unique)", "SUCCESS");
+  return koMatch;
                 }
+        else if (numericKoMatches.Count > 1)
+     {
+    debugWindow?.AddDebugMessage($"⚠️ Multiple knockout matches with ID {e.MatchId} found - checking player names", "WARNING");
+ 
+  var player1Name = GetPlayerNameFromEvent(e, 1);
+ var player2Name = GetPlayerNameFromEvent(e, 2);
+  
+       if (!string.IsNullOrEmpty(player1Name) || !string.IsNullOrEmpty(player2Name))
+ {
+      var playerKoMatch = numericKoMatches.FirstOrDefault(km =>
+       (string.IsNullOrEmpty(player1Name) || km.Player1?.Name == player1Name) &&
+          (string.IsNullOrEmpty(player2Name) || km.Player2?.Name == player2Name));
+    
+        if (playerKoMatch != null)
+    {
+     // ✅ Synchronisiere UUID
+if (!string.IsNullOrEmpty(e.MatchUuid) && playerKoMatch.UniqueId != e.MatchUuid)
+     {
+ debugWindow?.AddDebugMessage($"🔄 Updating knockout match UUID from '{playerKoMatch.UniqueId}' to Hub UUID '{e.MatchUuid}'", "WARNING");
+  playerKoMatch.UniqueId = e.MatchUuid;
+        }
+  
+  debugWindow?.AddDebugMessage($"✅ KnockoutMatch found via numeric ID + player names: {e.MatchId}", "SUCCESS");
+        return playerKoMatch;
             }
-            
-            return null;
-        };
+        }
+      
+   debugWindow?.AddDebugMessage($"❌ Could not disambiguate knockout matches with ID {e.MatchId}", "ERROR");
+          return null;
+        }
+       }
+  
+    return null;
+   };
 
         // 1. Winner Bracket Suche
         if (!string.IsNullOrEmpty(e.GroupName) && e.GroupName.Contains("Winner Bracket"))
@@ -283,24 +382,47 @@ public class HubMatchProcessingService
         if (!string.IsNullOrEmpty(e.GroupName) && e.GroupName.Contains("Finals"))
         {
             debugWindow?.AddDebugMessage($"🏆 Searching in Finals", "SEARCH");
-            searchedAreas.Add("Finals");
-            
+       searchedAreas.Add("Finals");
+    
             if (tournamentClass.CurrentPhase?.FinalsGroup != null)
-            {
-                result.Match = FindMatchInCollection(tournamentClass.CurrentPhase.FinalsGroup.Matches);
-                if (result.Match != null)
-                {
-                    result.Group = tournamentClass.CurrentPhase.FinalsGroup;
-                    result.Location = "Finals";
-                    debugWindow?.AddDebugMessage($"✅ Match found in Finals", "SUCCESS");
-                    return result;
-                }
-            }
-            debugWindow?.AddDebugMessage($"❌ Match not found in Finals", "WARNING");
+{
+       result.Match = FindMatchInCollection(tournamentClass.CurrentPhase.FinalsGroup.Matches);
+      if (result.Match != null)
+     {
+          result.Group = tournamentClass.CurrentPhase.FinalsGroup;
+        result.Location = "Finals";
+            debugWindow?.AddDebugMessage($"✅ Match found in Finals", "SUCCESS");
+return result;
+         }
+          }
+     debugWindow?.AddDebugMessage($"❌ Match not found in Finals", "WARNING");
         }
 
-        // 5. Fallback: Suche in allen Bereichen
-        debugWindow?.AddDebugMessage($"🔍 Starting fallback search in all areas", "SEARCH");
+// ✅ CRITICAL FIX: Prüfe ob wir überhaupt eine valide Suchgrundlage haben!
+        // Wenn weder UUID noch numerische ID vorhanden, können wir nicht sicher suchen
+        var hasValidSearchCriteria = !string.IsNullOrEmpty(e.MatchUuid) || e.MatchId != 0;
+        
+        // ✅ CRITICAL FIX: Wenn GroupName/MatchType angegeben ist UND wir gültige Suchkriterien haben,
+     // NICHT in anderen Phasen suchen! Dies verhindert dass das falsche Match geupdatet wird.
+   // ABER: Wenn die numerische ID 0 ist (nur UUID vorhanden), erlauben wir Fallback-Suche!
+ if ((!string.IsNullOrEmpty(e.GroupName) || !string.IsNullOrEmpty(e.MatchType)) && hasValidSearchCriteria && e.MatchId != 0)
+        {
+  // Spezifische Phase wurde angegeben mit numerischer ID, aber Match nicht gefunden
+        debugWindow?.AddDebugMessage($"❌ Match not found in specified phase: {e.GroupName ?? e.MatchType}", "ERROR");
+            debugWindow?.AddDebugMessage($"⚠️ PREVENTING fallback search (numeric ID provided: {e.MatchId})", "WARNING");
+        result.SearchedAreas = string.Join(", ", searchedAreas);
+       return result;
+     }
+
+        // 5. Fallback: Suche in allen Bereichen wenn keine spezifische Phase ODER nur UUID (keine numerische ID)
+   if (e.MatchId == 0 && !string.IsNullOrEmpty(e.MatchUuid))
+   {
+     debugWindow?.AddDebugMessage($"🔍 Starting fallback search (only UUID provided, no numeric ID)", "SEARCH");
+        }
+     else
+ {
+    debugWindow?.AddDebugMessage($"🔍 Starting fallback search in all areas (no specific phase specified)", "SEARCH");
+  }
         return FallbackSearch(tournamentClass, e, searchedAreas, FindMatchInCollection, FindKnockoutMatchInCollection);
     }
 
@@ -407,33 +529,84 @@ public class HubMatchProcessingService
             match.Player2Sets = hubData.Player2Sets;
             match.Player1Legs = hubData.Player1Legs;
             match.Player2Legs = hubData.Player2Legs;
-            match.Notes = hubData.Notes ?? match.Notes;
 
-            // Aktualisiere Status
-            if (Enum.TryParse<MatchStatus>(hubData.Status, out var newStatus))
+     // ✅ CRITICAL FIX: Robustere Logik für Status/Notes Updates
+          // Wir skippen Updates wenn:
+      // 1. Es ein Match-Started/Leg-Update Event ist UND der Status bereits korrekt ist
+  // 2. ODER: Match ist bereits InProgress UND hubData sagt nicht explizit "Finished"
+ bool shouldUpdateStatus = true;
+            bool shouldUpdateNotes = true;
+  
+   // Prüfe ob dies ein live-update Event ist (nicht match-completed)
+         if (hubData.IsMatchStarted && !hubData.IsMatchCompleted)
+     {
+        // ✅ CRITICAL FIX: Status nur skippen wenn er BEREITS KORREKT ist!
+// Wenn das Match auf "Finished" steht aber der Hub sagt "InProgress",
+      // MÜSSEN wir den Status aktualisieren!
+    var expectedStatus = MatchStatus.InProgress;
+       if (match.Status == expectedStatus)
+   {
+     // Status ist bereits korrekt - Skip!
+   shouldUpdateStatus = false;
+          shouldUpdateNotes = false;
+      debugWindow?.AddDebugMessage($"   ⏭️ Skipping status and notes update - already correct (match in progress)", "INFO");
+     }
+           else
+    {
+  // Status ist FALSCH - FORCE UPDATE!
+         shouldUpdateStatus = true;
+         shouldUpdateNotes = false;  // Notes kommen von OnHubMatchStarted
+          debugWindow?.AddDebugMessage($"   🔧 FORCING status update from {match.Status} to InProgress (hub says match is started)", "WARNING");
+           }
+     }
+     else if (match.Status == MatchStatus.InProgress && hubData.Status != "Finished")
             {
-                match.Status = newStatus;
-                debugWindow?.AddDebugMessage($"   Status updated to: {newStatus}", "INFO");
+       // ✅ ROBUSTER: Match läuft bereits UND der Hub sagt NICHT explizit "Finished"
+     // Dann überschreiben wir Status/Notes NICHT
+       shouldUpdateStatus = false;
+    shouldUpdateNotes = false;
+   debugWindow?.AddDebugMessage($"   ⏭️ Skipping status and notes update - match in progress and not explicitly finished (Status from Hub: '{hubData.Status}')", "INFO");
+    }
+     
+            if (shouldUpdateStatus)
+     {
+                // Aktualisiere Status nur für match-completed Events
+        if (Enum.TryParse<MatchStatus>(hubData.Status, out var newStatus))
+     {
+               match.Status = newStatus;
+        debugWindow?.AddDebugMessage($"   ✅ Status updated to: {newStatus}", "INFO");
+      }
+      }
+  
+            // ✅ NEU: Notes nur aktualisieren wenn erlaubt
+     if (shouldUpdateNotes)
+            {
+        match.Notes = hubData.Notes ?? match.Notes;
+      debugWindow?.AddDebugMessage($" ✅ Notes updated", "INFO");
+ }
+            else
+            {
+      debugWindow?.AddDebugMessage($"   ⏭️ Notes not updated (preserving live indicator)", "INFO");
             }
 
             // Setze End-Zeit wenn abgeschlossen
             if (match.Status == MatchStatus.Finished && match.EndTime == null)
             {
-                match.EndTime = DateTime.Now;
-                debugWindow?.AddDebugMessage($"   End time set to: {match.EndTime}", "INFO");
-            }
+         match.EndTime = DateTime.Now;
+           debugWindow?.AddDebugMessage($"   End time set to: {match.EndTime}", "INFO");
+        }
 
             // Bestimme Gewinner - verwende SetResult für korrekte Gewinner-Bestimmung
-            match.SetResult(match.Player1Sets, match.Player2Sets, match.Player1Legs, match.Player2Legs);
-            
-            debugWindow?.AddDebugMessage($"   Winner determined: {match.Winner?.Name ?? "None"}", "INFO");
+      match.SetResult(match.Player1Sets, match.Player2Sets, match.Player1Legs, match.Player2Legs);
+    
+   debugWindow?.AddDebugMessage($"   Winner determined: {match.Winner?.Name ?? "None"}", "INFO");
             debugWindow?.AddDebugMessage($"   ✅ Match updated successfully", "SUCCESS");
 
             return true;
         }
         catch (Exception ex)
         {
-            debugWindow?.AddDebugMessage($"❌ Error updating match: {ex.Message}", "ERROR");
+ debugWindow?.AddDebugMessage($"❌ Error updating match: {ex.Message}", "ERROR");
             return false;
         }
     }
@@ -441,63 +614,100 @@ public class HubMatchProcessingService
     private bool UpdateKnockoutMatch(KnockoutMatch knockoutMatch, HubMatchUpdateEventArgs hubData)
     {
         var debugWindow = HubIntegrationService.GlobalDebugWindow;
-        
+      
         try
         {
-            debugWindow?.AddDebugMessage($"🔧 Updating KnockoutMatch {hubData.MatchId}", "MATCH");
-            debugWindow?.AddDebugMessage($"   Current: {knockoutMatch.Player1Sets}-{knockoutMatch.Player2Sets} Sets, {knockoutMatch.Player1Legs}-{knockoutMatch.Player2Legs} Legs, Status: {knockoutMatch.Status}", "INFO");
+debugWindow?.AddDebugMessage($"🔧 Updating KnockoutMatch {hubData.MatchId}", "MATCH");
+  debugWindow?.AddDebugMessage($"   Current: {knockoutMatch.Player1Sets}-{knockoutMatch.Player2Sets} Sets, {knockoutMatch.Player1Legs}-{knockoutMatch.Player2Legs} Legs, Status: {knockoutMatch.Status}", "INFO");
             debugWindow?.AddDebugMessage($"   Hub Data: {hubData.Player1Sets}-{hubData.Player2Sets} Sets, {hubData.Player1Legs}-{hubData.Player2Legs} Legs, Status: {hubData.Status}", "INFO");
-            
-            // Prüfe ob es tatsächlich Änderungen gibt
-            if (knockoutMatch.Player1Sets == hubData.Player1Sets &&
-                knockoutMatch.Player2Sets == hubData.Player2Sets &&
-                knockoutMatch.Player1Legs == hubData.Player1Legs &&
-                knockoutMatch.Player2Legs == hubData.Player2Legs &&
-                knockoutMatch.Status.ToString() == hubData.Status)
-            {
-                debugWindow?.AddDebugMessage($"   No changes detected, skipping update", "INFO");
-                return false;
+        
+    // Prüfe ob es tatsächlich Änderungen gibt
+   if (knockoutMatch.Player1Sets == hubData.Player1Sets &&
+    knockoutMatch.Player2Sets == hubData.Player2Sets &&
+    knockoutMatch.Player1Legs == hubData.Player1Legs &&
+       knockoutMatch.Player2Legs == hubData.Player2Legs &&
+             knockoutMatch.Status.ToString() == hubData.Status)
+    {
+   debugWindow?.AddDebugMessage($"   No changes detected, skipping update", "INFO");
+  return false;
             }
 
-            // Speichere alten Status für Vergleich
-            var oldStatus = knockoutMatch.Status;
+         // Speichere alten Status für Vergleich
+   var oldStatus = knockoutMatch.Status;
 
-            // Aktualisiere KnockoutMatch-Daten
+       // Aktualisiere KnockoutMatch-Daten
             knockoutMatch.Player1Sets = hubData.Player1Sets;
-            knockoutMatch.Player2Sets = hubData.Player2Sets;
-            knockoutMatch.Player1Legs = hubData.Player1Legs;
-            knockoutMatch.Player2Legs = hubData.Player2Legs;
-            knockoutMatch.Notes = hubData.Notes ?? knockoutMatch.Notes;
+   knockoutMatch.Player2Sets = hubData.Player2Sets;
+    knockoutMatch.Player1Legs = hubData.Player1Legs;
+  knockoutMatch.Player2Legs = hubData.Player2Legs;
 
-            // Aktualisiere Status
-            if (Enum.TryParse<MatchStatus>(hubData.Status, out var newStatus))
-            {
-                knockoutMatch.Status = newStatus;
-                debugWindow?.AddDebugMessage($"   Status updated to: {newStatus}", "INFO");
-            }
+ // ✅ CRITICAL FIX: Robustere Logik für Status/Notes Updates
+// Wir skippen Updates wenn:
+    // 1. Es ein Match-Started Event ist (IsMatchStarted && !IsMatchCompleted)
+ // 2. ODER: Match ist bereits InProgress UND hubData sagt nicht explizit "Finished"
+            bool shouldUpdateStatus = true;
+   bool shouldUpdateNotes = true;
+ 
+            // Prüfe ob dies ein live-update Event ist (nicht match-completed)
+        if (hubData.IsMatchStarted && !hubData.IsMatchCompleted)
+     {
+       // Match-Started Event - Status wird von OnHubMatchStarted gesetzt
+shouldUpdateStatus = false;
+      shouldUpdateNotes = false;
+         debugWindow?.AddDebugMessage($"   ⏭️ Skipping status and notes update for match-started event (handled by OnHubMatchStarted)", "INFO");
+  }
+      else if (knockoutMatch.Status == MatchStatus.InProgress && hubData.Status != "Finished")
+{
+     // ✅ ROBUSTER: Match läuft bereits UND der Hub sagt NICHT explizit "Finished"
+   // Dann überschreiben wir Status/Notes NICHT
+  shouldUpdateStatus = false;
+   shouldUpdateNotes = false;
+       debugWindow?.AddDebugMessage($"   ⏭️ Skipping status and notes update - match in progress and not explicitly finished (Status from Hub: '{hubData.Status}')", "INFO");
+    }
+
+        if (shouldUpdateStatus)
+  {
+        // Aktualisiere Status nur für match-completed Events
+     if (Enum.TryParse<MatchStatus>(hubData.Status, out var newStatus))
+        {
+knockoutMatch.Status = newStatus;
+  debugWindow?.AddDebugMessage($"   ✅ Status updated to: {newStatus}", "INFO");
+    }
+    }
+        
+            // ✅ NEU: Notes nur aktualisieren wenn erlaubt
+  if (shouldUpdateNotes)
+    {
+          knockoutMatch.Notes = hubData.Notes ?? knockoutMatch.Notes;
+ debugWindow?.AddDebugMessage($"   ✅ Notes updated", "INFO");
+ }
+   else
+    {
+         debugWindow?.AddDebugMessage($"   ⏭️ Notes not updated (preserving live indicator)", "INFO");
+  }
 
             // Setze End-Zeit wenn abgeschlossen
             if (knockoutMatch.Status == MatchStatus.Finished && knockoutMatch.EndTime == null)
             {
-                knockoutMatch.EndTime = DateTime.Now;
-                debugWindow?.AddDebugMessage($"   End time set to: {knockoutMatch.EndTime}", "INFO");
-            }
+              knockoutMatch.EndTime = DateTime.Now;
+       debugWindow?.AddDebugMessage($"   End time set to: {knockoutMatch.EndTime}", "INFO");
+   }
 
             // Bestimme Gewinner für KnockoutMatch - verwende SetResult für korrekte Gewinner-Bestimmung
             knockoutMatch.SetResult(knockoutMatch.Player1Sets, knockoutMatch.Player2Sets, knockoutMatch.Player1Legs, knockoutMatch.Player2Legs);
-            
+      
             debugWindow?.AddDebugMessage($"   Winner determined: {knockoutMatch.Winner?.Name ?? "None"}", "INFO");
 
-            // 🚨 KRITISCH: Wenn das Match jetzt finished ist und vorher nicht, triggere die Progression!
-            if (knockoutMatch.Status == MatchStatus.Finished && oldStatus != MatchStatus.Finished && knockoutMatch.Winner != null)
+   // 🚨 KRITISCH: Wenn das Match jetzt finished ist und vorher nicht, triggere die Progression!
+     if (knockoutMatch.Status == MatchStatus.Finished && oldStatus != MatchStatus.Finished && knockoutMatch.Winner != null)
             {
-                debugWindow?.AddDebugMessage($"   🎯 Match finished via Hub update - triggering progression!", "MATCH_RESULT");
-                
-                // Hole die TournamentClass über die getTournamentClassById Funktion
+          debugWindow?.AddDebugMessage($"   🎯 Match finished via Hub update - triggering progression!", "MATCH_RESULT");
+     
+             // Hole die TournamentClass über die getTournamentClassById Funktion
                 var tournamentClass = _getTournamentClassById(hubData.ClassId);
-                if (tournamentClass != null)
-                {
-                    debugWindow?.AddDebugMessage($"   📋 Found TournamentClass: {tournamentClass.Name}", "SUCCESS");
+     if (tournamentClass != null)
+            {
+         debugWindow?.AddDebugMessage($"   📋 Found TournamentClass: {tournamentClass.Name}", "SUCCESS");
                     
                     // WICHTIG: Verwende ProcessMatchResult aus TournamentClass für korrekte Progression
                     bool progressionSuccess = tournamentClass.ProcessMatchResult(knockoutMatch);
@@ -539,6 +749,35 @@ public class HubMatchProcessingService
         public KnockoutMatch? KnockoutMatch { get; set; }
         public Group? Group { get; set; }
         public string Location { get; set; } = "";
-        public string SearchedAreas { get; set; } = "";
+     public string SearchedAreas { get; set; } = "";
+    }
+
+    /// <summary>
+    /// ✅ NEU: Extrahiert Spieler-Namen aus dem Hub-Event
+    /// Wird verwendet um Matches mit guter ID zu unterscheiden
+    /// </summary>
+    private string? GetPlayerNameFromEvent(HubMatchUpdateEventArgs e, int playerNumber)
+    {
+        try
+        {
+   // Versuche Spieler-Namen aus dem Notes-JSON zu extrahieren (wenn vorhanden)
+      if (!string.IsNullOrEmpty(e.Notes) && e.Notes.TrimStart().StartsWith("{"))
+       {
+             var json = System.Text.Json.JsonDocument.Parse(e.Notes);
+      var dataElement = json.RootElement.TryGetProperty("data", out var data) ? data : json.RootElement;
+     
+     var playerProperty = playerNumber == 1 ? "player1Name" : "player2Name";
+            if (dataElement.TryGetProperty(playerProperty, out var nameElement))
+   {
+     return nameElement.GetString();
+     }
+         }
+        }
+catch
+      {
+      // Fehler beim Parsen ignorieren
+        }
+  
+        return null;
     }
 }

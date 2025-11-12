@@ -106,10 +106,10 @@ public class TournamentDataSyncService
         _debugLog($"🎮 [SYNC] KnockoutRoundRules count: {tournamentClass.GameRules.KnockoutRoundRules.Count}", "SYNC");
 
         // Debug: Ausgabe aller KnockoutRoundRules
-        foreach (var roundRule in tournamentClass.GameRules.KnockoutRoundRules)
-        {
-            _debugLog($"   Round {roundRule.Key}: Sets={roundRule.Value.SetsToWin}, Legs={roundRule.Value.LegsToWin}, LegsPerSet={roundRule.Value.LegsPerSet}", "SYNC");
-        }
+        //foreach (var roundRule in tournamentClass.GameRules.KnockoutRoundRules)
+        //{
+        //    _debugLog($"   Round {roundRule.Key}: Sets={roundRule.Value.SetsToWin}, Legs={roundRule.Value.LegsToWin}, LegsPerSet={roundRule.Value.LegsPerSet}", "SYNC");
+        //}
 
         // Zähle alle Match-Typen
         int groupMatches = tournamentClass.Groups.Sum(g => g.Matches.Count);
@@ -338,9 +338,9 @@ public class TournamentDataSyncService
                 var legsPerSet = GetLegsPerSetForRound(round, tournamentClass.GameRules);
                 var gameRuleId = $"{tournamentClass.Id}_WB_{round}";
 
-                _debugLog($"🎮 [SYNC] Winner Bracket Match {knockoutMatch.Id} ({round}):", "SYNC");
-                _debugLog($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}", "SYNC");
-                _debugLog($"   Game Rule ID: {gameRuleId}", "SYNC");
+                //_debugLog($"🎮 [SYNC] Winner Bracket Match {knockoutMatch.Id} ({round}):", "SYNC");
+                //_debugLog($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}", "SYNC");
+                //_debugLog($"   Game Rule ID: {gameRuleId}", "SYNC");
 
                 allMatches.Add(new
                 {
@@ -446,9 +446,9 @@ public class TournamentDataSyncService
                 var legsPerSet = GetLegsPerSetForRound(round, tournamentClass.GameRules);
                 var gameRuleId = $"{tournamentClass.Id}_LB_{round}";
 
-                _debugLog($"🔄 [SYNC] Loser Bracket Match {knockoutMatch.Id} ({round}):", "SYNC");
-                _debugLog($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}", "SYNC");
-                _debugLog($"   Game Rule ID: {gameRuleId}", "SYNC");
+                //_debugLog($"🔄 [SYNC] Loser Bracket Match {knockoutMatch.Id} ({round}):", "SYNC");
+                //_debugLog($"   Sets/Legs/LegsPerSet: {setsToWin}/{legsToWin}/{legsPerSet}", "SYNC");
+                //_debugLog($"   Game Rule ID: {gameRuleId}", "SYNC");
 
                 allMatches.Add(new
                 {

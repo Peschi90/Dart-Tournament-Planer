@@ -284,7 +284,7 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             // KO-Match Informationen
             ["MatchDuration"] = "Spieldauer: {0}",
             ["MatchStarted"] = "Spiel gestartet: {0}",
-            ["MatchFinished"] = "Spiel beendet: {0}",
+            ["MatchFinishedAt"] = "Spiel beendet: {0}",  // ✅ UMBENANNT von MatchFinished zu MatchFinishedAt
             ["ElapsedTime"] = "Vergangene Zeit: {0}",
             ["EstimatedDuration"] = "Geschätzte Dauer: {0}",
             ["QualificationPath"] = "Qualifikationsweg: {0}"

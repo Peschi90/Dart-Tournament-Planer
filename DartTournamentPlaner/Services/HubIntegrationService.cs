@@ -111,9 +111,16 @@ public class HubIntegrationService : IDisposable
                 _tournamentHubService.OnTournamentUpdateReceived += OnHubTournamentUpdateReceived;
                 _tournamentHubService.OnConnectionStatusChanged += OnHubConnectionStatusChanged;
                 
-                System.Diagnostics.Debug.WriteLine("✅ [HUB] WebSocket connection established");
-                _globalHubDebugWindow?.AddDebugMessage("✅ WebSocket-Verbindung hergestellt", "SUCCESS");
-                _globalHubDebugWindow?.UpdateStatus("WebSocket-Verbindung erfolgreich hergestellt");
+                // ✅ CRITICAL FIX: Subscribe to NEW live-update events!
+                _tournamentHubService.OnMatchStarted += OnHubMatchStarted;
+                _tournamentHubService.OnLegCompleted += OnHubLegCompleted;
+                _tournamentHubService.OnMatchProgressUpdated += OnHubMatchProgressUpdated;
+       
+        System.Diagnostics.Debug.WriteLine("✅ [HUB] WebSocket connection established");
+          System.Diagnostics.Debug.WriteLine("✅ [HUB] Live-update event handlers subscribed");
+     _globalHubDebugWindow?.AddDebugMessage("✅ WebSocket-Verbindung hergestellt", "SUCCESS");
+                _globalHubDebugWindow?.AddDebugMessage("✅ Live-Update Events subscribed", "SUCCESS");
+    _globalHubDebugWindow?.UpdateStatus("WebSocket-Verbindung erfolgreich hergestellt");
             }
             else
             {
@@ -362,6 +369,38 @@ public class HubIntegrationService : IDisposable
             _globalHubDebugWindow?.AddDebugMessage($"📋 Group Info: '{e.GroupName}' (ID: {e.GroupId})", category);
             
             MatchResultReceived?.Invoke(e);
+        });
+    }
+
+    // ✅ NEW: Handler für Match-Started Events
+    private void OnHubMatchStarted(HubMatchUpdateEventArgs e)
+    {
+        _dispatcher.Invoke(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"🎬 [HUB-INTEGRATION] Match-Started Event empfangen: {e.MatchId}");
+            _globalHubDebugWindow?.AddDebugMessage($"🎬 Match gestartet: Match {e.MatchId} in Klasse {e.ClassId}", "MATCH");
+            _globalHubDebugWindow?.AddDebugMessage($"📊 Status: {e.Status}, Source: {e.Source}", "MATCH");
+        });
+    }
+
+    // ✅ NEW: Handler für Leg-Completed Events
+    private void OnHubLegCompleted(HubMatchUpdateEventArgs e)
+    {
+        _dispatcher.Invoke(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"🎯 [HUB-INTEGRATION] Leg-Completed Event empfangen: {e.MatchId} - Leg {e.CurrentLeg}/{e.TotalLegs}");
+            _globalHubDebugWindow?.AddDebugMessage($"🎯 Leg abgeschlossen: Match {e.MatchId}, Leg {e.CurrentLeg}/{e.TotalLegs}", "MATCH");
+            _globalHubDebugWindow?.AddDebugMessage($"📊 Score: {e.Player1Legs}-{e.Player2Legs}", "MATCH");
+        });
+    }
+
+    // ✅ NEW: Handler für Match-Progress Events
+    private void OnHubMatchProgressUpdated(HubMatchUpdateEventArgs e)
+    {
+        _dispatcher.Invoke(() =>
+        {
+            System.Diagnostics.Debug.WriteLine($"📈 [HUB-INTEGRATION] Match-Progress Event empfangen: {e.MatchId}");
+            _globalHubDebugWindow?.AddDebugMessage($"📈 Match-Progress: Match {e.MatchId}", "MATCH");
         });
     }
 
