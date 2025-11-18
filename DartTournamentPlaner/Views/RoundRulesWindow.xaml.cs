@@ -12,6 +12,7 @@ public partial class RoundRulesWindow : Window
     private readonly LocalizationService _localizationService;
     private readonly Dictionary<KnockoutRound, (TextBox SetsBox, TextBox LegsBox, TextBox LegsPerSetBox)> _winnerBracketControls;
     private readonly Dictionary<KnockoutRound, (TextBox SetsBox, TextBox LegsBox, TextBox LegsPerSetBox)> _loserBracketControls;
+    private readonly Dictionary<RoundRobinFinalsRound, (TextBox SetsBox, TextBox LegsBox, TextBox LegsPerSetBox)> _roundRobinFinalsControls;
 
     // Event für Datenänderungen
     public event EventHandler? DataChanged;
@@ -22,6 +23,7 @@ public partial class RoundRulesWindow : Window
         _localizationService = localizationService;
         _winnerBracketControls = new Dictionary<KnockoutRound, (TextBox, TextBox, TextBox)>();
         _loserBracketControls = new Dictionary<KnockoutRound, (TextBox, TextBox, TextBox)>();
+        _roundRobinFinalsControls = new Dictionary<RoundRobinFinalsRound, (TextBox, TextBox, TextBox)>();
         
         InitializeComponent();
         UpdateTranslations();
@@ -36,9 +38,11 @@ public partial class RoundRulesWindow : Window
         
         WinnerBracketTab.Header = _localizationService.GetString("WinnerBracketRules");
         LoserBracketTab.Header = _localizationService.GetString("LoserBracketRules");
+        RoundRobinFinalsTab.Header = _localizationService.GetString("RoundRobinFinalsRules");
         
         WinnerBracketHeaderText.Text = _localizationService.GetString("WinnerBracketRules");
         LoserBracketHeaderText.Text = _localizationService.GetString("LoserBracketRules");
+        RoundRobinFinalsHeaderText.Text = _localizationService.GetString("RoundRobinFinalsRules");
         
         ResetToDefaultButton.Content = _localizationService.GetString("ResetToDefault");
         SaveButton.Content = _localizationService.GetString("Save");
@@ -49,6 +53,7 @@ public partial class RoundRulesWindow : Window
     {
         CreateWinnerBracketControls();
         CreateLoserBracketControls();
+        CreateRoundRobinFinalsControls();
     }
 
     private void CreateWinnerBracketControls()
@@ -167,6 +172,55 @@ public partial class RoundRulesWindow : Window
         }
     }
 
+    private void CreateRoundRobinFinalsControls()
+    {
+        var finalsRounds = new[]
+        {
+            RoundRobinFinalsRound.Finals
+        };
+
+        int row = 1; // Start after headers
+        foreach (var round in finalsRounds)
+        {
+            RoundRobinFinalsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            
+            // Round name
+            var roundName = GetRoundRobinFinalsDisplayName(round);
+            var nameBlock = new TextBlock 
+            { 
+                Text = roundName,
+                FontWeight = FontWeights.Medium,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(5, 8, 5, 8),
+                Foreground = System.Windows.Media.Brushes.DarkSlateGray
+            };
+            Grid.SetRow(nameBlock, row);
+            Grid.SetColumn(nameBlock, 0);
+            RoundRobinFinalsGrid.Children.Add(nameBlock);
+            
+            // Sets TextBox
+            var setsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
+            Grid.SetRow(setsBox, row);
+            Grid.SetColumn(setsBox, 1);
+            RoundRobinFinalsGrid.Children.Add(setsBox);
+            
+            // Legs TextBox
+            var legsBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
+            Grid.SetRow(legsBox, row);
+            Grid.SetColumn(legsBox, 2);
+            RoundRobinFinalsGrid.Children.Add(legsBox);
+            
+            // Legs per Set TextBox
+            var legsPerSetBox = new TextBox { Margin = new Thickness(5, 4, 5, 4) };
+            Grid.SetRow(legsPerSetBox, row);
+            Grid.SetColumn(legsPerSetBox, 3);
+            RoundRobinFinalsGrid.Children.Add(legsPerSetBox);
+            
+            _roundRobinFinalsControls[round] = (setsBox, legsBox, legsPerSetBox);
+            row++;
+        }
+    }
+
     private string GetRoundDisplayName(KnockoutRound round)
     {
         return round switch
@@ -176,7 +230,7 @@ public partial class RoundRulesWindow : Window
             KnockoutRound.Best16 => _localizationService.GetString("Best16") + " (Achtelfinale)",
             KnockoutRound.Quarterfinal => _localizationService.GetString("Quarterfinal"),
             KnockoutRound.Semifinal => _localizationService.GetString("Semifinal"),
-            KnockoutRound.Final => _localizationService.GetString("Final"),
+            KnockoutRound.Final => _localizationService.GetString("Final") + " (Winner Bracket)",
             KnockoutRound.GrandFinal => _localizationService.GetString("GrandFinal"),
             KnockoutRound.LoserRound1 => "LR1",
             KnockoutRound.LoserRound2 => "LR2",
@@ -190,7 +244,16 @@ public partial class RoundRulesWindow : Window
             KnockoutRound.LoserRound10 => "LR10",
             KnockoutRound.LoserRound11 => "LR11",
             KnockoutRound.LoserRound12 => "LR12",
-            KnockoutRound.LoserFinal => _localizationService.GetString("LoserBracket") + " " + _localizationService.GetString("Final"),
+            KnockoutRound.LoserFinal => _localizationService.GetString("Final") + " (Loser Bracket)",
+            _ => round.ToString()
+        };
+    }
+
+    private string GetRoundRobinFinalsDisplayName(RoundRobinFinalsRound round)
+    {
+        return round switch
+        {
+            RoundRobinFinalsRound.Finals => _localizationService.GetString("RoundRobinFinals"),
             _ => round.ToString()
         };
     }
@@ -210,6 +273,15 @@ public partial class RoundRulesWindow : Window
         foreach (var kvp in _loserBracketControls)
         {
             var rules = _gameRules.GetRulesForRound(kvp.Key);
+            kvp.Value.SetsBox.Text = rules.SetsToWin.ToString();
+            kvp.Value.LegsBox.Text = rules.LegsToWin.ToString();
+            kvp.Value.LegsPerSetBox.Text = rules.LegsPerSet.ToString();
+        }
+
+        // Load Round Robin Finals values
+        foreach (var kvp in _roundRobinFinalsControls)
+        {
+            var rules = _gameRules.GetRulesForRoundRobinFinals(kvp.Key);
             kvp.Value.SetsBox.Text = rules.SetsToWin.ToString();
             kvp.Value.LegsBox.Text = rules.LegsToWin.ToString();
             kvp.Value.LegsPerSetBox.Text = rules.LegsPerSet.ToString();
@@ -244,6 +316,17 @@ public partial class RoundRulesWindow : Window
                 }
             }
 
+            // Save Round Robin Finals rules
+            foreach (var kvp in _roundRobinFinalsControls)
+            {
+                if (int.TryParse(kvp.Value.SetsBox.Text, out var sets) && sets >= 0 &&  // Erlaube 0 für Sets
+                    int.TryParse(kvp.Value.LegsBox.Text, out var legs) && legs > 0 &&
+                    int.TryParse(kvp.Value.LegsPerSetBox.Text, out var legsPerSet) && legsPerSet > 0)
+                {
+                    _gameRules.SetRulesForRoundRobinFinals(kvp.Key, sets, legs, legsPerSet);
+                }
+            }
+
             System.Diagnostics.Debug.WriteLine("RoundRulesWindow.SaveButton_Click: Rules saved, triggering DataChanged event");
             
             // Trigger data changed event
@@ -275,6 +358,7 @@ public partial class RoundRulesWindow : Window
         if (result == MessageBoxResult.Yes)
         {
             _gameRules.ResetKnockoutRulesToDefault();
+            _gameRules.ResetRoundRobinFinalsRulesToDefault();
             LoadCurrentValues();
         }
     }

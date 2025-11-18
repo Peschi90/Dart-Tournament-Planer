@@ -412,6 +412,120 @@
                                      VerticalScrollBarVisibility="Auto"/>
                         </StackPanel>
 
+                        <!-- ✅ NEU: Hub Statistics Section -->
+                        <Border Name="HubStatisticsSection" Background="#F0F9FF" BorderBrush="#BAE6FD" 
+                                BorderThickness="1" CornerRadius="12" 
+                                Padding="16" Margin="0,0,0,20" Visibility="Collapsed">
+                            <StackPanel>
+                                <!-- Header -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="📊" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Dart Scoring Statistiken" FontWeight="Bold" 
+                                               FontSize="14" Foreground="#0369A1" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                
+                                <!-- Statistics Grid -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- Player 1 Stats -->
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Name="HubPlayer1Name" Text="Player 1" FontWeight="SemiBold" 
+                                                   FontSize="13" Foreground="#1E3A8A" Margin="0,0,0,8" TextAlignment="Center"/>
+                                        <Border Background="White" BorderBrush="#E0F2FE" BorderThickness="1" 
+                                                CornerRadius="8" Padding="12">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="⌀ Average:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer1Average" Text="0.0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="🎯 180s:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer1Maximums" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="🏆 High Finishes:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer1HighFinishes" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                                    <TextBlock Text="✓ Checkouts:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer1Checkouts" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                    
+                                    <!-- VS Separator -->
+                                    <TextBlock Grid.Column="1" Text="VS" FontSize="10" FontWeight="Bold" 
+                                               Foreground="#94A3B8" HorizontalAlignment="Center" 
+                                               VerticalAlignment="Center" Margin="0,20,0,0"/>
+                                    
+                                    <!-- Player 2 Stats -->
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Name="HubPlayer2Name" Text="Player 2" FontWeight="SemiBold" 
+                                                   FontSize="13" Foreground="#1E3A8A" Margin="0,0,0,8" TextAlignment="Center"/>
+                                        <Border Background="White" BorderBrush="#E0F2FE" BorderThickness="1" 
+                                                CornerRadius="8" Padding="12">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="⌀ Average:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer2Average" Text="0.0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="🎯 180s:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer2Maximums" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <TextBlock Text="🏆 High Finishes:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer2HighFinishes" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                                    <TextBlock Text="✓ Checkouts:" FontSize="11" Foreground="#64748B" Width="80"/>
+                                                    <TextBlock Name="HubPlayer2Checkouts" Text="0" FontWeight="SemiBold" 
+                                                               FontSize="11" Foreground="#0369A1"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                                
+                                <!-- Match Info -->
+                                <Border Background="White" BorderBrush="#E0F2FE" BorderThickness="1" 
+                                        CornerRadius="8" Padding="12" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Match Information" FontWeight="SemiBold" 
+                                                   FontSize="12" Foreground="#1E3A8A" Margin="0,0,0,8"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="⏱️ Dauer:" FontSize="11" Foreground="#64748B" Width="100"/>
+                                            <TextBlock Name="HubMatchDuration" Text="-" FontWeight="SemiBold" 
+                                                       FontSize="11" Foreground="#0369A1"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="🎮 Format:" FontSize="11" Foreground="#64748B" Width="100"/>
+                                            <TextBlock Name="HubMatchFormat" Text="-" FontWeight="SemiBold" 
+                                                       FontSize="11" Foreground="#0369A1" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                            <TextBlock Text="📡 Eingabe via:" FontSize="11" Foreground="#64748B" Width="100"/>
+                                            <TextBlock Name="HubSubmittedVia" Text="-" FontWeight="SemiBold" 
+                                                       FontSize="11" Foreground="#0369A1"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
                         <!-- ✅ NEU: QR Code Section für Hub Integration -->
                         <Border Name="QrCodeSection" Background="#F8FAFC" BorderBrush="#E2E8F0" 
                                 BorderThickness="1" CornerRadius="12" 

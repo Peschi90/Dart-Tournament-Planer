@@ -46,6 +46,15 @@ public enum KnockoutRound
 }
 
 /// <summary>
+/// Enumeration für Round Robin Finals Phase
+/// Wird für rundenspezifische Regeln in der Finalrunde verwendet
+/// </summary>
+public enum RoundRobinFinalsRound
+{
+    Finals  // Finalrunde im Round Robin Modus
+}
+
+/// <summary>
 /// Repräsentiert ein einzelnes K.O.-Match in einem Dart-Turnier
 /// Implementiert INotifyPropertyChanged für UI-Binding und Live-Updates
 /// </summary>
@@ -754,43 +763,43 @@ public class KnockoutMatch : INotifyPropertyChanged
 
 // Bestimme Gewinner und Verlierer basierend auf UsesSets Flag
         if (UsesSets)
-      {
-    // Bei Sets: Erst Sets vergleichen, bei Gleichstand Legs
-if (player1Sets > player2Sets)
-{
-       Winner = Player1;
-    Loser = Player2;
- }
-          else if (player2Sets > player1Sets)
-    {
-         Winner = Player2;
-         Loser = Player1;
-            }
-   else if (player1Legs > player2Legs) // Sets gleich, Legs entscheiden
-    {
-          Winner = Player1;
-      Loser = Player2;
-   }
-            else if (player2Legs > player1Legs)
-{
-        Winner = Player2;
-       Loser = Player1;
-   }
-  }
-    else
-      {
-            // Ohne Sets: Nur Legs zählen
-        if (player1Legs > player2Legs)
+        {
+        // Bei Sets: Erst Sets vergleichen, bei Gleichstand Legs
+        if (player1Sets > player2Sets)
+        {
+               Winner = Player1;
+            Loser = Player2;
+         }
+                  else if (player2Sets > player1Sets)
             {
-    Winner = Player1;
-  Loser = Player2;
-  }
-            else if (player2Legs > player1Legs)
+                 Winner = Player2;
+                 Loser = Player1;
+                    }
+           else if (player1Legs > player2Legs) // Sets gleich, Legs entscheiden
             {
-     Winner = Player2;
-       Loser = Player1;
-}
-      }
+                  Winner = Player1;
+              Loser = Player2;
+           }
+                    else if (player2Legs > player1Legs)
+        {
+                Winner = Player2;
+               Loser = Player1;
+           }
+          }
+            else
+              {
+                    // Ohne Sets: Nur Legs zählen
+                if (player1Legs > player2Legs)
+                    {
+            Winner = Player1;
+          Loser = Player2;
+          }
+                    else if (player2Legs > player1Legs)
+                    {
+             Winner = Player2;
+               Loser = Player1;
+        }
+              }
 
         // Setze Match als beendet und erfasse Endzeit
     Status = MatchStatus.Finished;

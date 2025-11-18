@@ -19,12 +19,13 @@ namespace DartTournamentPlaner.Services
     /// </summary>
     public class PrintService
     {
-      private readonly LocalizationService? _localizationService;
-    private readonly PrintQRCodeHelper? _qrCodeHelper;
-    private readonly PrintLayoutHelper _layoutHelper;
-private readonly PrintTableFactory _tableFactory;
-      private readonly PrintPageFactory _pageFactory;
-  private readonly string? _tournamentId;
+        private readonly LocalizationService? _localizationService;
+        private readonly PrintQRCodeHelper? _qrCodeHelper;
+        private readonly PrintLayoutHelper _layoutHelper;
+        private readonly PrintTableFactory _tableFactory;
+        private readonly PrintPageFactory _pageFactory;
+        private readonly string? _tournamentId;
+        private readonly ConfigService? _configService; // ? NEU: Config für Hub-URL
 
         /// <summary>
         /// Konstruktor mit optionaler Tournament-ID für QR-Code Generierung
@@ -32,24 +33,26 @@ private readonly PrintTableFactory _tableFactory;
         /// <param name="localizationService">Lokalisierungs-Service</param>
         /// <param name="hubService">Hub-Service für QR-Code Generierung</param>
         /// <param name="tournamentId">Tournament-ID für QR-Code URLs</param>
-  public PrintService(LocalizationService? localizationService = null, HubIntegrationService? hubService = null, string? tournamentId = null)
-   {
-      _localizationService = localizationService;
+        /// <param name="configService">Config-Service für Hub-URL</param>
+        public PrintService(LocalizationService? localizationService = null, HubIntegrationService? hubService = null, string? tournamentId = null, ConfigService? configService = null)
+        {
+            _localizationService = localizationService;
             _tournamentId = tournamentId;
-    
-    if (hubService != null)
-    {
-   _qrCodeHelper = new PrintQRCodeHelper(hubService, tournamentId);
- System.Diagnostics.Debug.WriteLine($"[PrintService] QR Code Helper initialized - Available: {_qrCodeHelper.AreQRCodesAvailable}, TournamentId: {tournamentId ?? "null"}");
-  }
-  
- _layoutHelper = new PrintLayoutHelper(_localizationService, _qrCodeHelper);
+            _configService = configService;
+            
+            if (hubService != null)
+            {
+                _qrCodeHelper = new PrintQRCodeHelper(hubService, tournamentId, configService); // ? FIXED: ConfigService übergeben
+                System.Diagnostics.Debug.WriteLine($"[PrintService] QR Code Helper initialized - Available: {_qrCodeHelper.AreQRCodesAvailable}, TournamentId: {tournamentId ?? "null"}");
+            }
+            
+            _layoutHelper = new PrintLayoutHelper(_localizationService, _qrCodeHelper);
             _tableFactory = new PrintTableFactory(_localizationService, _qrCodeHelper, tournamentId);
-   _pageFactory = new PrintPageFactory(_localizationService, _layoutHelper, _tableFactory, tournamentId);  // ? FIXED: Tournament-ID übergeben
+            _pageFactory = new PrintPageFactory(_localizationService, _layoutHelper, _tableFactory, tournamentId);  // ? FIXED: Tournament-ID übergeben
         }
 
         public bool PrintTournamentStatistics(TournamentClass tournamentClass, TournamentPrintOptions printOptions)
-     {
+        {
             try
  {
          var printDialog = new PrintDialog();

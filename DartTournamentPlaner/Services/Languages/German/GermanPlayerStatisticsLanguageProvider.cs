@@ -20,6 +20,9 @@ public class GermanPlayerStatisticsLanguageProvider : ILanguageSection
             ["LastMatchDate"] = "Letztes Match",
             ["FastestMatch"] = "Schnellstes Match",
             ["FewestThrowsInMatch"] = "Wenigste Würfe",
+            ["FewestDartsPerLeg"] = "Min Darts/Leg", // ? NEU
+            ["AverageDartsPerLeg"] = "? Darts/Leg", // ? NEU
+            ["BestLegEfficiency"] = "Beste Leg-Effizienz", // ? NEU
 
             // Status-Meldungen - spezifisch für PlayerStatisticsView
             ["StatisticsLoading"] = "Statistiken werden geladen...",
@@ -30,6 +33,9 @@ public class GermanPlayerStatisticsLanguageProvider : ILanguageSection
             // Tooltips und Hilfe-Texte - spezifisch für PlayerStatisticsView
             ["FastestMatchTooltip"] = "Kürzeste Spieldauer über alle Matches (MM:SS)",
             ["FewestThrowsTooltip"] = "Wenigste Würfe in einem Match (beste Wurf-Effizienz)",
+            ["FewestDartsPerLegTooltip"] = "Wenigste benötigte Darts für ein gewonnenes Leg", // ? NEU
+            ["AverageDartsPerLegTooltip"] = "Durchschnittliche Darts pro gewonnenem Leg", // ? NEU
+            ["BestLegEfficiencyTooltip"] = "Beste Leg-Effizienz (wenigste Darts + Average)", // ? NEU
             ["HighFinishScoresTooltip"] = "Alle High Finish Scores durch | getrennt",
             ["PlayerHeaderTooltip"] = "Name des Spielers",
             ["MatchWinRateTooltip"] = "Prozentsatz der gewonnenen Spiele",

@@ -230,11 +230,16 @@ public class TournamentDataSyncService
 
         _debugLog($"🏆 [SYNC] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches", "SYNC");
 
+        // ✅ NEU: Hole rundenspezifische Round Robin Finals Regeln
+        var finalsRules = tournamentClass.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
+        
+        _debugLog($"🏆 [SYNC] Round Robin Finals Rules: Sets={finalsRules.SetsToWin}, Legs={finalsRules.LegsToWin}, LegsPerSet={finalsRules.LegsPerSet}", "SYNC");
+        _debugLog($"🏆 [SYNC] Base GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
+
         // Finals-spezifische Game Rules hinzufügen
-        var finalsGameRules = CreateFinalsGameRulesObject(tournamentClass);
+        var finalsGameRules = CreateFinalsGameRulesObject(tournamentClass, finalsRules);
         gameRulesArray.Add(finalsGameRules);
 
-        _debugLog($"🏆 [SYNC] Finals GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
         _debugLog($"🏆 [SYNC] Finals GameRules ID: {finalsGameRules.GetType().GetProperty("id")?.GetValue(finalsGameRules)}", "SYNC");
 
         foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
@@ -266,7 +271,7 @@ public class TournamentDataSyncService
                     identificationMethods = new[] { "uuid", "numericId", "hubIdentifier" },
                     preferredAccess = match.HasValidUniqueId() ? "uuid" : "numericId"
                 },
-                // ✅ KORRIGIERT: Game Rules Information hinzufügen
+                // ✅ KORRIGIERT: Verwende rundenspezifische Round Robin Finals Regeln
                 gameRulesId = $"{tournamentClass.Id}_Finals",
                 gameRulesUsed = new
                 {
@@ -278,12 +283,12 @@ public class TournamentDataSyncService
                     finishMode = tournamentClass.GameRules.FinishMode.ToString(),
                     doubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut,
                     singleOut = tournamentClass.GameRules.FinishMode == FinishMode.SingleOut,
-                    setsToWin = tournamentClass.GameRules.SetsToWin,
-                    legsToWin = tournamentClass.GameRules.LegsToWin,
-                    legsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
-                    maxLegsPerSet = tournamentClass.GameRules.LegsPerSet,
-                    playWithSets = tournamentClass.GameRules.PlayWithSets,
+                    setsToWin = finalsRules.SetsToWin,
+                    legsToWin = finalsRules.LegsToWin,
+                    legsPerSet = finalsRules.LegsPerSet,
+                    maxSets = Math.Max(finalsRules.SetsToWin * 2 - 1, 5),
+                    maxLegsPerSet = finalsRules.LegsPerSet,
+                    playWithSets = finalsRules.SetsToWin > 0,
                     classId = tournamentClass.Id,
                     className = tournamentClass.Name,
                     matchType = "Finals",
@@ -295,8 +300,9 @@ public class TournamentDataSyncService
                     finalsSpecific = new
                     {
                         isFinalsMatch = true,
-                        usesBaseRules = true,
-                        escalated = false
+                        usesRoundRobinFinalsRules = true,
+                        escalated = false,
+                        roundRobinFinalsRound = "Finals"
                     }
                 },
                 // Zeitstempel
@@ -583,7 +589,7 @@ public class TournamentDataSyncService
         };
     }
 
-    private object CreateFinalsGameRulesObject(TournamentClass tournamentClass)
+    private object CreateFinalsGameRulesObject(TournamentClass tournamentClass, RoundRules finalsRules)
     {
         var gamePoints = GetGamePointsFromGameMode(tournamentClass.GameRules.GameMode);
         var isDoubleOut = tournamentClass.GameRules.FinishMode == FinishMode.DoubleOut;
@@ -598,12 +604,12 @@ public class TournamentDataSyncService
             finishMode = tournamentClass.GameRules.FinishMode.ToString(),
             doubleOut = isDoubleOut,
             singleOut = !isDoubleOut,
-            setsToWin = tournamentClass.GameRules.SetsToWin,
-            legsToWin = tournamentClass.GameRules.LegsToWin,
-            legsPerSet = tournamentClass.GameRules.LegsPerSet,
-            maxSets = Math.Max(tournamentClass.GameRules.SetsToWin * 2 - 1, 5),
-            maxLegsPerSet = tournamentClass.GameRules.LegsPerSet,
-            playWithSets = tournamentClass.GameRules.PlayWithSets,
+            setsToWin = finalsRules.SetsToWin,
+            legsToWin = finalsRules.LegsToWin,
+            legsPerSet = finalsRules.LegsPerSet,
+            maxSets = Math.Max(finalsRules.SetsToWin * 2 - 1, 5),
+            maxLegsPerSet = finalsRules.LegsPerSet,
+            playWithSets = finalsRules.SetsToWin > 0,
             classId = tournamentClass.Id,
             className = tournamentClass.Name,
             matchType = "Finals",
@@ -614,7 +620,10 @@ public class TournamentDataSyncService
                 gameTypeString = GetGameTypeString(tournamentClass.GameRules.GameMode),
                 finishTypeString = GetFinishTypeString(tournamentClass.GameRules.FinishMode),
                 requiresDoubleOut = isDoubleOut,
-                formatDescription = GetFormatDescription(tournamentClass.GameRules)
+                formatDescription = $"{GetGameTypeString(tournamentClass.GameRules.GameMode)} {GetFinishTypeString(tournamentClass.GameRules.FinishMode)}, " + 
+                    (finalsRules.SetsToWin > 0 
+                        ? $"First to {finalsRules.SetsToWin} Sets ({finalsRules.LegsPerSet} Legs per Set)"
+                        : $"First to {finalsRules.LegsToWin} Legs")
             }
         };
     }

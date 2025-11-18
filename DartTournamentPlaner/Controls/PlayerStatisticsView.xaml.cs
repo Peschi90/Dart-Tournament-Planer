@@ -168,8 +168,12 @@ public partial class PlayerStatisticsView : UserControl, INotifyPropertyChanged,
             // ✅ NEU: Spalten-Header für neue Statistiken
             if (FastestMatchColumn != null)
                 FastestMatchColumn.Header = _localizationService.GetString("FastestMatch");
-            if (FewestThrowsColumn != null)
-                FewestThrowsColumn.Header = _localizationService.GetString("FewestThrowsInMatch");
+            if (FewestDartsPerLegColumn != null)
+                FewestDartsPerLegColumn.Header = _localizationService.GetString("FewestDartsPerLeg");
+            if (AverageDartsPerLegColumn != null)
+                AverageDartsPerLegColumn.Header = _localizationService.GetString("AverageDartsPerLeg");
+            if (BestLegEfficiencyColumn != null)
+                BestLegEfficiencyColumn.Header = _localizationService.GetString("BestLegEfficiency");
         }
         catch (Exception ex)
         {
@@ -379,7 +383,9 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
         FewestDartsToFinish = playerStatistics.FewestDartsToFinish;
         AverageDartsPerCheckout = playerStatistics.AverageDartsPerCheckout;
         FastestMatch = playerStatistics.FastestMatch; // ✅ NEU
-        FewestThrowsInMatch = playerStatistics.FewestThrowsInMatch; // ✅ NEU
+        // FewestThrowsInMatch = playerStatistics.FewestThrowsInMatch; // ❌ ENTFERNT - nicht mehr benötigt
+        FewestDartsPerLeg = playerStatistics.FewestDartsPerLeg; // ✅ NEU
+        AverageDartsPerWonLeg = playerStatistics.AverageDartsPerWonLeg; // ✅ NEU
     }
 
     // Basis-Eigenschaften
@@ -397,8 +403,11 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
     public int FewestDartsToFinish { get; private set; } // ✅ NEU
     public double AverageDartsPerCheckout { get; private set; } // ✅ NEU
     public TimeSpan FastestMatch { get; private set; } // ✅ NEU
-    public int FewestThrowsInMatch { get; private set; } // ✅ NEU
     public int TotalScore26 => _playerStatistics.TotalScore26;
+
+    // ✅ NEU: Leg-Darts Statistiken
+    public int FewestDartsPerLeg { get; private set; } // ✅ NEU
+    public double AverageDartsPerWonLeg { get; private set; } // ✅ NEU
 
     // ✅ NEU: Erweiterte Eigenschaften für die Tabelle
     public string MatchRecord => $"{MatchesWon}W-{MatchesLost}L ({TotalMatches})";
@@ -488,6 +497,49 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
             }
         }
     }
+
+    /// <summary>
+    /// ✅ NEU: Wenigste Darts pro gewonnenem Leg
+    /// </summary>
+    public string FewestDartsPerLegFormatted
+    {
+        get
+        {
+            try
+            {
+                var fewestDarts = _playerStatistics.FewestDartsPerLeg;
+                return fewestDarts > 0 ? $"{fewestDarts}" : "-";
+            }
+            catch
+            {
+                return "-";
+            }
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Durchschnittliche Darts pro gewonnenem Leg
+    /// </summary>
+    public string AverageDartsPerWonLegFormatted
+    {
+        get
+        {
+            try
+            {
+                var avgDarts = _playerStatistics.AverageDartsPerWonLeg;
+                return avgDarts > 0 ? $"{avgDarts:F1}" : "-";
+            }
+            catch
+            {
+                return "-";
+            }
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Beste Leg-Effizienz (wenigste Darts + Average)
+    /// </summary>
+    public string BestLegEfficiency => _playerStatistics.BestLegEfficiencyFormatted;
     
     /// <summary>
     /// ✅ ERWEITERT: Alle High Finish Scores als durch | getrennte Liste
@@ -549,9 +601,11 @@ public class PlayerStatisticsDisplayModel : INotifyPropertyChanged
                                  $"Schlechte Scores (≤26): {TotalScore26}\n" +
                                  $"Checkouts: {TotalCheckouts}\n" +
                                  $"Wenigste Darts/Finish: {FewestDartsToFinish}\n" +
-                                 $"∅ Darts/Checkout: {AverageDartsPerCheckout}\n" +
-                                 $"Schnellstes Match: {FastestMatchFormatted}\n" +
-                                 $"Wenigste Würfe: {FewestThrowsInMatch}";
+                                 $"ᴓ Darts/Checkout: {AverageDartsPerCheckout:F1}\n" +
+                                 $"Wenigste Darts/Leg: {FewestDartsPerLeg}\n" +
+                                 $"ᴓ Darts/Leg: {AverageDartsPerWonLeg:F1}\n" +
+                                 $"Beste Leg-Effizienz: {BestLegEfficiency}\n" +
+                                 $"Schnellstes Match: {FastestMatchFormatted}";
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }

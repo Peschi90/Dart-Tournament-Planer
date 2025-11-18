@@ -10,6 +10,7 @@ public class AppConfig : INotifyPropertyChanged
     private bool _autoSave = true;
     private int _autoSaveInterval = 5; // minutes
     private bool _showMatchStartNotifications = false; // ? NEU: Match-Start Benachrichtigungen
+    private string _hubUrl = "https://dtp.i3ull3t.de"; // ? FIXED: Standard-URL ohne Port
 
     public string Language
     {
@@ -58,6 +59,20 @@ public class AppConfig : INotifyPropertyChanged
         set
         {
             _showMatchStartNotifications = value;
+            OnPropertyChanged();
+        }
+    }
+
+    // ? NEU: Konfigurierbare Hub-URL
+    /// <summary>
+    /// URL des Tournament Hub Servers (z.B. https://dtp.i3ull3t.de)
+    /// </summary>
+    public string HubUrl
+    {
+        get => _hubUrl;
+        set
+        {
+            _hubUrl = value?.Trim() ?? "https://dtp.i3ull3t.de";
             OnPropertyChanged();
         }
     }

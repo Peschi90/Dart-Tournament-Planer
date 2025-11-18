@@ -376,6 +376,9 @@
                 <MenuItem Name="ViewMenuItem" Header="View">
                     <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <Separator/>
+                    <!-- ✅ NEU: PowerScoring -->
+                    <MenuItem x:Name="PowerScoringMenuItem" Header="🎯 PowerScoring" Click="PowerScoring_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <Separator/>
                     <!-- ✅ NEU: Dark Mode Toggle im View Menü -->
                     <MenuItem Name="ToggleDarkModeMenuItem" Header="🌙 Toggle Dark Mode" Click="ToggleDarkMode_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>
@@ -563,7 +566,7 @@
                     
                     <!-- Status Text -->
                     <TextBlock x:Name="StatusTextBlock" Grid.Column="0" 
-                               Text="WebSocket-Hub Integration activated" Foreground="{DynamicResource StatusBarTextBrush}" VerticalAlignment="Center"/>
+                               Text="WebSocket-Hub Integration aktiviert" Foreground="{DynamicResource StatusBarTextBrush}" VerticalAlignment="Center"/>
                     
                     <!-- Hub Status Indicator (CLICKABLE for Debug Console) -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0" 

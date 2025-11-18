@@ -34,6 +34,28 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["Help"] = "Help",
             ["About"] = "About",
             
+            // ✅ NEW: PowerScoring Translations
+            ["PowerScoring"] = "PowerScoring",
+            ["PowerScoringRequiresLicense"] = "🎯 PowerScoring is a Premium Feature\n\n" +
+                "With PowerScoring you can:\n" +
+                "• Systematically capture player scores\n" +
+                "• Automatic ranking creation\n" +
+                "• Optimal group distribution based on skill level\n\n" +
+                "Activate a license with 'powerscore' feature to use this function.",
+            ["FeatureNotAvailable"] = "Feature Not Available",
+            
+            // PowerScoring License Dialog
+            ["PowerScoringLicenseRequired_Title"] = "PowerScoring License Required",
+            ["PowerScoringLicenseRequired_Message"] = "PowerScoring is a premium feature that helps you organize players based on their skill level.",
+            ["PowerScoringLicenseRequired_BenefitsTitle"] = "PowerScoring includes:",
+            ["PowerScoringLicenseRequired_Benefit1"] = "- Systematic player score capture",
+            ["PowerScoringLicenseRequired_Benefit2"] = "- Automatic ranking creation",
+            ["PowerScoringLicenseRequired_Benefit3"] = "- Optimal group distribution based on skill level",
+            ["PowerScoringLicenseRequired_Benefit4"] = "- Flexible scoring rules (1x3, 8x3, 10x3, 15x3 throws)",
+            ["PowerScoringLicenseRequired_Benefit5"] = "- Snake-draft group assignment",
+            ["PowerScoringLicenseRequired_ActionText"] = "Would you like to request a license with the PowerScoring feature?",
+            ["RequestLicense"] = "Request License",
+            
             // Status displays
             ["HasUnsavedChanges"] = "Modified",
             ["NotSaved"] = "Not saved",
@@ -407,7 +429,17 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["Source"] = "Source",
             ["Progress"] = "Progress",
             ["Completed"] = "Completed",
-            ["Cancelled"] = "Cancelled"
+            ["Cancelled"] = "Cancelled",
+            
+            // =====================================
+            // ROUND RULES WINDOW
+            // =====================================
+            ["RoundRulesConfiguration"] = "Round Rules Configuration",
+            ["WinnerBracketRules"] = "Winner Bracket Rules",
+            ["LoserBracketRules"] = "Loser Bracket Rules",
+            ["RoundRobinFinalsRules"] = "Round Robin Finals Rules",
+            ["RoundRobinFinals"] = "Finals Round",
+            ["ResetToDefault"] = "Reset to Default"
         };
     }
 }

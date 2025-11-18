@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -175,6 +175,15 @@ UpdateStatus);
         {
             var tournamentClass = _tournamentClasses[i];
             
+            // ✅ NEU: Abonniere PropertyChanged Events für Phasen-Änderungen
+       if (tournamentClass is INotifyPropertyChanged notifyPropertyChanged)
+{
+    // Entferne alte Handler falls vorhanden
+  notifyPropertyChanged.PropertyChanged -= OnTournamentClassPropertyChanged;
+  // Füge neuen Handler hinzu
+      notifyPropertyChanged.PropertyChanged += OnTournamentClassPropertyChanged;
+          }
+
             // Skip classes without groups if "Only Active Classes" is enabled
             if (_showOnlyActiveClasses && 
                 (tournamentClass.Groups == null || tournamentClass.Groups.Count == 0))
@@ -201,9 +210,53 @@ UpdateStatus);
     }
 
     /// <summary>
-    /// Event Handler für "Match-Page öffnen" Button
-    /// UPDATED: Verwendet neue dart-scoring.html URL mit Match-UUID Parameter
-    /// </summary>
+    /// ✅ NEU: Event-Handler für TournamentClass PropertyChanged Events
+    /// Reagiert auf Phasen-Änderungen und erstellt Tabs neu
+/// </summary>
+    private void OnTournamentClassPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        try
+ {
+            if (e.PropertyName == nameof(TournamentClass.CurrentPhase))
+            {
+       System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] CurrentPhase changed - reinitializing tabs");
+         
+     // Führe Reinitialisierung auf UI-Thread aus
+    Dispatcher.BeginInvoke(() =>
+           {
+   try
+          {
+          // Speichere aktuellen Tab-Index
+        var currentTabIndex = MainTabControl.SelectedIndex;
+     var currentSubTabIndex = _currentSubTabIndex;
+               
+   // Initialisiere Tabs neu
+      InitializeOverview();
+        
+            // Versuche Tab-Auswahl wiederherzustellen
+         if (currentTabIndex >= 0 && currentTabIndex < MainTabControl.Items.Count)
+   {
+       MainTabControl.SelectedIndex = currentTabIndex;
+           _currentClassIndex = currentTabIndex;
+    _currentSubTabIndex = currentSubTabIndex;
+            SetCurrentSubTab();
+          }
+             
+           System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Tabs reinitialized after phase change");
+        }
+  catch (Exception ex)
+        {
+   System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error reinitializing tabs: {ex.Message}");
+  }
+            }, DispatcherPriority.Background);
+ }
+        }
+      catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error in OnTournamentClassPropertyChanged: {ex.Message}");
+        }
+    }
+
     private void OnOpenMatchPageClick(object sender, RoutedEventArgs e)
     {
         try
@@ -212,8 +265,9 @@ UpdateStatus);
             {
                 if (!string.IsNullOrEmpty(match.UniqueId))
                 {
-                    // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
-                    var dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={match.UniqueId}&uuid=true";
+                    // ✅ FIXED: Verwende dynamische Hub-URL aus HubService
+                    var hubUrl = _hubService?.TournamentHubService?.HubUrl ?? "https://dtp.i3ull3t.de";
+                    var dartScoringUrl = $"{hubUrl}/dart-scoring.html?match={match.UniqueId}&uuid=true";
                     
                     var processInfo = new ProcessStartInfo
                     {
@@ -233,8 +287,9 @@ UpdateStatus);
             {
                 if (!string.IsNullOrEmpty(knockoutMatch.UniqueId))
                 {
-                    // ✅ NEW URL FORMAT: dart-scoring.html with match UUID parameter
-                    var dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={knockoutMatch.UniqueId}&uuid=true";
+                    // ✅ FIXED: Verwende dynamische Hub-URL aus HubService
+                    var hubUrl = _hubService?.TournamentHubService?.HubUrl ?? "https://dtp.i3ull3t.de";
+                    var dartScoringUrl = $"{hubUrl}/dart-scoring.html?match={knockoutMatch.UniqueId}&uuid=true";
                     
                     var processInfo = new ProcessStartInfo
                     {
@@ -366,14 +421,24 @@ UpdateStatus);
     private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
     {
         StopCycling();
-        
+      
         // ✅ NEW: Hub-Event-Handler entfernen
         if (_hubService != null)
         {
-            _hubService.HubStatusChanged -= OnHubStatusChanged;
-            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Hub status event handler unregistered");
+     _hubService.HubStatusChanged -= OnHubStatusChanged;
+      System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] Hub status event handler unregistered");
         }
-        
+      
+        // ✅ NEU: PropertyChanged Event-Handler entfernen
+    foreach (var tournamentClass in _tournamentClasses)
+      {
+            if (tournamentClass is INotifyPropertyChanged notifyPropertyChanged)
+      {
+    notifyPropertyChanged.PropertyChanged -= OnTournamentClassPropertyChanged;
+        }
+        }
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentOverview] PropertyChanged event handlers unregistered");
+ 
         // Cleanup für Helper-Klassen
         _scrollManager?.Dispose();
         _cycleManager?.Dispose();

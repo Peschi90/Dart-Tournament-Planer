@@ -183,7 +183,7 @@ Content="🔄"
 
           <Button x:Name="RegisterButton"
              Content="Registrieren"
-       Width="140"
+       Width="180"
       Height="40"
          Background="{DynamicResource AccentBrush}"
        Foreground="White"
@@ -201,8 +201,13 @@ Content="🔄"
   BorderBrush="{TemplateBinding BorderBrush}"
         BorderThickness="{TemplateBinding BorderThickness}"
               CornerRadius="8">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
+                                          BlurRadius="8" Opacity="0.2"/>
+                    </Border.Effect>
   <ContentPresenter HorizontalAlignment="Center"
-  VerticalAlignment="Center"/>
+  VerticalAlignment="Center"
+                                      Margin="10,0"/>
      </Border>
   </ControlTemplate>
      </Setter.Value>
@@ -211,6 +216,9 @@ Content="🔄"
         <Trigger Property="IsMouseOver" Value="True">
            <Setter Property="Opacity" Value="0.9"/>
              </Trigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.7"/>
+                    </Trigger>
      </Style.Triggers>
      </Style>
   </Button.Style>

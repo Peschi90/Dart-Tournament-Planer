@@ -295,13 +295,47 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         
-                        <!-- ✅ Wenigste Würfe -->
+                        <!-- ✅ Wenigste Würfe 
                         <DataGridTextColumn x:Name="FewestThrowsColumn" Header="Wenigste Würfe" Binding="{Binding FewestThrowsInMatch}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>
                                     <Setter Property="Foreground" Value="#7C2D12"/>
                                     <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn> -->
+
+                        <!-- ✅ NEU: Wenigste Darts/Leg -->
+                        <DataGridTextColumn x:Name="FewestDartsPerLegColumn" Header="Min Darts/Leg" Binding="{Binding FewestDartsPerLegFormatted}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#10B981"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- ✅ NEU: Durchschnittliche Darts/Leg -->
+                        <DataGridTextColumn x:Name="AverageDartsPerLegColumn" Header="ᴓ Darts/Leg" Binding="{Binding AverageDartsPerWonLegFormatted}" Width="110">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#10B981"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- ✅ NEU: Beste Leg-Effizienz -->
+                        <DataGridTextColumn x:Name="BestLegEfficiencyColumn" Header="Beste Leg-Effizienz" Binding="{Binding BestLegEfficiency}" Width="150">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextAlignment" Value="Center"/>
+                                    <Setter Property="Foreground" Value="#10B981"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="FontSize" Value="11"/>
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>

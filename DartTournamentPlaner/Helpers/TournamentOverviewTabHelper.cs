@@ -91,130 +91,234 @@ public class TournamentOverviewTabHelper
     /// <summary>
     /// Erstellt das Content-TabControl basierend auf der aktuellen Tournament-Phase
     /// ✅ ERWEITERT: Mit automatischer Statistik-Tab-Integration
+    /// ✅ AKTUALISIERT: Gruppenphase-Tabs bleiben immer sichtbar, auch bei späteren Phasen
+    /// ✅ KORRIGIERT: Verbesserte Null-Checks und Debug-Ausgaben für Refresh-Probleme
     /// </summary>
     public TabControl CreateContentTabControl(TournamentClass tournamentClass)
     {
         var tabControl = new TabControl
         {
-            Margin = new Thickness(10),
-            Background = System.Windows.Media.Brushes.Transparent
-        };
+ Margin = new Thickness(10),
+          Background = System.Windows.Media.Brushes.Transparent
+   };
 
         // Check current phase and create appropriate sub-tabs
         var currentPhase = tournamentClass.CurrentPhase;
         
-        if (currentPhase?.PhaseType == TournamentPhaseType.GroupPhase)
-        {
-            // Create tabs for each group
-            foreach (var group in tournamentClass.Groups.Where(g => g.Players.Count > 0))
-            {
-                var groupTab = CreateGroupTab(group, tournamentClass);
-                tabControl.Items.Add(groupTab);
-            }
-        }
-        else if (currentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-            // Create tabs for knockout brackets - both matches and tree views
-            var winnerBracketMatchesTab = CreateKnockoutBracketTab(
-                _localizationService.GetString("WinnerBracketMatches") ?? "Winner Bracket Spiele", 
-                tournamentClass, false, false);
-            tabControl.Items.Add(winnerBracketMatchesTab);
+        System.Diagnostics.Debug.WriteLine($"🎯 [TabHelper] CreateContentTabControl for {tournamentClass.Name}");
+        System.Diagnostics.Debug.WriteLine($"  Current Phase: {currentPhase?.PhaseType.ToString() ?? "null"}");
+        System.Diagnostics.Debug.WriteLine($"  Total Phases: {tournamentClass.Phases.Count}");
 
-            var winnerBracketTreeTab = CreateKnockoutBracketTab(
-                _localizationService.GetString("WinnerBracketTree") ?? "Winner Bracket Baum", 
+        // ✅ KORRIGIERT: Suche explizit nach der Gruppenphase in allen Phasen
+        var groupPhase = tournamentClass.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+        
+ if (groupPhase != null)
+   {
+System.Diagnostics.Debug.WriteLine($"  ✅ GroupPhase found with {groupPhase.Groups?.Count ?? 0} groups");
+        }
+        else
+        {
+   System.Diagnostics.Debug.WriteLine($"  ❌ No GroupPhase found in Phases collection!");
+            
+  // ✅ DEBUG: Liste alle verfügbaren Phasen auf
+        foreach (var phase in tournamentClass.Phases)
+      {
+      System.Diagnostics.Debug.WriteLine($"     - Phase: {phase.PhaseType}, Active: {phase.IsActive}, Groups: {phase.Groups?.Count ?? 0}");
+            }
+   }
+        
+  // ✅ NEUE LOGIK: Zeige immer Gruppenphasen-Tabs an, falls Gruppenphase vorhanden ist
+      // (auch wenn K.O. oder Finals bereits aktiv sind)
+        if (groupPhase != null && groupPhase.Groups != null && groupPhase.Groups.Count > 0)
+        {
+         System.Diagnostics.Debug.WriteLine($"🎯 [TabHelper] Adding {groupPhase.Groups.Count} group tabs from GroupPhase");
+        
+     // Gruppenphasen-Tabs hinzufügen
+            foreach (var group in groupPhase.Groups.Where(g => g != null && g.Players != null && g.Players.Count > 0))
+   {
+                System.Diagnostics.Debug.WriteLine($"  ✅ Creating tab for group: {group.Name} with {group.Players.Count} players, {group.Matches?.Count ?? 0} matches");
+         
+      try
+        {
+           var groupTab = CreateGroupTab(group, tournamentClass);
+  tabControl.Items.Add(groupTab);
+           }
+          catch (Exception ex)
+          {
+  System.Diagnostics.Debug.WriteLine($"  ❌ Error creating group tab: {ex.Message}");
+            }
+         }
+ }
+        else
+  {
+            System.Diagnostics.Debug.WriteLine($"⚠️ [TabHelper] No GroupPhase found or GroupPhase has no groups");
+        }
+  
+     // ✅ ZUSÄTZLICH: Zeige K.O.-Phase Tabs, falls K.O.-Phase aktiv ist
+      if (currentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+        {
+            System.Diagnostics.Debug.WriteLine($"🎯 [TabHelper] Current phase is KnockoutPhase - adding knockout tabs");
+      
+         // Create tabs for knockout brackets - both matches and tree views
+   var winnerBracketMatchesTab = CreateKnockoutBracketTab(
+ _localizationService.GetString("WinnerBracketMatches") ?? "Winner Bracket Spiele", 
+           tournamentClass, false, false);
+tabControl.Items.Add(winnerBracketMatchesTab);
+
+      var winnerBracketTreeTab = CreateKnockoutBracketTab(
+         _localizationService.GetString("WinnerBracketTree") ?? "Winner Bracket Baum", 
                 tournamentClass, false, true);
-            tabControl.Items.Add(winnerBracketTreeTab);
+    tabControl.Items.Add(winnerBracketTreeTab);
 
             // Add Loser Bracket if double elimination
-            if (tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
-            {
-                var loserBracketMatchesTab = CreateKnockoutBracketTab(
-                    _localizationService.GetString("LoserBracketMatches") ?? "Loser Bracket Spiele", 
-                    tournamentClass, true, false);
+      if (tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
+  {
+       var loserBracketMatchesTab = CreateKnockoutBracketTab(
+     _localizationService.GetString("LoserBracketMatches") ?? "Loser Bracket Spiele", 
+      tournamentClass, true, false);
                 tabControl.Items.Add(loserBracketMatchesTab);
 
-                var loserBracketTreeTab = CreateKnockoutBracketTab(
-                    _localizationService.GetString("LoserBracketTree") ?? "Loser Bracket Baum", 
-                    tournamentClass, true, true);
-                tabControl.Items.Add(loserBracketTreeTab);
-            }
+          var loserBracketTreeTab = CreateKnockoutBracketTab(
+  _localizationService.GetString("LoserBracketTree") ?? "Loser Bracket Baum", 
+ tournamentClass, true, true);
+         tabControl.Items.Add(loserBracketTreeTab);
+    }
         }
-        else if (currentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+        // ✅ ZUSÄTZLICH: Zeige Finals-Tab, falls Finals-Phase aktiv ist
+else if (currentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
         {
-            // Create finals tab
-            var finalsTab = CreateFinalsTab(tournamentClass);
+     System.Diagnostics.Debug.WriteLine($"🎯 [TabHelper] Current phase is RoundRobinFinals - adding finals tab");
+  
+          // Create finals tab
+        var finalsTab = CreateFinalsTab(tournamentClass);
             tabControl.Items.Add(finalsTab);
         }
 
         // ✅ NEU: Statistik-Tab automatisch hinzufügen
-        var statisticsTab = CreateStatisticsTab(tournamentClass);
+  var statisticsTab = CreateStatisticsTab(tournamentClass);
         if (statisticsTab != null)
         {
-            tabControl.Items.Add(statisticsTab);
+  tabControl.Items.Add(statisticsTab);
         }
 
         if (tabControl.Items.Count > 0)
         {
             tabControl.SelectedIndex = 0;
-        }
+     }
+        else
+     {
+          System.Diagnostics.Debug.WriteLine($"⚠️ [TabHelper] No tabs created for tournament class: {tournamentClass.Name}");
+  }
 
+System.Diagnostics.Debug.WriteLine($"✅ [TabHelper] Created {tabControl.Items.Count} tabs total");
+    
         return tabControl;
     }
 
     /// <summary>
     /// Erstellt einen Group-Tab mit Matches und Standings
+    /// ✅ ERWEITERT: Mit Debug-Ausgaben und Null-Checks
     /// </summary>
     public TabItem CreateGroupTab(Group group, TournamentClass tournamentClass)
     {
+        System.Diagnostics.Debug.WriteLine($"🔹 [TabHelper] CreateGroupTab START for: {group.Name}");
+        System.Diagnostics.Debug.WriteLine($"  Group Players: {group.Players?.Count ?? 0}");
+        System.Diagnostics.Debug.WriteLine($"  Group Matches: {group.Matches?.Count ?? 0}");
+        
         var tabItem = new TabItem
         {
-            Header = group.Name
+   Header = group.Name,
+            Tag = group // ✅ NEU: Speichere Gruppe als Tag für spätere Referenz
         };
 
-        // Create a grid with matches and standings
-        var grid = new Grid();
+      // Create a grid with matches and standings
+    var grid = new Grid();
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-        // Matches DataGrid
-        var matchesGrid = _dataGridHelper.CreateMatchesDataGrid(group);
-        Grid.SetColumn(matchesGrid, 0);
+ try
+        {
+     // Matches DataGrid
+   System.Diagnostics.Debug.WriteLine($"  Creating Matches DataGrid...");
+            var matchesGrid = _dataGridHelper.CreateMatchesDataGrid(group);
+            
+            if (matchesGrid != null && matchesGrid.ItemsSource != null)
+     {
+         System.Diagnostics.Debug.WriteLine($"  ✅ Matches DataGrid created with {matchesGrid.Items.Count} items");
+ }
+            else
+   {
+     System.Diagnostics.Debug.WriteLine($"  ⚠️ Matches DataGrid is null or has no ItemsSource!");
+  }
+            
+    Grid.SetColumn(matchesGrid, 0);
         grid.Children.Add(matchesGrid);
 
-        // Standings DataGrid
-        var standingsGrid = _dataGridHelper.CreateStandingsDataGrid(group);
-        Grid.SetColumn(standingsGrid, 2);
-        grid.Children.Add(standingsGrid);
+   // Standings DataGrid
+            System.Diagnostics.Debug.WriteLine($"  Creating Standings DataGrid...");
+            var standingsGrid = _dataGridHelper.CreateStandingsDataGrid(group);
+            
+     if (standingsGrid != null && standingsGrid.ItemsSource != null)
+  {
+       System.Diagnostics.Debug.WriteLine($"  ✅ Standings DataGrid created with {standingsGrid.Items.Count} items");
+}
+         else
+     {
+         System.Diagnostics.Debug.WriteLine($"  ⚠️ Standings DataGrid is null or has no ItemsSource!");
+            }
+          
+      Grid.SetColumn(standingsGrid, 2);
+            grid.Children.Add(standingsGrid);
+   }
+        catch (Exception ex)
+        {
+       System.Diagnostics.Debug.WriteLine($"  ❌ Error creating DataGrids: {ex.Message}");
+        }
 
         tabItem.Content = grid;
-        return tabItem;
+     
+        System.Diagnostics.Debug.WriteLine($"🔹 [TabHelper] CreateGroupTab END for: {group.Name}");
+        
+ return tabItem;
     }
 
     /// <summary>
     /// Erstellt einen Knockout-Bracket Tab
+    /// ✅ KORRIGIERT: Verhindert mehrfaches Generieren des Brackets durch gecachte Matches
     /// </summary>
     public TabItem CreateKnockoutBracketTab(string header, TournamentClass tournamentClass, bool isLoserBracket, bool isTreeView = false)
     {
+  System.Diagnostics.Debug.WriteLine($"🔹 [TabHelper] CreateKnockoutBracketTab START: {header}, isTreeView: {isTreeView}, isLoserBracket: {isLoserBracket}");
+        
         var tabItem = new TabItem { Header = header };
 
-        if (isTreeView)
+     if (isTreeView)
         {
+            System.Diagnostics.Debug.WriteLine($"  Creating TreeView for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
+       
             // Create tournament tree view for better visual representation
             var treeContent = _createTournamentTreeView(tournamentClass, isLoserBracket);
             tabItem.Content = treeContent;
         }
         else
         {
-            // Create matches data grid for knockout
-            var knockoutMatches = isLoserBracket 
-                ? tournamentClass.GetLoserBracketMatches()
-                : tournamentClass.GetWinnerBracketMatches();
+        System.Diagnostics.Debug.WriteLine($"  Creating DataGrid for {(isLoserBracket ? "Loser" : "Winner")} Bracket");
+            
+            // ✅ KORRIGIERT: Hole Matches OHNE sie neu zu generieren
+            // GetWinnerBracketMatches und GetLoserBracketMatches sollten nur lesen, nicht neu generieren
+        var knockoutMatches = isLoserBracket 
+        ? tournamentClass.GetLoserBracketMatches()
+       : tournamentClass.GetWinnerBracketMatches();
 
-            var dataGrid = _dataGridHelper.CreateKnockoutDataGrid(knockoutMatches);
+            System.Diagnostics.Debug.WriteLine($"  Retrieved {knockoutMatches.Count} matches from bracket");
+    
+         var dataGrid = _dataGridHelper.CreateKnockoutDataGrid(knockoutMatches);
             tabItem.Content = dataGrid;
         }
 
+        System.Diagnostics.Debug.WriteLine($"🔹 [TabHelper] CreateKnockoutBracketTab END: {header}");
+        
         return tabItem;
     }
 

@@ -64,7 +64,7 @@ public class TournamentOverviewQRCodeHelper
         imageFactory.SetValue(System.Windows.Controls.Image.HeightProperty, 80.0);
         imageFactory.SetValue(System.Windows.Controls.Image.StretchProperty, Stretch.Uniform);
         imageFactory.SetValue(System.Windows.Controls.Image.MarginProperty, new Thickness(4));
-   imageFactory.SetValue(System.Windows.Controls.Image.ToolTipProperty, "QR-Code zum Match scannen - öffnet dart-scoring.html");
+        imageFactory.SetValue(System.Windows.Controls.Image.ToolTipProperty, "QR-Code zum Match scannen - öffnet dart-scoring.html");
         
         // QR-Code generieren und als Source setzen
   var binding = new Binding(".");
@@ -162,84 +162,93 @@ public class MatchToQRCodeConverter : IValueConverter
         _tournamentId = tournamentId;  // ⭐ NEU
     }
 
+    /// <summary>
+    /// ✅ NEU: Hole Hub-URL aus HubService
+    /// </summary>
+    private string GetHubUrl()
+    {
+        return _hubService?.TournamentHubService?.HubUrl ?? "https://dtp.i3ull3t.de";
+    }
+
     public object? Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
- {
+    {
         try
-      {
+        {
             string? matchUuid = null;
             int matchId = 0;
-      
-   if (value is Match match)
+            
+            if (value is Match match)
             {
-       matchUuid = match.UniqueId;
-        matchId = match.Id;
+                matchUuid = match.UniqueId;
+                matchId = match.Id;
             }
-       else if (value is KnockoutMatch knockoutMatch)
- {
+            else if (value is KnockoutMatch knockoutMatch)
+            {
                 matchUuid = knockoutMatch.UniqueId;
-         matchId = knockoutMatch.Id;
+                matchId = knockoutMatch.Id;
             }
 
-   // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
+            // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
             System.Diagnostics.Debug.WriteLine($"🎯 [QR-Converter] Convert called for match {matchId} (Type: {value?.GetType().Name})");
             System.Diagnostics.Debug.WriteLine($"   Match UUID: {matchUuid ?? "null"}");
-   System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_tournamentId ?? "null"}");
-   System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
-      
-      if (_hubService != null)
- {
+            System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_tournamentId ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
+            
+            if (_hubService != null)
+            {
                 System.Diagnostics.Debug.WriteLine($"   Hub registered: {_hubService.IsRegisteredWithHub}");
             }
 
             if (string.IsNullOrEmpty(matchUuid))
-          {
-          System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Match UUID is empty for match {matchId}");
-  return null;
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Match UUID is empty for match {matchId}");
+                return null;
             }
 
-  if (_hubService == null)
-        {
-       System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] HubService is null");
-      return null;
-    }
-
-       if (!_hubService.IsRegisteredWithHub)
+            if (_hubService == null)
             {
-         System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Tournament not registered with hub");
-return null;
- }
+                System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] HubService is null");
+                return null;
+            }
 
-       // ✅ FIXED: NEW URL FORMAT mit Tournament-ID UND Match-UUID
-    string dartScoringUrl;
-      if (!string.IsNullOrEmpty(_tournamentId))
+            if (!_hubService.IsRegisteredWithHub)
             {
-      // Mit Tournament-ID (empfohlen)
-           dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?tournament={_tournamentId}&match={matchUuid}&uuid=true";
-        System.Diagnostics.Debug.WriteLine($"🎯 [QR-Converter] ✅ Generated dart-scoring URL with Tournament ID: {dartScoringUrl}");
-       }
+                System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Tournament not registered with hub");
+                return null;
+            }
+
+            // ✅ FIXED: NEW URL FORMAT mit Tournament-ID UND Match-UUID + dynamische Hub-URL
+            var hubUrl = GetHubUrl();
+            string dartScoringUrl;
+            if (!string.IsNullOrEmpty(_tournamentId))
+            {
+                // Mit Tournament-ID (empfohlen)
+                dartScoringUrl = $"{hubUrl}/dart-scoring.html?tournament={_tournamentId}&match={matchUuid}&uuid=true";
+                System.Diagnostics.Debug.WriteLine($"🎯 [QR-Converter] ✅ Generated dart-scoring URL with Tournament ID: {dartScoringUrl}");
+            }
             else
-        {
-    // Fallback: Ohne Tournament-ID (legacy)
-           dartScoringUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={matchUuid}&uuid=true";
-System.Diagnostics.Debug.WriteLine($"🎯 [QR-Converter] ⚠️ Generated dart-scoring URL WITHOUT Tournament ID (legacy): {dartScoringUrl}");
+            {
+                // Fallback: Ohne Tournament-ID (legacy)
+                dartScoringUrl = $"{hubUrl}/dart-scoring.html?match={matchUuid}&uuid=true";
+                System.Diagnostics.Debug.WriteLine($"🎯 [QR-Converter] ⚠️ Generated dart-scoring URL WITHOUT Tournament ID (legacy): {dartScoringUrl}");
             }
 
-   var qrImage = GenerateQRCodeImage(dartScoringUrl);
+            var qrImage = GenerateQRCodeImage(dartScoringUrl);
             
-     if (qrImage != null)
-      {
-        System.Diagnostics.Debug.WriteLine($"✅ [QR-Converter] QR code generated successfully for match {matchId}");
-         }
-  else
+            if (qrImage != null)
             {
-   System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Failed to generate QR code for match {matchId}");
-     }
+                System.Diagnostics.Debug.WriteLine($"✅ [QR-Converter] QR code generated successfully for match {matchId}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Failed to generate QR code for match {matchId}");
+            }
             
-         return qrImage;
+            return qrImage;
         }
-   catch (Exception ex)
+        catch (Exception ex)
         {
-     System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"❌ [QR-Converter] Error: {ex.Message}");
             return null;
         }
     }

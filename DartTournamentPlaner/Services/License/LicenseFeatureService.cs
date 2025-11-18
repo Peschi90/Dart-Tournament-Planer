@@ -129,6 +129,7 @@ public class LicenseFeatureService
             LicenseFeatures.MULTI_TOURNAMENT => true,
             LicenseFeatures.ENHANCED_PRINTING => false,  // Premium-Feature
             LicenseFeatures.TOURNAMENT_OVERVIEW => false,  // NEU: Premium-Feature
+            LicenseFeatures.POWERSCORING => false,  // NEU: Premium-Feature für Spieler-Einteilung
             _ => false // Nur zukünftige Features können Premium sein
         };
     }

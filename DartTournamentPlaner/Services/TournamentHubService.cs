@@ -127,6 +127,9 @@ public interface ITournamentHubService
     Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo);
     Task CloseWebSocketAsync();
  
+    // ✅ NEU: WebSocket Status
+    bool IsWebSocketConnected { get; }
+    
     // Events for WebSocket communication
     event Action<HubMatchUpdateEventArgs> OnMatchResultReceivedFromHub;
     event Action<string, object> OnTournamentUpdateReceived;
@@ -136,6 +139,9 @@ public interface ITournamentHubService
     event Action<HubMatchUpdateEventArgs> OnMatchStarted;
     event Action<HubMatchUpdateEventArgs> OnLegCompleted;
     event Action<HubMatchUpdateEventArgs> OnMatchProgressUpdated;
+    
+    // ✅ NEW: Event für PowerScoring Messages (delegiert an WebSocketMessageHandler)
+    event EventHandler<PowerScore.PowerScoringHubMessage> OnPowerScoringMessageReceived;
     
     // Utility
   string GetJoinUrl(string tournamentId);
@@ -187,13 +193,21 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         remove => _messageHandler.MatchProgressUpdated -= value;
     }
 
+    // ✅ NEW: Event für PowerScoring Messages (delegiert an WebSocketMessageHandler)
+    public event EventHandler<PowerScore.PowerScoringHubMessage>? OnPowerScoringMessageReceived
+    {
+        add => _messageHandler.PowerScoringMessageReceived += value;
+        remove => _messageHandler.PowerScoringMessageReceived -= value;
+    }
+
     // Hub Debug Window Support
     private Views.HubDebugWindow? _debugWindow;
 
     public TournamentHubService(ConfigService configService)
     {
         _configService = configService;
-        HubUrl = "https://dtp.i3ull3t.de:9443";
+        // ✅ FIXED: Lade Hub-URL aus Config statt fest zu kodieren
+        HubUrl = _configService.Config.HubUrl ?? "https://dtp.i3ull3t.de";
 
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "DartTournamentPlaner/1.0");
@@ -245,6 +259,11 @@ public class TournamentHubService : ITournamentHubService, IDisposable
             _debugWindow = null;
         }
     }
+
+    /// <summary>
+    /// ✅ NEU: Gibt zurück ob WebSocket verbunden ist
+    /// </summary>
+    public bool IsWebSocketConnected => _connectionManager?.IsConnected ?? false;
 
     /// <summary>
     /// Unified Debug Logging - sendet an Visual Studio Debug und HubDebugWindow
@@ -533,12 +552,17 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     /// </summary>
     public string GetJoinUrl(string tournamentId)
     {
+        // ✅ FIXED: Verwende IMMER die konfigurierte HubUrl statt der vom Server gelieferten
+        // Dies stellt sicher, dass die Join-URL der konfigurierten Domain/Port entspricht
+        return $"{HubUrl}/join/{tournamentId}";
+        
+        /* ALTE LOGIK (verwendet Server-URL mit potentiell falschem Port):
         if (_hubData.TryGetValue($"TournamentHub_Registration_{tournamentId}_JoinUrl", out var joinUrl))
         {
             return joinUrl;
         }
-
         return $"{HubUrl}/join/{tournamentId}";
+        */
     }
 
     /// <summary>

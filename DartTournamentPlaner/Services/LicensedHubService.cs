@@ -40,11 +40,32 @@ public class LicensedHubService
         add => _innerHubService.HubStatusChanged += value;
         remove => _innerHubService.HubStatusChanged -= value;
     }
+    
+    // ✅ NEW: Detailed connection state event
+    public event Action<HubConnectionState>? HubConnectionStateChanged
+    {
+        add => _innerHubService.HubConnectionStateChanged += value;
+        remove => _innerHubService.HubConnectionStateChanged -= value;
+    }
 
     public event Action? DataChanged
     {
         add => _innerHubService.DataChanged += value;
         remove => _innerHubService.DataChanged -= value;
+    }
+    
+    // ✅ NEW: Tournament needs resync event
+    public event Func<Task>? TournamentNeedsResync
+    {
+        add => _innerHubService.TournamentNeedsResync += value;
+        remove => _innerHubService.TournamentNeedsResync -= value;
+    }
+    
+    // ✅ NEW: PowerScoring event
+    public event EventHandler<PowerScore.PowerScoringHubMessage>? PowerScoringMessageReceived
+    {
+        add => _innerHubService.PowerScoringMessageReceived += value;
+        remove => _innerHubService.PowerScoringMessageReceived -= value;
     }
 
     public LicensedHubService(

@@ -21,6 +21,7 @@ public class WebSocketConnectionManager : IDisposable
     private bool _isConnected = false;
     private string? _connectedEndpoint;
     private bool _isDisposed = false;
+    private bool _reconnectScheduled = false; // ✅ NEW: Track if reconnect is already scheduled
 
     // Events
     public event Action<bool, string>? ConnectionStatusChanged;
@@ -42,15 +43,19 @@ public class WebSocketConnectionManager : IDisposable
     {
         try
         {
-            _debugLog("🔌 [WS-CONNECTION] Initializing WebSocket connection...", "WEBSOCKET");
+            _debugLog("🔌 [WS-CONNECTION] ===== INITIALIZING WEBSOCKET =====", "WEBSOCKET");
+            _debugLog($"🔌 [WS-CONNECTION] Hub URL: {_hubUrl}", "INFO");
+            _debugLog($"🔌 [WS-CONNECTION] Current _isConnected: {_isConnected}", "INFO");
+            _debugLog($"🔌 [WS-CONNECTION] Current WebSocket State: {_webSocket?.State.ToString() ?? "null"}", "INFO");
 
             if (_webSocket != null && _webSocket.State == WebSocketState.Open)
             {
-                _debugLog("🔌 [WS-CONNECTION] WebSocket already connected, skipping initialization", "WEBSOCKET");
+                _debugLog("✅ [WS-CONNECTION] WebSocket already connected, skipping initialization", "SUCCESS");
                 return true;
             }
 
             // Dispose existing WebSocket if any
+            _debugLog("🧹 [WS-CONNECTION] Cleaning up previous WebSocket connection...", "WEBSOCKET");
             await CloseAsync();
 
             _webSocket = new ClientWebSocket();
@@ -61,10 +66,11 @@ public class WebSocketConnectionManager : IDisposable
 
             // SSL WebSocket-Endpunkte für Tournament Hub
             string[] possibleEndpoints = {
-                "wss://dtp.i3ull3t.de:9444/ws",     // SSL WebSocket (bevorzugt)
-                "ws://dtp.i3ull3t.de:9445/ws",      // HTTP WebSocket (fallback)
-                $"{_hubUrl.Replace("https://", "wss://").Replace("http://", "ws://")}/socket.io/?EIO=4&transport=websocket"
+                $"{_hubUrl.Replace("https://", "wss://").Replace("http://", "ws://")}/ws",     // ✅ Konfigurierbare URL mit /ws
+                $"{_hubUrl.Replace("https://", "wss://").Replace("http://", "ws://")}/socket.io/?EIO=4&transport=websocket"  // ✅ Socket.IO Fallback
             };
+            
+            _debugLog($"🔍 [WS-CONNECTION] Will try {possibleEndpoints.Length} endpoints", "INFO");
 
             bool connected = false;
             Exception? lastException = null;
@@ -95,6 +101,8 @@ public class WebSocketConnectionManager : IDisposable
                     var uri = new Uri(endpoint);
                     var connectionTimeout = endpoint.StartsWith("wss://") ? 30 : 15;
                     var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(connectionTimeout));
+                    
+                    _debugLog($"⏰ [WS-CONNECTION] Attempting connection with {connectionTimeout}s timeout...", "WEBSOCKET");
 
                     await _webSocket.ConnectAsync(uri, timeoutCts.Token);
 
@@ -104,6 +112,10 @@ public class WebSocketConnectionManager : IDisposable
                         _connectedEndpoint = endpoint;
                         connected = true;
                         break;
+                    }
+                    else
+                    {
+                        _debugLog($"⚠️ [WS-CONNECTION] Connection attempt completed but state is: {_webSocket.State}", "WARNING");
                     }
                 }
                 catch (Exception ex)
@@ -120,24 +132,39 @@ public class WebSocketConnectionManager : IDisposable
                 _debugLog($"❌ [WS-CONNECTION] Last error: {lastException?.Message}", "ERROR");
 
                 _isConnected = false;
+                _debugLog($"🔔 [WS-CONNECTION] Firing ConnectionStatusChanged event: false", "WEBSOCKET");
                 ConnectionStatusChanged?.Invoke(false, $"Connection failed: {lastException?.Message}");
+                
+                // ✅ CRITICAL FIX: Schedule another reconnect attempt after failed connection
+                _debugLog($"🔄 [WS-CONNECTION] Connection failed, scheduling retry...", "WEBSOCKET");
+                ScheduleReconnect(10); // Warte 10 Sekunden nach fehlgeschlagenem Versuch
+                
                 return false;
             }
 
             _isConnected = true;
+            _reconnectScheduled = false; // ✅ FIX: Reset reconnect flag on successful connection
+            _debugLog($"✅ [WS-CONNECTION] Setting _isConnected = true", "SUCCESS");
+            _debugLog($"🔔 [WS-CONNECTION] Firing ConnectionStatusChanged event: true", "WEBSOCKET");
             ConnectionStatusChanged?.Invoke(true, $"WebSocket Connected ({_connectedEndpoint})");
 
             // Start listening for messages and heartbeat
+            _debugLog($"👂 [WS-CONNECTION] Starting message listener...", "WEBSOCKET");
             _ = Task.Run(ListenForMessages);
+            
+            _debugLog($"💓 [WS-CONNECTION] Starting heartbeat...", "WEBSOCKET");
             StartHeartbeat();
 
             _debugLog("✅ [WS-CONNECTION] WebSocket connection established successfully", "SUCCESS");
+            _debugLog("✅ [WS-CONNECTION] ===== INITIALIZATION COMPLETE =====", "SUCCESS");
             return true;
         }
         catch (Exception ex)
         {
             _debugLog($"❌ [WS-CONNECTION] Error initializing WebSocket: {ex.Message}", "ERROR");
+            _debugLog($"❌ [WS-CONNECTION] Stack trace: {ex.StackTrace}", "ERROR");
             _isConnected = false;
+            _debugLog($"🔔 [WS-CONNECTION] Firing ConnectionStatusChanged event: false (exception)", "WEBSOCKET");
             ConnectionStatusChanged?.Invoke(false, $"Connection Error: {ex.Message}");
             return false;
         }
@@ -196,19 +223,18 @@ public class WebSocketConnectionManager : IDisposable
         finally
         {
             _isConnected = false;
+            _debugLog($"🔌 [WS-CONNECTION] Setting _isConnected = false", "WEBSOCKET");
+            _debugLog($"🔔 [WS-CONNECTION] Firing ConnectionStatusChanged event: false", "WEBSOCKET");
             ConnectionStatusChanged?.Invoke(false, "WebSocket Disconnected");
 
-            // Automatischer Reconnect nach 5 Sekunden
-            if (!_cancellationTokenSource.Token.IsCancellationRequested)
+            // ✅ CRITICAL FIX: Schedule reconnect only if not disposed
+            if (!_isDisposed && _cancellationTokenSource?.Token.IsCancellationRequested != true)
             {
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(5000);
-                    if (!_cancellationTokenSource.Token.IsCancellationRequested)
-                    {
-                        await InitializeAsync();
-                    }
-                });
+                ScheduleReconnect(5);
+            }
+            else
+            {
+                _debugLog($"⚠️ [WS-CONNECTION] Not scheduling reconnect - disposed or cancelled", "WARNING");
             }
         }
     }
@@ -258,7 +284,11 @@ public class WebSocketConnectionManager : IDisposable
     {
         try
         {
-            if (_webSocket?.State != WebSocketState.Open) return false;
+            if (_webSocket?.State != WebSocketState.Open)
+            {
+                _debugLog($"❌ [WS-CONNECTION] Cannot send message '{messageType}' - WebSocket not open (State: {_webSocket?.State})", "ERROR");
+                return false;
+            }
 
             var message = new
             {
@@ -270,13 +300,25 @@ public class WebSocketConnectionManager : IDisposable
             var messageJson = System.Text.Json.JsonSerializer.Serialize(message);
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
 
+            // ✅ ERWEITERT: Detailliertes Logging vor dem Senden
+            _debugLog($"📤 [WS-CONNECTION] ===== SENDING MESSAGE =====", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Type: {messageType}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Data: {System.Text.Json.JsonSerializer.Serialize(data)}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Full JSON: {messageJson}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Message size: {messageBytes.Length} bytes", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] WebSocket state: {_webSocket.State}", "WEBSOCKET");
+
             await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, _cancellationTokenSource.Token);
 
+            _debugLog($"✅ [WS-CONNECTION] Message '{messageType}' sent successfully", "SUCCESS");
+            _debugLog($"📤 [WS-CONNECTION] ================================", "WEBSOCKET");
+            
             return true;
         }
         catch (Exception ex)
         {
-            _debugLog($"❌ [WS-CONNECTION] Error sending WebSocket message: {ex.Message}", "ERROR");
+            _debugLog($"❌ [WS-CONNECTION] Error sending WebSocket message '{messageType}': {ex.Message}", "ERROR");
+            _debugLog($"❌ [WS-CONNECTION] Stack trace: {ex.StackTrace}", "ERROR");
             return false;
         }
     }
@@ -286,8 +328,18 @@ public class WebSocketConnectionManager : IDisposable
     /// </summary>
     public async Task<bool> SubscribeToTournamentAsync(string tournamentId)
     {
-        _debugLog($"📡 [WS-CONNECTION] Subscribing to tournament: {tournamentId}", "WEBSOCKET");
-        return await SendMessageAsync("subscribe-tournament", tournamentId);
+        _debugLog($"📡 [WS-CONNECTION] ===== SUBSCRIBING TO TOURNAMENT =====", "WEBSOCKET");
+        _debugLog($"📡 [WS-CONNECTION] Tournament ID: {tournamentId}", "WEBSOCKET");
+        _debugLog($"📡 [WS-CONNECTION] WebSocket State: {_webSocket?.State}", "WEBSOCKET");
+        _debugLog($"📡 [WS-CONNECTION] Is Connected: {_isConnected}", "WEBSOCKET");
+        _debugLog($"📡 [WS-CONNECTION] Connected Endpoint: {_connectedEndpoint}", "WEBSOCKET");
+        
+        var result = await SendMessageAsync("subscribe-tournament", tournamentId);
+        
+        _debugLog($"📡 [WS-CONNECTION] Subscribe result: {result}", result ? "SUCCESS" : "ERROR");
+        _debugLog($"📡 [WS-CONNECTION] ================================", "WEBSOCKET");
+        
+        return result;
     }
 
     /// <summary>
@@ -295,8 +347,15 @@ public class WebSocketConnectionManager : IDisposable
     /// </summary>
     public async Task<bool> UnsubscribeFromTournamentAsync(string tournamentId)
     {
-        _debugLog($"📡 [WS-CONNECTION] Unsubscribing from tournament: {tournamentId}", "WEBSOCKET");
-        return await SendMessageAsync("unsubscribe-tournament", tournamentId);
+        _debugLog($"📡 [WS-CONNECTION] ===== UNSUBSCRIBING FROM TOURNAMENT =====", "WEBSOCKET");
+        _debugLog($"📡 [WS-CONNECTION] Tournament ID: {tournamentId}", "WEBSOCKET");
+        
+        var result = await SendMessageAsync("unsubscribe-tournament", tournamentId);
+        
+        _debugLog($"📡 [WS-CONNECTION] Unsubscribe result: {result}", result ? "SUCCESS" : "ERROR");
+        _debugLog($"📡 [WS-CONNECTION] ================================", "WEBSOCKET");
+        
+        return result;
     }
 
     /// <summary>
@@ -304,9 +363,17 @@ public class WebSocketConnectionManager : IDisposable
     /// </summary>
     public async Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo)
     {
-        _debugLog($"📋 [WS-CONNECTION] Registering as planner for: {tournamentId}", "WEBSOCKET");
+        _debugLog($"📋 [WS-CONNECTION] ===== REGISTERING AS PLANNER =====", "WEBSOCKET");
+        _debugLog($"📋 [WS-CONNECTION] Tournament ID: {tournamentId}", "WEBSOCKET");
+        _debugLog($"📋 [WS-CONNECTION] Planner Info: {System.Text.Json.JsonSerializer.Serialize(plannerInfo)}", "WEBSOCKET");
+        
         var data = new { tournamentId = tournamentId, plannerInfo = plannerInfo };
-        return await SendMessageAsync("register-planner", data);
+        var result = await SendMessageAsync("register-planner", data);
+        
+        _debugLog($"📋 [WS-CONNECTION] Register result: {result}", result ? "SUCCESS" : "ERROR");
+        _debugLog($"📋 [WS-CONNECTION] ================================", "WEBSOCKET");
+        
+        return result;
     }
 
     /// <summary>
@@ -322,28 +389,114 @@ public class WebSocketConnectionManager : IDisposable
 
             if (_webSocket != null)
             {
-                _cancellationTokenSource?.Cancel();
+                // ✅ FIX: Safe cancellation with null check
+                try
+                {
+                    _cancellationTokenSource?.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                    _debugLog("⚠️ [WS-CONNECTION] CancellationTokenSource already disposed", "WARNING");
+                }
 
                 if (_webSocket.State == WebSocketState.Open)
                 {
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+                    _debugLog("🔌 [WS-CONNECTION] Closing WebSocket gracefully...", "WEBSOCKET");
+                    try
+                    {
+                        await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+                    }
+                    catch (Exception closeEx)
+                    {
+                        _debugLog($"⚠️ [WS-CONNECTION] Error during graceful close: {closeEx.Message}", "WARNING");
+                    }
+                }
+                else
+                {
+                    _debugLog($"🔌 [WS-CONNECTION] WebSocket already in state: {_webSocket.State}", "WEBSOCKET");
                 }
 
-                _webSocket.Dispose();
+                try
+                {
+                    _webSocket.Dispose();
+                }
+                catch (Exception disposeEx)
+                {
+                    _debugLog($"⚠️ [WS-CONNECTION] Error disposing WebSocket: {disposeEx.Message}", "WARNING");
+                }
                 _webSocket = null;
             }
 
-            _cancellationTokenSource?.Dispose();
+            // ✅ FIX: Safe disposal with null check
+            try
+            {
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (ObjectDisposedException)
+            {
+                _debugLog("⚠️ [WS-CONNECTION] CancellationTokenSource already disposed during disposal", "WARNING");
+            }
             _cancellationTokenSource = null;
 
             _isConnected = false;
+            _debugLog("🔔 [WS-CONNECTION] Firing ConnectionStatusChanged event: false (close)", "WEBSOCKET");
             ConnectionStatusChanged?.Invoke(false, "WebSocket Closed");
             _debugLog("🔌 [WS-CONNECTION] WebSocket connection closed", "WEBSOCKET");
         }
         catch (Exception ex)
         {
             _debugLog($"❌ [WS-CONNECTION] Error closing WebSocket: {ex.Message}", "ERROR");
+            _debugLog($"❌ [WS-CONNECTION] Stack trace: {ex.StackTrace}", "ERROR");
         }
+    }
+
+    /// <summary>
+    /// ✅ NEW: Schedule an auto-reconnect attempt
+    /// Can be called from anywhere to trigger a reconnect
+    /// </summary>
+    public void ScheduleReconnect(int delaySeconds = 5)
+    {
+        // Don't schedule if already disposed or if cancellation was requested
+        if (_isDisposed || _cancellationTokenSource?.Token.IsCancellationRequested == true)
+        {
+            _debugLog($"⚠️ [WS-CONNECTION] Cannot schedule reconnect - disposed or cancelled", "WARNING");
+            return;
+        }
+
+        // ✅ FIX: Prevent duplicate reconnect scheduling
+        if (_reconnectScheduled)
+        {
+            _debugLog($"ℹ️ [WS-CONNECTION] Reconnect already scheduled, skipping duplicate", "INFO");
+            return;
+        }
+
+        _reconnectScheduled = true;
+        _debugLog($"🔄 [WS-CONNECTION] Scheduling auto-reconnect in {delaySeconds} seconds...", "WEBSOCKET");
+        
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                _debugLog($"⏰ [WS-CONNECTION] Waiting {delaySeconds} seconds before reconnect...", "WEBSOCKET");
+                await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                
+                if (_isDisposed || _cancellationTokenSource?.Token.IsCancellationRequested == true)
+                {
+                    _debugLog($"⚠️ [WS-CONNECTION] Auto-reconnect cancelled (Token was cancelled)", "WARNING");
+                    _reconnectScheduled = false;
+                    return;
+                }
+                
+                _debugLog($"🔄 [WS-CONNECTION] Starting auto-reconnect now...", "WEBSOCKET");
+                _reconnectScheduled = false; // Reset flag before attempting reconnect
+                await InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                _debugLog($"❌ [WS-CONNECTION] Error in auto-reconnect: {ex.Message}", "ERROR");
+                _reconnectScheduled = false; // Reset flag on error
+            }
+        });
     }
 
     public void Dispose()

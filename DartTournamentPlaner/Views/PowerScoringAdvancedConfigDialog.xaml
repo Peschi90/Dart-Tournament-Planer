@@ -1,0 +1,313 @@
+<Window x:Class="DartTournamentPlaner.Views.PowerScoringAdvancedConfigDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Advanced Distribution Settings" 
+        Height="600" Width="750"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <!-- PowerScoring Gradient -->
+        <LinearGradientBrush x:Key="PowerScoringGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#8B5CF6" Offset="0"/>
+            <GradientStop Color="#6366F1" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PowerScoringGradient}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#8B5CF6" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="20" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Container -->
+    <Border Background="White" 
+            CornerRadius="16" 
+            BorderBrush="#E5E7EB" 
+            BorderThickness="1"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="12" 
+                              BlurRadius="30" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource PowerScoringGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    Padding="32,20">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⚙️" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="HeaderTitleText"
+                               Text="Advanced Distribution Settings" 
+                               FontSize="18" 
+                               FontWeight="Bold" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="32,24">
+                <StackPanel>
+                    
+                    <!-- Distribution Mode Card -->
+                    <Border Background="#F5F3FF" 
+                            BorderBrush="#8B5CF6" 
+                            BorderThickness="1" 
+                            CornerRadius="12" 
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="DistributionModeTitleText"
+                                       Text="🎯 Distribution Mode" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#6B21A8" 
+                                       Margin="0,0,0,12"/>
+                            
+                            <ComboBox x:Name="DistributionModeCombo"
+                                      FontSize="13"
+                                      Padding="10,8"
+                                      SelectionChanged="DistributionModeCombo_SelectionChanged">
+                                <ComboBoxItem Content="⚖️ Balanced (Even distribution)" Tag="Balanced" IsSelected="True"/>
+                                <ComboBoxItem Content="🐍 Snake Draft (1-2-3-4-4-3-2-1)" Tag="SnakeDraft"/>
+                                <ComboBoxItem Content="🔝 Top-Heavy (Strongest first)" Tag="TopHeavy"/>
+                                <ComboBoxItem Content="🎲 Random" Tag="Random"/>
+                            </ComboBox>
+                            
+                            <TextBlock x:Name="ModeDescriptionText"
+                                       Text="Players are evenly distributed across groups based on ranking."
+                                       FontSize="12"
+                                       Foreground="#6B7280"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Player Limits Card - OPTIONAL / Info-Only -->
+                    <Border Background="#EFF6FF" 
+                            BorderBrush="#3B82F6" 
+                            BorderThickness="1" 
+                            CornerRadius="12" 
+                            Padding="20"
+                            Margin="0,0,0,16"
+                            Visibility="Collapsed">
+                        <!-- ✅ Versteckt: Wird durch klassen-spezifische Einstellungen ersetzt -->
+                        <StackPanel>
+                            <TextBlock Text="👥 Player Limits Per Group" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#1E40AF" 
+                                       Margin="0,0,0,12"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="20"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- Min Players -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Minimum:" 
+                                               FontSize="12" 
+                                               Foreground="#1E40AF" 
+                                               Margin="0,0,0,4"/>
+                                    <TextBox x:Name="MinPlayersTextBox"
+                                             Text="2"
+                                             FontSize="13"
+                                             Padding="8"
+                                             PreviewTextInput="NumericTextBox_PreviewTextInput"/>
+                                </StackPanel>
+                                
+                                <!-- Max Players -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Maximum:" 
+                                               FontSize="12" 
+                                               Foreground="#1E40AF" 
+                                               Margin="0,0,0,4"/>
+                                    <TextBox x:Name="MaxPlayersTextBox"
+                                             Text="6"
+                                             FontSize="13"
+                                             Padding="8"
+                                             PreviewTextInput="NumericTextBox_PreviewTextInput"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Class-Specific Rules Card -->
+                    <Border Background="#FEF3C7" 
+                            BorderBrush="#F59E0B" 
+                            BorderThickness="1" 
+                            CornerRadius="12" 
+                            Padding="20"
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock x:Name="ClassRulesTitleText"
+                                       Text="🏆 Class-Specific Rules" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#92400E" 
+                                       Margin="0,0,0,12"/>
+                            
+                            <ItemsControl x:Name="ClassRulesControl">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="White" 
+                                                BorderBrush="#E5E7EB" 
+                                                BorderThickness="1" 
+                                                CornerRadius="6" 
+                                                Padding="12" 
+                                                Margin="0,0,0,8">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="80"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- Klassen-Name -->
+                                                <TextBlock Grid.Column="0" 
+                                                           Text="{Binding ClassName}" 
+                                                           FontWeight="SemiBold" 
+                                                           FontSize="13" 
+                                                           VerticalAlignment="Center"/>
+                                                
+                                                <!-- Gruppen-Anzahl -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0">
+                                                    <TextBlock x:Name="GroupsLabelText"
+                                                               Text="Groups:" 
+                                                               FontSize="11" 
+                                                               VerticalAlignment="Center" 
+                                                               Margin="0,0,5,0"/>
+                                                    <TextBox Text="{Binding GroupCount, UpdateSourceTrigger=PropertyChanged}" 
+                                                             Width="50" 
+                                                             FontSize="11" 
+                                                             Padding="4"
+                                                             PreviewTextInput="NumericTextBox_PreviewTextInput"/>
+                                                </StackPanel>
+                                                
+                                                <!-- ✅ Spieler pro Gruppe -->
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0">
+                                                    <TextBlock x:Name="PlayersLabelText"
+                                                               Text="Players:" 
+                                                               FontSize="11" 
+                                                               VerticalAlignment="Center" 
+                                                               Margin="0,0,5,0"/>
+                                                    <TextBox Text="{Binding PlayersPerGroup, UpdateSourceTrigger=PropertyChanged}" 
+                                                             Width="50" 
+                                                             FontSize="11" 
+                                                             Padding="4"
+                                                             PreviewTextInput="NumericTextBox_PreviewTextInput"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Skip Checkbox -->
+                                                <CheckBox Grid.Column="3" 
+                                                          x:Name="SkipCheckBox"
+                                                          Content="Skip" 
+                                                          IsChecked="{Binding Skip}" 
+                                                          FontSize="11" 
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Info Card -->
+                    <Border Background="#F0FDF4" 
+                            BorderBrush="#10B981" 
+                            BorderThickness="1" 
+                            CornerRadius="12" 
+                            Padding="16"
+                            Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💡" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                            <TextBlock x:Name="TipTextBlock"
+                                       TextWrapping="Wrap" FontSize="12" Foreground="#047857" LineHeight="18">
+                                <Run Text="Tipp: " FontWeight="SemiBold"/>
+                                <Run x:Name="TipTextRun"
+                                     Text="Legen Sie für jede Klasse individuell fest wie viele Gruppen mit wie vielen Spielern erstellt werden sollen. Z.B. Platin: 2 Gruppen mit je 4 Spielern, Gold: 3 Gruppen mit je 6 Spielern."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Buttons -->
+            <Border Grid.Row="2" 
+                    Background="#F8FAFC" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,1,0,0" 
+                    CornerRadius="0,0,16,16"
+                    Padding="32,16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="CancelButton" 
+                            Content="❌ Cancel" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Click="CancelButton_Click"/>
+                    
+                    <Button x:Name="ApplyButton" 
+                            Content="✅ Apply" 
+                            Style="{StaticResource PrimaryButton}" 
+                            Click="ApplyButton_Click"
+                            IsDefault="True"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

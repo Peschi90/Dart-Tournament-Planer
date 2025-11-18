@@ -121,27 +121,64 @@ public class TournamentPhaseManager
     /// <summary>
     /// Führt den Wechsel zur nächsten Phase durch
     /// Markiert die aktuelle Phase als abgeschlossen und aktiviert die nächste Phase
+    /// ? KORRIGIERT: Verhindert mehrfaches Erstellen der gleichen Phase
     /// </summary>
     public void AdvanceToNextPhase()
     {
-        // Prüfung ob Phasenwechsel möglich ist
-        if (!CanProceedToNextPhase()) return;
+        System.Diagnostics.Debug.WriteLine($"=== AdvanceToNextPhase START for {_tournament.Name} ===");
+    System.Diagnostics.Debug.WriteLine($"  Current Phase: {_tournament.CurrentPhase?.PhaseType.ToString() ?? "null"}");
+        
+   // Prüfung ob Phasenwechsel möglich ist
+   if (!CanProceedToNextPhase())
+        {
+          System.Diagnostics.Debug.WriteLine($"  ? Cannot proceed to next phase");
+ return;
+    }
 
-        // Ermittlung der nächsten Phase
-        var nextPhase = GetNextPhase();
-        if (nextPhase == null) return;
+ // Ermittlung der nächsten Phase
+      var nextPhase = GetNextPhase();
+if (nextPhase == null)
+      {
+      System.Diagnostics.Debug.WriteLine($"  ? No next phase available");
+       return;
+   }
 
-        // Markiere aktuelle Phase als abgeschlossen
+      System.Diagnostics.Debug.WriteLine($"  Next Phase Type: {nextPhase.PhaseType}");
+        
+     // ? NEU: Prüfe ob diese Phase bereits existiert (verhindert Duplikate!)
+ var existingPhase = _tournament.Phases.FirstOrDefault(p => p.PhaseType == nextPhase.PhaseType && p != _tournament.CurrentPhase);
+  if (existingPhase != null)
+        {
+       System.Diagnostics.Debug.WriteLine($"  ?? Phase {nextPhase.PhaseType} already exists! Using existing phase instead of creating new one.");
+       
+     // Verwende die existierende Phase statt eine neue zu erstellen
+nextPhase = existingPhase;
+        }
+    else
+      {
+  System.Diagnostics.Debug.WriteLine($"  ? Creating new phase: {nextPhase.PhaseType}");
+ }
+
+      // Markiere aktuelle Phase als abgeschlossen
         if (_tournament.CurrentPhase != null)
         {
             _tournament.CurrentPhase.IsActive = false;
-            _tournament.CurrentPhase.IsCompleted = true;
+        _tournament.CurrentPhase.IsCompleted = true;
+          System.Diagnostics.Debug.WriteLine($"  Marked {_tournament.CurrentPhase.PhaseType} as completed");
         }
 
-        // Füge neue Phase hinzu und aktiviere sie
-        _tournament.Phases.Add(nextPhase);
-        _tournament.CurrentPhase = nextPhase;
+  // ? KORRIGIERT: Füge neue Phase nur hinzu, wenn sie noch nicht existiert
+        if (!_tournament.Phases.Contains(nextPhase))
+ {
+            _tournament.Phases.Add(nextPhase);
+        System.Diagnostics.Debug.WriteLine($"  Added new phase to Phases collection");
+     }
+
+      // Aktiviere die nächste Phase
+     _tournament.CurrentPhase = nextPhase;
         nextPhase.IsActive = true;
+
+        System.Diagnostics.Debug.WriteLine($"=== AdvanceToNextPhase END - Now in {nextPhase.PhaseType} ===");
     }
 
     /// <summary>
@@ -182,9 +219,22 @@ public class TournamentPhaseManager
 
         // KRITISCHER FIX: Generiere die Round Robin Matches für die Finals-Gruppe mit korrekten GameRules!
         //System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generating Round Robin matches for {finalsGroup.Players.Count} players");
-        //System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Using GameRules - PlayWithSets: {_tournament.GameRules.PlayWithSets}, SetsToWin: {_tournament.GameRules.SetsToWin}, LegsToWin: {_tournament.GameRules.LegsToWin}");
         
-        finalsGroup.GenerateRoundRobinMatches(_tournament.GameRules);
+        // WICHTIG: Verwende die rundenspezifischen Regeln für Round Robin Finals
+        var finalsRules = _tournament.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
+        var finalsGameRules = new GameRules
+        {
+            GameMode = _tournament.GameRules.GameMode,
+            FinishMode = _tournament.GameRules.FinishMode,
+            PlayWithSets = finalsRules.SetsToWin > 0,
+            SetsToWin = finalsRules.SetsToWin,
+            LegsToWin = finalsRules.LegsToWin,
+            LegsPerSet = finalsRules.LegsPerSet
+        };
+        
+        //System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Using finalsGameRules - PlayWithSets: {finalsGameRules.PlayWithSets}, SetsToWin: {finalsGameRules.SetsToWin}, LegsToWin: {finalsGameRules.LegsToWin}");
+        
+        finalsGroup.GenerateRoundRobinMatches(finalsGameRules);
         //System.Diagnostics.Debug.WriteLine($"CreateRoundRobinFinalsPhase: Generated {finalsGroup.Matches.Count} matches");
         
         // ZUSÄTZLICHE VALIDIERUNG: Überprüfe ob UsesSets korrekt gesetzt wurde UND alle UUIDs vorhanden sind
@@ -366,7 +416,19 @@ public class TournamentPhaseManager
                     // Generiere Matches falls noch nicht vorhanden
                     if (finalsGroup.Players.Count >= 2)
                     {
-                        finalsGroup.GenerateRoundRobinMatches(_tournament.GameRules);
+                        // WICHTIG: Verwende die rundenspezifischen Regeln für Round Robin Finals
+                        var finalsRules = _tournament.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
+                        var finalsGameRules = new GameRules
+                        {
+                            GameMode = _tournament.GameRules.GameMode,
+                            FinishMode = _tournament.GameRules.FinishMode,
+                            PlayWithSets = finalsRules.SetsToWin > 0,
+                            SetsToWin = finalsRules.SetsToWin,
+                            LegsToWin = finalsRules.LegsToWin,
+                            LegsPerSet = finalsRules.LegsPerSet
+                        };
+                        
+                        finalsGroup.GenerateRoundRobinMatches(finalsGameRules);
                         //System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Generated {finalsGroup.Matches.Count} matches");
                     }
                     
@@ -386,8 +448,21 @@ public class TournamentPhaseManager
                 // Sicherstelle, dass Matches generiert sind
                 if (!finalsPhase.FinalsGroup.MatchesGenerated && finalsPhase.FinalsGroup.Players.Count >= 2)
                 {
- //System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Generating missing matches");
-                    finalsPhase.FinalsGroup.GenerateRoundRobinMatches(_tournament.GameRules);
+                    //System.Diagnostics.Debug.WriteLine($"EnsureFinalsPhaseIntegrity: Generating missing matches");
+                    
+                    // WICHTIG: Verwende die rundenspezifischen Regeln für Round Robin Finals
+                    var finalsRules = _tournament.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
+                    var finalsGameRules = new GameRules
+                    {
+                        GameMode = _tournament.GameRules.GameMode,
+                        FinishMode = _tournament.GameRules.FinishMode,
+                        PlayWithSets = finalsRules.SetsToWin > 0,
+                        SetsToWin = finalsRules.SetsToWin,
+                        LegsToWin = finalsRules.LegsToWin,
+                        LegsPerSet = finalsRules.LegsPerSet
+                    };
+                    
+                    finalsPhase.FinalsGroup.GenerateRoundRobinMatches(finalsGameRules);
                 }
             }
         }

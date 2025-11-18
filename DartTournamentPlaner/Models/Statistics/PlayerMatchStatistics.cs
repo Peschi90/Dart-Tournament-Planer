@@ -200,6 +200,11 @@ public class PlayerMatchStatistics : INotifyPropertyChanged
     public List<LegAverage> LegAverages { get; set; } = new List<LegAverage>();
 
     /// <summary>
+    /// ✅ NEU: Detaillierte Leg-Daten für gewonnene Legs (inkl. benötigte Darts)
+    /// </summary>
+    public List<LegData> LegData { get; set; } = new List<LegData>();
+
+    /// <summary>
     /// Durchschnittlicher Leg-Average über alle Legs
     /// </summary>
     public double AverageLegAverage { get; set; } = 0.0;
@@ -228,6 +233,27 @@ public class PlayerMatchStatistics : INotifyPropertyChanged
     [JsonIgnore]
     public double AverageDartsPerCheckout => CheckoutDetails.Count > 0 ? 
         CheckoutDetails.Average(cd => cd.Darts.Count(d => d > 0)) : 0.0;
+
+    /// <summary>
+    /// ✅ NEU: Wenigste Darts für ein gewonnenes Leg
+    /// </summary>
+    [JsonIgnore]
+    public int FewestDartsPerLeg => LegData.Count > 0 && LegData.Any(ld => ld.Won) ? 
+        LegData.Where(ld => ld.Won).Min(ld => ld.Darts) : 0;
+
+    /// <summary>
+    /// ✅ NEU: Durchschnittliche Darts pro gewonnenem Leg
+    /// </summary>
+    [JsonIgnore]
+    public double AverageDartsPerLeg => LegData.Count > 0 && LegData.Any(ld => ld.Won) ? 
+        LegData.Where(ld => ld.Won).Average(ld => ld.Darts) : 0.0;
+
+    /// <summary>
+    /// ✅ NEU: Alle Leg-Darts als durch | getrennte Liste (z.B. "6 | 9 | 12") - nur gewonnene Legs
+    /// </summary>
+    [JsonIgnore]
+    public string LegDartsFormatted => LegData.Count > 0 && LegData.Any(ld => ld.Won) ? 
+        string.Join(" | ", LegData.Where(ld => ld.Won).Select(ld => ld.Darts)) : "-";
 
     /// <summary>
     /// Datum und Uhrzeit des Matches
@@ -354,6 +380,48 @@ public class LegAverage
     /// Zeitstempel des Leg-Abschlusses
     /// </summary>
     public DateTime Timestamp { get; set; }
+}
+
+/// <summary>
+/// ✅ NEU: Repräsentiert detaillierte Informationen zu einem gewonnenen Leg
+/// </summary>
+public class LegData
+{
+    /// <summary>
+    /// Leg-Nummer (1-basiert)
+    /// </summary>
+    public int LegNumber { get; set; }
+
+    /// <summary>
+    /// Average für dieses Leg
+    /// </summary>
+    public double Average { get; set; }
+
+    /// <summary>
+    /// Anzahl benötigter Darts um das Leg zu gewinnen
+    /// </summary>
+    public int Darts { get; set; }
+
+    /// <summary>
+    /// Erzielte Punkte in diesem Leg
+    /// </summary>
+    public int Score { get; set; }
+
+    /// <summary>
+    /// ✅ NEU: Gibt an, ob dieses Leg gewonnen wurde
+    /// </summary>
+    public bool Won { get; set; }
+
+    /// <summary>
+    /// Zeitstempel des Leg-Abschlusses
+    /// </summary>
+    public DateTime Timestamp { get; set; }
+
+    /// <summary>
+    /// Formatierte Anzeige: "Leg X: Y Darts (Ø Z)"
+    /// </summary>
+    [JsonIgnore]
+    public string FormattedDisplay => $"Leg {LegNumber}: {Darts} Darts (Ø {Average:F1}){(Won ? " ✓" : "")}";
 }
 
 /// <summary>

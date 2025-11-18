@@ -46,7 +46,8 @@ public class MainWindowUIHelper
             {
                 if (HubStatusIndicator is null || HubStatusText is null || HubSyncStatus is null) return;
 
-                if (isConnected)
+                // ✅ CRITICAL FIX: Zeige korrekt "Getrennt" wenn nicht verbunden, auch wenn Tournament-ID vorhanden ist
+                if (isConnected && !string.IsNullOrEmpty(tournamentId))
                 {
                     HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(46, 204, 113));
                     HubStatusText.Text = $"Hub: Verbunden ({tournamentId})";
@@ -78,16 +79,115 @@ public class MainWindowUIHelper
                 }
                 else
                 {
+                    // ✅ FIX: Bei Disconnect zeige IMMER "Getrennt", unabhängig von Tournament-ID
                     HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(231, 76, 60));
                     HubStatusText.Text = "Hub: Getrennt";
-                    HubSyncStatus.Text = "(WebSocket inaktiv)";
-                    HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(149, 165, 166));
+                    
+                    // ✅ FIX: Zeige Tournament-ID nur wenn noch registriert (für Reconnect-Info)
+                    if (!string.IsNullOrEmpty(tournamentId))
+                    {
+                        HubSyncStatus.Text = $"(Registriert: {tournamentId})";
+                        HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(149, 165, 166));
+                    }
+                    else
+                    {
+                        HubSyncStatus.Text = "(WebSocket inaktiv)";
+                        HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(149, 165, 166));
+                    }
                 }
             });
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error updating hub status: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEW: Update Hub Status with detailed connection state
+    /// </summary>
+    public void UpdateHubStatusDetailed(Services.HubConnectionState state, string tournamentId, bool isSyncing, DateTime lastSyncTime)
+    {
+        try
+        {
+            _dispatcher.Invoke(() =>
+            {
+                if (HubStatusIndicator is null || HubStatusText is null || HubSyncStatus is null) return;
+
+                switch (state)
+                {
+                    case Services.HubConnectionState.Disconnected:
+                        HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(231, 76, 60)); // Red
+                        HubStatusText.Text = "Hub: Getrennt";
+                        
+                        if (!string.IsNullOrEmpty(tournamentId))
+                        {
+                            HubSyncStatus.Text = $"(Registriert: {tournamentId})";
+                            HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(149, 165, 166));
+                        }
+                        else
+                        {
+                            HubSyncStatus.Text = "(WebSocket inaktiv)";
+                            HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(149, 165, 166));
+                        }
+                        break;
+
+                    case Services.HubConnectionState.WebSocketReady:
+                        HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(46, 204, 113)); // Green
+                        HubStatusText.Text = "Hub: Verbunden";
+                        HubSyncStatus.Text = "✅ WebSocket bereit";
+                        HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(46, 204, 113));
+                        break;
+
+                    case Services.HubConnectionState.TournamentRegistered:
+                        HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(46, 204, 113)); // Green
+                        HubStatusText.Text = $"Hub: Registriert ({tournamentId})";
+                        
+                        if (isSyncing)
+                        {
+                            HubSyncStatus.Text = "🔄 Synchronisiert...";
+                            HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 152, 219));
+                        }
+                        else if (lastSyncTime != DateTime.MinValue)
+                        {
+                            var timeSinceSync = DateTime.Now - lastSyncTime;
+                            if (timeSinceSync.TotalMinutes < 2)
+                            {
+                                HubSyncStatus.Text = "✅ WebSocket Live";
+                                HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(46, 204, 113));
+                            }
+                            else
+                            {
+                                HubSyncStatus.Text = $"⏱️ Sync vor {timeSinceSync.Minutes}min";
+                                HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(241, 196, 15));
+                            }
+                        }
+                        else
+                        {
+                            HubSyncStatus.Text = "🔌 WebSocket aktiv";
+                            HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(52, 152, 219));
+                        }
+                        break;
+
+                    case Services.HubConnectionState.Connecting:
+                        HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(241, 196, 15)); // Yellow
+                        HubStatusText.Text = "Hub: Verbinde...";
+                        HubSyncStatus.Text = "(WebSocket wird aufgebaut)";
+                        HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(241, 196, 15));
+                        break;
+
+                    case Services.HubConnectionState.Error:
+                        HubStatusIndicator.Fill = new SolidColorBrush(Color.FromRgb(231, 76, 60)); // Red
+                        HubStatusText.Text = "Hub: Fehler";
+                        HubSyncStatus.Text = "(Verbindungsfehler)";
+                        HubSyncStatus.Foreground = new SolidColorBrush(Color.FromRgb(231, 76, 60));
+                        break;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error updating detailed hub status: {ex.Message}");
         }
     }
 

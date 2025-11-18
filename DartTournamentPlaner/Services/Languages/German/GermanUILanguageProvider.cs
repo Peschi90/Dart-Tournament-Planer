@@ -35,6 +35,28 @@ public class GermanUILanguageProvider : ILanguageSection
             ["Help"] = "Hilfe",
             ["About"] = "Über",
             
+            // ✅ NEU: PowerScoring Übersetzungen
+            ["PowerScoring"] = "PowerScoring",
+            ["PowerScoringRequiresLicense"] = "🎯 PowerScoring ist ein Premium-Feature\n\n" +
+                "Mit PowerScoring können Sie:\n" +
+                "• Spieler-Scores systematisch erfassen\n" +
+                "• Automatische Ranking-Erstellung\n" +
+                "• Optimale Gruppeneinteilung basierend auf Skill-Level\n\n" +
+                "Aktivieren Sie eine Lizenz mit 'powerscore' Feature um diese Funktion zu nutzen.",
+            ["FeatureNotAvailable"] = "Feature nicht verfügbar",
+            
+            // PowerScoring License Dialog
+            ["PowerScoringLicenseRequired_Title"] = "PowerScoring Lizenz erforderlich",
+            ["PowerScoringLicenseRequired_Message"] = "PowerScoring ist ein Premium-Feature, das Ihnen hilft, Spieler basierend auf ihrem Skill-Level zu organisieren.",
+            ["PowerScoringLicenseRequired_BenefitsTitle"] = "PowerScoring beinhaltet:",
+            ["PowerScoringLicenseRequired_Benefit1"] = "- Systematische Spieler-Score-Erfassung",
+            ["PowerScoringLicenseRequired_Benefit2"] = "- Automatische Ranking-Erstellung",
+            ["PowerScoringLicenseRequired_Benefit3"] = "- Optimale Gruppeneinteilung basierend auf Skill-Level",
+            ["PowerScoringLicenseRequired_Benefit4"] = "- Flexible Scoring-Regeln (1x3, 8x3, 10x3, 15x3 Würfe)",
+            ["PowerScoringLicenseRequired_Benefit5"] = "- Snake-Draft Gruppenzuteilung",
+            ["PowerScoringLicenseRequired_ActionText"] = "Möchten Sie eine Lizenz mit dem PowerScoring-Feature anfordern?",
+            ["RequestLicense"] = "Lizenz anfordern",
+            
             // Status-Anzeigen
             ["HasUnsavedChanges"] = "Geändert",
             ["NotSaved"] = "Nicht gespeichert",
@@ -98,305 +120,17 @@ public class GermanUILanguageProvider : ILanguageSection
             ["ShowOnlyActiveClassesText"] = "Nur Klassen mit aktiven Gruppen anzeigen",
             ["OverviewInfoText"] = "Live-Turnierdarstellung für alle Klassen mit automatischem Wechsel",
             ["InvalidClassInterval"] = "Ungültiges Klassenintervall. Bitte eine Zahl ≥ 1 eingeben.",
-            ["InvalidSubTabInterval"] = "Ungültiges Unterreiterintervall. Bitte eine Zahl ≥ 1 eingeben.",
-            
-            // Turnierübersicht Texte
-            ["TournamentName"] = "⚽ Turnier:",
-            ["CurrentPhase"] = "🏁 Aktuelle Phase:",
-            ["GroupsCount"] = "👥 Gruppen:",
-            ["PlayersTotal"] = "👤 Gesamtspieler:",
-            ["GameRulesColon"] = "📋 Spielregeln:",
-            ["CompletedGroups"] = "✅ Abgeschlossene Gruppen:",
-            ["QualifiedPlayers"] = "🎯 Qualifizierte Spieler:",
-            ["KnockoutMatches"] = "🏆 K.-o.-Spiele:",
-            ["Completed"] = "abgeschlossen",
-            
-            // Weitere fest codierte Texte
-            ["Finalists"] = "Finalisten",
-            ["KnockoutParticipants"] = "K.-o.-Teilnehmer",
-            ["PlayersText"] = "Spieler",
-            ["OverviewModeTitle"] = "Turnierübersichtsmodus",
-            ["NewTournament"] = "Neues Turnier",
-            ["CreateNewTournament"] = "Neues Turnier erstellen? Ungespeicherte Änderungen gehen verloren.",
-            ["UnsavedChanges"] = "Ungespeicherte Änderungen",
-            ["SaveBeforeExit"] = "Es gibt ungespeicherte Änderungen. Möchten Sie vor dem Beenden speichern?",
-            ["CustomFileNotImplemented"] = "Benutzerdefiniertes Laden von Dateien noch nicht implementiert.",
-            ["CustomFileSaveNotImplemented"] = "Benutzerdefiniertes Speichern von Dateien noch nicht implementiert.",
-            ["ErrorOpeningHelp"] = "Fehler beim Öffnen der Hilfe:",
-            ["ErrorOpeningOverview"] = "Fehler beim Öffnen der Turnierübersicht:",
-            ["ErrorSavingData"] = "Fehler beim Speichern der Daten:",
-
-            // Spenden- und Bug-Report-Funktionen
-            ["Donate"] = "💝",
-            ["DonateTooltip"] = "Support the development of this project",
-            ["BugReport"] = "🐛 Fehler melden",
-            ["BugReportTooltip"] = "Report bugs or suggest improvements",
-            ["BugReportTitle"] = "Bug Report",
-            ["BugReportDescription"] = "Describe the problem or your improvement idea:",
-            ["BugReportEmailSubject"] = "Dart Tournament Planner - Bug Report",
-            ["BugReportSteps"] = "Steps to reproduce:",
-            ["BugReportExpected"] = "Expected behavior:",
-            ["BugReportActual"] = "Actual behavior:",
-            ["BugReportSystemInfo"] = "System Information:",
-            ["BugReportVersion"] = "Version:",
-            ["BugReportOS"] = "Operating System:",
-            ["BugReportSubmitEmail"] = "Send via Email",
-            ["BugReportSubmitGitHub"] = "Open on GitHub",
-            ["ThankYouSupport"] = "Thank you for your support!",
-            ["BugReportSent"] = "Bug report has been successfully sent. Thank you!",
-            ["ErrorSendingBugReport"] = "Error sending bug report:",
-            ["SupportDevelopment"] = "Support Development",
-            ["DonationMessage"] = "Do you like this Dart Tournament Planner?\n\nSupport further development with a small donation.\nEvery contribution helps with improving and maintaining the software.",
-            ["OpenDonationPage"] = "Open Donation Page",
-
-            // Hauptfenster
-            ["AppTitle"] = "Dart Turnier Planer",
-            ["Platinum"] = "Platin",
-            ["Gold"] = "Gold",
-            ["Silver"] = "Silber",
-            ["Bronze"] = "Bronze",
-       
-            // =====================================
-            // ÜBER-DIALOG
-            // =====================================
-
-            ["About"] = "Über",
-            ["AboutDescription"] = "Eine umfassende und moderne Anwendung zur Organisation und Verwaltung von Dart-Turnieren. " +
-            "Unterstützt mehrere Turnierformate, einschließlich Gruppenphase, Finalrunde und K.-o.-Phase. " +
-            "Bietet Echtzeit-Spielverfolgung, detaillierte Spielerstatistiken, Tournament-Hub-Integration via WebSocket, " +
-            "QR-Code-Generierung für einfachen mobilen Zugriff und professionelle Turnierdokumentation mit Druckfunktion.",
-            ["AboutCredits"] = "Besonderer Dank gilt allen Mitwirkenden, Testern und der Dart-Community für ihr wertvolles Feedback und ihre Unterstützung. " +
-            "Dieses Projekt wird kontinuierlich durch Community-Engagement und Feedback verbessert.",
-            ["Developer"] = "Entwickler",
-            ["DeveloperName"] = "Marcel Peschka",
-            ["Framework"] = "Framework",
-            ["License"] = "Lizenz",
-            ["LicenseType"] = "Open Source (MIT-Lizenz)",
-            ["Website"] = "Webseite",
-            ["WebsiteUrl"] = "https://github.com/Peschi90/Dart-Turnament-Planer",
-            ["OpenSource"] = "Open Source",
-            ["SpecialThanks"] = "Besonderer Dank",
-            ["AppInformation"] = "Anwendungsinformationen",
-            ["TechnicalDetails"] = "Technische Details",
-            ["Features"] = "Funktionen",
-            ["FeatureList"] = "• Mehrere Turnierformate (Gruppe, Finale, K.-o.)\n" +
-            "• Echtzeit-Spielverfolgung und Punkteverwaltung\n" +
-            "• Umfassende Spielerstatistiken\n" +
-            "• WebSocket-basierte Tournament-Hub-Integration\n" +
-            "• QR-Code-Generierung für mobilen Zugriff\n" +
-            "• Professionelle Druckfunktion\n" +
-            "• Mehrsprachige Unterstützung (Englisch/Deutsch)\n" +
-            "• Hell-/Dunkelmodus-Unterstützung\n" +
-            "• Automatisches Speichern und Datenpersistenz",
-            ["ContactSupport"] = "Support & Kontakt",
-            ["GitHubRepository"] = "GitHub Repository",
-            ["ReportIssue"] = "Problem melden",
-            ["VersionInfo"] = "Versionsinformationen",
-
-            // =====================================
-            // THEME & DARK MODE
-            // =====================================
-    
-            ["Theme"] = "Design",
-            ["DarkMode"] = "Dunkler Modus",
-            ["LightMode"] = "Heller Modus",
-            ["SwitchToDarkMode"] = "Zu dunklem Modus wechseln",
-            ["SwitchToLightMode"] = "Zu hellem Modus wechseln",
-            ["ThemeSettings"] = "Design-Einstellungen",
+            ["InvalidSubTabInterval"] = "Ungültiges Unterreiter-Intervall. Bitte eine Zahl ≥ 1 eingeben.",
             
             // =====================================
-            // ALLGEMEINE UI-ELEMENTE
+            // ROUND RULES WINDOW
             // =====================================
-      
-            // Basis-Buttons
-            ["Load"] = "Laden",
-            ["Delete"] = "Löschen",
-            ["Edit"] = "Bearbeiten",
-            ["Add"] = "Hinzufügen",
-            ["Remove"] = "Entfernen",
-            ["Apply"] = "Anwenden",
-            ["Reset"] = "Zurücksetzen",
-            ["Refresh"] = "Aktualisieren",
-            ["Clear"] = "Löschen",
-            ["Copy"] = "Kopieren",
-            ["Paste"] = "Einfügen",
-            ["Cut"] = "Ausschneiden",
-            ["Undo"] = "Rückgängig",
-            ["Redo"] = "Wiederholen",
-            
-            // Navigation
-            ["Next"] = "Weiter",
-            ["Previous"] = "Zurück",
-            ["First"] = "Erste",
-            ["Last"] = "Letzte",
-            ["Back"] = "Zurück",
-            ["Forward"] = "Vorwärts",
-            ["Up"] = "Nach oben",
-            ["Down"] = "Nach unten",
-            ["Left"] = "Links",
-            ["Right"] = "Rechts",
-            
-            // Status-Begriffe
-            ["Success"] = "Erfolg",
-            ["Saving"] = "Wird gespeichert...",
-            ["Processing"] = "Wird verarbeitet...",
-            ["Complete"] = "Abgeschlossen",
-            ["Failed"] = "Fehlgeschlagen",
-            ["Ready"] = "Bereit",
-            ["Busy"] = "Beschäftigt",
-            
-            // =====================================
-            // DIALOG & FENSTER-ELEMENTE
-            // =====================================
-            
-            // Fenster-Titel-Suffixe
-            ["Configuration"] = "Konfiguration",
-            ["Properties"] = "Eigenschaften",
-            ["Options"] = "Optionen",
-            ["Preferences"] = "Einstellungen",
-            
-            // Dialog-Typ-Begriffe
-            ["Dialog"] = "Dialog",
-            ["Window"] = "Fenster",
-            ["Form"] = "Formular",
-            ["Wizard"] = "Assistent",
-            ["Setup"] = "Einrichtung",
-       
-            // =====================================
-            // DATEN-ELEMENTE
-            // =====================================
-          
-            // Tabellen & Listen
-            ["Name"] = "Name",
-            ["Value"] = "Wert",
-            ["Type"] = "Typ",
-            ["Status"] = "Status",
-            ["Date"] = "Datum",
-            ["Time"] = "Zeit",
-            ["Duration"] = "Dauer",
-            ["Count"] = "Anzahl",
-            ["Total"] = "Gesamt",
-            ["Average"] = "Durchschnitt",
-            ["Minimum"] = "Minimum",
-            ["Maximum"] = "Maximum",
-      
-            // Sortieren & Filtern
-            ["Sort"] = "Sortieren",
-            ["SortBy"] = "Sortieren nach",
-            ["Filter"] = "Filter",
-            ["FilterBy"] = "Filtern nach",
-            ["Search"] = "Suchen",
-            ["SearchFor"] = "Suchen nach",
-            ["Results"] = "Ergebnisse",
-            ["NoResults"] = "Keine Ergebnisse",
-     
-            // =====================================
-            // FORMULAR-ELEMENTE
-            // =====================================
-     
-            // Eingabe-Labels
-            ["Required"] = "Erforderlich",
-            ["Optional"] = "Optional",
-            ["Default"] = "Standard",
-            ["Custom"] = "Benutzerdefiniert",
-            ["Auto"] = "Automatisch",
-            ["Manual"] = "Manuell",
-            
-            // Validierung
-            ["Valid"] = "Gültig",
-            ["Invalid"] = "Ungültig",
-            ["ValidationError"] = "Validierungsfehler",
-            ["RequiredField"] = "Pflichtfeld",
-            ["InvalidFormat"] = "Ungültiges Format",
-            ["ValueTooSmall"] = "Wert zu klein",
-            ["ValueTooLarge"] = "Wert zu groß",
-         
-            // =====================================
-            // SPRACHSPEZIFISCHE UI
-            // =====================================
-      
-            ["LanguageSettings"] = "Spracheinstellungen",
-            ["SelectLanguage"] = "Sprache auswählen",
-            ["LanguageChanged"] = "Sprache geändert",
-            ["LanguageChangeRestart"] = "Die Anwendung muss neu gestartet werden, damit die Sprachänderung wirksam wird.",
-            
-            // =====================================
-            // SYSTEM & DEBUG
-            // =====================================
-            
-            ["System"] = "System",
-            ["Debug"] = "Debug",
-            ["Log"] = "Protokoll",
-            ["Version"] = "Version",
-            ["Build"] = "Build",
-            ["Platform"] = "Plattform",
-            ["Memory"] = "Speicher",
-            ["Performance"] = "Leistung",
-        
-            // =====================================
-            // BARRIEREFREIHEIT
-            // =====================================
-
-            ["AccessibilityMode"] = "Barrierefreiheit",
-            ["HighContrast"] = "Hoher Kontrast",
-            ["LargeText"] = "Großer Text",
-            ["ScreenReader"] = "Bildschirmleser",
-            ["KeyboardNavigation"] = "Tastaturnavigation",
-            
-            // =====================================
-            // DATEI & E/A
-            // =====================================
-            
-            ["Folder"] = "Ordner",
-            ["Path"] = "Pfad",
-            ["Size"] = "Größe",
-            ["Modified"] = "Geändert",
-            ["Created"] = "Erstellt",
-            ["Exists"] = "Vorhanden",
-            ["NotFound"] = "Nicht gefunden",
-            ["ReadOnly"] = "Schreibgeschützt",
-            ["Permission"] = "Berechtigung",
-    
-            // =====================================
-            // NETZWERK & VERBINDUNG
-            // =====================================
-     
-            ["Connected"] = "Verbunden",
-            ["Disconnected"] = "Getrennt",
-            ["Connecting"] = "Verbinde...",
-            ["Connection"] = "Verbindung",
-            ["Network"] = "Netzwerk",
-            ["Offline"] = "Offline",
-            ["Online"] = "Online",
-            ["Timeout"] = "Zeitüberschreitung",
-            ["Retry"] = "Wiederholen",
-        
-            // =====================================
-            // DRUCKEN
-            // =====================================
-        
-            ["PrintPreview"] = "Druckvorschau",
-            ["PrintSettings"] = "Druckeinstellungen",
-            ["Printer"] = "Drucker",
-            ["Page"] = "Seite",
-            ["Pages"] = "Seiten",
-            ["Copies"] = "Kopien",
-            ["Quality"] = "Qualität",
-            ["Orientation"] = "Ausrichtung",
-            ["Portrait"] = "Hochformat",
-            ["Landscape"] = "Querformat",
-  
-            // =====================================
-            // EXPORT & IMPORT
-            // =====================================
-            
-            ["Export"] = "Exportieren",
-            ["Import"] = "Importieren",
-            ["Format"] = "Format",
-            ["Destination"] = "Ziel",
-            ["Source"] = "Quelle",
-            ["Progress"] = "Fortschritt",
-            ["Cancelled"] = "Abgebrochen"
-     };
+            ["RoundRulesConfiguration"] = "Rundenregeln-Konfiguration",
+            ["WinnerBracketRules"] = "Winner Bracket Regeln",
+            ["LoserBracketRules"] = "Loser Bracket Regeln",
+            ["RoundRobinFinalsRules"] = "Round Robin Finals Regeln",
+            ["RoundRobinFinals"] = "Finalrunde",
+            ["ResetToDefault"] = "Auf Standard zurücksetzen"
+      };
     }
 }

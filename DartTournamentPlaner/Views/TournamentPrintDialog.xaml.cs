@@ -39,8 +39,9 @@ namespace DartTournamentPlaner.Views
         /// <param name="localizationService">Service für Übersetzungen</param>
         /// <param name="hubService">Hub Service für QR-Code Generierung (optional)</param>
         /// <param name="tournamentId">Tournament-ID für QR-Code URLs (optional)</param>
+        /// <param name="configService">Config Service für Hub-URL (optional)</param>
         public TournamentPrintDialog(List<TournamentClass> tournamentClasses, TournamentClass? selectedTournamentClass = null, 
-            LocalizationService? localizationService = null, HubIntegrationService? hubService = null, string? tournamentId = null)
+            LocalizationService? localizationService = null, HubIntegrationService? hubService = null, string? tournamentId = null, ConfigService? configService = null)
         {
             InitializeComponent();
             
@@ -51,13 +52,13 @@ namespace DartTournamentPlaner.Views
             _selectedTournamentClass = selectedTournamentClass ?? _tournamentClasses.First();
             _localizationService = localizationService;
     
-         // ✅ FIXED: PrintService MIT HubService UND Tournament-ID initialisieren
-         _printService = new PrintService(localizationService, hubService, tournamentId);
-     System.Diagnostics.Debug.WriteLine($"[TournamentPrintDialog] PrintService initialized with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
-      
-  PrintOptions = new TournamentPrintOptions();
+            // ✅ FIXED: PrintService MIT HubService, Tournament-ID UND ConfigService initialisieren
+            _printService = new PrintService(localizationService, hubService, tournamentId, configService);
+            System.Diagnostics.Debug.WriteLine($"[TournamentPrintDialog] PrintService initialized with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}, ConfigService: {configService != null}");
+            
+            PrintOptions = new TournamentPrintOptions();
 
-    InitializeDialog();
+            InitializeDialog();
             UpdatePreview();
         }
 

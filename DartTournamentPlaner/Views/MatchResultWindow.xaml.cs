@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ using System.Drawing;
 using System.IO;
 using System.Drawing.Imaging;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace DartTournamentPlaner.Views;
 
@@ -29,20 +31,20 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         _gameRules = gameRules;
         _localizationService = localizationService;
         _hubService = hubService;
-     _tournamentId = tournamentId;  // ⭐ NEU
+        _tournamentId = tournamentId;  // ⭐ NEU
         
         // ✅ IMPROVED DEBUG: Detaillierte Constructor-Informationen
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] Constructor called with regular Match");
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match ID: {_match.Id}");
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Match UUID: {_match.UniqueId ?? "null"}");
         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   Tournament ID: {_tournamentId ?? "null"}");  // ⭐ NEU
-   System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService provided: {_hubService != null}");
-     System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService registered: {_hubService?.IsRegisteredWithHub}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService provided: {_hubService != null}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow]   HubService registered: {_hubService?.IsRegisteredWithHub}");
         
-    InitializeComponent();
+        InitializeComponent();
         InitializeUI();
-    InitializeHubIntegration();
-      UpdateTranslations();
+        InitializeHubIntegration();
+        UpdateTranslations();
     }
 
     /// <summary>
@@ -55,23 +57,23 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
     /// <param name="hubService">Hub integration service</param>
     /// <param name="tournamentId">Tournament-ID for QR codes</param>
     public MatchResultWindow(KnockoutMatch knockoutMatch, RoundRules roundRules, GameRules baseGameRules, LocalizationService localizationService, HubIntegrationService? hubService = null, string? tournamentId = null)
-  {
+    {
         // Convert KnockoutMatch to Match
         _match = new Match
- {
-     Id = knockoutMatch.Id,
+        {
+            Id = knockoutMatch.Id,
             UniqueId = knockoutMatch.UniqueId, // WICHTIG: UUID übertragen
             Player1 = knockoutMatch.Player1,
-       Player2 = knockoutMatch.Player2,
-         Player1Sets = knockoutMatch.Player1Sets,
-        Player2Sets = knockoutMatch.Player2Sets,
+            Player2 = knockoutMatch.Player2,
+            Player1Sets = knockoutMatch.Player1Sets,
+            Player2Sets = knockoutMatch.Player2Sets,
             Player1Legs = knockoutMatch.Player1Legs,
             Player2Legs = knockoutMatch.Player2Legs,
-Winner = knockoutMatch.Winner,
-   Status = knockoutMatch.Status,
-        Notes = knockoutMatch.Notes,
-     CreatedAt = knockoutMatch.CreatedAt,
-          FinishedAt = knockoutMatch.FinishedAt
+            Winner = knockoutMatch.Winner,
+            Status = knockoutMatch.Status,
+            Notes = knockoutMatch.Notes,
+            CreatedAt = knockoutMatch.CreatedAt,
+            FinishedAt = knockoutMatch.FinishedAt
         };
 
         // Create temporary GameRules with round-specific settings
@@ -79,18 +81,18 @@ Winner = knockoutMatch.Winner,
         _gameRules = new GameRules
         {
             GameMode = baseGameRules.GameMode,
-  FinishMode = baseGameRules.FinishMode,
+            FinishMode = baseGameRules.FinishMode,
             PlayWithSets = roundRules.SetsToWin > 0, // Sets nur wenn rundenspezifisch > 0
             SetsToWin = roundRules.SetsToWin,
-       LegsToWin = roundRules.LegsToWin,
-         LegsPerSet = roundRules.LegsPerSet
+            LegsToWin = roundRules.LegsToWin,
+            LegsPerSet = roundRules.LegsPerSet
         };
 
-    _localizationService = localizationService;
+        _localizationService = localizationService;
         _hubService = hubService;
-  _tournamentId = tournamentId;  // ⭐ NEU
+        _tournamentId = tournamentId;  // ⭐ NEU
       
-     InitializeComponent();
+        InitializeComponent();
         InitializeUI();
         InitializeHubIntegration();
         UpdateTranslations();
@@ -137,6 +139,9 @@ Winner = knockoutMatch.Winner,
         Player1LegsTextBox.Text = _match.Player1Legs.ToString();
         Player2LegsTextBox.Text = _match.Player2Legs.ToString();
         NotesTextBox.Text = _match.Notes;
+        
+        // ✅ NEU: Parse and display hub statistics if present
+        ParseAndDisplayHubStatistics();
         
         // Ensure SaveButton starts disabled
         SaveButton.IsEnabled = false;
@@ -592,60 +597,69 @@ Winner = knockoutMatch.Winner,
     /// </summary>
     private void InitializeHubIntegration()
     {
-     try
-      {
-  // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
-  System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] InitializeHubIntegration called");
-   System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
+        try
+        {
+            // ✅ IMPROVED DEBUG: Detaillierte Prüfung aller Bedingungen
+            System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] InitializeHubIntegration called");
+            System.Diagnostics.Debug.WriteLine($"   HubService available: {_hubService != null}");
             System.Diagnostics.Debug.WriteLine($"   Hub registered: {_hubService?.IsRegisteredWithHub}");
-   System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_tournamentId ?? "null"}");  // ⭐ NEU
-  System.Diagnostics.Debug.WriteLine($"   Match UUID: {_match.UniqueId ?? "null"}");
-         
-     // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
-    if (_hubService != null && 
-     _hubService.IsRegisteredWithHub && 
-  !string.IsNullOrEmpty(_match.UniqueId))
-  {
-       // ✅ FIXED: NEW URL FORMAT mit Tournament-ID UND Match-UUID
-           if (!string.IsNullOrEmpty(_tournamentId))
-    {
-   // Mit Tournament-ID (empfohlen)
-     _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?tournament={_tournamentId}&match={_match.UniqueId}&uuid=true";
-   System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ✅ Generated dart-scoring URL with Tournament ID: {_matchPageUrl}");
+            System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_tournamentId ?? "null"}");  // ⭐ NEU
+            System.Diagnostics.Debug.WriteLine($"   Match UUID: {_match.UniqueId ?? "null"}");
+            
+            // Prüfe ob Tournament beim Hub registriert ist und Match UUID vorhanden
+            if (_hubService != null && 
+                _hubService.IsRegisteredWithHub && 
+                !string.IsNullOrEmpty(_match.UniqueId))
+            {
+                // ✅ FIXED: NEW URL FORMAT mit Tournament-ID UND Match-UUID + dynamische Hub-URL
+                var hubUrl = GetHubUrl();
+                if (!string.IsNullOrEmpty(_tournamentId))
+                {
+                    // Mit Tournament-ID (empfohlen)
+                    _matchPageUrl = $"{hubUrl}/dart-scoring.html?tournament={_tournamentId}&match={_match.UniqueId}&uuid=true";
+                    System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ✅ Generated dart-scoring URL with Tournament ID: {_matchPageUrl}");
                 }
-     else
-              {
-   // Fallback: Ohne Tournament-ID (legacy)
-         _matchPageUrl = $"https://dtp.i3ull3t.de:9443/dart-scoring.html?match={_match.UniqueId}&uuid=true";
-         System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ⚠️ Generated dart-scoring URL WITHOUT Tournament ID (legacy): {_matchPageUrl}");
-        }
-        
-        // Zeige QR Code Section
-      QrCodeSection.Visibility = Visibility.Visible;
-       
-      // Generiere QR Code
-       GenerateQrCode(_matchPageUrl);
-        
+                else
+                {
+                    // Fallback: Ohne Tournament-ID (legacy)
+                    _matchPageUrl = $"{hubUrl}/dart-scoring.html?match={_match.UniqueId}&uuid=true";
+                    System.Diagnostics.Debug.WriteLine($"🎯 [MatchResultWindow] ⚠️ Generated dart-scoring URL WITHOUT Tournament ID (legacy): {_matchPageUrl}");
+                }
+                
+                // Zeige QR Code Section
+                QrCodeSection.Visibility = Visibility.Visible;
+                
+                // Generiere QR Code
+                GenerateQrCode(_matchPageUrl);
+                
                 System.Diagnostics.Debug.WriteLine("✅ [MatchResultWindow] Hub integration initialized successfully");
             }
             else
- {
-     // Verstecke QR Code Section
+            {
+                // Verstecke QR Code Section
                 QrCodeSection.Visibility = Visibility.Collapsed;
-  
-    var reasons = new List<string>();
-          if (_hubService == null) reasons.Add("HubService not available");
-       if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
-           if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
-     
-  System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
-          }
+                
+                var reasons = new List<string>();
+                if (_hubService == null) reasons.Add("HubService not available");
+                if (_hubService?.IsRegisteredWithHub != true) reasons.Add("Tournament not registered with hub");
+                if (string.IsNullOrEmpty(_match.UniqueId)) reasons.Add("Match UUID not available");
+                
+                System.Diagnostics.Debug.WriteLine($"ℹ️ [MatchResultWindow] QR Code hidden - Reasons: {string.Join(", ", reasons)}");
+            }
         }
         catch (Exception ex)
         {
- System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error initializing hub integration: {ex.Message}");
-     QrCodeSection.Visibility = Visibility.Collapsed;
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error initializing hub integration: {ex.Message}");
+            QrCodeSection.Visibility = Visibility.Collapsed;
         }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Hole Hub-URL aus HubService
+    /// </summary>
+    private string GetHubUrl()
+    {
+        return _hubService?.TournamentHubService?.HubUrl ?? "https://dtp.i3ull3t.de";
     }
 
     /// <summary>
@@ -747,11 +761,11 @@ Winner = knockoutMatch.Winner,
                 System.Diagnostics.Debug.WriteLine($"🌐 [MatchResultWindow] Opened dart-scoring page in browser: {_matchPageUrl}");
                 
                 // Optional: Zeige Toast-Nachricht
-                MessageBox.Show(
-                    "Dart-Scoring Seite wurde im Browser geöffnet!\n\nSie können das Ergebnis nun auch über das Web-Interface eingeben.",
-                    "Web-Interface geöffnet",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                //MessageBox.Show(
+                //    "Dart-Scoring Seite wurde im Browser geöffnet!\n\nSie können das Ergebnis nun auch über das Web-Interface eingeben.",
+                //    "Web-Interface geöffnet",
+                //    MessageBoxButton.OK,
+                //    MessageBoxImage.Information);
             }
         }
         catch (Exception ex)
@@ -777,14 +791,14 @@ Winner = knockoutMatch.Winner,
             if (!string.IsNullOrEmpty(_matchPageUrl))
             {
                 Clipboard.SetText(_matchPageUrl);
-                
-                MessageBox.Show(
-                    "Dart-Scoring URL wurde in die Zwischenablage kopiert!\n\n" + 
-                    "Sie können diese URL teilen, um anderen den Zugang zur Match-Eingabe zu ermöglichen.",
-                    "URL kopiert",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                
+
+                //MessageBox.Show(
+                //    "Dart-Scoring URL wurde in die Zwischenablage kopiert!\n\n" +
+                //    "Sie können diese URL teilen, um anderen den Zugang zur Match-Eingabe zu ermöglichen.",
+                //    "URL kopiert",
+                //    MessageBoxButton.OK,
+                //    MessageBoxImage.Information);
+
                 System.Diagnostics.Debug.WriteLine($"📋 [MatchResultWindow] URL copied to clipboard: {_matchPageUrl}");
             }
         }
@@ -805,6 +819,163 @@ Winner = knockoutMatch.Winner,
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    /// <summary>
+    /// ✅ NEU: Parse and display hub statistics from Notes field
+    /// </summary>
+    private void ParseAndDisplayHubStatistics()
+    {
+        try
+        {
+            // Check if Notes field contains hub data (starts with {"type":"tournament-match-updated")
+            if (string.IsNullOrWhiteSpace(_match.Notes) || 
+                !_match.Notes.TrimStart().StartsWith("{\"type\":\"tournament-match-updated\""))
+            {
+                System.Diagnostics.Debug.WriteLine("ℹ️ [MatchResultWindow] No hub statistics data in Notes field");
+                if (FindName("HubStatisticsSection") is Border hubSection)
+                    hubSection.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("🔍 [MatchResultWindow] Found hub statistics data, parsing...");
+
+            // Parse JSON data
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                AllowTrailingCommas = true,
+                ReadCommentHandling = JsonCommentHandling.Skip
+            };
+
+            var hubData = JsonSerializer.Deserialize<HubMatchResultData>(_match.Notes, options);
+
+            if (hubData?.Statistics == null || hubData.MatchUpdate?.Result?.DartScoringResult == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ [MatchResultWindow] Hub data parsed but statistics missing");
+                if (FindName("HubStatisticsSection") is Border hubSection)
+                    hubSection.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            // Display statistics
+            DisplayHubStatistics(hubData);
+
+            System.Diagnostics.Debug.WriteLine("✅ [MatchResultWindow] Hub statistics displayed successfully");
+        }
+        catch (JsonException jsonEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"⚠️ [MatchResultWindow] JSON parsing error: {jsonEx.Message}");
+            if (FindName("HubStatisticsSection") is Border hubSection)
+                hubSection.Visibility = Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error parsing hub statistics: {ex.Message}");
+            if (FindName("HubStatisticsSection") is Border hubSection)
+                hubSection.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    /// <summary>
+    /// ✅ NEU: Display parsed hub statistics in UI
+    /// </summary>
+    private void DisplayHubStatistics(HubMatchResultData hubData)
+    {
+        if (hubData.Statistics == null || hubData.MatchUpdate?.Result?.DartScoringResult == null)
+            return;
+
+        var stats = hubData.Statistics;
+        var dartResult = hubData.MatchUpdate.Result.DartScoringResult;
+
+        // Player 1 Statistics
+        if (stats.Player1 != null && dartResult.Player1Stats != null)
+        {
+            if (FindName("HubPlayer1Name") is TextBlock player1Name)
+                player1Name.Text = stats.Player1.Name;
+            if (FindName("HubPlayer1Average") is TextBlock player1Avg)
+                player1Avg.Text = stats.Player1.Average.ToString("F1");
+            if (FindName("HubPlayer1Maximums") is TextBlock player1Max)
+                player1Max.Text = stats.Player1.Scores180.ToString();
+            if (FindName("HubPlayer1HighFinishes") is TextBlock player1HF)
+            {
+                // Add high finish details if available
+                if (stats.Player1.HighFinishScores != null && stats.Player1.HighFinishScores.Count > 0)
+                {
+                    var finishScores = string.Join(", ", stats.Player1.HighFinishScores.Select(f => f.Finish));
+                    player1HF.Text = $"{stats.Player1.HighFinishes} ({finishScores})";
+                }
+                else
+                {
+                    player1HF.Text = stats.Player1.HighFinishes.ToString();
+                }
+            }
+            if (FindName("HubPlayer1Checkouts") is TextBlock player1CO)
+                player1CO.Text = stats.Player1.Checkouts.ToString();
+        }
+
+        // Player 2 Statistics
+        if (stats.Player2 != null && dartResult.Player2Stats != null)
+        {
+            if (FindName("HubPlayer2Name") is TextBlock player2Name)
+                player2Name.Text = stats.Player2.Name;
+            if (FindName("HubPlayer2Average") is TextBlock player2Avg)
+                player2Avg.Text = stats.Player2.Average.ToString("F1");
+            if (FindName("HubPlayer2Maximums") is TextBlock player2Max)
+                player2Max.Text = stats.Player2.Scores180.ToString();
+            if (FindName("HubPlayer2HighFinishes") is TextBlock player2HF)
+            {
+                // Add high finish details if available
+                if (stats.Player2.HighFinishScores != null && stats.Player2.HighFinishScores.Count > 0)
+                {
+                    var finishScores = string.Join(", ", stats.Player2.HighFinishScores.Select(f => f.Finish));
+                    player2HF.Text = $"{stats.Player2.HighFinishes} ({finishScores})";
+                }
+                else
+                {
+                    player2HF.Text = stats.Player2.HighFinishes.ToString();
+                }
+            }
+            if (FindName("HubPlayer2Checkouts") is TextBlock player2CO)
+                player2CO.Text = stats.Player2.Checkouts.ToString();
+        }
+
+        // Match Information
+        if (stats.Match != null)
+        {
+            // Format duration
+            var duration = TimeSpan.FromMilliseconds(stats.Match.Duration);
+            string durationText;
+            if (duration.TotalHours >= 1)
+            {
+                durationText = $"{(int)duration.TotalHours}h {duration.Minutes}m {duration.Seconds}s";
+            }
+            else if (duration.TotalMinutes >= 1)
+            {
+                durationText = $"{(int)duration.TotalMinutes}m {duration.Seconds}s";
+            }
+            else
+            {
+                durationText = $"{duration.Seconds}s";
+            }
+            
+            if (FindName("HubMatchDuration") is TextBlock matchDuration)
+                matchDuration.Text = durationText;
+
+            if (FindName("HubMatchFormat") is TextBlock matchFormat)
+                matchFormat.Text = stats.Match.Format;
+        }
+
+        // Submitted via
+        if (!string.IsNullOrEmpty(dartResult.SubmittedVia))
+        {
+            if (FindName("HubSubmittedVia") is TextBlock submittedVia)
+                submittedVia.Text = dartResult.SubmittedVia;
+        }
+
+        // Show the statistics section
+        if (FindName("HubStatisticsSection") is Border hubSection)
+            hubSection.Visibility = Visibility.Visible;
     }
 
     private class ValidationResult

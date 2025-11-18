@@ -106,11 +106,16 @@ public class GameRules : INotifyPropertyChanged
 
     // Round-specific rules for knockout phases
     private Dictionary<KnockoutRound, RoundRules> _knockoutRoundRules;
+    
+    // Round-specific rules for Round Robin Finals
+    private Dictionary<RoundRobinFinalsRound, RoundRules> _roundRobinFinalsRules;
 
     public GameRules()
     {
         _knockoutRoundRules = new Dictionary<KnockoutRound, RoundRules>();
+        _roundRobinFinalsRules = new Dictionary<RoundRobinFinalsRound, RoundRules>();
         InitializeDefaultKnockoutRules();
+        InitializeDefaultRoundRobinFinalsRules();
     }
 
     public GameMode GameMode
@@ -374,6 +379,94 @@ public class GameRules : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// Initializes default Round Robin Finals rules based on current game rules
+    /// </summary>
+    private void InitializeDefaultRoundRobinFinalsRules()
+    {
+        _roundRobinFinalsRules = new Dictionary<RoundRobinFinalsRound, RoundRules>();
+        
+        // Standard: Finals verwenden 0 Sets und 5 Legs (etwas länger als Gruppenphase)
+        _roundRobinFinalsRules[RoundRobinFinalsRound.Finals] = new RoundRules(0, 5, 3);
+        
+        // Füge Event-Handler hinzu
+        foreach (var roundRule in _roundRobinFinalsRules.Values)
+        {
+            roundRule.PropertyChanged += OnRoundRulesPropertyChanged;
+        }
+    }
+
+    /// <summary>
+    /// Resets Round Robin Finals rules to default
+    /// </summary>
+    public void ResetRoundRobinFinalsRulesToDefault()
+    {
+        InitializeDefaultRoundRobinFinalsRules();
+        OnPropertyChanged(nameof(RoundRobinFinalsRules));
+    }
+
+    /// <summary>
+    /// Gets round-specific rules for Round Robin Finals
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<RoundRobinFinalsRound, RoundRules> RoundRobinFinalsRules
+    {
+        get
+        {
+            if (_roundRobinFinalsRules == null)
+            {
+                _roundRobinFinalsRules = new Dictionary<RoundRobinFinalsRound, RoundRules>();
+                InitializeDefaultRoundRobinFinalsRules();
+            }
+            return _roundRobinFinalsRules;
+        }
+    }
+
+    /// <summary>
+    /// Gets the rules for Round Robin Finals round
+    /// </summary>
+    public RoundRules GetRulesForRoundRobinFinals(RoundRobinFinalsRound round)
+    {
+        if (_roundRobinFinalsRules.TryGetValue(round, out var rules))
+        {
+            return rules;
+        }
+
+        // Fallback to default group phase rules
+        return new RoundRules(SetsToWin, LegsToWin, LegsPerSet);
+    }
+
+    /// <summary>
+    /// Sets the rules for a specific Round Robin Finals round
+    /// </summary>
+    public void SetRulesForRoundRobinFinals(RoundRobinFinalsRound round, int setsToWin, int legsToWin, int legsPerSet)
+    {
+        if (_roundRobinFinalsRules.ContainsKey(round))
+        {
+            // Entferne Event-Handler vom alten RoundRules
+            if (_roundRobinFinalsRules[round] != null)
+            {
+                _roundRobinFinalsRules[round].PropertyChanged -= OnRoundRulesPropertyChanged;
+            }
+            
+            _roundRobinFinalsRules[round].SetsToWin = setsToWin;
+            _roundRobinFinalsRules[round].LegsToWin = legsToWin;
+            _roundRobinFinalsRules[round].LegsPerSet = legsPerSet;
+            
+            // Event-Handler für PropertyChanged hinzufügen
+            _roundRobinFinalsRules[round].PropertyChanged += OnRoundRulesPropertyChanged;
+        }
+        else
+        {
+            var newRoundRules = new RoundRules(setsToWin, legsToWin, legsPerSet);
+            newRoundRules.PropertyChanged += OnRoundRulesPropertyChanged;
+            _roundRobinFinalsRules[round] = newRoundRules;
+        }
+        
+        OnPropertyChanged(nameof(RoundRobinFinalsRules));
+        OnPropertyChanged(nameof(SerializableRoundRobinFinalsRules));
+    }
+
+    /// <summary>
     /// Serializable version of knockout round rules for JSON persistence
     /// </summary>
     [JsonProperty("KnockoutRoundRules")]
@@ -430,6 +523,52 @@ public class GameRules : INotifyPropertyChanged
                 //System.Diagnostics.Debug.WriteLine("SerializableKnockoutRoundRules SET: value is null, initializing defaults");
                 _knockoutRoundRules = new Dictionary<KnockoutRound, RoundRules>();
                 InitializeDefaultKnockoutRules();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Serializable version of round robin finals rules for JSON persistence
+    /// </summary>
+    [JsonProperty("RoundRobinFinalsRules")]
+    public SerializableRoundRobinFinalsRules SerializableRoundRobinFinalsRules
+    {
+        get 
+        { 
+            var result = new SerializableRoundRobinFinalsRules(RoundRobinFinalsRules);
+            return result;
+        }
+        set
+        {
+            if (value != null)
+            {
+                // Entferne alte Event-Handler
+                if (_roundRobinFinalsRules != null)
+                {
+                    foreach (var roundRule in _roundRobinFinalsRules.Values)
+                    {
+                        if (roundRule != null)
+                        {
+                            roundRule.PropertyChanged -= OnRoundRulesPropertyChanged;
+                        }
+                    }
+                }
+
+                _roundRobinFinalsRules = value.ToDictionary();
+                
+                // Füge Event-Handler für alle neuen RoundRules hinzu
+                foreach (var roundRule in _roundRobinFinalsRules.Values)
+                {
+                    if (roundRule != null)
+                    {
+                        roundRule.PropertyChanged += OnRoundRulesPropertyChanged;
+                    }
+                }
+            }
+            else
+            {
+                _roundRobinFinalsRules = new Dictionary<RoundRobinFinalsRound, RoundRules>();
+                InitializeDefaultRoundRobinFinalsRules();
             }
         }
     }
@@ -505,6 +644,40 @@ public class SerializableRoundRules
             {
                 result[round] = kvp.Value;
                 //System.Diagnostics.Debug.WriteLine($"SerializableRoundRules ToDictionary: {round} -> Sets={kvp.Value.SetsToWin}, Legs={kvp.Value.LegsToWin}, LegsPerSet={kvp.Value.LegsPerSet}");
+            }
+        }
+        return result;
+    }
+}
+
+/// <summary>
+/// Serializable wrapper for round robin finals rules to ensure proper JSON serialization
+/// </summary>
+[JsonObject]
+public class SerializableRoundRobinFinalsRules
+{
+    [JsonProperty]
+    public Dictionary<string, RoundRules> Rules { get; set; } = new Dictionary<string, RoundRules>();
+
+    public SerializableRoundRobinFinalsRules() { }
+
+    public SerializableRoundRobinFinalsRules(Dictionary<RoundRobinFinalsRound, RoundRules> rules)
+    {
+        Rules = new Dictionary<string, RoundRules>();
+        foreach (var kvp in rules)
+        {
+            Rules[kvp.Key.ToString()] = kvp.Value;
+        }
+    }
+
+    public Dictionary<RoundRobinFinalsRound, RoundRules> ToDictionary()
+    {
+        var result = new Dictionary<RoundRobinFinalsRound, RoundRules>();
+        foreach (var kvp in Rules)
+        {
+            if (Enum.TryParse<RoundRobinFinalsRound>(kvp.Key, out var round))
+            {
+                result[round] = kvp.Value;
             }
         }
         return result;

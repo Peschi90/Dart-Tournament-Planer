@@ -35,6 +35,9 @@ public class KnockoutMatchViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ScoreDisplay));
             OnPropertyChanged(nameof(StatusDisplay));
             OnPropertyChanged(nameof(RoundDisplay));
+            
+            // ? NEU: Propagate Status changes for LED indicator updates
+            OnPropertyChanged(nameof(Status));
         }
     }
 
@@ -53,6 +56,9 @@ public class KnockoutMatchViewModel : INotifyPropertyChanged
     public string ScoreDisplay => _match.ScoreDisplay;
     public string StatusDisplay => _match.StatusDisplay;
     public string RoundDisplay => _match.RoundDisplay;
+    
+    // ? NEU: Expose Status for LED indicator binding
+    public MatchStatus Status => _match.Status;
 
     // UI-specific properties for bye buttons
     public bool ShowGiveByeButton

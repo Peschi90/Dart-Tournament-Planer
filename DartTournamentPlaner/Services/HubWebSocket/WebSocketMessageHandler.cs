@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using DartTournamentPlaner.Services.PowerScore;  // ? NEU: Für PowerScoringHubMessage
 
 namespace DartTournamentPlaner.Services.HubWebSocket;
 
@@ -25,6 +26,11 @@ public class WebSocketMessageHandler
     public event Action<HubMatchUpdateEventArgs>? LegCompleted;
     public event Action<HubMatchUpdateEventArgs>? MatchProgressUpdated;
 
+    /// <summary>
+    /// ? NEU: Event für PowerScoring Messages
+    /// </summary>
+    public event EventHandler<PowerScoringHubMessage>? PowerScoringMessageReceived;
+
     public WebSocketMessageHandler(
         Action<string, string> debugLog, 
         Func<JsonElement, Task> matchUpdateAcknowledgment,
@@ -41,55 +47,85 @@ public class WebSocketMessageHandler
     public async Task ProcessWebSocketMessage(string messageJson)
     {
         try
-   {
+        {
+            // ? ERWEITERT: Logge rohe Nachricht
+            _debugLog($"?? [WS-MESSAGE] ===== RAW MESSAGE RECEIVED =====", "WEBSOCKET");
+            _debugLog($"?? [WS-MESSAGE] Length: {messageJson.Length} characters", "WEBSOCKET");
+            _debugLog($"?? [WS-MESSAGE] Content: {messageJson}", "WEBSOCKET");
+
             var message = JsonSerializer.Deserialize<JsonElement>(messageJson);
 
-   if (message.TryGetProperty("type", out var typeElement))
-        {
-      var messageType = typeElement.GetString();
+            if (message.TryGetProperty("type", out var typeElement))
+            {
+                var messageType = typeElement.GetString();
+                
+                _debugLog($"?? [WS-MESSAGE] Type: {messageType}", "WEBSOCKET");
+                _debugLog($"?? [WS-MESSAGE] ================================", "WEBSOCKET");
 
-    switch (messageType)
-          {
-        case "welcome":
-        HandleWelcomeMessage(message);
-             break;
-         case "subscription-confirmed":
-    HandleSubscriptionConfirmed(message);
-             break;
-              case "planner-registration-confirmed":
-         HandlePlannerRegistrationConfirmed(message);
-        break;
-          case "tournament-match-updated":
-   await HandleTournamentMatchUpdate(message);
-              break;
-         // ? NEU: Match-Start Handler
-         case "match-started":
- await HandleMatchStarted(message);
-    break;
-       // ? NEU: Leg-Completed Handler
-         case "leg-completed":
-      await HandleLegCompleted(message);
- break;
-  // ? NEU: Match-Progress Handler
-     case "match-in-progress":
-              await HandleMatchProgress(message);
-     break;
-        case "heartbeat-ack":
-        HandleHeartbeatAck(message);
-    break;
-       case "error":
-     HandleErrorMessage(message);
-        break;
-                default:
-_debugLog($"? [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
-         break;
-           }
-   }
+                switch (messageType)
+                {
+                    case "welcome":
+                        HandleWelcomeMessage(message);
+                        break;
+                    case "subscription-confirmed":
+                        HandleSubscriptionConfirmed(message);
+                        break;
+                    case "planner-registration-confirmed":
+                        HandlePlannerRegistrationConfirmed(message);
+                        break;
+                    case "tournament-match-updated":
+                        await HandleTournamentMatchUpdate(message);
+                        break;
+                    // ? NEU: Match-Start Handler
+                    case "match-started":
+                        await HandleMatchStarted(message);
+                        break;
+                    // ? NEU: Leg-Completed Handler
+                    case "leg-completed":
+                        await HandleLegCompleted(message);
+                        break;
+                    // ? NEU: Match-Progress Handler
+                    case "match-in-progress":
+                        await HandleMatchProgress(message);
+                        break;
+                    // ? NEU: PowerScoring Messages
+                    case "power-scoring-update":
+                        await HandlePowerScoringUpdate(message);
+                        break;
+                    case "power-scoring-progress":
+                        await HandlePowerScoringProgress(message);
+                        break;
+                    case "power-scoring-result":
+                        await HandlePowerScoringResult(message);
+                        break;
+                    case "heartbeat-ack":
+                        HandleHeartbeatAck(message);
+                        break;
+                    case "error":
+                        HandleErrorMessage(message);
+                        break;
+                    default:
+                        _debugLog($"?? [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
+                        _debugLog($"?? [WS-MESSAGE] Full message: {messageJson}", "WARNING");
+                        break;
+                }
+            }
+            else
+            {
+                _debugLog($"?? [WS-MESSAGE] Message has no 'type' property", "WARNING");
+                _debugLog($"?? [WS-MESSAGE] Full message: {messageJson}", "WARNING");
+            }
         }
-    catch (Exception ex)
+        catch (JsonException jsonEx)
         {
-       _debugLog($"? [WS-MESSAGE] Error processing WebSocket message: {ex.Message}", "ERROR");
-  }
+            _debugLog($"? [WS-MESSAGE] JSON parsing error: {jsonEx.Message}", "ERROR");
+            _debugLog($"? [WS-MESSAGE] Invalid JSON: {messageJson}", "ERROR");
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error processing WebSocket message: {ex.Message}", "ERROR");
+            _debugLog($"? [WS-MESSAGE] Stack trace: {ex.StackTrace}", "ERROR");
+        }
     }
 
     /// <summary>
@@ -123,8 +159,20 @@ _debugLog($"? [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
     /// </summary>
     private void HandleSubscriptionConfirmed(JsonElement message)
     {
-  var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
-        _debugLog($"? [WS-MESSAGE] Subscribed to {tournamentId}", "SUCCESS");
+        try
+        {
+            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
+            
+            // ? ERWEITERT: Detailliertes Logging mit vollständiger Message
+            _debugLog($"? [WS-MESSAGE] ===== SUBSCRIPTION CONFIRMED =====", "SUCCESS");
+            _debugLog($"? [WS-MESSAGE] Tournament ID: {tournamentId}", "SUCCESS");
+            _debugLog($"? [WS-MESSAGE] Full message: {message.ToString()}", "SUCCESS");
+            _debugLog($"? [WS-MESSAGE] ================================", "SUCCESS");
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling subscription confirmation: {ex.Message}", "ERROR");
+        }
     }
 
     /// <summary>
@@ -132,17 +180,32 @@ _debugLog($"? [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
     /// </summary>
     private void HandlePlannerRegistrationConfirmed(JsonElement message)
     {
-     var success = message.TryGetProperty("success", out var successElement) && successElement.GetBoolean();
-        var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
+        try
+        {
+            var success = message.TryGetProperty("success", out var successElement) && successElement.GetBoolean();
+            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
 
-    if (success)
+            // ? ERWEITERT: Detailliertes Logging mit vollständiger Message
+            _debugLog($"?? [WS-MESSAGE] ===== PLANNER REGISTRATION =====", "INFO");
+            _debugLog($"?? [WS-MESSAGE] Success: {success}", "INFO");
+            _debugLog($"?? [WS-MESSAGE] Tournament ID: {tournamentId}", "INFO");
+            _debugLog($"?? [WS-MESSAGE] Full message: {message.ToString()}", "INFO");
+            
+            if (success)
+            {
+                _debugLog($"? [WS-MESSAGE] Successfully registered as Planner for {tournamentId}", "SUCCESS");
+            }
+            else
+            {
+                _debugLog($"? [WS-MESSAGE] Planner registration failed for {tournamentId}", "ERROR");
+            }
+            
+            _debugLog($"?? [WS-MESSAGE] ================================", "INFO");
+        }
+        catch (Exception ex)
         {
-         _debugLog($"? [WS-MESSAGE] Registered as Planner for {tournamentId}", "SUCCESS");
-     }
-   else
-        {
-     _debugLog("? [WS-MESSAGE] Planner registration failed", "ERROR");
-   }
+            _debugLog($"? [WS-MESSAGE] Error handling planner registration: {ex.Message}", "ERROR");
+        }
     }
 
  /// <summary>
@@ -797,5 +860,280 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
             }
     }
         return properties;
+    }
+
+    /// <summary>
+    /// ? NEU: Verarbeitet PowerScoring-Update Messages
+    /// </summary>
+    private async Task HandlePowerScoringUpdate(JsonElement message)
+    {
+        try
+        {
+            _debugLog("?? [POWERSCORING] Processing power-scoring-update message", "POWERSCORING");
+            
+            var powerScoringMessage = ParsePowerScoringMessage(message, "power-scoring-update");
+            
+            if (powerScoringMessage != null)
+            {
+                _debugLog($"?? [POWERSCORING] Update for player {powerScoringMessage.PlayerName}: " +
+                         $"Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
+                         "POWERSCORING");
+                
+                // Feuere Event
+                PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
+            }
+            
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [POWERSCORING] Error processing update: {ex.Message}", "ERROR");
+        }
+    }
+
+    /// <summary>
+    /// ? NEU: Verarbeitet PowerScoring-Progress Messages (Live-Updates während des Scorings)
+    /// </summary>
+    private async Task HandlePowerScoringProgress(JsonElement message)
+    {
+        try
+        {
+            _debugLog("?? [POWERSCORING] Processing power-scoring-progress message", "POWERSCORING");
+            
+            var powerScoringMessage = ParsePowerScoringProgressMessage(message);
+            
+            if (powerScoringMessage != null)
+            {
+                _debugLog($"?? [POWERSCORING] Progress for player {powerScoringMessage.PlayerName}: " +
+                         $"Round {powerScoringMessage.Rounds}, Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
+                         "POWERSCORING");
+                
+                // Feuere Event (wird wie Result behandelt, nur mit isComplete=false)
+                PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
+            }
+            
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [POWERSCORING] Error processing progress: {ex.Message}", "ERROR");
+        }
+    }
+
+    /// <summary>
+    /// ? NEU: Verarbeitet PowerScoring-Result Messages (Finale Ergebnisse)
+    /// </summary>
+    private async Task HandlePowerScoringResult(JsonElement message)
+    {
+        try
+        {
+            _debugLog("? [POWERSCORING] Processing power-scoring-result message", "POWERSCORING");
+            
+            var powerScoringMessage = ParsePowerScoringMessage(message, "power-scoring-result");
+            
+            if (powerScoringMessage != null)
+            {
+                _debugLog($"? [POWERSCORING] Result for player {powerScoringMessage.PlayerName}: " +
+                         $"Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
+                         "POWERSCORING");
+                
+                // Feuere Event
+                PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
+            }
+            
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [POWERSCORING] Error processing result: {ex.Message}", "ERROR");
+        }
+    }
+
+    /// <summary>
+    /// ? NEU: Parst PowerScoring Message JSON
+    /// </summary>
+    private PowerScoringHubMessage? ParsePowerScoringMessage(JsonElement message, string messageType)
+    {
+        try
+        {
+            var powerScoringMessage = new PowerScoringHubMessage
+            {
+                Type = message.TryGetProperty("type", out var type) ? type.GetString() ?? "" : "",
+                TournamentId = message.TryGetProperty("tournamentId", out var tid) ? tid.GetString() ?? "" : "",
+                ParticipantId = message.TryGetProperty("participantId", out var pid) ? pid.GetString() ?? "" : "",
+                PlayerName = message.TryGetProperty("playerName", out var pn) ? pn.GetString() ?? "" : "",
+                Rounds = message.TryGetProperty("rounds", out var r) ? r.GetInt32() : 0,
+                TotalScore = message.TryGetProperty("totalScore", out var ts) ? ts.GetInt32() : 0,
+                Average = message.TryGetProperty("average", out var avg) ? avg.GetDouble() : 0.0,
+                HighestThrow = message.TryGetProperty("highestThrow", out var ht) ? ht.GetInt32() : 0,
+                TotalDarts = message.TryGetProperty("totalDarts", out var td) ? td.GetInt32() : 0,
+                SessionStartTime = message.TryGetProperty("sessionStartTime", out var sst) 
+                    ? DateTime.Parse(sst.GetString() ?? DateTime.Now.ToString()) 
+                    : null,
+                CompletionTime = message.TryGetProperty("completionTime", out var ct) 
+                    ? DateTime.Parse(ct.GetString() ?? DateTime.Now.ToString()) 
+                    : null,
+                SubmittedVia = message.TryGetProperty("submittedVia", out var sv) ? sv.GetString() : null,
+                SubmittedAt = message.TryGetProperty("submittedAt", out var sa) 
+                    ? DateTime.Parse(sa.GetString() ?? DateTime.Now.ToString()) 
+                    : null,
+                Timestamp = message.TryGetProperty("timestamp", out var timestamp) 
+                    ? DateTime.Parse(timestamp.GetString() ?? DateTime.Now.ToString()) 
+                    : DateTime.Now
+            };
+
+            // Parse ThrowHistory
+            if (message.TryGetProperty("throwHistory", out var historyArray) && 
+                historyArray.ValueKind == JsonValueKind.Array)
+            {
+                powerScoringMessage.ThrowHistory = new List<ThrowRound>();
+                
+                foreach (var roundItem in historyArray.EnumerateArray())
+                {
+                    var throwRound = new ThrowRound
+                    {
+                        Round = roundItem.TryGetProperty("round", out var round) ? round.GetInt32() : 0,
+                        Total = roundItem.TryGetProperty("total", out var total) ? total.GetInt32() : 0,
+                        Timestamp = roundItem.TryGetProperty("timestamp", out var roundTs) 
+                            ? DateTime.Parse(roundTs.GetString() ?? DateTime.Now.ToString()) 
+                            : DateTime.Now
+                    };
+                    
+                    // Parse Darts array
+                    if (roundItem.TryGetProperty("darts", out var dartsArray) && 
+                        dartsArray.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var dartItem in dartsArray.EnumerateArray())
+                        {
+                            var dart = new DartThrow
+                            {
+                                Number = GetDartNumber(dartItem),
+                                Multiplier = dartItem.TryGetProperty("multiplier", out var mult) ? mult.GetInt32() : 1,
+                                Score = dartItem.TryGetProperty("score", out var score) ? score.GetInt32() : 0,
+                                DisplayValue = dartItem.TryGetProperty("displayValue", out var dv) ? dv.GetString() ?? "" : ""
+                            };
+                            throwRound.Darts.Add(dart);
+                        }
+                    }
+                    
+                    powerScoringMessage.ThrowHistory.Add(throwRound);
+                }
+                
+                _debugLog($"?? [POWERSCORING] Parsed {powerScoringMessage.ThrowHistory.Count} throw rounds with detailed dart info", "POWERSCORING");
+            }
+
+            return powerScoringMessage;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [POWERSCORING] Error parsing message: {ex.Message}", "ERROR");
+            return null;
+        }
+    }
+    
+    /// <summary>
+    /// Helper zum Parsen von Dart-Number (kann String wie "bullseye" oder Zahl wie 20 sein)
+    /// </summary>
+    private static string GetDartNumber(JsonElement dartItem)
+    {
+        if (dartItem.TryGetProperty("number", out var numberProp))
+        {
+            // Prüfe ob es ein String ist
+            if (numberProp.ValueKind == JsonValueKind.String)
+            {
+                return numberProp.GetString() ?? "0";
+            }
+            // Prüfe ob es eine Zahl ist
+            else if (numberProp.ValueKind == JsonValueKind.Number)
+            {
+                return numberProp.GetInt32().ToString();
+            }
+        }
+        
+        return "0";
+    }
+    
+    /// <summary>
+    /// ? NEU: Parst power-scoring-progress Messages (Live-Updates)
+    /// Format: {"type":"power-scoring-progress","currentRound":2,"totalRounds":8,"totalScore":60,"lastThrow":{...}}
+    /// </summary>
+    private PowerScoringHubMessage? ParsePowerScoringProgressMessage(JsonElement message)
+    {
+        try
+        {
+            var progressMessage = new PowerScoringHubMessage
+            {
+                Type = "power-scoring-progress",
+                TournamentId = message.TryGetProperty("tournamentId", out var tid) ? tid.GetString() ?? "" : "",
+                ParticipantId = message.TryGetProperty("participantId", out var pid) ? pid.GetString() ?? "" : "",
+                PlayerName = message.TryGetProperty("playerName", out var pn) ? pn.GetString() ?? "" : "",
+                Rounds = message.TryGetProperty("currentRound", out var cr) ? cr.GetInt32() : 0,  // ? FIX: currentRound statt totalRounds
+                TotalScore = message.TryGetProperty("totalScore", out var ts) ? ts.GetInt32() : 0,
+                TotalDarts = message.TryGetProperty("totalDarts", out var td) ? td.GetInt32() : 0,
+                HighestThrow = message.TryGetProperty("highestThrow", out var ht) ? ht.GetInt32() : 0,
+                Timestamp = message.TryGetProperty("timestamp", out var timestamp) 
+                    ? DateTime.Parse(timestamp.GetString() ?? DateTime.Now.ToString()) 
+                    : DateTime.Now
+            };
+            
+            // Parse average (kann String oder Number sein)
+            if (message.TryGetProperty("average", out var avgProp))
+            {
+                if (avgProp.ValueKind == JsonValueKind.String)
+                {
+                    // ? FIX: Verwende InvariantCulture für Punkt als Dezimaltrennzeichen
+                    if (double.TryParse(avgProp.GetString(), System.Globalization.NumberStyles.Float, 
+                        System.Globalization.CultureInfo.InvariantCulture, out var avgValue))
+                    {
+                        progressMessage.Average = avgValue;
+                    }
+                }
+                else if (avgProp.ValueKind == JsonValueKind.Number)
+                {
+                    progressMessage.Average = avgProp.GetDouble();
+                }
+            }
+            
+            // Parse lastThrow (die letzte geworfene Runde)
+            if (message.TryGetProperty("lastThrow", out var lastThrow))
+            {
+                var throwRound = new ThrowRound
+                {
+                    Round = lastThrow.TryGetProperty("round", out var round) ? round.GetInt32() : 0,
+                    Total = lastThrow.TryGetProperty("total", out var total) ? total.GetInt32() : 0,
+                    Timestamp = lastThrow.TryGetProperty("timestamp", out var roundTs) 
+                        ? DateTime.Parse(roundTs.GetString() ?? DateTime.Now.ToString()) 
+                        : DateTime.Now
+                };
+                
+                // Parse Darts
+                if (lastThrow.TryGetProperty("darts", out var dartsArray) && 
+                    dartsArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var dartItem in dartsArray.EnumerateArray())
+                    {
+                        var dart = new DartThrow
+                        {
+                            Number = GetDartNumber(dartItem),
+                            Multiplier = dartItem.TryGetProperty("multiplier", out var mult) ? mult.GetInt32() : 1,
+                            Score = dartItem.TryGetProperty("score", out var score) ? score.GetInt32() : 0,
+                            DisplayValue = dartItem.TryGetProperty("displayValue", out var dv) ? dv.GetString() ?? "" : ""
+                        };
+                        throwRound.Darts.Add(dart);
+                    }
+                }
+                
+                progressMessage.ThrowHistory.Add(throwRound);
+            }
+            
+            _debugLog($"?? [POWERSCORING] Parsed progress: Round {progressMessage.Rounds}, Score {progressMessage.TotalScore}", "POWERSCORING");
+            
+            return progressMessage;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [POWERSCORING] Error parsing progress message: {ex.Message}", "ERROR");
+            return null;
+        }
     }
 }

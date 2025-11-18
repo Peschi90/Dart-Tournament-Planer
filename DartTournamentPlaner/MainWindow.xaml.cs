@@ -16,6 +16,7 @@ using System.Reflection;
 using System.Text.Json;
 using DartTournamentPlaner.Services.License;
 using DartTournamentPlaner.Views.License;
+using DartTournamentPlaner.Services.PowerScore;  // ✅ NEU: PowerScoring Service
 
 namespace DartTournamentPlaner;
 
@@ -39,6 +40,9 @@ public partial class MainWindow : Window
     // NEU: License Services
     private readonly Services.License.LicenseManager _licenseManager;
     private readonly LicenseFeatureService _licenseFeatureService;
+    
+    // ✅ NEU: PowerScoring Service
+    private readonly PowerScoringService _powerScoringService;
 
     // Auto-Save System
     private readonly DispatcherTimer _autoSaveTimer = new DispatcherTimer();
@@ -77,6 +81,9 @@ public partial class MainWindow : Window
         
         _hubMatchProcessor = new HubMatchProcessingService(_tournamentService.GetTournamentClassById);
         _uiHelper = new MainWindowUIHelper(_localizationService, Dispatcher);
+        
+        // ✅ NEU: PowerScoring Service initialisieren
+        _powerScoringService = new PowerScoringService();
         
         // Services konfigurieren und starten
         InitializeServices();
@@ -127,6 +134,8 @@ public partial class MainWindow : Window
         // Hub Service Events
         _hubService.MatchResultReceived += OnHubMatchResultReceived;
         _hubService.HubStatusChanged += OnHubStatusChanged;
+        _hubService.HubConnectionStateChanged += OnHubConnectionStateChanged; // ✅ NEW: Subscribe to detailed state changes
+        _hubService.TournamentNeedsResync += OnTournamentNeedsResync; // ✅ NEW: Subscribe to resync event
         _hubService.DataChanged += () => MarkAsChanged();
         
       // ✨ NEU: Live-Update Event-Handler
@@ -342,12 +351,62 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
 
     private void OnHubStatusChanged(bool isConnected)
     {
-        _uiHelper.UpdateHubStatus(
-            isConnected, 
-            _hubService.GetCurrentTournamentId(),
-            _hubService.IsSyncing,
-            _hubService.LastSyncTime ?? DateTime.MinValue
-        );
+        // ✅ DEPRECATED: This method is replaced by OnHubConnectionStateChanged
+        // The detailed state handler provides more accurate status updates
+        // Keep this method for backwards compatibility but don't update UI here
+        System.Diagnostics.Debug.WriteLine($"🔔 [MainWindow] OnHubStatusChanged (legacy): {isConnected}");
+        
+        // NOTE: UI updates are now handled by OnHubConnectionStateChanged
+        // which provides detailed connection state information
+    }
+    
+    // ✅ NEW: Detailed connection state handler
+    private void OnHubConnectionStateChanged(HubConnectionState state)
+    {
+        System.Diagnostics.Debug.WriteLine($"🔔 [MainWindow] Hub connection state changed: {state}");
+        
+        // Update UI based on detailed state
+        var tournamentId = _hubService.GetCurrentTournamentId();
+        var isSyncing = _hubService.IsSyncing;
+        var lastSyncTime = _hubService.LastSyncTime ?? DateTime.MinValue;
+        
+        _uiHelper.UpdateHubStatusDetailed(state, tournamentId, isSyncing, lastSyncTime);
+    }
+    
+    // ✅ NEW: Tournament resync handler (called after reconnect)
+    private async Task OnTournamentNeedsResync()
+    {
+        System.Diagnostics.Debug.WriteLine($"🔄 [MainWindow] Tournament needs resync after reconnect");
+        
+        try
+        {
+            // Get current tournament data
+            var tournamentData = _tournamentService.GetTournamentData();
+            
+            if (tournamentData == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [MainWindow] No tournament data available for resync");
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"🔄 [MainWindow] Syncing tournament data after reconnect...");
+            
+            // Sync tournament data with Hub
+            var success = await _hubService.SyncTournamentAsync(tournamentData);
+            
+            if (success)
+            {
+                System.Diagnostics.Debug.WriteLine($"✅ [MainWindow] Tournament data resynced successfully");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [MainWindow] Tournament data resync failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [MainWindow] Error resyncing tournament data: {ex.Message}");
+        }
     }
 
     private void OnApiMatchResultUpdated(object? sender, MatchResultUpdateEventArgs e)
@@ -647,6 +706,49 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
     private void OverviewMode_Click(object sender, RoutedEventArgs e)
     {
         _tournamentService.ShowTournamentOverview(this, _licenseFeatureService, _licenseManager);
+    }
+
+    // ✅ NEU: PowerScoring Event-Handler
+    private void PowerScoring_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            // Prüfe ob PowerScoring-Feature lizenziert ist
+            if (!_licenseFeatureService.IsFeatureEnabled(Models.License.LicenseFeatures.POWERSCORING))
+            {
+                // Zeige modernen License Required Dialog
+                var requestLicense = Views.License.PowerScoringLicenseRequiredDialog.ShowDialog(
+                    this,
+                    _localizationService,
+                    _licenseManager);
+                
+                if (requestLicense)
+                {
+                    // Öffne Purchase Dialog
+                    PurchaseLicense_Click(sender, e);
+                }
+                
+                return;
+            }
+
+            // Öffne PowerScoring-Fenster mit Hub- und Config-Service
+            var powerScoringWindow = new PowerScoringWindow(
+                _powerScoringService, 
+                _localizationService,
+                _hubService,      // ✅ NEU: Übergebe Hub-Service
+                _configService);  // ✅ NEU: Übergebe Config-Service
+            powerScoringWindow.Owner = this;
+            powerScoringWindow.ShowDialog();
+            
+            System.Diagnostics.Debug.WriteLine("✅ PowerScoring-Fenster geöffnet");
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Öffnen von PowerScoring: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"❌ PowerScoring Error: {ex.Message}");
+        }
     }
 
     private void BugReport_Click(object sender, RoutedEventArgs e)
@@ -1265,7 +1367,7 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
        return;
      }
  
-       // ✅ WICHTIG: Setze den MatchStatus Enum basierend auf dem String-Status
+       // ✅ WICHTIG: Setze den MatchStatus Enum basierend auf den String-Status
   MatchStatus matchStatus;
        switch (status)
      {
@@ -1523,7 +1625,7 @@ private void UpdateKnockoutMatch(KnockoutMatch koMatch, HubMatchUpdateEventArgs 
   {
        Debug.WriteLine($" 📊 Regular match (Group/Finals): {args.MatchType ?? "Unknown"}");
           Debug.WriteLine($"   📋 Using GameRules.LegsToWin = {legsToWin}");
-            }
+    }
    
         int maxLegs = (2 * legsToWin) - 1;
       

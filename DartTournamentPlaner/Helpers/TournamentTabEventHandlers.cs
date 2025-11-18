@@ -381,67 +381,102 @@ public class TournamentTabEventHandlers : IDisposable
 
     public async Task HandleMatchDoubleClick(Match match, string matchType)
     {
-        if (match.IsBye) return;
-
-    // ✅ FIXED: HubService UND Tournament-ID holen über TournamentManagementService
+        // ✅ FIXED: HubService UND Tournament-ID holen über TournamentManagementService
         var hubService = _getHubService();
         string? tournamentId = null;
-    
+        
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HandleMatchDoubleClick called");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match Type: {matchType}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService available: {hubService != null}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService registered: {hubService?.IsRegisteredWithHub}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match UUID: {match.UniqueId}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match ID: {match.Id}");
+        
         try
-  {
+        {
             // ⭐ KORRIGIERT: Hole Tournament-ID über TournamentManagementService
-   if (Application.Current.MainWindow is MainWindow mainWindow)
-  {
-  var tournamentServiceField = mainWindow.GetType()
-        .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-          
-      if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
-    {
- var tournamentData = tournamentService.GetTournamentData();
-  tournamentId = tournamentData?.TournamentId;
-      
-    System.Diagnostics.Debug.WriteLine($"🎯 [EventHandlers-HandleMatchDoubleClick] Tournament ID from TournamentService: {tournamentId ?? "null"}");
-}
-     else
-     {
-   System.Diagnostics.Debug.WriteLine($"⚠️ [EventHandlers-HandleMatchDoubleClick] Could not get TournamentManagementService");
-     }
-  }
+            if (Application.Current.MainWindow is MainWindow mainWindow)
+            {
+                var tournamentServiceField = mainWindow.GetType()
+                    .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                
+                if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+                {
+                    var tournamentData = tournamentService.GetTournamentData();
+                    tournamentId = tournamentData?.TournamentId;
+                    
+                    System.Diagnostics.Debug.WriteLine($"🎯 [EventHandlers-HandleMatchDoubleClick] Tournament ID from TournamentService: {tournamentId ?? "null"}");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ [EventHandlers-HandleMatchDoubleClick] Could not get TournamentManagementService");
+                }
+            }
         }
         catch (Exception ex)
-  {
-   System.Diagnostics.Debug.WriteLine($"⚠️ [EventHandlers-HandleMatchDoubleClick] Could not get Tournament ID: {ex.Message}");
-     }
-   
- var resultWindow = new MatchResultWindow(match, _tournamentClass.GameRules, _localizationService, hubService, tournamentId);
-resultWindow.Owner = _getWindow();
-   
-  if (resultWindow.ShowDialog() == true)
         {
-   match.ForcePropertyChanged(nameof(match.ScoreDisplay));
-   match.ForcePropertyChanged(nameof(match.StatusDisplay));
-  match.ForcePropertyChanged(nameof(match.WinnerDisplay));
-        
-      // Send to hub if needed
-   await SendMatchResultToHub(match, _tournamentClass, matchType);
-          
-  if (matchType == "Finals")
-  {
-        _refreshFinalsView();
-     // Auto-check finals completion
-var parentWindow = _getWindow();
-      Task.Run(() => TournamentValidationHelper.CheckFinalsCompletion(_tournamentClass, parentWindow, _localizationService));
+            System.Diagnostics.Debug.WriteLine($"⚠️ [EventHandlers-HandleMatchDoubleClick] Could not get Tournament ID: {ex.Message}");
         }
-  else
-          {
- _updateMatchesView();
-     // Auto-check group completion
-  var parentWindow = _getWindow();
-       Task.Run(() => TournamentValidationHelper.CheckAllGroupsCompletion(_tournamentClass, parentWindow, _localizationService));
-   }
-      
-_onDataChanged();
-     }
+        
+        // ✅ NEU: Für Finals-Matches verwende rundenspezifische Regeln
+        MatchResultWindow resultWindow;
+        
+        if (matchType == "Finals")
+        {
+            // Verwende Round Robin Finals Regeln
+            var finalsRules = _tournamentClass.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
+            
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Creating MatchResultWindow for Finals Match {match.Id}");
+            System.Diagnostics.Debug.WriteLine($"   📊 Finals Rules: SetsToWin={finalsRules.SetsToWin}, LegsToWin={finalsRules.LegsToWin}, LegsPerSet={finalsRules.LegsPerSet}");
+            System.Diagnostics.Debug.WriteLine($"   📊 Base GameRules: SetsToWin={_tournamentClass.GameRules.SetsToWin}, LegsToWin={_tournamentClass.GameRules.LegsToWin}");
+            
+            // Erstelle temporäre GameRules mit Finals-spezifischen Werten
+            var finalsGameRules = new GameRules
+            {
+                GameMode = _tournamentClass.GameRules.GameMode,
+                FinishMode = _tournamentClass.GameRules.FinishMode,
+                PlayWithSets = finalsRules.SetsToWin > 0,
+                SetsToWin = finalsRules.SetsToWin,
+                LegsToWin = finalsRules.LegsToWin,
+                LegsPerSet = finalsRules.LegsPerSet
+            };
+            
+            resultWindow = new MatchResultWindow(match, finalsGameRules, _localizationService, hubService, tournamentId);
+        }
+        else
+        {
+            // Für Gruppenphase-Matches verwende Standard-Regeln
+            resultWindow = new MatchResultWindow(match, _tournamentClass.GameRules, _localizationService, hubService, tournamentId);
+        }
+        
+        resultWindow.Owner = _getWindow();
+        
+        if (resultWindow.ShowDialog() == true)
+        {
+            match.ForcePropertyChanged(nameof(match.ScoreDisplay));
+            match.ForcePropertyChanged(nameof(match.StatusDisplay));
+            match.ForcePropertyChanged(nameof(match.WinnerDisplay));
+            
+            // Send to hub if needed
+            await SendMatchResultToHub(match, _tournamentClass, matchType);
+            
+            if (matchType == "Finals")
+            {
+                _refreshFinalsView();
+                // Auto-check finals completion
+                var parentWindow = _getWindow();
+                Task.Run(() => TournamentValidationHelper.CheckFinalsCompletion(_tournamentClass, parentWindow, _localizationService));
+            }
+            else
+            {
+                _updateMatchesView();
+                // Auto-check group completion
+                var parentWindow = _getWindow();
+                Task.Run(() => TournamentValidationHelper.CheckAllGroupsCompletion(_tournamentClass, parentWindow, _localizationService));
+            }
+            
+            _onDataChanged();
+        }
     }
 
     public async Task HandleKnockoutMatchDoubleClick(KnockoutMatch match, string bracketType)
@@ -452,7 +487,7 @@ _onDataChanged();
    
   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HandleKnockoutMatchDoubleClick called");
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService available: {hubService != null}");
-  System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService registered: {hubService?.IsRegisteredWithHub}");
+        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] HubService registered: {hubService?.IsRegisteredWithHub}");
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match UUID: {match.UniqueId}");
   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Match ID: {match.Id}");
      System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] Bracket Type: {bracketType}");

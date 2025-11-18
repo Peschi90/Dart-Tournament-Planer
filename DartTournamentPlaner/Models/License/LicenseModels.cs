@@ -172,6 +172,7 @@ public static class LicenseFeatures
     public const string CUSTOM_THEMES = "custom_themes";
     public const string PREMIUM_SUPPORT = "premium_support";
     public const string TOURNAMENT_OVERVIEW = "tournament_overview";  // NEU: Tournament Overview Feature
+    public const string POWERSCORING = "powerscore";  // NEU: PowerScoring Feature für Spieler-Einteilung
 }
 
 /// <summary>

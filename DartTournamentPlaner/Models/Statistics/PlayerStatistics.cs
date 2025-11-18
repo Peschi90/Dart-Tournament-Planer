@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 namespace DartTournamentPlaner.Models.Statistics;
 
 /// <summary>
-/// Repräsentiert die gesammelten Statistiken eines Spielers über alle Matches hinweg
+/// ReprÃ¤sentiert die gesammelten Statistiken eines Spielers Ã¼ber alle Matches hinweg
 /// </summary>
 public class PlayerStatistics : INotifyPropertyChanged
 {
@@ -179,13 +179,13 @@ public class PlayerStatistics : INotifyPropertyChanged
     public double SetWinRate => TotalSets > 0 ? (double)SetsWon / TotalSets * 100 : 0.0;
 
     /// <summary>
-    /// Durchschnittlicher Average über alle Matches (Turnier Average)
+    /// Durchschnittlicher Average Ã¼ber alle Matches (Turnier Average)
     /// </summary>
     [JsonIgnore]
     public double TournamentAverage => MatchStatistics.Count > 0 ? MatchStatistics.Average(m => m.Average) : 0.0;
 
     /// <summary>
-    /// Alias für TournamentAverage (für Rückwärtskompatibilität)
+    /// Alias fÃ¼r TournamentAverage (fÃ¼r RÃ¼ckwÃ¤rtskompatibilitÃ¤t)
     /// </summary>
     [JsonIgnore]
     public double OverallAverage => TournamentAverage;
@@ -205,7 +205,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     // ? NEU: Erweiterte Leg-Average Statistiken
 
     /// <summary>
-    /// Höchster Leg-Average über alle Matches
+    /// HÃ¶chster Leg-Average Ã¼ber alle Matches
     /// </summary>
     [JsonIgnore]
     public double HighestLegAverage
@@ -220,7 +220,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Durchschnittlicher Leg-Average über alle Legs in allen Matches
+    /// Durchschnittlicher Leg-Average Ã¼ber alle Legs in allen Matches
     /// </summary>
     [JsonIgnore]
     public double AverageLegAverage
@@ -235,7 +235,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gesamtanzahl der 180er-Würfe
+    /// Gesamtanzahl der 180er-WÃ¼rfe
     /// </summary>
     [JsonIgnore]
     public int TotalMaximums => MatchStatistics.Sum(m => m.Maximums);
@@ -261,7 +261,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     // ? NEU: High Finish Statistiken
 
     /// <summary>
-    /// Höchster High Finish Score über alle Matches
+    /// HÃ¶chster High Finish Score Ã¼ber alle Matches
     /// </summary>
     [JsonIgnore]
     public int HighestFinishScore
@@ -293,7 +293,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     // ? NEU: Checkout-Effizienz Statistiken
 
     /// <summary>
-    /// Wenigste Darts bis zum Finish über alle Matches
+    /// Wenigste Darts bis zum Finish Ã¼ber alle Matches
     /// </summary>
     [JsonIgnore]
     public int FewestDartsToFinish
@@ -311,7 +311,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Durchschnittliche Darts pro Checkout über alle Matches
+    /// Durchschnittliche Darts pro Checkout Ã¼ber alle Matches
     /// </summary>
     [JsonIgnore]
     public double AverageDartsPerCheckout
@@ -335,7 +335,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     public double CheckoutRate => LegsWon > 0 ? (double)TotalCheckouts / LegsWon : 0.0;
 
     /// <summary>
-    /// Gesamtanzahl der 26er-Würfe
+    /// Gesamtanzahl der 26er-WÃ¼rfe
     /// </summary>
     [JsonIgnore]
     public int TotalScore26 => MatchStatistics.Sum(m => m.Score26Count);
@@ -362,19 +362,19 @@ public class PlayerStatistics : INotifyPropertyChanged
     // ? NEU: Wurf-Effizienz Statistiken
 
     /// <summary>
-    /// Gesamtanzahl aller Würfe über alle Matches
+    /// Gesamtanzahl aller WÃ¼rfe Ã¼ber alle Matches
     /// </summary>
     [JsonIgnore]
     public int TotalThrows => MatchStatistics.Sum(m => m.TotalThrows);
 
     /// <summary>
-    /// Durchschnittliche Würfe pro Leg
+    /// Durchschnittliche WÃ¼rfe pro Leg
     /// </summary>
     [JsonIgnore]
     public double AverageThrowsPerLeg => LegsWon > 0 ? (double)TotalThrows / LegsWon : 0.0;
 
     /// <summary>
-    /// Wenigste Würfe in einem gewonnenen Leg (beste Effizienz)
+    /// Wenigste WÃ¼rfe in einem gewonnenen Leg (beste Effizienz)
     /// </summary>
     [JsonIgnore]
     public int BestLegEfficiency
@@ -391,32 +391,83 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ? NEU: Schnellstes Match (kürzeste Spieldauer)
+    /// ? NEU: Schnellstes Match (kÃ¼rzeste Spieldauer)
     /// </summary>
     [JsonIgnore]
     public TimeSpan FastestMatch => MatchStatistics.Count > 0 && MatchStatistics.Any(m => m.MatchDuration > TimeSpan.Zero) ? 
         MatchStatistics.Where(m => m.MatchDuration > TimeSpan.Zero).Min(m => m.MatchDuration) : TimeSpan.Zero;
 
     /// <summary>
-    /// ? NEU: Wenigste Würfe in einem Match (beste Wurf-Effizienz pro Match)
+    /// ? NEU: Wenigste WÃ¼rfe in einem Match (beste Wurf-Effizienz pro Match)
     /// </summary>
     [JsonIgnore]
     public int FewestThrowsInMatch => MatchStatistics.Count > 0 && MatchStatistics.Any(m => m.TotalThrows > 0) ? 
         MatchStatistics.Where(m => m.TotalThrows > 0).Min(m => m.TotalThrows) : 0;
 
     /// <summary>
-    /// Letztes gespieltes Match
+    /// âœ… NEU: Wenigste Darts fÃ¼r ein gewonnenes Leg (Ã¼ber alle Matches)
     /// </summary>
     [JsonIgnore]
-    public DateTime? LastMatchDate => MatchStatistics.Count > 0 ? 
-        MatchStatistics.Max(m => m.MatchDate) : null;
+    public int FewestDartsPerLeg
+    {
+        get
+        {
+            var allLegData = MatchStatistics
+                .SelectMany(m => m.LegData)
+                .Where(ld => ld.Darts > 0 && ld.Won); // âœ… Nur gewonnene Legs
+            
+            return allLegData.Any() ? allLegData.Min(ld => ld.Darts) : 0;
+        }
+    }
+
+    /// <summary>
+    /// âœ… NEU: Durchschnittliche Darts pro gewonnenem Leg (Ã¼ber alle Matches)
+    /// </summary>
+    [JsonIgnore]
+    public double AverageDartsPerWonLeg
+    {
+        get
+        {
+            var allLegData = MatchStatistics
+                .SelectMany(m => m.LegData)
+                .Where(ld => ld.Darts > 0 && ld.Won); // âœ… Nur gewonnene Legs
+            
+            return allLegData.Any() ? allLegData.Average(ld => ld.Darts) : 0.0;
+        }
+    }
+
+    /// <summary>
+    /// âœ… NEU: Beste Leg-Effizienz als formatierter String (z.B. "6 Darts @ 150.5")
+    /// </summary>
+    [JsonIgnore]
+    public string BestLegEfficiencyFormatted
+    {
+        get
+        {
+            var bestLeg = MatchStatistics
+                .SelectMany(m => m.LegData)
+                .Where(ld => ld.Darts > 0 && ld.Won) // âœ… Nur gewonnene Legs
+                .OrderBy(ld => ld.Darts)
+                .ThenByDescending(ld => ld.Average)
+                .FirstOrDefault();
+            
+            return bestLeg != null ? $"{bestLeg.Darts} Darts @ {bestLeg.Average:F1}" : "-";
+        }
+    }
 
     /// <summary>
     /// Erstes gespieltes Match
     /// </summary>
     [JsonIgnore]
     public DateTime? FirstMatchDate => MatchStatistics.Count > 0 ? 
-        MatchStatistics.Min(m => m.MatchDate) : null;
+        MatchStatistics.Min(m => m.MatchDate) : (DateTime?)null;
+
+    /// <summary>
+    /// Letztes gespieltes Match
+    /// </summary>
+    [JsonIgnore]
+    public DateTime? LastMatchDate => MatchStatistics.Count > 0 ? 
+        MatchStatistics.Max(m => m.MatchDate) : (DateTime?)null;
 
     /// <summary>
     /// Aktualisiert alle berechneten Statistiken basierend auf den Match-Daten
@@ -435,7 +486,7 @@ public class PlayerStatistics : INotifyPropertyChanged
         SetsLost = CalculateSetsLost();
         TotalSets = SetsWon + SetsLost;
 
-        // Trigge PropertyChanged für alle berechneten Properties
+        // Trigge PropertyChanged fÃ¼r alle berechneten Properties
         OnPropertyChanged(nameof(MatchWinRate));
         OnPropertyChanged(nameof(LegWinRate));
         OnPropertyChanged(nameof(SetWinRate));
@@ -463,18 +514,21 @@ public class PlayerStatistics : INotifyPropertyChanged
         OnPropertyChanged(nameof(BestLegEfficiency));
         OnPropertyChanged(nameof(FastestMatch)); // ? NEU
         OnPropertyChanged(nameof(FewestThrowsInMatch)); // ? NEU
+        OnPropertyChanged(nameof(FewestDartsPerLeg)); // âœ… NEU
+        OnPropertyChanged(nameof(AverageDartsPerWonLeg)); // âœ… NEU
+        OnPropertyChanged(nameof(BestLegEfficiencyFormatted)); // âœ… NEU
         OnPropertyChanged(nameof(LastMatchDate));
         OnPropertyChanged(nameof(FirstMatchDate));
     }
 
     /// <summary>
-    /// Fügt eine neue Match-Statistik hinzu und aktualisiert die Gesamtstatistiken
+    /// FÃ¼gt eine neue Match-Statistik hinzu und aktualisiert die Gesamtstatistiken
     /// </summary>
     public void AddMatchStatistics(PlayerMatchStatistics matchStats)
     {
         if (matchStats == null) return;
 
-        // Prüfe ob Match bereits existiert
+        // PrÃ¼fe ob Match bereits existiert
         var existingMatch = MatchStatistics.FirstOrDefault(m => m.MatchId == matchStats.MatchId);
         if (existingMatch != null)
         {
@@ -503,9 +557,9 @@ public class PlayerStatistics : INotifyPropertyChanged
         {
             if (!match.IsWinner)
             {
-                // Wenn verloren, schätze die Legs des Gegners
+                // Wenn verloren, schÃ¤tze die Legs des Gegners
                 // Bei einem Standard "First to X Legs" Match hat der Gewinner X Legs
-                // Wir können nicht genau wissen wie viele, aber verwenden eine Schätzung
+                // Wir kÃ¶nnen nicht genau wissen wie viele, aber verwenden eine SchÃ¤tzung
                 totalLegsLost += EstimateOpponentLegs(match);
             }
         }
@@ -514,20 +568,20 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Schätzt die Anzahl der Legs des Gegners basierend auf Match-Typ und Ergebnis
+    /// SchÃ¤tzt die Anzahl der Legs des Gegners basierend auf Match-Typ und Ergebnis
     /// </summary>
     private int EstimateOpponentLegs(PlayerMatchStatistics match)
     {
-        // Heuristik: Bei verlorenen Matches hat der Gegner mindestens so viele Legs wie nötig zum Gewinnen
-        // Standard ist meist "First to 2 Legs" oder ähnlich
+        // Heuristik: Bei verlorenen Matches hat der Gegner mindestens so viele Legs wie nÃ¶tig zum Gewinnen
+        // Standard ist meist "First to 2 Legs" oder Ã¤hnlich
         if (match.MatchType.Contains("First to"))
         {
             // Versuche Zielanzahl aus MatchType zu extrahieren
-            // Fallback: Schätze 2 Legs als Standard
+            // Fallback: SchÃ¤tze 2 Legs als Standard
             return 2;
         }
         
-        // Weitere Heuristiken können hier hinzugefügt werden
+        // Weitere Heuristiken kÃ¶nnen hier hinzugefÃ¼gt werden
         return Math.Max(match.Legs + 1, 2); // Minimum 2, oder eigene Legs + 1
     }
 
@@ -542,7 +596,7 @@ public class PlayerStatistics : INotifyPropertyChanged
         {
             if (!match.IsWinner && match.Sets > 0)
             {
-                // Ähnliche Logik wie bei Legs
+                // Ã„hnliche Logik wie bei Legs
                 totalSetsLost += EstimateOpponentSets(match);
             }
         }
@@ -551,7 +605,7 @@ public class PlayerStatistics : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Schätzt die Anzahl der Sets des Gegners
+    /// SchÃ¤tzt die Anzahl der Sets des Gegners
     /// </summary>
     private int EstimateOpponentSets(PlayerMatchStatistics match)
     {

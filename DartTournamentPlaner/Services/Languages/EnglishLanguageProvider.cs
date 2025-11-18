@@ -29,7 +29,8 @@ public class EnglishLanguageProvider : ILanguageProvider
             new EnglishStatisticsLanguageProvider(),
             new EnglishPlayerStatisticsLanguageProvider(), // ✅ NEU: PlayerStatistics übersetzungen
             new EnglishPrintLanguageProvider(),
-            new EnglishHelpContentLanguageProvider()
+            new EnglishHelpContentLanguageProvider(),
+            new EnglishPowerScoringLanguageProvider() // ✅ NEU: PowerScoring Translations
         };
     }
 

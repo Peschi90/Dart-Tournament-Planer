@@ -64,7 +64,16 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                 return;
             }
 
-            // ✅ NEU: Versuche zuerst direkte WebSocket statistics-Extraktion
+            // ✅ PRIORITÄT 1: Versuche erweiterte dartScoringResult-Daten zu extrahieren (enthält legData!)
+            var enhancedStats = ExtractEnhancedDartStatistics(matchUpdate);
+            if (enhancedStats != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[STATS] Processing enhanced dart statistics (with legData) for {enhancedStats.Player1Name} vs {enhancedStats.Player2Name}");
+                ProcessEnhancedStatistics(matchUpdate, enhancedStats);
+                return;
+            }
+
+            // ✅ PRIORITÄT 2: Versuche direkte WebSocket statistics-Extraktion
             var directStats = ExtractDirectWebSocketStatistics(matchUpdate);
             if (directStats != null)
             {
@@ -73,7 +82,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                 return;
             }
 
-            // ✅ NEU: Versuche zuerst neue top-level statistics-Struktur zu extrahieren
+            // ✅ PRIORITÄT 3: Versuche top-level statistics-Struktur zu extrahieren
             var topLevelStats = ExtractTopLevelPlayerStatistics(matchUpdate);
             if (topLevelStats != null)
             {
@@ -82,21 +91,12 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                 return;
             }
 
-            // ✅ Versuche playerStatistics-Struktur zu extrahieren
+            // ✅ PRIORITÄT 4: Versuche playerStatistics-Struktur zu extrahieren
             var simpleStats = ExtractSimplePlayerStatistics(matchUpdate);
             if (simpleStats != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[STATS] Processing simple player statistics for {simpleStats.Player1Name} vs {simpleStats.Player2Name}");
                 ProcessSimpleStatistics(matchUpdate, simpleStats);
-                return;
-            }
-
-            // ✅ Versuche erweiterte dartScoringResult-Daten zu extrahieren
-            var enhancedStats = ExtractEnhancedDartStatistics(matchUpdate);
-            if (enhancedStats != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[STATS] Processing enhanced dart statistics for {enhancedStats.Player1Name} vs {enhancedStats.Player2Name}");
-                ProcessEnhancedStatistics(matchUpdate, enhancedStats);
                 return;
             }
 
@@ -626,6 +626,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
                     if (match.Success && int.TryParse(match.Groups[1].Value, out int minutes))
                     {
                         simpleStats.MatchDuration = TimeSpan.FromMinutes(minutes);
+                        System.Diagnostics.Debug.WriteLine($"[STATS] Parsed duration: {minutes} minutes");
                     }
                 }
                 
@@ -729,7 +730,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             {
                 enhancedStats.Player1Stats = ParsePlayerStats(player1Data);
                 enhancedStats.Player1Name = enhancedStats.Player1Stats.Name;
-                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player1: {enhancedStats.Player1Name}, Avg: {enhancedStats.Player1Stats.Average}");
+                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player1: {enhancedStats.Player1Name}, Avg: {enhancedStats.Player1Stats.Average}, LegData Count: {enhancedStats.Player1Stats.LegData.Count}");
             }
 
             // Extrahiere Player2Stats  
@@ -737,7 +738,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             {
                 enhancedStats.Player2Stats = ParsePlayerStats(player2Data);
                 enhancedStats.Player2Name = enhancedStats.Player2Stats.Name;
-                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player2: {enhancedStats.Player2Name}, Avg: {enhancedStats.Player2Stats.Average}");
+                System.Diagnostics.Debug.WriteLine($"[STATS] Extracted Player2: {enhancedStats.Player2Name}, Avg: {enhancedStats.Player2Stats.Average}, LegData Count: {enhancedStats.Player2Stats.LegData.Count}");
             }
 
             // ✅ ERWEITERT: Match-Metadaten mit neuen Feldern
@@ -992,6 +993,52 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             }
         }
 
+        // ✅ NEU: Leg Data mit Darts pro Leg
+        if (playerData.TryGetProperty("legData", out var legData) && legData.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var legDataElement in legData.EnumerateArray())
+            {
+                var legDataItem = new LegData();
+                
+                if (legDataElement.TryGetProperty("legNumber", out var legNumber))
+                    legDataItem.LegNumber = legNumber.GetInt32();
+                    
+                // ✅ NEU: Darts pro Leg
+                if (legDataElement.TryGetProperty("darts", out var darts))
+                    legDataItem.Darts = darts.GetInt32();
+                    
+                // ✅ NEU: Won-Status
+                if (legDataElement.TryGetProperty("won", out var won))
+                    legDataItem.Won = won.GetBoolean();
+                    
+                // Average mit korrektem Double-Parsing
+                if (legDataElement.TryGetProperty("average", out var average))
+                {
+                    if (average.ValueKind == JsonValueKind.Number)
+                    {
+                        legDataItem.Average = average.GetDouble();
+                    }
+                    else if (average.ValueKind == JsonValueKind.String)
+                    {
+                        if (double.TryParse(average.GetString(), System.Globalization.NumberStyles.Float, 
+                            System.Globalization.CultureInfo.InvariantCulture, out double avgVal))
+                        {
+                            legDataItem.Average = avgVal;
+                        }
+                    }
+                }
+                
+                if (legDataElement.TryGetProperty("score", out var legScore))
+                    legDataItem.Score = legScore.GetInt32();
+                if (legDataElement.TryGetProperty("timestamp", out var timestamp))
+                    legDataItem.Timestamp = DateTime.Parse(timestamp.GetString() ?? DateTime.Now.ToString());
+
+                stats.LegData.Add(legDataItem);
+                
+                System.Diagnostics.Debug.WriteLine($"[STATS] Leg {legDataItem.LegNumber}: {legDataItem.Darts} darts, Ø {legDataItem.Average:F1}, Won: {legDataItem.Won}");
+            }
+        }
+
         return stats;
     }
 
@@ -1195,7 +1242,8 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
             HighFinishDetails = playerStats.HighFinishDetails.ToList(),
             Score26Details = playerStats.Score26Details.ToList(),
             CheckoutDetails = playerStats.CheckoutDetails.ToList(),
-            LegAverages = playerStats.LegAverages.ToList()
+            LegAverages = playerStats.LegAverages.ToList(),
+            LegData = playerStats.LegData.ToList() // ✅ NEU: Leg Data mit Darts pro Leg
         };
     }
 
@@ -1477,6 +1525,7 @@ public class PlayerStatisticsManager : INotifyPropertyChanged
         public List<Score26Detail> Score26Details { get; set; } = new();
         public List<CheckoutDetail> CheckoutDetails { get; set; } = new();
         public List<LegAverage> LegAverages { get; set; } = new();
+        public List<LegData> LegData { get; set; } = new();  // ✅ NEU
     }
 
     /// <summary>

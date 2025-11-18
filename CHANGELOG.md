@@ -23,6 +23,19 @@
   - Detailed leg statistics (winner, darts, duration, average, checkout)
   - Automatic UI synchronization without data persistence
   - Full internationalization (DE/EN)
+- **🔄 Automatic WebSocket Reconnect**: Robust connection recovery after server outages
+  - Continuous reconnect attempts every 5-10 seconds until server is back online
+  - Automatic tournament re-registration with preserved Tournament-ID
+  - Full tournament data synchronization after reconnect (matches, game rules, players)
+  - Duplicate reconnect prevention with smart scheduling
+  - No manual intervention required - seamless reconnection
+- **📊 Enhanced Connection Status Display**: Detailed WebSocket and tournament status indicators
+  - Separate states for WebSocket connection and tournament registration
+  - Status bar shows: Disconnected / WebSocket Ready / Tournament Registered
+  - Visual indicators (🔴 Red / 🟢 Green / 🟡 Yellow) for connection state
+  - Preserved Tournament-ID display during disconnection for reconnect info
+  - Real-time status updates in both status bar and debug console
+  - Clear distinction between connection loss and registration status
 
 ### 🔧 Bug Fixes
 - **Tournament-ID in QR Codes**: Complete integration of Tournament-ID in all QR code generations
@@ -35,6 +48,16 @@
   - Dialog height increased from 350px to 420px (all content fully visible)
   - Complete translation of all info texts (German & English)
   - TextBlocks dynamically translated instead of static texts
+- **WebSocket Connection Management**:
+  - Fixed NullReferenceException in CloseAsync method
+  - Robust exception handling for ObjectDisposedException
+  - Safe disposal of CancellationTokenSource
+  - Prevented crash on disconnect
+- **Status Bar Display**:
+  - Fixed status bar remaining green after server disconnect
+  - Eliminated duplicate event handlers causing incorrect status display
+  - Status now correctly shows "Disconnected" when connection is lost
+  - Tournament-ID preserved and displayed during reconnection attempts
 
 ### 🌍 Localization
 - **Hub Registration Dialog Translations**: 13 new translation keys added
@@ -55,6 +78,17 @@
   - All print methods corrected
   - All match dialog paths corrected
   - TournamentTreeRenderer corrected
+- **WebSocket Connection Architecture**:
+  - New `HubConnectionState` enum with 5 distinct states (Disconnected, WebSocketReady, TournamentRegistered, Connecting, Error)
+  - `ScheduleReconnect` method with duplicate prevention and smart scheduling
+  - Separate tracking of WebSocket connection and tournament registration status
+  - Event-driven architecture with `TournamentNeedsResync` event for automatic data synchronization
+  - 4-step reconnect process: HTTP re-registration → WebSocket re-subscription → data sync → timer restart
+- **Connection Status Management**:
+  - Deprecated legacy `OnHubStatusChanged` handler in favor of detailed state handler
+  - `UpdateHubStatusDetailed` method with comprehensive state visualization
+  - Real-time status updates via `HubConnectionStateChanged` event
+  - Comprehensive logging for all connection state changes
 
 ### 🎨 UI/UX Improvements
 - **Hub Registration Dialog**:
@@ -64,7 +98,32 @@
   - Generate button with icon (🔄)
   - Theme support (Light/Dark Mode)
   - No more cut-off content
+- **Status Bar Enhancements**:
+  - Color-coded connection indicators (Red/Green/Yellow)
+  - Three-tier status display: Connection / Registration / Sync status
+  - Tournament-ID preserved during disconnection for user awareness
+  - Real-time status updates without page refresh
+  - Clickable status area for debug console access
+- **Debug Console Improvements**:
+  - Detailed logging of all reconnect attempts
+  - Step-by-step reconnection process visualization
+  - WebSocket state tracking with timestamps
+  - Tournament data sync progress indicators
+  - Color-coded log messages for easy debugging
 
+### 🚀 Performance & Stability
+- **Reconnect Reliability**: Continuous retry mechanism until connection is restored
+- **Memory Management**: Proper disposal of WebSocket and cancellation tokens
+- **Exception Handling**: Comprehensive try-catch blocks preventing crashes
+- **Resource Cleanup**: Safe cleanup of timers, connections, and event handlers
+- **Thread Safety**: Dispatcher-based UI updates for thread-safe operations
+- **State Management**: Robust tracking of connection and registration states
+
+### 📚 Documentation
+- **Code Comments**: Extensive documentation of reconnect logic and state management
+- **Debug Logging**: Detailed trace output for all connection operations
+- **State Transitions**: Clear documentation of connection state changes
+- **Error Handling**: Comprehensive error logging and recovery documentation
 
 ## v0.1.12
 - moved

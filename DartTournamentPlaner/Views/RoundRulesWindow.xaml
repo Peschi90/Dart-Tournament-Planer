@@ -225,6 +225,9 @@
                                 <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
                                         BorderThickness="1" CornerRadius="12" Padding="20">
                                     <Grid Name="WinnerBracketGrid">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/> <!-- Header Row -->
+                                        </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200"/>
                                             <ColumnDefinition Width="80"/>
@@ -234,13 +237,13 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <!-- Headers -->
-                                        <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Runde" FontWeight="Bold" 
                                                    Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Sets" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Legs" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
                                         
                                         <!-- Dynamic content will be added here -->
@@ -272,6 +275,9 @@
                                 <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
                                         BorderThickness="1" CornerRadius="12" Padding="20">
                                     <Grid Name="LoserBracketGrid">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/> <!-- Header Row -->
+                                        </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="200"/>
                                             <ColumnDefinition Width="80"/>
@@ -281,13 +287,63 @@
                                         </Grid.ColumnDefinitions>
                                         
                                         <!-- Headers -->
-                                        <TextBlock Grid.Column="0" Text="Runde" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Runde" FontWeight="Bold" 
                                                    Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Sets" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="2" Text="Legs" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Legs" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
-                                        <TextBlock Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        
+                                        <!-- Dynamic content will be added here -->
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    
+                    <!-- Round Robin Finals Tab -->
+                    <TabItem Name="RoundRobinFinalsTab" Header="&#x1F3C6; Round Robin Finals">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                            <StackPanel>
+                                <!-- Round Robin Finals Info -->
+                                <Border Background="#ECFDF5" BorderBrush="#10B981" 
+                                        BorderThickness="1" CornerRadius="8" 
+                                        Padding="16" Margin="0,0,0,20">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#x2139;" FontSize="16" Margin="0,0,12,0" 
+                                                   Foreground="#059669" VerticalAlignment="Center"/>
+                                        <TextBlock Name="RoundRobinFinalsHeaderText" 
+                                                   Text="Round Robin Finals Regeln" 
+                                                   FontSize="14" FontWeight="SemiBold" 
+                                                   Foreground="#059669" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <!-- Round Robin Finals Grid -->
+                                <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                        BorderThickness="1" CornerRadius="12" Padding="20">
+                                    <Grid Name="RoundRobinFinalsGrid">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/> <!-- Header Row -->
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="200"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Headers -->
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Runde" FontWeight="Bold" 
+                                                   Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Sets" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Legs" FontWeight="Bold" 
+                                                   HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="3" Text="Legs/Set" FontWeight="Bold" 
                                                    HorizontalAlignment="Center" Margin="5,10" Foreground="#374151"/>
                                         
                                         <!-- Dynamic content will be added here -->
