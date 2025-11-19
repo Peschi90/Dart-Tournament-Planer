@@ -249,6 +249,34 @@ public partial class MainWindow : Window
             System.Diagnostics.Debug.WriteLine($"LoadData: ERROR: {ex.Message}");
         }
     }
+    
+    /// <summary>
+    /// ✅ PHASE 3: Öffentliche Methode um Tournament-Daten neu zu laden und UI zu aktualisieren
+    /// Wird von PowerScoring aufgerufen nach Turnier-Erstellung
+    /// </summary>
+    public void RefreshTournamentData()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🔄 RefreshTournamentData called - reloading UI...");
+            
+            // Konfiguriere Tabs neu mit aktuellen Daten aus TournamentManagementService
+            ConfigureTournamentTabs();
+            
+            // Markiere als "sauber" (frisch geladen)
+            _hasUnsavedChanges = false;
+            _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
+            
+            // Trigger UI-Refresh
+            _tournamentService.TriggerUIRefresh();
+            
+            System.Diagnostics.Debug.WriteLine("✅ RefreshTournamentData complete - UI updated");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ RefreshTournamentData ERROR: {ex.Message}");
+        }
+    }
 
     private async Task SaveDataInternal()
     {
@@ -705,7 +733,37 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
 
     private void OverviewMode_Click(object sender, RoutedEventArgs e)
     {
-        _tournamentService.ShowTournamentOverview(this, _licenseFeatureService, _licenseManager);
+        try
+        {
+            // ✅ Tournament Overview wiederherstellt
+            // Hole Tournament-ID aus TournamentData
+            var tournamentData = _tournamentService.GetTournamentData();
+            var tournamentId = tournamentData?.TournamentId;
+            
+            // Hole inneren HubService (falls vorhanden)
+            HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
+            
+            // Erstelle Tournament Overview Window mit allen benötigten Services
+            var overviewWindow = new TournamentOverviewWindow(
+                _tournamentService.AllTournamentClasses,
+                _localizationService,
+                hubIntegrationService,
+                _licenseFeatureService,
+                tournamentId
+            );
+            
+            overviewWindow.Owner = this;
+            overviewWindow.ShowDialog();
+            
+            System.Diagnostics.Debug.WriteLine("✅ Tournament Overview window opened");
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService.GetString("Error") ?? "Error";
+            var message = $"Error opening Tournament Overview: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            System.Diagnostics.Debug.WriteLine($"❌ Tournament Overview Error: {ex.Message}");
+        }
     }
 
     // ✅ NEU: PowerScoring Event-Handler
@@ -731,12 +789,14 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
                 return;
             }
 
-            // Öffne PowerScoring-Fenster mit Hub- und Config-Service
+            // ✅ PHASE 3: Öffne PowerScoring-Fenster mit allen Services
             var powerScoringWindow = new PowerScoringWindow(
                 _powerScoringService, 
                 _localizationService,
-                _hubService,      // ✅ NEU: Übergebe Hub-Service
-                _configService);  // ✅ NEU: Übergebe Config-Service
+                _hubService,              // ✅ Hub-Service für WebSocket-Integration
+                _configService,           // ✅ Config-Service für Einstellungen
+                _tournamentService,       // ✅ PHASE 3: Tournament-Service für Turnier-Erstellung
+                this);                    // ✅ PHASE 3: MainWindow-Referenz für UI-Refresh
             powerScoringWindow.Owner = this;
             powerScoringWindow.ShowDialog();
             

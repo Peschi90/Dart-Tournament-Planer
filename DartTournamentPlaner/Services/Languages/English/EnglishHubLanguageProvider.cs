@@ -16,6 +16,7 @@ public class EnglishHubLanguageProvider : ILanguageSection
             ["RegisterWithHub"] = "Register with Hub",
             ["UnregisterFromHub"] = "Unregister from Hub",
             ["ShowJoinUrl"] = "Show Join URL",
+            ["ShowJoinURL"] = "Show Join URL",
             ["ManualSync"] = "Manual Sync",
             ["HubSettings"] = "Hub Settings",
 

@@ -22,6 +22,8 @@ public partial class PowerScoringWindow : Window
     private readonly LocalizationService _localizationService;
     private readonly LicensedHubService? _hubService;
     private readonly ConfigService? _configService;
+    private readonly TournamentManagementService? _tournamentManagementService; // ✅ PHASE 3
+    private readonly MainWindow? _mainWindow; // ✅ PHASE 3: MainWindow Referenz
     
     // Loading-State
     private readonly ObservableCollection<ProgressStepModel> _progressSteps = new();
@@ -31,7 +33,9 @@ public partial class PowerScoringWindow : Window
         PowerScoringService powerScoringService, 
         LocalizationService localizationService,
         LicensedHubService? hubService = null,
-        ConfigService? configService = null)
+        ConfigService? configService = null,
+        TournamentManagementService? tournamentManagementService = null,
+        MainWindow? mainWindow = null) // ✅ PHASE 3
     {
         InitializeComponent();
         
@@ -39,6 +43,8 @@ public partial class PowerScoringWindow : Window
         _localizationService = localizationService;
         _hubService = hubService;
         _configService = configService;
+        _tournamentManagementService = tournamentManagementService; // ✅ PHASE 3
+        _mainWindow = mainWindow; // ✅ PHASE 3
 
         InitializeRuleComboBox();
         
@@ -545,8 +551,13 @@ public partial class PowerScoringWindow : Window
 
     private void ExportButton_Click(object sender, RoutedEventArgs e)
     {
-        // Zeige erweiterten Dialog zur Gruppeneinteilung
-        var dialog = new PowerScoringAdvancedGroupDialog(_powerScoringService, _localizationService);
+        // ✅ PHASE 3: Zeige erweiterten Dialog zur Gruppeneinteilung mit Tournament-Integration
+        var dialog = new PowerScoringAdvancedGroupDialog(
+            _powerScoringService, 
+            _localizationService,
+            _tournamentManagementService, // ✅ PHASE 3: Für Tournament-Erstellung
+            this,                          // ✅ PHASE 3: PowerScoringWindow als Parent
+            _mainWindow);                  // ✅ PHASE 3: MainWindow für UI-Refresh
         dialog.Owner = this;
         dialog.ShowDialog();
     }

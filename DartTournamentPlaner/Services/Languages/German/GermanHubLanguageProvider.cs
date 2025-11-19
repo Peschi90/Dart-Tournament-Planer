@@ -16,6 +16,7 @@ public class GermanHubLanguageProvider : ILanguageSection
             ["RegisterWithHub"] = "Bei Hub registrieren",
             ["UnregisterFromHub"] = "Vom Hub entregistrieren",
             ["ShowJoinUrl"] = "Join-URL anzeigen",
+            ["ShowJoinURL"] = "Join-URL anzeigen",
             ["ManualSync"] = "Manuell synchronisieren",
             ["HubSettings"] = "Hub-Einstellungen",
 

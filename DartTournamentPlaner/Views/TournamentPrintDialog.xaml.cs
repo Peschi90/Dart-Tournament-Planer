@@ -30,6 +30,11 @@ namespace DartTournamentPlaner.Views
         /// Gibt an ob der Benutzer den Druckvorgang bestätigt hat
         /// </summary>
         public bool PrintConfirmed { get; private set; } = false;
+        
+        /// <summary>
+        /// Die vom Benutzer ausgewählte Turnierklasse
+        /// </summary>
+        public TournamentClass SelectedTournamentClass => _selectedTournamentClass;
 
         /// <summary>
         /// Konstruktor für den Druckdialog mit Klassenauswahl und HubService

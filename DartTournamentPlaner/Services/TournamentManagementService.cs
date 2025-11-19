@@ -197,183 +197,102 @@ public class TournamentManagementService
             tc.TriggerUIRefresh();
         }
     }
-
-    public void ShowTournamentOverview()
-    {
-        ShowTournamentOverview(null, null, null);
-    }
-
+    
     /// <summary>
-    /// ✅ ERWEITERT: Zeigt das Tournament Overview Window mit vollständiger Service-Integration
+    /// ✅ NEU: Erstellt ein neues Turnier aus PowerScoring TournamentClasses
+    /// PHASE 3 - PowerScoring to Tournament Integration
+    /// 
+    /// VERANTWORTLICHKEIT:
+    /// - Speichert aktuelles Turnier (falls vorhanden)
+    /// - Ersetzt TournamentClasses mit PowerScoring-Daten
+    /// - Triggert UI-Refresh
+    /// 
+    /// NICHT VERANTWORTLICH FÜR:
+    /// - Konvertierung von PowerScoring-Daten (-> PowerScoringToTournamentService)
+    /// - UI-Navigation (-> Caller)
     /// </summary>
-    public void ShowTournamentOverview(Window? owner = null, 
-        LicenseFeatureService? licenseFeatureService = null, 
-        LicenseManager? licenseManager = null)
+    /// <param name="powerScoringClasses">TournamentClasses aus PowerScoring Distribution</param>
+    /// <returns>true wenn erfolgreich, false bei Fehler</returns>
+    public async Task<bool> CreateTournamentFromPowerScoringAsync(List<TournamentClass> powerScoringClasses)
     {
         try
         {
-            // ✅ FIXED: Hole HubIntegrationService UND Tournament-ID korrekt über LicensedHubService
-       HubIntegrationService? hubService = null;
-            string? tournamentId = null;  // ⭐ NEU
-        
-    try
-       {
-     if (Application.Current.MainWindow is MainWindow mainWindow)
-     {
-       // ✅ FIX: Hole den LicensedHubService und extrahiere den inneren HubIntegrationService
-       var hubServiceField = mainWindow.GetType()
-      .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        
-     System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubServiceField found: {hubServiceField != null}");
-         
-var hubServiceValue = hubServiceField?.GetValue(mainWindow);
-  System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
-          
-      if (hubServiceValue is LicensedHubService licensedHubService)
-    {
- System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] LicensedHubService found, getting inner service...");
-         
-        // Zugriff auf den inneren HubIntegrationService über Reflection
-   var innerServiceField = licensedHubService.GetType()
-       .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-         
-      hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
-         
-     System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubIntegrationService retrieved: {hubService != null}");
-    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] HubService registered: {hubService?.IsRegisteredWithHub}");
-    }
-       else
-        {
-    System.Diagnostics.Debug.WriteLine($"❌ [TournamentManagementService] Not a LicensedHubService or null");
-    }
-  
-            // ⭐ NEU: Hole Tournament-ID aus TournamentData
-   var tournamentDataField = mainWindow.GetType()
-       .GetField("_tournamentData", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-       var tournamentData = tournamentDataField?.GetValue(mainWindow) as TournamentData;
-   tournamentId = tournamentData?.TournamentId;
-   
-    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] Tournament ID: {tournamentId ?? "null"}");
- }
-       }
-        catch (System.Exception ex)
+            System.Diagnostics.Debug.WriteLine("🏗️ Creating tournament from PowerScoring classes...");
+            System.Diagnostics.Debug.WriteLine($"   Received {powerScoringClasses.Count} classes");
+            
+            // 1. Speichere aktuelles Turnier falls vorhanden
+            if (HasActiveTournament())
             {
-    System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentManagementService] Could not get HubService or TournamentId: {ex.Message}");
-  }
-
-            // ✅ KORRIGIERT: Hole LicenseFeatureService vom MainWindow falls nicht übergeben
-  LicenseFeatureService? effectiveLicenseService = licenseFeatureService;
-   if (effectiveLicenseService == null)
+                System.Diagnostics.Debug.WriteLine("   💾 Saving existing tournament...");
+                try
+                {
+                    await _dataService.SaveTournamentDataAsync(_tournamentData);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"   ❌ Failed to save existing tournament: {ex.Message}");
+                    return false;
+                }
+            }
+            
+            // 2. Unsubscribe von alten Tournaments
+            foreach (var tc in _tournamentClasses)
             {
-     try
-    {
-    if (Application.Current.MainWindow is MainWindow mainWindow)
-     {
-             var licenseServiceField = mainWindow.GetType()
-         .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-effectiveLicenseService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
-    }
-          }
-        catch (System.Exception ex)
-     {
-        System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentOverview] Could not get LicenseFeatureService: {ex.Message}");
-     }
-     }
-
-   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService] Creating TournamentOverviewWindow with Hub: {hubService != null}, License: {effectiveLicenseService != null}, TournamentId: {tournamentId ?? "null"}");
-
-            var overviewWindow = new TournamentOverviewWindow(
-            _tournamentClasses, 
-    _localizationService, 
-       hubService,
-     effectiveLicenseService,
-                tournamentId);  // ⭐ NEU: Tournament-ID übergeben
-
-  if (owner != null)
+                UnsubscribeFromChanges(tc);
+            }
+            
+            // 3. Lösche alte Klassen
+            _tournamentClasses.Clear();
+            
+            // 4. Füge PowerScoring-Klassen hinzu
+            // Mappe PowerScoring-Klassen auf bekannte IDs (Platin=1, Gold=2, etc.)
+            var classNameToId = new Dictionary<string, int>
             {
-         overviewWindow.Owner = owner;
-     }
-
-            overviewWindow.Show();
-         
-       System.Diagnostics.Debug.WriteLine($"✅ [TournamentOverview] Window opened successfully with Hub: {hubService != null}, License: {effectiveLicenseService != null}, TournamentId: {tournamentId ?? "null"}");
-        }
-        catch (System.Exception ex)
-        {
-    System.Diagnostics.Debug.WriteLine($"❌ [TournamentOverview] Error opening window: {ex.Message}");
-     
-       var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("ErrorOpeningOverview")} {ex.Message}";
-    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-     }
-    }
-
-    public void ShowPrintDialog(Window? owner = null, 
-        LicenseFeatureService? licenseFeatureService = null, 
-        LicenseManager? licenseManager = null)
-    {
-        try
-        {
-      // ⭐ NEU: Hole Tournament-ID
-          string? tournamentId = null;
-    try
-      {
-    if (Application.Current.MainWindow is MainWindow mainWindow)
-           {
-    var tournamentDataField = mainWindow.GetType()
-        .GetField("_tournamentData", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-   var tournamentData = tournamentDataField?.GetValue(mainWindow) as TournamentData;
- tournamentId = tournamentData?.TournamentId;
-     
-        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService-Print] Tournament ID: {tournamentId ?? "null"}");
-    }
-        }
-       catch (Exception ex)
-          {
-         System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentManagementService-Print] Could not get Tournament ID: {ex.Message}");
-       }
- 
-      // ⭐ NEU: Hole HubService für QR-Codes
-       HubIntegrationService? hubService = null;
-       try
- {
-      if (Application.Current.MainWindow is MainWindow mainWindow)
-       {
-    var hubServiceField = mainWindow.GetType()
-       .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-  
-      var hubServiceValue = hubServiceField?.GetValue(mainWindow);
-     
-   if (hubServiceValue is LicensedHubService licensedHubService)
-   {
-       var innerServiceField = licensedHubService.GetType()
-    .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
- 
-     hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
-         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentManagementService-Print] HubService retrieved: {hubService != null}");
-  }
-        }
+                { "Platin", 1 },
+                { "Gold", 2 },
+                { "Silber", 3 },
+                { "Bronze", 4 },
+                { "Eisen", 5 }
+            };
+            
+            foreach (var psClass in powerScoringClasses)
+            {
+                // Setze ID basierend auf Namen
+                if (classNameToId.TryGetValue(psClass.Name, out var classId))
+                {
+                    psClass.Id = classId;
+                }
+                
+                _tournamentClasses.Add(psClass);
+                SubscribeToChanges(psClass);
+                
+                System.Diagnostics.Debug.WriteLine($"   ✅ Added class '{psClass.Name}' with {psClass.Groups.Count} groups");
+            }
+            
+            // 5. Sortiere Klassen nach ID
+            _tournamentClasses.Sort((a, b) => a.Id.CompareTo(b.Id));
+            
+            // 6. Trigger UI Refresh
+            TriggerUIRefresh();
+            DataChanged?.Invoke();
+            
+            System.Diagnostics.Debug.WriteLine($"✅ Tournament created successfully with {_tournamentClasses.Count} classes");
+            return true;
         }
         catch (Exception ex)
-      {
-        System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentManagementService-Print] Could not get HubService: {ex.Message}");
-     }
-   
- Helpers.PrintHelper.ShowPrintDialog(
-  _tournamentClasses, 
-     PlatinClass, 
-          owner, 
-      _localizationService,
-licenseFeatureService,  // Lizenzprüfung
-            licenseManager,         // Für Lizenz-Dialog
-    hubService,             // Hub Service für QR-Codes
- tournamentId); // ⭐ NEU: Tournament-ID für QR-Code URLs
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error creating tournament from PowerScoring: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"   StackTrace: {ex.StackTrace}");
+            return false;
         }
-   catch (Exception ex)
-  {
-       var title = _localizationService.GetString("Error") ?? "Fehler";
-   var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
-     MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+    }
+    
+    /// <summary>
+    /// ✅ Prüft ob ein aktives Turnier vorhanden ist
+    /// </summary>
+    public bool HasActiveTournament()
+    {
+        return _tournamentClasses.Any(tc => 
+            tc.Groups?.Any(g => g.Players?.Any() == true) == true);
     }
 }

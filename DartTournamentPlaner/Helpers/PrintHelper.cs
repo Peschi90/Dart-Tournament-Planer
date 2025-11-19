@@ -212,8 +212,10 @@ namespace DartTournamentPlaner.Helpers
                 if (result == true && printDialog.PrintConfirmed)
                 {
                     System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Print confirmed, executing print...");
-                    // Führe den tatsächlichen Druckvorgang aus - mit HubService, Tournament-ID UND ConfigService für QR-Codes
-                    return ExecutePrint(initialSelection, printDialog.PrintOptions, localizationService, hubService, activeTournamentId, configService);  // ? FIXED: ConfigService übergeben
+                    System.Diagnostics.Debug.WriteLine($"ShowPrintDialog: Selected tournament class: {printDialog.SelectedTournamentClass.Name}");
+                    
+                    // ? FIXED: Verwende die vom Benutzer ausgewählte Turnierklasse, nicht initialSelection
+                    return ExecutePrint(printDialog.SelectedTournamentClass, printDialog.PrintOptions, localizationService, hubService, activeTournamentId, configService);
                 }
                 else
                 {

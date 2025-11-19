@@ -198,18 +198,64 @@ public class EnglishHelpContentLanguageProvider : ILanguageSection
                 "• Phase progression statistics\n\n" +
                 "ADVANCED FEATURES (License Required):\n" +
                 "• 📊 Detailed performance analytics\n" +
-                "• 📈 Graphical trend analysis\n" +
-                "• 🎯 Accuracy and consistency metrics\n" +
-                "• 🏆 Achievement tracking\n" +
-                "• 📋 Exportable reports\n" +
-                "• 📱 Mobile-friendly statistics views\n\n" +
-                "ACCESSING STATISTICS:\n" +
-                "• Click on any player in the player list\n" +
-                "• Use the Statistics tab (license required)\n" +
-                "• View through Tournament Overview\n" +
-                "• Export via API endpoints\n\n" +
-                "Statistics are updated in real-time as matches are completed and provide valuable insights for players and tournament organizers.",
+                "• 📉 Trend charts and visualizations\n" +
+                "• 🏆 Leaderboards and rankings\n" +
+                "• 📈 Export functionality for statistics\n" +
+                "• 🎯 Player comparisons\n\n" +
+                "Statistics are automatically updated during the tournament and can be viewed at any time.",
 
+            ["HelpPowerScoringContent"] = "⚡ POWERSCORING\n\n" +
+                "PowerScoring enables intelligent player seeding based on performance data:\n\n" +
+                "GETTING STARTED:\n" +
+                "1. Open PowerScoring via the PowerScoring menu\n" +
+                "2. Select a scoring rule (1x3, 8x3, 10x3, or 15x3 throws)\n" +
+                "3. Add players\n" +
+                "4. Start scoring\n" +
+                "5. Enter scores or use QR codes for remote entry\n" +
+                "6. Complete scoring and generate groups\n\n" +
+                "SCORING RULES:\n" +
+                "• 1x3 Throws: Quick assessment (3 darts)\n" +
+                "• 8x3 Throws: Standard evaluation (24 darts)\n" +
+                "• 10x3 Throws: Detailed evaluation (30 darts)\n" +
+                "• 15x3 Throws: Very detailed evaluation (45 darts)\n\n" +
+                "GROUP DISTRIBUTION:\n" +
+                "After scoring, you can create automatically balanced groups:\n" +
+                "• Select classes (Platinum, Gold, Silver, Bronze, Iron)\n" +
+                "• Configure groups per class (1-4)\n" +
+                "• Set players per group (2-6)\n" +
+                "• Choose a distribution mode\n\n" +
+                "DISTRIBUTION MODES:\n" +
+                "⚖️ Balanced: Even distribution by ranking\n" +
+                "   → Best players distributed evenly across groups\n\n" +
+                "🐍 Snake Draft: 1-2-3-4-4-3-2-1 pattern\n" +
+                "   → Zigzag distribution for balanced groups\n\n" +
+                "🔝 Top-Heavy: Strongest first\n" +
+                "   → Group 1 gets strongest players, then Group 2, etc.\n\n" +
+                "🎲 Random: Random distribution\n" +
+                "   → Players randomly distributed to groups\n\n" +
+                "ADVANCED SETTINGS:\n" +
+                "• Class-specific group and player counts\n" +
+                "• Skip classes\n" +
+                "• Individual player limits per class\n" +
+                "• Preview distribution before confirmation\n\n" +
+                "CREATE TOURNAMENT:\n" +
+                "After successful group distribution, you can:\n" +
+                "• View distribution as preview\n" +
+                "• Create a new tournament based on distribution\n" +
+                "• Existing tournament is automatically saved\n" +
+                "• Groups and players are transferred to tournament\n\n" +
+                "QR-CODE INTEGRATION (with Tournament Hub):\n" +
+                "• Generate QR codes for all players\n" +
+                "• Players scan their QR code\n" +
+                "• Scores automatically transmitted via WebSocket\n" +
+                "• Live updates during scoring\n\n" +
+                "ADVANTAGES:\n" +
+                "• Objective player assessment\n" +
+                "• Balanced group composition\n" +
+                "• Time savings in tournament preparation\n" +
+                "• Professional tournament organization\n" +
+                "• Remote scoring via QR codes possible\n\n" +
+                "PowerScoring requires an active license with PowerScoring feature.",
             ["HelpPrintingContent"] = "🖨️ PRINTING\n\n" +
                 "The application offers comprehensive printing capabilities for tournament documentation:\n\n" +
                 "BASIC PRINTING (Always Available):\n" +

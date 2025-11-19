@@ -53,17 +53,17 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background" Value="#F8FAFC"/>
-            <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
         </Style>
     </Window.Resources>
 
     <!-- Main Container -->
-    <Border Background="White" 
+    <Border Background="{DynamicResource BackgroundBrush}" 
             CornerRadius="16" 
-            BorderBrush="#E5E7EB" 
+            BorderBrush="{DynamicResource BorderBrush}" 
             BorderThickness="1"
             Margin="10">
         <Border.Effect>
@@ -99,9 +99,9 @@
                 <StackPanel>
                     
                     <!-- Distribution Mode Card -->
-                    <Border Background="#F5F3FF" 
+                    <Border Background="{DynamicResource SurfaceBrush}" 
                             BorderBrush="#8B5CF6" 
-                            BorderThickness="1" 
+                            BorderThickness="2" 
                             CornerRadius="12" 
                             Padding="20"
                             Margin="0,0,0,16">
@@ -110,23 +110,34 @@
                                        Text="🎯 Distribution Mode" 
                                        FontWeight="Bold" 
                                        FontSize="14" 
-                                       Foreground="#6B21A8" 
+                                       Foreground="#8B5CF6" 
                                        Margin="0,0,0,12"/>
                             
                             <ComboBox x:Name="DistributionModeCombo"
+                                      Background="{DynamicResource BackgroundBrush}"
+                                      Foreground="{DynamicResource TextBrush}"
+                                      BorderBrush="{DynamicResource BorderBrush}"
                                       FontSize="13"
                                       Padding="10,8"
                                       SelectionChanged="DistributionModeCombo_SelectionChanged">
-                                <ComboBoxItem Content="⚖️ Balanced (Even distribution)" Tag="Balanced" IsSelected="True"/>
-                                <ComboBoxItem Content="🐍 Snake Draft (1-2-3-4-4-3-2-1)" Tag="SnakeDraft"/>
-                                <ComboBoxItem Content="🔝 Top-Heavy (Strongest first)" Tag="TopHeavy"/>
-                                <ComboBoxItem Content="🎲 Random" Tag="Random"/>
+                                <ComboBoxItem Background="{DynamicResource SurfaceBrush}" 
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Content="⚖️ Balanced (Even distribution)" Tag="Balanced" IsSelected="True"/>
+                                <ComboBoxItem Background="{DynamicResource SurfaceBrush}" 
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Content="🐍 Snake Draft (1-2-3-4-4-3-2-1)" Tag="SnakeDraft"/>
+                                <ComboBoxItem Background="{DynamicResource SurfaceBrush}" 
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Content="🔝 Top-Heavy (Strongest first)" Tag="TopHeavy"/>
+                                <ComboBoxItem Background="{DynamicResource SurfaceBrush}" 
+                                              Foreground="{DynamicResource TextBrush}"
+                                              Content="🎲 Random" Tag="Random"/>
                             </ComboBox>
                             
                             <TextBlock x:Name="ModeDescriptionText"
                                        Text="Players are evenly distributed across groups based on ranking."
                                        FontSize="12"
-                                       Foreground="#6B7280"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                        TextWrapping="Wrap"
                                        Margin="0,8,0,0"/>
                         </StackPanel>
@@ -185,9 +196,9 @@
                     </Border>
 
                     <!-- Class-Specific Rules Card -->
-                    <Border Background="#FEF3C7" 
+                    <Border Background="{DynamicResource SurfaceBrush}" 
                             BorderBrush="#F59E0B" 
-                            BorderThickness="1" 
+                            BorderThickness="2" 
                             CornerRadius="12" 
                             Padding="20"
                             Margin="0,0,0,16">
@@ -196,14 +207,14 @@
                                        Text="🏆 Class-Specific Rules" 
                                        FontWeight="Bold" 
                                        FontSize="14" 
-                                       Foreground="#92400E" 
+                                       Foreground="#F59E0B" 
                                        Margin="0,0,0,12"/>
                             
                             <ItemsControl x:Name="ClassRulesControl">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="White" 
-                                                BorderBrush="#E5E7EB" 
+                                        <Border Background="{DynamicResource BackgroundBrush}" 
+                                                BorderBrush="{DynamicResource BorderBrush}" 
                                                 BorderThickness="1" 
                                                 CornerRadius="6" 
                                                 Padding="12" 
@@ -219,6 +230,7 @@
                                                 <!-- Klassen-Name -->
                                                 <TextBlock Grid.Column="0" 
                                                            Text="{Binding ClassName}" 
+                                                           Foreground="{DynamicResource TextBrush}"
                                                            FontWeight="SemiBold" 
                                                            FontSize="13" 
                                                            VerticalAlignment="Center"/>
@@ -227,10 +239,14 @@
                                                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0">
                                                     <TextBlock x:Name="GroupsLabelText"
                                                                Text="Groups:" 
+                                                               Foreground="{DynamicResource TextBrush}"
                                                                FontSize="11" 
                                                                VerticalAlignment="Center" 
                                                                Margin="0,0,5,0"/>
                                                     <TextBox Text="{Binding GroupCount, UpdateSourceTrigger=PropertyChanged}" 
+                                                             Background="{DynamicResource SurfaceBrush}"
+                                                             Foreground="{DynamicResource TextBrush}"
+                                                             BorderBrush="{DynamicResource BorderBrush}"
                                                              Width="50" 
                                                              FontSize="11" 
                                                              Padding="4"
@@ -241,10 +257,14 @@
                                                 <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,0">
                                                     <TextBlock x:Name="PlayersLabelText"
                                                                Text="Players:" 
+                                                               Foreground="{DynamicResource TextBrush}"
                                                                FontSize="11" 
                                                                VerticalAlignment="Center" 
                                                                Margin="0,0,5,0"/>
                                                     <TextBox Text="{Binding PlayersPerGroup, UpdateSourceTrigger=PropertyChanged}" 
+                                                             Background="{DynamicResource SurfaceBrush}"
+                                                             Foreground="{DynamicResource TextBrush}"
+                                                             BorderBrush="{DynamicResource BorderBrush}"
                                                              Width="50" 
                                                              FontSize="11" 
                                                              Padding="4"
@@ -255,6 +275,7 @@
                                                 <CheckBox Grid.Column="3" 
                                                           x:Name="SkipCheckBox"
                                                           Content="Skip" 
+                                                          Foreground="{DynamicResource TextBrush}"
                                                           IsChecked="{Binding Skip}" 
                                                           FontSize="11" 
                                                           VerticalAlignment="Center"
@@ -268,16 +289,16 @@
                     </Border>
 
                     <!-- Info Card -->
-                    <Border Background="#F0FDF4" 
+                    <Border Background="{DynamicResource SurfaceBrush}" 
                             BorderBrush="#10B981" 
-                            BorderThickness="1" 
+                            BorderThickness="2" 
                             CornerRadius="12" 
                             Padding="16"
                             Margin="0,0,0,8">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="💡" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Top"/>
                             <TextBlock x:Name="TipTextBlock"
-                                       TextWrapping="Wrap" FontSize="12" Foreground="#047857" LineHeight="18">
+                                       TextWrapping="Wrap" FontSize="12" Foreground="#10B981" LineHeight="18">
                                 <Run Text="Tipp: " FontWeight="SemiBold"/>
                                 <Run x:Name="TipTextRun"
                                      Text="Legen Sie für jede Klasse individuell fest wie viele Gruppen mit wie vielen Spielern erstellt werden sollen. Z.B. Platin: 2 Gruppen mit je 4 Spielern, Gold: 3 Gruppen mit je 6 Spielern."/>
@@ -290,8 +311,8 @@
 
             <!-- Footer Buttons -->
             <Border Grid.Row="2" 
-                    Background="#F8FAFC" 
-                    BorderBrush="#E5E7EB" 
+                    Background="{DynamicResource SurfaceBrush}" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,1,0,0" 
                     CornerRadius="0,0,16,16"
                     Padding="32,16">

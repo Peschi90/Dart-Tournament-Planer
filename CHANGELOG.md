@@ -9,6 +9,51 @@
   - Persistent storage of Tournament-ID in `TournamentData`
   - Reuse of saved IDs on reconnect for persistent QR codes
 
+- **⚡ PowerScoring System**: Intelligent player seeding based on performance data
+  - **Scoring Sessions**: Create scoring sessions with customizable rules (1x3, 8x3, 10x3, 15x3 throws)
+  - **Remote Scoring**: QR code integration for remote score entry via Tournament Hub
+  - **Player Ranking**: Automatic ranking based on total and average scores
+  - **Group Distribution**: Intelligent player distribution across tournament classes
+    - Support for 5 classes (Platinum, Gold, Silver, Bronze, Iron)
+    - Configurable groups per class (1-4 groups)
+    - Configurable players per group (2-6 players)
+  - **Distribution Modes**: 
+    - ⚖️ Balanced: Even distribution by ranking
+    - 🐍 Snake Draft: 1-2-3-4-4-3-2-1 zigzag pattern for balanced groups
+    - 🔝 Top-Heavy: Strongest players grouped first
+    - 🎲 Random: Random distribution
+  - **Advanced Settings**: 
+    - Class-specific group and player counts
+    - Skip classes functionality
+    - Individual player limits per class
+    - Distribution preview before confirmation
+  - **Tournament Creation**: 
+    - Create new tournament directly from PowerScoring distribution
+    - Automatic tournament data migration
+    - Existing tournament backup before creation
+    - Seamless UI transition to tournament view
+  - **Session Management**: 
+    - Session persistence (auto-save/auto-load)
+    - Tournament-ID integration for Hub synchronization
+    - QR code generation for all players
+    - Live scoring updates via WebSocket
+  - **Comprehensive Help**: Detailed PowerScoring documentation in Help Window (DE/EN)
+
+- **🎨 Dark Mode Enhancements**: Complete dark mode support for all PowerScoring components
+  - **Theme Persistence**: Dark/Light mode preference saved and restored on app restart
+  - **PowerScoring Dialogs**: All dialogs fully theme-aware
+    - Main PowerScoring window with dark mode support
+    - Advanced distribution settings dialog
+    - Group distribution dialog
+    - Tournament creation confirmation dialog
+    - Session management dialogs
+  - **UI Components**: 
+    - ComboBox dropdowns with dark mode support (custom templates)
+    - DataGrid with theme-aware cells, rows, and headers
+    - Context menus with proper dark mode colors
+    - All text elements with dynamic foreground colors
+  - **Automatic Config Save**: Theme selection automatically persisted to config.json
+
 ### 🌐 Hub Integration Improvements
 - **Tournament-ID Persistence**: Tournament-ID managed via `TournamentManagementService`
   - Correct Tournament-ID propagation in all dialog paths (Print, Overview, Match entry)
@@ -58,6 +103,13 @@
   - Eliminated duplicate event handlers causing incorrect status display
   - Status now correctly shows "Disconnected" when connection is lost
   - Tournament-ID preserved and displayed during reconnection attempts
+- **Dark Mode Issues**:
+  - ✅ Fixed ComboBox dropdown readability (white text on white background)
+  - ✅ Fixed DataGrid visibility in dark mode (proper cell/row/header colors)
+  - ✅ Fixed PowerScoring session dialogs dark mode support
+  - ✅ Fixed PowerScoringAdvancedConfigDialog dark mode (footer, content cards)
+  - ✅ Fixed PowerScoringConfirmDialog dark mode (background, text, footer)
+  - ✅ Fixed theme persistence (dark mode now restored on app restart)
 
 ### 🌍 Localization
 - **Hub Registration Dialog Translations**: 13 new translation keys added
@@ -65,30 +117,25 @@
   - English translations in `EnglishHubLanguageProvider`
   - Dynamic UI translation for all dialog elements
   - Tooltips and buttons fully translated
-
-### 🏗️ Technical Improvements
-- **HubIntegrationService**: Extended with custom Tournament-ID parameter
-- **LicensedHubService**: Custom ID support with retry persistence
-- **TournamentDataSyncService**: Enhanced game rules synchronization
-  - Round-specific game rules for Winner/Loser Brackets
-- **New UI Components**:
-  - `HubRegistrationDialog.xaml` - Modern dialog with theme support
-  - `HubRegistrationDialog.cs` - With translation support and ID management
-- **Tournament-ID Propagation**: Correct passing via `TournamentManagementService.GetTournamentData()`
-  - All print methods corrected
-  - All match dialog paths corrected
-  - TournamentTreeRenderer corrected
-- **WebSocket Connection Architecture**:
-  - New `HubConnectionState` enum with 5 distinct states (Disconnected, WebSocketReady, TournamentRegistered, Connecting, Error)
-  - `ScheduleReconnect` method with duplicate prevention and smart scheduling
-  - Separate tracking of WebSocket connection and tournament registration status
-  - Event-driven architecture with `TournamentNeedsResync` event for automatic data synchronization
-  - 4-step reconnect process: HTTP re-registration → WebSocket re-subscription → data sync → timer restart
-- **Connection Status Management**:
-  - Deprecated legacy `OnHubStatusChanged` handler in favor of detailed state handler
-  - `UpdateHubStatusDetailed` method with comprehensive state visualization
-  - Real-time status updates via `HubConnectionStateChanged` event
-  - Comprehensive logging for all connection state changes
+- **PowerScoring Translations**: Comprehensive translation coverage
+  - **German**: 100+ translation keys in `GermanPowerScoringLanguageProvider`
+  - **English**: 100+ translation keys in `EnglishPowerScoringLanguageProvider`
+  - **Categories**:
+    - Main window UI elements (buttons, labels, tooltips)
+    - Scoring rules and session management
+    - Group distribution and configuration
+    - Advanced settings dialog
+    - Error messages and confirmations
+    - Success notifications
+    - Distribution modes and descriptions
+    - Tournament creation workflow
+  - **Help System**: PowerScoring section added to Help Window
+    - Detailed getting started guide
+    - Scoring rules explanation
+    - Distribution modes documentation
+    - Advanced settings guide
+    - QR code integration instructions
+    - Fully translated in German and English
 
 ### 🎨 UI/UX Improvements
 - **Hub Registration Dialog**:
@@ -110,6 +157,24 @@
   - WebSocket state tracking with timestamps
   - Tournament data sync progress indicators
   - Color-coded log messages for easy debugging
+- **PowerScoring UI**:
+  - **Modern Design**: Card-based layout with shadows and gradients
+  - **Loading Overlay**: Animated loading screen during Hub registration
+  - **Responsive Layout**: Adaptive UI for different content states (setup/scoring/results)
+  - **Visual Feedback**: Success/error notifications for all actions
+  - **Player Management**: Inline player add/remove with visual feedback
+  - **Score Entry**: Clean score input interface with validation
+  - **Results Display**: DataGrid with sorting and context menus
+  - **Preview System**: Visual distribution preview before tournament creation
+  - **Dark Mode Compatible**: All UI elements properly themed
+- **PowerScoring Workflow**:
+  - **Step 1**: Tournament-ID and scoring rule selection
+  - **Step 2**: Player management with add/remove functionality
+  - **Step 3**: Scoring phase with QR codes or manual entry
+  - **Step 4**: Results ranking and distribution preview
+  - **Step 5**: Tournament creation with confirmation
+  - Seamless transitions between all phases
+  - Context-aware button visibility
 
 ### 🚀 Performance & Stability
 - **Reconnect Reliability**: Continuous retry mechanism until connection is restored
@@ -118,6 +183,12 @@
 - **Resource Cleanup**: Safe cleanup of timers, connections, and event handlers
 - **Thread Safety**: Dispatcher-based UI updates for thread-safe operations
 - **State Management**: Robust tracking of connection and registration states
+- **PowerScoring Performance**:
+  - Efficient player ranking algorithms (O(n log n))
+  - Optimized distribution calculations
+  - Async/await for non-blocking UI operations
+  - Session persistence for quick resume
+  - Minimal memory footprint for large player lists
 
 ### 📚 Documentation
 - **Code Comments**: Extensive documentation of reconnect logic and state management
@@ -278,3 +349,11 @@
 
 
 ## v0.0.0
+- **PowerScoring Documentation**:
+  - Inline code documentation for all public methods
+  - Phase-based implementation documentation (Phase 1-3)
+  - Service layer responsibility documentation
+  - Translation key documentation
+  - Help Window integration with comprehensive user guide
+  - Distribution mode explanations and use cases
+  - QR code integration setup instructions

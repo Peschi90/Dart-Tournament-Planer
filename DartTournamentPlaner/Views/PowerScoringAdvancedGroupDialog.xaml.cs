@@ -71,15 +71,30 @@ public partial class PowerScoringAdvancedGroupDialog : Window
     
     // ✅ FIX: Flag um parallele Generierung zu verhindern
     private bool _isGenerating = false;
+    
+    // ✅ NEU: Service für Tournament-Konvertierung
+    private readonly PowerScoringToTournamentService _tournamentConversionService;
+    
+    // ✅ PHASE 3: Service für Tournament-Management
+    private readonly TournamentManagementService? _tournamentManagementService;
+    private readonly Window? _parentWindow;
+    private readonly MainWindow? _mainWindow; // ✅ PHASE 3: MainWindow für UI-Refresh
 
     public PowerScoringAdvancedGroupDialog(
         PowerScoringService powerScoringService,
-        LocalizationService localizationService)
+        LocalizationService localizationService,
+        TournamentManagementService? tournamentManagementService = null,
+        Window? parentWindow = null,
+        MainWindow? mainWindow = null) // ✅ PHASE 3
     {
         InitializeComponent();
         
         _powerScoringService = powerScoringService;
         _localizationService = localizationService;
+        _tournamentConversionService = new PowerScoringToTournamentService();
+        _tournamentManagementService = tournamentManagementService; // ✅ PHASE 3
+        _parentWindow = parentWindow; // ✅ PHASE 3
+        _mainWindow = mainWindow; // ✅ PHASE 3
 
         InitializeClassSelection();
         
@@ -114,6 +129,7 @@ public partial class PowerScoringAdvancedGroupDialog : Window
             CopyButton.Content = _localizationService.GetString("PowerScoring_GroupDistribution_Export");
             CloseButton.Content = _localizationService.GetString("PowerScoring_GroupDistribution_Cancel");
             AdvancedSettingsButton.Content = _localizationService.GetString("PowerScoring_GroupDistribution_Advanced");
+            CreateTournamentButton.Content = _localizationService.GetString("PowerScoring_CreateTournament_Create"); // ✅ NEU
             
             // ComboBox Items übersetzen
             UpdateComboBoxTranslations();
@@ -450,6 +466,11 @@ public partial class PowerScoringAdvancedGroupDialog : Window
                 // ✅ FIX: Force UI Update
                 GroupsDisplay.Items.Refresh();
                 
+                // ✅ NEU: Zeige "Create Tournament" Button wenn Distribution vorhanden
+                CreateTournamentButton.Visibility = _currentDistribution.Count > 0 
+                    ? Visibility.Visible 
+                    : Visibility.Collapsed;
+                
                 System.Diagnostics.Debug.WriteLine($"✅ Display updated with {displayItems.Count} groups:");
                 
                 foreach (var item in displayItems)
@@ -515,6 +536,143 @@ public partial class PowerScoringAdvancedGroupDialog : Window
         Close();
     }
     
+    /// <summary>
+    /// ✅ NEU: Handler für "Create Tournament" Button
+    /// </summary>
+    private async void CreateTournamentButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🏆 Create Tournament button clicked");
+            
+            // 1. Validiere Distribution
+            var validation = _tournamentConversionService.ValidateDistribution(_currentDistribution);
+            
+            if (!validation.IsValid)
+            {
+                PowerScoringConfirmDialog.ShowError(
+                    _localizationService.GetString("Error"),
+                    validation.GetSummary(),
+                    this);
+                return;
+            }
+            
+            // 2. Erstelle Preview
+            var preview = _tournamentConversionService.CreatePreview(_currentDistribution);
+            
+            // 3. Prüfe ob bestehendes Turnier vorhanden
+            bool hasPendingTournament = _tournamentManagementService?.HasActiveTournament() ?? false;
+            
+            System.Diagnostics.Debug.WriteLine($"   Has pending tournament: {hasPendingTournament}");
+            
+            // 4. Zeige Confirmation Dialog
+            var confirmed = PowerScoringCreateTournamentDialog.ShowDialog(
+                preview,
+                hasPendingTournament,
+                _localizationService,
+                this);
+            
+            if (confirmed == true)
+            {
+                // 5. Erstelle Turnier (Phase 3) - async call
+                await CreateTournamentFromDistribution();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error in CreateTournamentButton_Click: {ex.Message}");
+            PowerScoringConfirmDialog.ShowError(
+                _localizationService.GetString("Error"),
+                $"Error creating tournament: {ex.Message}",
+                this);
+        }
+    }
+    
+    /// <summary>
+    /// ✅ NEU: Erstellt Turnier aus Distribution (Phase 3)
+    /// </summary>
+    private async Task CreateTournamentFromDistribution()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("🏗️ Creating tournament from distribution...");
+            
+            // 1. Validiere dass Services vorhanden sind
+            if (_tournamentManagementService == null)
+            {
+                System.Diagnostics.Debug.WriteLine("❌ TournamentManagementService not available");
+                PowerScoringConfirmDialog.ShowError(
+                    _localizationService.GetString("Error"),
+                    "Tournament Management Service is not available. Please restart the application.",
+                    this);
+                return;
+            }
+            
+            // 2. Konvertiere Distribution zu TournamentClasses
+            System.Diagnostics.Debug.WriteLine("🔄 Converting distribution to tournament classes...");
+            var tournamentClasses = _tournamentConversionService.ConvertDistributionToTournamentClasses(_currentDistribution);
+            
+            System.Diagnostics.Debug.WriteLine($"✅ Converted to {tournamentClasses.Count} tournament classes");
+            
+            // 3. Erstelle Turnier über TournamentManagementService
+            System.Diagnostics.Debug.WriteLine("🏗️ Creating tournament...");
+            if (!await _tournamentManagementService.CreateTournamentFromPowerScoringAsync(tournamentClasses))
+            {
+                PowerScoringConfirmDialog.ShowError(
+                    _localizationService.GetString("Error"),
+                    "Failed to create tournament. Please check the logs.",
+                    this);
+                return;
+            }
+            
+            System.Diagnostics.Debug.WriteLine("✅ Tournament created successfully!");
+            
+            // 4. Zeige Success-Message
+            PowerScoringConfirmDialog.ShowSuccess(
+                _localizationService.GetString("PowerScoring_CreateTournament_Success_Title"),
+                _localizationService.GetString("PowerScoring_CreateTournament_Success_Message"),
+                this);
+            
+            // 5. ✅ WICHTIG: Aktualisiere MainWindow UI VOR dem Schließen
+            if (_mainWindow != null)
+            {
+                System.Diagnostics.Debug.WriteLine("🔄 Refreshing MainWindow UI with new tournament data...");
+                _mainWindow.RefreshTournamentData();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ MainWindow reference is null - UI will not refresh automatically");
+            }
+            
+            // 6. Schließe alle PowerScoring-Dialoge
+            System.Diagnostics.Debug.WriteLine("🔄 Closing PowerScoring dialogs...");
+            
+            // Schließe diesen Dialog
+            DialogResult = true;
+            Close();
+            
+            // Finde und schließe PowerScoringWindow (Parent)
+            if (_parentWindow != null)
+            {
+                System.Diagnostics.Debug.WriteLine("   Closing PowerScoringWindow...");
+                _parentWindow.Close();
+            }
+            
+            // MainWindow wird automatisch von PowerScoringWindow.Closed Event geöffnet
+            System.Diagnostics.Debug.WriteLine("✅ Tournament creation flow complete!");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error creating tournament: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"   StackTrace: {ex.StackTrace}");
+            
+            PowerScoringConfirmDialog.ShowError(
+                _localizationService.GetString("Error"),
+                $"Error creating tournament: {ex.Message}",
+                this);
+        }
+    }
+    
     // =====================================
     // CONFIGURATION & DISTRIBUTION METHODS
     // =====================================
@@ -526,7 +684,7 @@ public partial class PowerScoringAdvancedGroupDialog : Window
         
         // Hole gewählte Klassen (überschreibt Advanced Config)
         config.SelectedClasses.Clear();
-        for (int i = 0; i < _classItems.Count; i++)
+        for (int i = 0; i < _classItems.Count; i++) // ✅ FIX: "int" statt "numér"
         {
             if (_classItems[i].IsSelected)
             {

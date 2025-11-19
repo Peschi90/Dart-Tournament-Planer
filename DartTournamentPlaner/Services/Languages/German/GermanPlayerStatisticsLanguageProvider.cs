@@ -1,10 +1,10 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 
 namespace DartTournamentPlaner.Services.Languages.German;
 
 /// <summary>
-/// Deutsche Übersetzungen für PlayerStatisticsView und verwandte Statistik-Anzeigen
-/// Ergänzt die GermanStatisticsLanguageProvider um spezifische UI-Texte
+/// Deutsche Ãœbersetzungen fÃ¼r PlayerStatisticsView und verwandte Statistik-Anzeigen
+/// ErgÃ¤nzt die GermanStatisticsLanguageProvider um spezifische UI-Texte
 /// </summary>
 public class GermanPlayerStatisticsLanguageProvider : ILanguageSection
 {
@@ -15,33 +15,34 @@ public class GermanPlayerStatisticsLanguageProvider : ILanguageSection
             // PlayerStatisticsView - Spezifische UI-Texte (die nicht in GermanStatisticsLanguageProvider enthalten sind)
             ["PlayersText"] = "Spieler mit Statistiken",
 
-            // DataGrid Column Headers - spezifische für PlayerStatisticsView
+            // DataGrid Column Headers - spezifische fÃ¼r PlayerStatisticsView
             ["PlayerHeader"] = "Spieler",
+            ["MatchesColumn"] = "Spiele",
             ["LastMatchDate"] = "Letztes Match",
             ["FastestMatch"] = "Schnellstes Match",
-            ["FewestThrowsInMatch"] = "Wenigste Würfe",
+            ["FewestThrowsInMatch"] = "Wenigste WÃ¼rfe",
             ["FewestDartsPerLeg"] = "Min Darts/Leg", // ? NEU
-            ["AverageDartsPerLeg"] = "? Darts/Leg", // ? NEU
+            ["AverageDartsPerLeg"] = "âŒ€ Darts/Leg", // ? NEU
             ["BestLegEfficiency"] = "Beste Leg-Effizienz", // ? NEU
 
-            // Status-Meldungen - spezifisch für PlayerStatisticsView
+            // Status-Meldungen - spezifisch fÃ¼r PlayerStatisticsView
             ["StatisticsLoading"] = "Statistiken werden geladen...",
             ["StatisticsUpdated"] = "Statistiken aktualisiert",
             ["StatisticsNotEnabled"] = "Statistiken nicht aktiviert",
             ["ShowAllPlayers"] = "Angezeigt",
 
-            // Tooltips und Hilfe-Texte - spezifisch für PlayerStatisticsView
-            ["FastestMatchTooltip"] = "Kürzeste Spieldauer über alle Matches (MM:SS)",
-            ["FewestThrowsTooltip"] = "Wenigste Würfe in einem Match (beste Wurf-Effizienz)",
-            ["FewestDartsPerLegTooltip"] = "Wenigste benötigte Darts für ein gewonnenes Leg", // ? NEU
+            // Tooltips und Hilfe-Texte - spezifisch fÃ¼r PlayerStatisticsView
+            ["FastestMatchTooltip"] = "KÃ¼rzeste Spieldauer Ã¼ber alle Matches (MM:SS)",
+            ["FewestThrowsTooltip"] = "Wenigste WÃ¼rfe in einem Match (beste Wurf-Effizienz)",
+            ["FewestDartsPerLegTooltip"] = "Wenigste benÃ¶tigte Darts fÃ¼r ein gewonnenes Leg", // ? NEU
             ["AverageDartsPerLegTooltip"] = "Durchschnittliche Darts pro gewonnenem Leg", // ? NEU
             ["BestLegEfficiencyTooltip"] = "Beste Leg-Effizienz (wenigste Darts + Average)", // ? NEU
             ["HighFinishScoresTooltip"] = "Alle High Finish Scores durch | getrennt",
             ["PlayerHeaderTooltip"] = "Name des Spielers",
             ["MatchWinRateTooltip"] = "Prozentsatz der gewonnenen Spiele",
-            ["BestAverageTooltip"] = "Höchster Average in einem Match",
-            ["HighestFinishTooltip"] = "Höchstes High Finish dieses Spielers",
-            ["Score26Tooltip"] = "Anzahl der schlechten Würfe (26 Punkte oder weniger)",
+            ["BestAverageTooltip"] = "HÃ¶chster Average in einem Match",
+            ["HighestFinishTooltip"] = "HÃ¶chstes High Finish dieses Spielers",
+            ["Score26Tooltip"] = "Anzahl der schlechten WÃ¼rfe (26 Punkte oder weniger)",
             ["LastMatchTooltip"] = "Datum des letzten gespielten Matches"
         };
     }

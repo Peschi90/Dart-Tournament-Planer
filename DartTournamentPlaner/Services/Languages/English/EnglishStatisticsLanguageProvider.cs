@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace DartTournamentPlaner.Services.Languages.English;
 
@@ -51,7 +51,7 @@ public class EnglishStatisticsLanguageProvider : ILanguageSection
             ["AverageCheckout"] = "Average Checkout",
             ["CheckoutAccuracy"] = "Checkout Accuracy",
             ["FewestDartsToFinish"] = "Fewest Darts to Finish",
-            ["AverageDartsPerCheckout"] = "Avg Darts per Checkout",
+            ["AverageDartsPerCheckout"] = "⌀ Avg Darts per Checkout",
             ["FastestCheckout"] = "Fastest Checkout",
 
             // Score Statistics

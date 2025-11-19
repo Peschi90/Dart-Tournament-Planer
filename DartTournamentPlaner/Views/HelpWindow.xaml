@@ -222,6 +222,7 @@
                             <TreeViewItem x:Name="MatchesItem" Header="?? Matches &amp; Results"/>
                             <TreeViewItem x:Name="TournamentPhasesItem" Header="?? Tournament Phases"/>
                             <TreeViewItem x:Name="MenusItem" Header="?? Menus &amp; Functions"/>
+                            <TreeViewItem x:Name="PowerScoringItem" Header="? PowerScoring"/>
                             <TreeViewItem x:Name="LicenseSystemItem" Header="?? License System"/>
                             <TreeViewItem x:Name="ApiIntegrationItem" Header="?? API Integration"/>
                             <TreeViewItem x:Name="TournamentHubItem" Header="?? Tournament Hub"/>

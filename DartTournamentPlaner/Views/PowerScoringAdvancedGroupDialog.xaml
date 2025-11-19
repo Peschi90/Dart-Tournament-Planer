@@ -147,10 +147,10 @@
                             </ComboBox>
                         </StackPanel>
                         
-                        <!-- ? NEU: Advanced Settings Button -->
+                        <!-- ✅ NEU: Advanced Settings Button -->
                         <Button Grid.Column="1"
                                 x:Name="AdvancedSettingsButton"
-                                Content="?? Advanced"
+                                Content="⚙️ Advanced"
                                 Style="{StaticResource ModernButton}"
                                 Click="AdvancedSettingsButton_Click"
                                 VerticalAlignment="Bottom"
@@ -235,6 +235,15 @@
                     Content="Copy to Clipboard"
                     Style="{StaticResource ModernButton}"
                     Click="CopyButton_Click"/>
+            
+            <!-- ✅ NEU: Create Tournament Button -->
+            <Button x:Name="CreateTournamentButton"
+                    Content="🏆 Create Tournament"
+                    Style="{StaticResource ModernButton}"
+                    Click="CreateTournamentButton_Click"
+                    ToolTip="Create a new tournament based on this distribution"
+                    Visibility="Collapsed"/>
+            
             <Button x:Name="CloseButton"
                     Content="Close"
                     Style="{StaticResource ModernButton}"

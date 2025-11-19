@@ -44,11 +44,14 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             ["ResetFinalsPhase"] = "Finalrunde zurücksetzen",
             ["RefreshUI"] = "UI aktualisieren",
             ["RefreshUITooltip"] = "Aktualisiert die Benutzeroberfläche",
-            ["PlayersPlural"] = "Spieler", // ✅ NEU: Für Group.ToString() - reine Plural-Formen ohne Doppelpunkt
-            ["MatchesPlural"] = "Spiele",    // ✅ NEU: Gruppenphasen-Untertabs
+
+            // ✅ NEU: For Group.ToString() - pure plural forms without colon
+            ["PlayersPlural"] = "Spieler",
+            ["MatchesPlural"] = "Spiele",
+
+            // ✅ NEU: Group phase sub-tabs
             ["GamesTab"] = "🎯 Spiele",
             ["TableTab"] = "📊 Tabelle",
-
 
             // Turnierprozessphasen
             ["GroupPhase"] = "Gruppenphase",
@@ -211,7 +214,7 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             ["LoserBracketTab"] = "Loser Bracket",
             ["KOParticipantsTab"] = "KO-Teilnehmer",
             ["BracketOverviewTab"] = "Bracket-Übersicht",
-            ["TreeViewTab"] = "Turnierturm",
+            ["TreeViewTab"] = "Turnierbaum",
 
             // KO-Phase Status und Meldungen
             ["KOPhaseNotActive"] = "KO-Phase ist nicht aktiv",

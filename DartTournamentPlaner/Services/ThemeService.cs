@@ -1,18 +1,18 @@
-using System;
+Ôªøusing System;
 using System.Linq;
 using System.Windows;
 
 namespace DartTournamentPlaner.Services
 {
     /// <summary>
-    /// Service f¸r die Verwaltung von Anwendungsthemes (Light/Dark Mode)
+    /// Service f√ºr die Verwaltung von Anwendungsthemes (Light/Dark Mode)
     /// </summary>
     public class ThemeService
     {
         private readonly ConfigService _configService;
         
         /// <summary>
-        /// Event das gefeuert wird wenn das Theme ge‰ndert wird
+        /// Event das gefeuert wird wenn das Theme ge√§ndert wird
         /// </summary>
         public event EventHandler<string>? ThemeChanged;
         
@@ -45,21 +45,24 @@ namespace DartTournamentPlaner.Services
                     Application.Current.Resources.MergedDictionaries.Remove(existingTheme);
                 }
                 
-                // F¸ge neues Theme hinzu
+                // F√ºge neues Theme hinzu
                 var themeDict = new ResourceDictionary { Source = themeUri };
                 Application.Current.Resources.MergedDictionaries.Insert(0, themeDict);
                 
                 // Aktualisiere Config
                 _configService.Config.Theme = themeName;
                 
+                // ‚úÖ NEU: Speichere Config automatisch (async, fire-and-forget ist OK hier)
+                _ = _configService.SaveConfigAsync();
+                
                 // Feuere Theme-Changed Event
                 ThemeChanged?.Invoke(this, themeName);
                 
-                System.Diagnostics.Debug.WriteLine($"ThemeService: Applied theme '{themeName}' and fired ThemeChanged event");
+                System.Diagnostics.Debug.WriteLine($"‚úÖ ThemeService: Applied and saved theme '{themeName}'");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ThemeService.ApplyTheme: Error applying theme '{themeName}': {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"‚ùå ThemeService.ApplyTheme: Error applying theme '{themeName}': {ex.Message}");
                 
                 // Fallback auf Light Theme
                 if (themeName.ToLower() != "light")
@@ -80,7 +83,7 @@ namespace DartTournamentPlaner.Services
         }
         
         /// <summary>
-        /// Gibt das aktuell verwendete Theme zur¸ck
+        /// Gibt das aktuell verwendete Theme zur√ºck
         /// </summary>
         public string GetCurrentTheme()
         {
@@ -88,7 +91,7 @@ namespace DartTournamentPlaner.Services
         }
         
         /// <summary>
-        /// Pr¸ft, ob gerade das Dark Theme aktiv ist
+        /// Pr√ºft, ob gerade das Dark Theme aktiv ist
         /// </summary>
         public bool IsDarkTheme()
         {

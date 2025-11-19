@@ -198,18 +198,95 @@ public class GermanHelpContentLanguageProvider : ILanguageSection
                 "• Phasen-Progressions-Statistiken\n\n" +
                 "ERWEITERTE FEATURES (Lizenz erforderlich):\n" +
                 "• 📊 Detaillierte Leistungsanalysen\n" +
-                "• 📈 Grafische Trendanalyse\n" +
-                "• 🎯 Genauigkeits- und Konsistenz-Metriken\n" +
-                "• 🏆 Achievement-Tracking\n" +
-                "• 📋 Exportierbare Berichte\n" +
-                "• 📱 Mobile-freundliche Statistik-Ansichten\n\n" +
-                "STATISTIKEN ZUGREIFEN:\n" +
-                "• Klicken Sie auf jeden Spieler in der Spielerliste\n" +
-                "• Verwenden Sie den Statistiken-Tab (Lizenz erforderlich)\n" +
-                "• Anzeige über Turnierübersicht\n" +
-                "• Export über API-Endpunkte\n\n" +
-                "Statistiken werden in Echtzeit aktualisiert, wenn Spiele abgeschlossen werden und bieten wertvolle Einblicke für Spieler und Turnierorganisatoren.",
+                "• 📉 Trend-Diagramme und Visualisierungen\n" +
+                "• 🏆 Bestenlisten und Rankings\n" +
+                "• 📈 Export-Funktionen für Statistiken\n" +
+                "• 🎯 Spielervergleiche\n\n" +
+                "Statistiken werden automatisch während des Turniers aktualisiert und können jederzeit eingesehen werden.",
 
+            ["HelpPowerScoringContent"] = "⚡ POWERSCORING\n\n" +
+                "PowerScoring ermöglicht eine intelligente Spieler-Einteilung basierend auf Leistungsdaten:\n\n" +
+                "ERSTE SCHRITTE:\n" +
+                "1. Öffnen Sie PowerScoring über das PowerScoring-Menü\n" +
+                "2. Wählen Sie eine Scoring-Regel (1x3, 8x3, 10x3 oder 15x3 Würfe)\n" +
+                "3. Fügen Sie Spieler hinzu\n" +
+                "4. Starten Sie das Scoring\n" +
+                "5. Geben Sie die Scores ein oder verwenden Sie QR-Codes für Remote-Eingabe\n" +
+                "6. Schließen Sie das Scoring ab und generieren Sie Gruppen\n\n" +
+                "SCORING-REGELN:\n" +
+                "• 1x3 Würfe: Schnelle Einschätzung (3 Darts)\n" +
+                "• 8x3 Würfe: Standard-Bewertung (24 Darts)\n" +
+                "• 10x3 Würfe: Ausführliche Bewertung (30 Darts)\n" +
+                "• 15x3 Würfe: Sehr detaillierte Bewertung (45 Darts)\n\n" +
+                "GRUPPENEINTEILUNG:\n" +
+                "Nach dem Scoring können Sie automatisch ausgeglichene Gruppen erstellen:\n" +
+                "• Wählen Sie Klassen (Platin, Gold, Silber, Bronze, Eisen)\n" +
+                "• Konfigurieren Sie Gruppen pro Klasse (1-4)\n" +
+                "• Legen Sie Spieler pro Gruppe fest (2-6)\n" +
+                "• Wählen Sie einen Verteilungsmodus\n\n" +
+                "VERTEILUNGSMODI:\n" +
+                "⚖️ Balanced: Gleichmäßige Verteilung nach Ranking\n" +
+                "   → Beste Spieler werden gleichmäßig auf Gruppen verteilt\n\n" +
+                "🐍 Snake Draft: 1-2-3-4-4-3-2-1 Muster\n" +
+                "   → Zickzack-Verteilung für ausgeglichene Gruppen\n\n" +
+                "🔝 Top-Heavy: Stärkste zuerst\n" +
+                "   → Gruppe 1 erhält die stärksten Spieler, dann Gruppe 2, etc.\n\n" +
+                "🎲 Random: Zufällige Verteilung\n" +
+                "   → Spieler werden zufällig auf Gruppen verteilt\n\n" +
+                "ERWEITERTE EINSTELLUNGEN:\n" +
+                "• Klassen-spezifische Gruppen- und Spieleranzahl\n" +
+                "• Klassen überspringen\n" +
+                "• Individuelle Spieler-Limits pro Klasse\n" +
+                "• Vorschau der Verteilung vor Bestätigung\n\n" +
+                "TURNIER ERSTELLEN:\n" +
+                "Nach erfolgreicher Gruppeneinteilung können Sie:\n" +
+                "• Die Verteilung als Vorschau anzeigen\n" +
+                "• Ein neues Turnier basierend auf der Verteilung erstellen\n" +
+                "• Das bestehende Turnier wird automatisch gespeichert\n" +
+                "• Die Gruppen und Spieler werden ins Turnier übernommen\n\n" +
+                "QR-CODE INTEGRATION (mit Tournament Hub):\n" +
+                "• Generieren Sie QR-Codes für alle Spieler\n" +
+                "• Spieler scannen ihren QR-Code\n" +
+                "• Scores werden automatisch über WebSocket übertragen\n" +
+                "• Live-Updates während des Scorings\n\n" +
+                "VORTEILE:\n" +
+                "• Objektive Spieler-Bewertung\n" +
+                "• Ausgeglichene Gruppenzusammenstellung\n" +
+                "• Zeitersparnis bei Turniervorbereitung\n" +
+                "• Professionelle Turnier-Organisation\n" +
+                "• Remote-Scoring via QR-Codes möglich\n\n" +
+                "PowerScoring benötigt eine aktive Lizenz mit PowerScoring-Feature.",
+            ["HelpTipsContent"] = "💡 TIPPS & TRICKS\n\n" +
+                "ALLGEMEINE TIPPS:\n" +
+                "• Aktivieren Sie Auto-Speichern in den Einstellungen, um Datenverlust zu verhindern\n" +
+                "• Verwenden Sie aussagekräftige Gruppen- und Spielernamen\n" +
+                "• Überprüfen Sie Turnierregeln vor dem Start von Spielen\n" +
+                "• Synchronisieren Sie regelmäßig mit Tournament Hub, falls verbunden\n\n" +
+                "EFFIZIENZ-TIPPS:\n" +
+                "• Verwenden Sie Tastaturkürzel, wo verfügbar\n" +
+                "• Batch-Hinzufügen von Spielern über Copy-Paste\n" +
+                "• Richten Sie Vorlagen für wiederkehrende Turniere ein\n" +
+                "• Verwenden Sie die Turnierübersicht für schnelle Status-Checks\n\n" +
+                "ERWEITERTE FEATURES:\n" +
+                "• Drücken Sie Shift+Klick auf Drucken für Debug-Informationen\n" +
+                "• Klicken Sie auf Hub-Status-Indikator für Debug-Konsole\n" +
+                "• Verwenden Sie API-Integration für automatisierte Punktevergabe\n" +
+                "• Nutzen Sie Tournament Hub für Remote-Management\n\n" +
+                "PROBLEMLÖSUNG:\n" +
+                "• Überprüfen Sie Internetverbindung für Hub/API-Features\n" +
+                "• Verifizieren Sie Lizenz-Status für Premium-Features\n" +
+                "• Verwenden Sie Hilfe → Fehler melden für Probleme\n" +
+                "• Überprüfen Sie die Debug-Konsole für technische Informationen\n\n" +
+                "LIZENZ-OPTIMIERUNG:\n" +
+                "• Erwägen Sie Professional-Lizenz für mehrere Computer\n" +
+                "• Verwenden Sie Enterprise-Lizenz für Turnierorganisationen\n" +
+                "• Kontaktieren Sie Support für individuelle Lizenzanforderungen\n" +
+                "• Premium-Features verbessern Turnierverwaltung erheblich\n\n" +
+                "SUPPORT:\n" +
+                "• Verwenden Sie Hilfe → Fehler melden, um Probleme zu melden\n" +
+                "• Fügen Sie Systeminformationen in Fehlerberichte ein\n" +
+                "• Überprüfen Sie das GitHub-Repository für Updates\n" +
+                "• Erwägen Sie, die Entwicklung durch Spenden zu unterstützen",
             ["HelpPrintingContent"] = "🖨️ DRUCKEN\n\n" +
                 "Die Anwendung bietet umfassende Druckfunktionen für Turnierdokumentation:\n\n" +
                 "BASIS-DRUCKEN (Immer verfügbar):\n" +
@@ -242,39 +319,8 @@ public class GermanHelpContentLanguageProvider : ILanguageSection
                 "• Batch-Druckfunktionen\n" +
                 "• Hochqualitative PDF-Generierung\n" +
                 "• Druckjob-Optimierung\n\n" +
-                "Erweiterte Druckfeatures benötigen eine aktive Lizenz und bieten professionelle Turnierdokumentation für offizielle Events.",
+                "Erweiterte Druckfeatures benötigen eine aktive Lizenz und bieten professionelle Turnierdokumentation für offizielle Events."
 
-            ["HelpTipsContent"] = "💡 TIPPS & TRICKS\n\n" +
-                "ALLGEMEINE TIPPS:\n" +
-                "• Aktivieren Sie Auto-Speichern in den Einstellungen, um Datenverlust zu verhindern\n" +
-                "• Verwenden Sie aussagekräftige Gruppen- und Spielernamen\n" +
-                "• Überprüfen Sie Turnierregeln vor dem Start von Spielen\n" +
-                "• Synchronisieren Sie regelmäßig mit Tournament Hub, falls verbunden\n\n" +
-                "EFFIZIENZ-TIPPS:\n" +
-                "• Verwenden Sie Tastaturkürzel, wo verfügbar\n" +
-                "• Batch-Hinzufügen von Spielern über Copy-Paste\n" +
-                "• Richten Sie Vorlagen für wiederkehrende Turniere ein\n" +
-                "• Verwenden Sie die Turnierübersicht für schnelle Status-Checks\n\n" +
-                "ERWEITERTE FEATURES:\n" +
-                "• Drücken Sie Shift+Klick auf Drucken für Debug-Informationen\n" +
-                "• Klicken Sie auf Hub-Status-Indikator für Debug-Konsole\n" +
-                "• Verwenden Sie API-Integration für automatisierte Punktevergabe\n" +
-                "• Nutzen Sie Tournament Hub für Remote-Management\n\n" +
-                "PROBLEMLÖSUNG:\n" +
-                "• Überprüfen Sie Internetverbindung für Hub/API-Features\n" +
-                "• Verifizieren Sie Lizenz-Status für Premium-Features\n" +
-                "• Verwenden Sie Hilfe → Fehler melden für Probleme\n" +
-                "• Überprüfen Sie die Debug-Konsole für technische Informationen\n\n" +
-                "LIZENZ-OPTIMIERUNG:\n" +
-                "• Erwägen Sie Professional-Lizenz für mehrere Computer\n" +
-                "• Verwenden Sie Enterprise-Lizenz für Turnierorganisationen\n" +
-                "• Kontaktieren Sie Support für individuelle Lizenzanforderungen\n" +
-                "• Premium-Features verbessern Turnierverwaltung erheblich\n\n" +
-                "SUPPORT:\n" +
-                "• Verwenden Sie Hilfe → Fehler melden, um Probleme zu melden\n" +
-                "• Fügen Sie Systeminformationen in Fehlerberichte ein\n" +
-                "• Überprüfen Sie das GitHub-Repository für Updates\n" +
-                "• Erwägen Sie, die Entwicklung durch Spenden zu unterstützen"
         };
     }
 }

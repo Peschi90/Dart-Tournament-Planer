@@ -121,6 +121,19 @@ public class GermanPowerScoringLanguageProvider : ILanguageSection
             ["PowerScoring_GroupDistribution_Export"] = "💾 Exportieren",
             ["PowerScoring_GroupDistribution_Cancel"] = "❌ Abbrechen",
             
+            // ✅ NEU: Create Tournament
+            ["PowerScoring_CreateTournament_Title"] = "Turnier erstellen",
+            ["PowerScoring_CreateTournament_Create"] = "🏆 Turnier erstellen",
+            ["PowerScoring_CreateTournament_Summary"] = "Turnier-Übersicht",
+            ["PowerScoring_CreateTournament_Warning"] = "Bestehendes Turnier vorhanden",
+            ["PowerScoring_CreateTournament_WarningMessage"] = "Das aktuelle Turnier wird gespeichert und ein neues Turnier basierend auf dieser Verteilung erstellt.",
+            ["PowerScoring_CreateTournament_Details"] = "Details",
+            ["PowerScoring_CreateTournament_Confirmation"] = "Möchten Sie das Turnier mit dieser Konfiguration erstellen?",
+
+            // ✅ PHASE 3: Success Messages
+            ["PowerScoring_CreateTournament_Success_Title"] = "Turnier erstellt",
+            ["PowerScoring_CreateTournament_Success_Message"] = "Das Turnier wurde erfolgreich erstellt!\n\nSie können jetzt mit der Turnierverwaltung fortfahren.",
+            
             // =====================================
             // ADVANCED SETTINGS DIALOG
             // =====================================

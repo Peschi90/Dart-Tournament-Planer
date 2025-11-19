@@ -36,6 +36,7 @@ public partial class HelpWindow : Window
             { MatchesItem, "HelpMatchesContent" },
             { TournamentPhasesItem, "HelpTournamentPhasesContent" },
             { MenusItem, "HelpMenusContent" },
+            { PowerScoringItem, "HelpPowerScoringContent" },
             { LicenseSystemItem, "HelpLicenseSystemContent" },
             { ApiIntegrationItem, "HelpApiIntegrationContent" },
             { TournamentHubItem, "HelpTournamentHubContent" },
@@ -59,6 +60,7 @@ public partial class HelpWindow : Window
         MatchesItem.Header = _localizationService.GetString("HelpMatches");
         TournamentPhasesItem.Header = _localizationService.GetString("HelpTournamentPhases");
         MenusItem.Header = _localizationService.GetString("HelpMenus");
+        PowerScoringItem.Header = _localizationService.GetString("HelpPowerScoring");
         LicenseSystemItem.Header = _localizationService.GetString("HelpLicenseSystem");
         ApiIntegrationItem.Header = _localizationService.GetString("HelpApiIntegration");
         TournamentHubItem.Header = _localizationService.GetString("HelpTournamentHub");

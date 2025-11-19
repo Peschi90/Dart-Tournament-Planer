@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -11,7 +11,7 @@ using DartTournamentPlaner.Services;
 namespace DartTournamentPlaner.Views;
 
 /// <summary>
-/// Dialog f�r erweiterte Gruppenverteilungs-Einstellungen
+/// Dialog für erweiterte Gruppenverteilungs-Einstellungen
 /// </summary>
 public partial class PowerScoringAdvancedConfigDialog : Window
 {
@@ -38,6 +38,23 @@ public partial class PowerScoringAdvancedConfigDialog : Window
         {
             // Window Title
             Title = _localizationService.GetString("PowerScoring_AdvancedSettings_Title");
+            
+            // ✅ NEU: Header Title (im XAML mit x:Name)
+            if (FindName("HeaderTitleText") is TextBlock headerTitle)
+            {
+                headerTitle.Text = _localizationService.GetString("PowerScoring_AdvancedSettings_Title");
+            }
+            
+            // ✅ NEU: Section Titles
+            if (FindName("DistributionModeTitleText") is TextBlock distModeTitle)
+            {
+                distModeTitle.Text = _localizationService.GetString("PowerScoring_AdvancedSettings_DistributionMode");
+            }
+            
+            if (FindName("ClassRulesTitleText") is TextBlock classRulesTitle)
+            {
+                classRulesTitle.Text = _localizationService.GetString("PowerScoring_AdvancedSettings_ClassRules");
+            }
             
             // Buttons
             ApplyButton.Content = _localizationService.GetString("PowerScoring_AdvancedSettings_Apply");
@@ -195,7 +212,7 @@ public partial class PowerScoringAdvancedConfigDialog : Window
 }
 
 /// <summary>
-/// ViewModel f�r Klassen-Regeln in der UI
+/// ViewModel für Klassen-Regeln in der UI
 /// </summary>
 public class ClassRuleViewModel : INotifyPropertyChanged
 {

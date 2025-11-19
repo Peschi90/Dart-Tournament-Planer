@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace DartTournamentPlaner.Services.Languages.English;
 
@@ -17,11 +17,12 @@ public class EnglishPlayerStatisticsLanguageProvider : ILanguageSection
 
             // DataGrid Column Headers - specific for PlayerStatisticsView
             ["PlayerHeader"] = "Player",
+            ["MatchesColumn"] = "Matches",
             ["LastMatchDate"] = "Last Match",
             ["FastestMatch"] = "Fastest Match",
             ["FewestThrowsInMatch"] = "Fewest Throws",
             ["FewestDartsPerLeg"] = "Min Darts/Leg", // ? NEW
-            ["AverageDartsPerLeg"] = "? Darts/Leg", // ? NEW
+            ["AverageDartsPerLeg"] = "⌀ Darts/Leg", // ? NEW
             ["BestLegEfficiency"] = "Best Leg Efficiency", // ? NEW
 
             // Status messages - specific for PlayerStatisticsView

@@ -20,6 +20,7 @@ public class EnglishHelpAndApiLanguageProvider : ILanguageSection
             ["HelpMatches"] = "🏆 Matches & Results",
             ["HelpTournamentPhases"] = "📊 Tournament Phases",
             ["HelpMenus"] = "📋 Menus & Features",
+            ["HelpPowerScoring"] = "⚡ PowerScoring",
             ["HelpLicenseSystem"] = "🔑 License System",
             ["HelpApiIntegration"] = "🌐 API Integration",
             ["HelpTournamentHub"] = "🎯 Tournament Hub",

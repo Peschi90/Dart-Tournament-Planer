@@ -21,6 +21,7 @@ public class GermanHelpAndApiLanguageProvider : ILanguageSection
             ["HelpMatches"] = "🏆 Spiele & Ergebnisse",
             ["HelpTournamentPhases"] = "📊 Turnierphasen",
             ["HelpMenus"] = "📋 Menüs & Funktionen",
+            ["HelpPowerScoring"] = "⚡ PowerScoring",
             ["HelpLicenseSystem"] = "🔑 Lizenz-System",
             ["HelpApiIntegration"] = "🌐 API-Integration",
             ["HelpTournamentHub"] = "🎯 Tournament Hub",

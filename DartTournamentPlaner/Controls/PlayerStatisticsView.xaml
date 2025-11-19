@@ -318,7 +318,7 @@
                         </DataGridTextColumn>
 
                         <!-- ✅ NEU: Durchschnittliche Darts/Leg -->
-                        <DataGridTextColumn x:Name="AverageDartsPerLegColumn" Header="ᴓ Darts/Leg" Binding="{Binding AverageDartsPerWonLegFormatted}" Width="110">
+                        <DataGridTextColumn x:Name="AverageDartsPerLegColumn" Header="⌀ Darts/Leg" Binding="{Binding AverageDartsPerWonLegFormatted}" Width="110">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextAlignment" Value="Center"/>

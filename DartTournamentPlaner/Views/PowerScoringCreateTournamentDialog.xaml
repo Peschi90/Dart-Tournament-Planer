@@ -1,0 +1,207 @@
+<Window x:Class="DartTournamentPlaner.Views.PowerScoringCreateTournamentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Create Tournament" 
+        Height="550" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Window.Resources>
+        <!-- PowerScoring Gradient -->
+        <LinearGradientBrush x:Key="PowerScoringGradient" StartPoint="0,0" EndPoint="0,1">
+            <GradientStop Color="#8B5CF6" Offset="0"/>
+            <GradientStop Color="#6366F1" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Button Styles -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PowerScoringGradient}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" 
+                                Background="{TemplateBinding Background}" 
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#8B5CF6" Direction="270" ShadowDepth="0" 
+                                                          BlurRadius="20" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Main Container -->
+    <Border Background="White" 
+            CornerRadius="16" 
+            BorderBrush="#E5E7EB" 
+            BorderThickness="1"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="12" 
+                              BlurRadius="30" Opacity="0.15"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" 
+                    Background="{StaticResource PowerScoringGradient}" 
+                    CornerRadius="16,16,0,0" 
+                    Padding="32,20">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🏆" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="TitleText"
+                               Text="Create Tournament" 
+                               FontSize="18" 
+                               FontWeight="Bold" 
+                               Foreground="White" 
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="32,24">
+                <StackPanel>
+                    
+                    <!-- Summary -->
+                    <Border Background="#F5F3FF" 
+                            BorderBrush="#8B5CF6" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="📊 Tournament Overview" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#6B21A8" 
+                                       Margin="0,0,0,8"/>
+                            <TextBlock x:Name="SummaryText"
+                                       Text="4 Classes, 8 Groups, 32 Players"
+                                       FontSize="13"
+                                       Foreground="#374151"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Warning Panel (nur wenn bestehendes Turnier) -->
+                    <Border x:Name="WarningPanel"
+                            Background="#FEF3C7" 
+                            BorderBrush="#F59E0B" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16"
+                            Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Top"/>
+                            <StackPanel>
+                                <TextBlock Text="Bestehendes Turnier vorhanden" 
+                                           FontWeight="Bold" 
+                                           FontSize="13" 
+                                           Foreground="#92400E" 
+                                           Margin="0,0,0,4"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#92400E" LineHeight="18">
+                                    <Run Text="Das aktuelle Turnier wird gespeichert und ein neues Turnier basierend auf dieser Verteilung erstellt."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Details -->
+                    <Border Background="#F8FAFC" 
+                            BorderBrush="#E5E7EB" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="16" 
+                            Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="📋 Details" 
+                                       FontWeight="Bold" 
+                                       FontSize="14" 
+                                       Foreground="#374151" 
+                                       Margin="0,0,0,8"/>
+                            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="DetailsText"
+                                           TextWrapping="Wrap"
+                                           FontFamily="Consolas"
+                                           FontSize="11"
+                                           Foreground="#6B7280"
+                                           LineHeight="16"/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Confirmation -->
+                    <Border Background="#F0FDF4" 
+                            BorderBrush="#10B981" 
+                            BorderThickness="1" 
+                            CornerRadius="8" 
+                            Padding="16">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✅" FontSize="16" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="ConfirmationText"
+                                       TextWrapping="Wrap" FontSize="12" Foreground="#047857" LineHeight="18"
+                                       Text="Do you want to create the tournament with this configuration?"/>
+                        </StackPanel>
+                    </Border>
+                    
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Footer Buttons -->
+            <Border Grid.Row="2" 
+                    Background="#F8FAFC" 
+                    BorderBrush="#E5E7EB" 
+                    BorderThickness="0,1,0,0" 
+                    CornerRadius="0,0,16,16"
+                    Padding="32,16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="CancelButton" 
+                            Content="❌ Abbrechen" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Click="CancelButton_Click"/>
+                    
+                    <Button x:Name="CreateButton" 
+                            Content="🏆 Turnier erstellen" 
+                            Style="{StaticResource PrimaryButton}" 
+                            Click="CreateButton_Click"
+                            IsDefault="True"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

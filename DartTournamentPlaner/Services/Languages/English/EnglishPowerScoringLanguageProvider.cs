@@ -121,6 +121,19 @@ public class EnglishPowerScoringLanguageProvider : ILanguageSection
             ["PowerScoring_GroupDistribution_Export"] = "💾 Export",
             ["PowerScoring_GroupDistribution_Cancel"] = "❌ Cancel",
             
+            // ✅ NEW: Create Tournament
+            ["PowerScoring_CreateTournament_Title"] = "Create Tournament",
+            ["PowerScoring_CreateTournament_Create"] = "🏆 Create Tournament",
+            ["PowerScoring_CreateTournament_Summary"] = "Tournament Overview",
+            ["PowerScoring_CreateTournament_Warning"] = "Existing Tournament Found",
+            ["PowerScoring_CreateTournament_WarningMessage"] = "The current tournament will be saved and a new tournament will be created based on this distribution.",
+            ["PowerScoring_CreateTournament_Details"] = "Details",
+            ["PowerScoring_CreateTournament_Confirmation"] = "Do you want to create the tournament with this configuration?",
+
+            // ✅ PHASE 3: Success Messages
+            ["PowerScoring_CreateTournament_Success_Title"] = "Tournament Created",
+            ["PowerScoring_CreateTournament_Success_Message"] = "The tournament has been created successfully!\n\nYou can now continue with tournament management.",
+
             // =====================================
             // ADVANCED SETTINGS DIALOG
             // =====================================

@@ -1,9 +1,9 @@
-using System.Collections.Generic;
+ï»¿using System.Collections.Generic;
 
 namespace DartTournamentPlaner.Services.Languages.German;
 
 /// <summary>
-/// Deutsche Übersetzungen für Statistiken und WebSocket-Funktionen
+/// Deutsche Ãœbersetzungen fÃ¼r Statistiken und WebSocket-Funktionen
 /// </summary>
 public class GermanStatisticsLanguageProvider : ILanguageSection
 {
@@ -14,7 +14,7 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             // Statistiken Tab Header
             ["PlayerStatistics"] = "Spieler-Statistiken",
             ["TournamentStatistics"] = "Turnier-Statistiken",
-            ["StatisticsOverview"] = "Statistik-Übersicht",
+            ["StatisticsOverview"] = "Statistik-Ãœbersicht",
             ["PlayerRankings"] = "Spieler-Rangliste",
             ["PerformanceAnalysis"] = "Leistungsanalyse",
             ["StatisticsSummary"] = "Statistik-Zusammenfassung",
@@ -37,7 +37,7 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["TournamentAverage"] = "Turnier-Average",
             ["BestAverage"] = "Bester Average",
             ["WorstAverage"] = "Schlechtester Average",
-            ["HighestLegAverage"] = "Höchster Leg-Average",
+            ["HighestLegAverage"] = "HÃ¶chster Leg-Average",
             ["AverageScorePerDart"] = "Durchschnitt pro Pfeil",
 
             // Finish-Statistiken
@@ -46,12 +46,12 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["HighFinishes"] = "High Finishes",
             ["TotalHighFinishes"] = "Gesamt High Finishes",
             ["HighFinishScores"] = "HF Scores",
-            ["HighestFinish"] = "Höchstes Finish",
-            ["HighestFinishScore"] = "Höchstes Finish",
+            ["HighestFinish"] = "HÃ¶chstes Finish",
+            ["HighestFinishScore"] = "HÃ¶chstes Finish",
             ["AverageCheckout"] = "Durchschnittliches Checkout",
             ["CheckoutAccuracy"] = "Checkout-Genauigkeit",
             ["FewestDartsToFinish"] = "Wenigste Pfeile zum Finish",
-            ["AverageDartsPerCheckout"] = "Ø Pfeile pro Checkout",
+            ["AverageDartsPerCheckout"] = "âŒ€ Pfeile pro Checkout",
             ["FastestCheckout"] = "Schnellstes Checkout",
 
             // Score-Statistiken 
@@ -62,23 +62,23 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["Score26PerGame"] = "26er pro Spiel",
             ["HighScores"] = "Hohe Scores",
             ["ScoreDistribution"] = "Score-Verteilung",
-            ["Above100Average"] = "Über 100 Average",
-            ["Above80Average"] = "Über 80 Average",
-            ["Above60Average"] = "Über 60 Average",
+            ["Above100Average"] = "Ãœber 100 Average",
+            ["Above80Average"] = "Ãœber 80 Average",
+            ["Above60Average"] = "Ãœber 60 Average",
 
             // Erweiterte Effizienz-Statistiken
             ["FastestMatch"] = "Schnellstes Match",
-            ["FewestThrowsInMatch"] = "Wenigste Würfe",
-            ["FastestMatchTooltip"] = "Kürzeste Spieldauer über alle Matches (MM:SS)",
-            ["FewestThrowsTooltip"] = "Wenigste Würfe in einem Match (beste Wurf-Effizienz)",
+            ["FewestThrowsInMatch"] = "Wenigste WÃ¼rfe",
+            ["FastestMatchTooltip"] = "KÃ¼rzeste Spieldauer Ã¼ber alle Matches (MM:SS)",
+            ["FewestThrowsTooltip"] = "Wenigste WÃ¼rfe in einem Match (beste Wurf-Effizienz)",
 
             // Zeit-basierte Statistiken
             ["LastMatchDate"] = "Letztes Spiel",
             ["FirstMatchDate"] = "Erstes Spiel",
             ["TotalPlayingTime"] = "Gesamt Spielzeit",
             ["AverageMatchDuration"] = "Durchschnittliche Spieldauer",
-            ["LongestMatch"] = "Längstes Spiel",
-            ["ShortestMatch"] = "Kürzestes Spiel",
+            ["LongestMatch"] = "LÃ¤ngstes Spiel",
+            ["ShortestMatch"] = "KÃ¼rzestes Spiel",
             ["PlayingDays"] = "Spieltage",
             ["MatchesPerDay"] = "Spiele pro Tag",
 
@@ -108,27 +108,27 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["RefreshStatistics"] = "Statistiken aktualisieren",
             ["ExportStatistics"] = "Statistiken exportieren",
             ["PrintStatistics"] = "Statistiken drucken",
-            ["ResetStatistics"] = "Statistiken zurücksetzen",
+            ["ResetStatistics"] = "Statistiken zurÃ¼cksetzen",
             ["SaveStatistics"] = "Statistiken speichern",
             ["LoadStatistics"] = "Statistiken laden",
             ["CompareToAverage"] = "Mit Durchschnitt vergleichen",
 
             // Statistik-Meldungen
-            ["NoStatisticsAvailable"] = "Keine Statistiken verfügbar",
+            ["NoStatisticsAvailable"] = "Keine Statistiken verfÃ¼gbar",
             ["StatisticsLoading"] = "Statistiken werden geladen...",
             ["StatisticsUpdated"] = "Statistiken aktualisiert",
             ["ErrorLoadingStatistics"] = "Fehler beim Laden der Statistiken: {0}",
             ["StatisticsNotEnabled"] = "Statistiken sind nicht aktiviert",
-            ["InsufficientDataForStats"] = "Ungenügend Daten für Statistiken",
+            ["InsufficientDataForStats"] = "UngenÃ¼gend Daten fÃ¼r Statistiken",
 
             // Detail-Ansichten
-            ["PlayerDetails"] = "Spieler-Details für {0}",
+            ["PlayerDetails"] = "Spieler-Details fÃ¼r {0}",
             ["MatchHistory"] = "Spiel-Historie",
             ["ScoreHistory"] = "Score-Historie",
             ["PerformanceTrend"] = "Leistungstrend",
-            ["StrengthsWeaknesses"] = "Stärken & Schwächen",
+            ["StrengthsWeaknesses"] = "StÃ¤rken & SchwÃ¤chen",
             ["RecentPerformance"] = "Aktuelle Leistung",
-            ["CareerHighlights"] = "Karriere-Höhepunkte",
+            ["CareerHighlights"] = "Karriere-HÃ¶hepunkte",
 
             // Vergleichs-Features
             ["ComparePlayer"] = "Spieler vergleichen",
@@ -137,7 +137,7 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["ComparisonResult"] = "Vergleichsergebnis",
             ["BetterThan"] = "Besser als {0}",
             ["WorseThan"] = "Schlechter als {0}",
-            ["SimilarTo"] = "Ähnlich zu {0}",
+            ["SimilarTo"] = "Ã„hnlich zu {0}",
 
             // Ranking und Positionen
             ["CurrentRank"] = "Aktuelle Position",
@@ -145,18 +145,18 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["RankByWinRate"] = "Position nach Sieg-Quote",
             ["RankByMatches"] = "Position nach Spielen",
             ["TopPerformer"] = "Top-Performer",
-            ["RankingChange"] = "Positionsänderung",
+            ["RankingChange"] = "PositionsÃ¤nderung",
             ["MovedUp"] = "Aufgestiegen um {0}",
             ["MovedDown"] = "Abgestiegen um {0}",
-            ["NoChange"] = "Keine Änderung",
+            ["NoChange"] = "Keine Ã„nderung",
 
             // Statistik-Tooltips und Hilfe
             ["AverageTooltip"] = "Durchschnittliche Punkte pro 3 Pfeile",
             ["WinRateTooltip"] = "Prozentsatz der gewonnenen Spiele",
-            ["MaximumsTooltip"] = "Anzahl der 180-Punkte-Würfe",
-            ["HighFinishesTooltip"] = "Checkouts über 100 Punkte",
+            ["MaximumsTooltip"] = "Anzahl der 180-Punkte-WÃ¼rfe",
+            ["HighFinishesTooltip"] = "Checkouts Ã¼ber 100 Punkte",
             ["CheckoutRateTooltip"] = "Prozentsatz erfolgreicher Checkout-Versuche",
-            ["ConsistencyTooltip"] = "Gleichmäßigkeit der Leistung",
+            ["ConsistencyTooltip"] = "GleichmÃ¤ÃŸigkeit der Leistung",
 
             // Erweiterte Statistik-Features
             ["TrendAnalysis"] = "Trend-Analyse",
@@ -171,26 +171,26 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             // Debug und Entwickler-Info
             ["DebugStatistics"] = "Debug-Statistiken",
             ["StatisticsDebugInfo"] = "Statistik Debug-Info",
-            ["DataIntegrity"] = "Daten-Integrität",
+            ["DataIntegrity"] = "Daten-IntegritÃ¤t",
             ["ValidationStatus"] = "Validierungs-Status",
             ["LastUpdate"] = "Letzte Aktualisierung",
             ["DataSource"] = "Datenquelle",
-            ["RecordCount"] = "Anzahl Datensätze",
+            ["RecordCount"] = "Anzahl DatensÃ¤tze",
 
             // WEBSOCKET STATISTIK-EXTRAKTION
             // Statistik-Extraktion Meldungen
-            ["ProcessingMatchUpdate"] = "Verarbeite Match-Update für Klasse {0}",
-            ["SkippingNonMatchResult"] = "Überspringe Nicht-Match-Ergebnis Update: {0}",
-            ["ProcessingTopLevelStats"] = "Verarbeite Top-Level-Spieler-Statistiken für {0} vs {1}",
-            ["ProcessingSimpleStats"] = "Verarbeite einfache Spieler-Statistiken für {0} vs {1}",
-            ["ProcessingEnhancedStats"] = "Verarbeite erweiterte Dart-Statistiken für {0} vs {1}",
+            ["ProcessingMatchUpdate"] = "Verarbeite Match-Update fÃ¼r Klasse {0}",
+            ["SkippingNonMatchResult"] = "Ãœberspringe Nicht-Match-Ergebnis Update: {0}",
+            ["ProcessingTopLevelStats"] = "Verarbeite Top-Level-Spieler-Statistiken fÃ¼r {0} vs {1}",
+            ["ProcessingSimpleStats"] = "Verarbeite einfache Spieler-Statistiken fÃ¼r {0} vs {1}",
+            ["ProcessingEnhancedStats"] = "Verarbeite erweiterte Dart-Statistiken fÃ¼r {0} vs {1}",
             ["FallbackNotesExtraction"] = "Fallback auf Notes-basierte Statistik-Extraktion",
             ["ErrorProcessingMatchResult"] = "Fehler beim Verarbeiten des Match-Ergebnisses: {0}",
 
             // JSON-Parsing Meldungen
-            ["ProcessingJSONFromNotes"] = "Verarbeite JSON aus Notes-Feld für Top-Level-Statistiken",
-            ["NoJSONDataFound"] = "Keine JSON-Daten in Notes für Top-Level-Statistiken gefunden",
-            ["AvailableTopLevelProperties"] = "Verfügbare Top-Level-Properties: {0}",
+            ["ProcessingJSONFromNotes"] = "Verarbeite JSON aus Notes-Feld fÃ¼r Top-Level-Statistiken",
+            ["NoJSONDataFound"] = "Keine JSON-Daten in Notes fÃ¼r Top-Level-Statistiken gefunden",
+            ["AvailableTopLevelProperties"] = "VerfÃ¼gbare Top-Level-Properties: {0}",
             ["NoTopLevelStatsFound"] = "Keine Top-Level-Statistiken in JSON-Struktur gefunden",
             ["FoundTopLevelStats"] = "Top-Level-Statistiken in JSON gefunden",
 
@@ -210,13 +210,13 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
 
             // High Finish Scores Extraktion
             ["ExtractedHighFinishScores"] = "High Finish Scores extrahiert: [{0}]",
-            ["NoPlayerNameFound"] = "Kein Spielername für Player {0} gefunden, verwende Fallback",
+            ["NoPlayerNameFound"] = "Kein Spielername fÃ¼r Player {0} gefunden, verwende Fallback",
             ["ErrorExtractingPlayerName"] = "Fehler beim Extrahieren des Spielernamens: {0}",
             ["FoundPlayerNameInResult"] = "player{0}Name in matchUpdate.result gefunden: {1}",
 
             // Statistik-Verarbeitung Erfolg
-            ["SuccessfullyProcessedSimpleStats"] = "Einfache Statistiken erfolgreich verarbeitet für {0} und {1}",
-            ["SuccessfullyProcessedEnhancedStats"] = "Erweiterte Statistiken erfolgreich verarbeitet für {0} und {1}",
+            ["SuccessfullyProcessedSimpleStats"] = "Einfache Statistiken erfolgreich verarbeitet fÃ¼r {0} und {1}",
+            ["SuccessfullyProcessedEnhancedStats"] = "Erweiterte Statistiken erfolgreich verarbeitet fÃ¼r {0} und {1}",
             ["ErrorProcessingSimpleStats"] = "Fehler beim Verarbeiten einfacher Statistiken: {0}",
             ["ErrorProcessingEnhancedStats"] = "Fehler beim Verarbeiten erweiterter Statistiken: {0}",
 
@@ -230,7 +230,7 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             ["MatchDurationString"] = "Match-Dauer String: {0}",
             ["ExtractedStartTime"] = "Startzeit: {0}",
             ["ExtractedEndTime"] = "Endzeit: {0}",
-            ["ExtractedTotalThrows"] = "Gesamtwürfe: {0}",
+            ["ExtractedTotalThrows"] = "GesamtwÃ¼rfe: {0}",
             ["ExtractedCheckouts"] = "Checkouts extrahiert: {0}",
             ["ExtractedTotalScore"] = "Gesamtpunktzahl extrahiert: {0}",
             ["ExtractedHighFinishDetails"] = "{0} High Finish Details extrahiert",
@@ -245,7 +245,7 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
 
             // Erweiterte Player-Statistiken
             ["PlayerStatsValidation"] = "Spieler-Daten Validierung: {0} (Avg: {1}, Throws: {2}, Score: {3}, Checkouts: {4})",
-            ["DetailedStatsMerge"] = "Detaillierte Statistiken zusammengeführt: Checkouts: {0}, TotalThrows: {1}, TotalScore: {2}",
+            ["DetailedStatsMerge"] = "Detaillierte Statistiken zusammengefÃ¼hrt: Checkouts: {0}, TotalThrows: {1}, TotalScore: {2}",
             ["RealDataUsage"] = "Verwende echte Daten: Throws: {0}, Score: {1}, Checkouts: {2}",
 
             // High Finish Details Verarbeitung
@@ -256,26 +256,26 @@ public class GermanStatisticsLanguageProvider : ILanguageSection
             // Match-Metadaten
             ["MatchMetadataExtracted"] = "Match-Metadaten extrahiert: Format {0}, Start {1}, Ende {2}, Dauer {3}ms",
             ["GameModeDetected"] = "Spielmodus erkannt: {0}",
-            ["SubmissionInfoExtracted"] = "Übertragungsinfo extrahiert: {0} v{1}",
+            ["SubmissionInfoExtracted"] = "Ãœbertragungsinfo extrahiert: {0} v{1}",
 
             // Statistik-Berechnung
-            ["StatisticsCalculated"] = "Statistiken berechnet für {0}: Avg {1}, {2} Würfe, {3} Punkte",
+            ["StatisticsCalculated"] = "Statistiken berechnet fÃ¼r {0}: Avg {1}, {2} WÃ¼rfe, {3} Punkte",
             ["PerformanceMetrics"] = "Leistungsmetriken: Durchschnitt pro Wurf: {0:F1}, HF-Rate: {1:F2}, Maximum-Rate: {2:F2}",
-            ["DetailListsSizes"] = "Detail-Listen Größen: {0} HF, {1} Max, {2} Score26, {3} Checkouts",
+            ["DetailListsSizes"] = "Detail-Listen GrÃ¶ÃŸen: {0} HF, {1} Max, {2} Score26, {3} Checkouts",
 
             // Direkte WebSocket-Extraktion
             ["DirectWebSocketExtraction"] = "Direkte WebSocket-Statistik-Extraktion",
-            ["NoValidJSONInWebSocket"] = "Keine gültigen JSON-Daten in WebSocket-Nachricht gefunden",
+            ["NoValidJSONInWebSocket"] = "Keine gÃ¼ltigen JSON-Daten in WebSocket-Nachricht gefunden",
             ["ProcessingDirectWebSocketStats"] = "Verarbeite direkte WebSocket-Statistiken",
             ["NoDirectStatsFound"] = "Keine direkten Statistiken in WebSocket-Nachricht gefunden",
             ["FoundDirectStatsInWebSocket"] = "Direkte Statistiken in WebSocket-Nachricht gefunden",
-            ["NoValidDirectWebSocketData"] = "Keine gültigen direkten WebSocket-Statistikdaten gefunden",
+            ["NoValidDirectWebSocketData"] = "Keine gÃ¼ltigen direkten WebSocket-Statistikdaten gefunden",
             ["DirectWebSocketExtractionSuccess"] = "Direkte WebSocket-Extraktion erfolgreich: {0} vs {1}",
             ["ErrorParsingDirectWebSocketStats"] = "Fehler beim Parsen direkter WebSocket-Statistiken: {0}",
             ["DirectWebSocketPlayer1"] = "Direkter WebSocket Player1: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
             ["DirectWebSocketPlayer2"] = "Direkter WebSocket Player2: {0} - Avg {1}, 180s: {2}, HF: {3}, 26s: {4}, Checkouts: {5}",
             ["DirectWebSocketMatchDuration"] = "Direkte WebSocket Match-Dauer: {0}ms = {1}",
-            ["ProcessingDirectWebSocketStatsFor"] = "Verarbeite direkte WebSocket-Statistiken für {0} vs {1}"
+            ["ProcessingDirectWebSocketStatsFor"] = "Verarbeite direkte WebSocket-Statistiken fÃ¼r {0} vs {1}"
         };
     }
 }
