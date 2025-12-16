@@ -22,34 +22,44 @@ public class TournamentPhaseManager
     /// <summary>
     /// Prüft ob zur nächsten Phase gewechselt werden kann
     /// KORRIGIERT: Delegiert die Prüfung an die aktuelle Phase UND prüft ob es überhaupt eine nächste Phase gibt
+    /// ? ERWEITERT: Berücksichtigt SkipGroupPhase Modus
     /// </summary>
     /// <returns>True wenn alle Voraussetzungen für den Phasenwechsel erfüllt sind</returns>
     public bool CanProceedToNextPhase()
     {
         try
         {
-            //System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase START ===");
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: TournamentClass = {_tournament.Name}");
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: CurrentPhase = {_tournament.CurrentPhase?.PhaseType}");
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: PostGroupPhaseMode = {_tournament.GameRules.PostGroupPhaseMode}");
+            System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: TournamentClass = {_tournament.Name}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: CurrentPhase = {_tournament.CurrentPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: PostGroupPhaseMode = {_tournament.GameRules.PostGroupPhaseMode}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: SkipGroupPhase = {_tournament.GameRules.SkipGroupPhase}");
+            
+            // ? WICHTIG: Bei SkipGroupPhase + KO-Phase gibt es keine nächste Phase!
+            if (_tournament.GameRules.SkipGroupPhase && _tournament.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("CanProceedToNextPhase: SkipGroupPhase + KO-Phase - no next phase possible");
+                System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END (FALSE - SkipGroupPhase KO) ===");
+                return false;
+            }
             
             // KORREKTUR: Prüfe erst ob überhaupt eine nächste Phase existiert
             var nextPhase = GetNextPhase();
             if (nextPhase == null)
             {
-                //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: No next phase available - tournament ends here");
-                //System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END (FALSE - no next phase) ===");
+                System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: No next phase available - tournament ends here");
+                System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END (FALSE - no next phase) ===");
                 return false;
             }
             
             // KORREKTUR: Dann prüfe ob die aktuelle Phase bereit für den Übergang ist
             var currentPhaseReady = _tournament.CurrentPhase?.CanProceedToNextPhase() ?? false;
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Current phase ready = {currentPhaseReady}");
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Next phase available = {nextPhase.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Current phase ready = {currentPhaseReady}");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Next phase available = {nextPhase.PhaseType}");
             
             var result = currentPhaseReady;
-            //System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Final result = {result}");
-            //System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END ===");
+            System.Diagnostics.Debug.WriteLine($"CanProceedToNextPhase: Final result = {result}");
+            System.Diagnostics.Debug.WriteLine($"=== CanProceedToNextPhase END ===");
             
             return result;
         }
@@ -65,22 +75,31 @@ public class TournamentPhaseManager
     /// Ermittelt die nächste Phase basierend auf der aktuellen Phase und den Spielregeln
     /// Implementiert die Turnierlogik für verschiedene Modi (nur Gruppen, Finals, K.O.)
     /// KORRIGIERT: Bessere Debugging-Ausgabe und korrekte PostGroupPhaseMode-Behandlung
+    /// ? ERWEITERT: Berücksichtigt SkipGroupPhase Modus
     /// </summary>
     /// <returns>Die nächste Phase oder null wenn das Turnier beendet ist</returns>
     public TournamentPhase? GetNextPhase()
     {
         try
         {
-            //System.Diagnostics.Debug.WriteLine($"=== GetNextPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"=== GetNextPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"SkipGroupPhase: {_tournament.GameRules.SkipGroupPhase}");
             
             if (_tournament.CurrentPhase == null) 
             {
-                //System.Diagnostics.Debug.WriteLine($"GetNextPhase: CurrentPhase is null");
+                System.Diagnostics.Debug.WriteLine($"GetNextPhase: CurrentPhase is null");
                 return null;
             }
 
-            //System.Diagnostics.Debug.WriteLine($"GetNextPhase: Current phase = {_tournament.CurrentPhase.PhaseType}");
-            //System.Diagnostics.Debug.WriteLine($"GetNextPhase: PostGroupPhaseMode = {_tournament.GameRules.PostGroupPhaseMode}");
+            System.Diagnostics.Debug.WriteLine($"GetNextPhase: Current phase = {_tournament.CurrentPhase.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"GetNextPhase: PostGroupPhaseMode = {_tournament.GameRules.PostGroupPhaseMode}");
+            
+            // ? WICHTIG: Bei SkipGroupPhase gibt es keine "nächste Phase" nach KO-Phase!
+            if (_tournament.GameRules.SkipGroupPhase && _tournament.CurrentPhase.PhaseType == TournamentPhaseType.KnockoutPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("GetNextPhase: SkipGroupPhase + KO-Phase active - no next phase");
+                return null;
+            }
 
             // KORRIGIERTE Logik: Bestimme nächste Phase basierend auf aktueller Phase und Spielregeln
             TournamentPhase? nextPhase = _tournament.CurrentPhase.PhaseType switch
@@ -88,7 +107,7 @@ public class TournamentPhaseManager
                 TournamentPhaseType.GroupPhase => _tournament.GameRules.PostGroupPhaseMode switch
                 {
                     PostGroupPhaseMode.RoundRobinFinals => CreateRoundRobinFinalsPhase(),
-                    PostGroupPhaseMode.KnockoutBracket => CreateKnockoutPhase(),
+                    PostGroupPhaseMode.KnockoutBracket => CreateKnockoutPhase(), // ? Nur aufrufen wenn NICHT SkipGroupPhase
                     PostGroupPhaseMode.None => null, // Nur Gruppenphase - Turnier endet hier
                     _ => null
                 },
@@ -105,8 +124,8 @@ public class TournamentPhaseManager
                 _ => null // Unbekannte Phase
             };
             
-            //System.Diagnostics.Debug.WriteLine($"GetNextPhase: Next phase = {nextPhase?.PhaseType.ToString() ?? "null"}");
-            //System.Diagnostics.Debug.WriteLine($"=== GetNextPhase END ===");
+            System.Diagnostics.Debug.WriteLine($"GetNextPhase: Next phase = {nextPhase?.PhaseType.ToString() ?? "null"}");
+            System.Diagnostics.Debug.WriteLine($"=== GetNextPhase END ===");
             
             return nextPhase;
         }
@@ -150,7 +169,7 @@ if (nextPhase == null)
   if (existingPhase != null)
         {
        System.Diagnostics.Debug.WriteLine($"  ?? Phase {nextPhase.PhaseType} already exists! Using existing phase instead of creating new one.");
-       
+     
      // Verwende die existierende Phase statt eine neue zu erstellen
 nextPhase = existingPhase;
         }
@@ -262,7 +281,9 @@ nextPhase = existingPhase;
     {
         try
         {
-            //System.Diagnostics.Debug.WriteLine($"=== CreateKnockoutPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"=== CreateKnockoutPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"SkipGroupPhase: {_tournament.GameRules.SkipGroupPhase}");
+            System.Diagnostics.Debug.WriteLine($"CurrentPhase: {_tournament.CurrentPhase?.PhaseType}");
             
             var knockoutPhase = new TournamentPhase
             {
@@ -270,32 +291,47 @@ nextPhase = existingPhase;
                 PhaseType = TournamentPhaseType.KnockoutPhase
             };
 
-            //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Created phase with name '{knockoutPhase.Name}'");
+            System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Created phase with name '{knockoutPhase.Name}'");
+
+            // ? NEU: Bei SkipGroupPhase darf diese Methode NICHT aufgerufen werden!
+            // CreateDirectKnockoutPhase() sollte stattdessen verwendet werden
+            if (_tournament.GameRules.SkipGroupPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("CreateKnockoutPhase: ERROR - SkipGroupPhase is active! Use CreateDirectKnockoutPhase() instead!");
+                throw new InvalidOperationException("CreateKnockoutPhase darf nicht im SkipGroupPhase-Modus aufgerufen werden. Verwenden Sie CreateDirectKnockoutPhase().");
+            }
 
             // Get qualified players from previous phase
             System.Collections.Generic.List<Player> qualifiedPlayers;
             if (_tournament.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
             {
-                //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Getting players from RoundRobinFinals");
+                System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Getting players from RoundRobinFinals");
                 qualifiedPlayers = _tournament.CurrentPhase.GetQualifiedPlayers(int.MaxValue); // All players from finals
             }
             else
             {
-                //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Getting players from GroupPhase");
-                var groupPhase = _tournament.Phases.First(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+                System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Getting players from GroupPhase");
+                var groupPhase = _tournament.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+                
+                if (groupPhase == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: ERROR - No GroupPhase found!");
+                    throw new InvalidOperationException("Keine Gruppenphase gefunden. CreateKnockoutPhase benötigt eine vorherige Gruppenphase.");
+                }
+                
                 qualifiedPlayers = groupPhase.GetQualifiedPlayers(_tournament.GameRules.QualifyingPlayersPerGroup);
             }
 
-            //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Found {qualifiedPlayers.Count} qualified players");
+            System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Found {qualifiedPlayers.Count} qualified players");
             foreach (var player in qualifiedPlayers)
             {
-                //System.Diagnostics.Debug.WriteLine($"  - {player.Name}");
+                System.Diagnostics.Debug.WriteLine($"  - {player.Name}");
             }
 
             // WICHTIGE VALIDIERUNG: Prüfen ob genügend Spieler vorhanden
             if (qualifiedPlayers.Count <= 1)
             {
-                //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: ERROR - Not enough players ({qualifiedPlayers.Count})");
+                System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: CRITICAL ERROR - Not enough players ({qualifiedPlayers.Count})");
                 throw new InvalidOperationException($"Nicht genügend Spieler für K.O.-Phase: {qualifiedPlayers.Count}");
             }
 
@@ -306,16 +342,16 @@ nextPhase = existingPhase;
             
             if (_tournament.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
             {
-                //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generating double elimination bracket");
+                System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generating double elimination bracket");
                 bracketGenerator.GenerateDoubleEliminationBracket(knockoutPhase, qualifiedPlayers);
             }
             else
             {
-                //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generating single elimination bracket");
+                System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generating single elimination bracket");
                 bracketGenerator.GenerateSingleEliminationBracket(knockoutPhase, qualifiedPlayers);
             }
 
-            //System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generated {knockoutPhase.WinnerBracket.Count} winner bracket matches");
+            System.Diagnostics.Debug.WriteLine($"CreateKnockoutPhase: Generated {knockoutPhase.WinnerBracket.Count} winner bracket matches");
             //System.Diagnostics.Debug.WriteLine($"=== CreateKnockoutPhase END ===");
 
             return knockoutPhase;
@@ -332,18 +368,37 @@ nextPhase = existingPhase;
     /// NEUE METHODE: Stellt sicher, dass mindestens eine GroupPhase existiert
     /// Wird nach JSON-Deserialisierung oder bei erstem Zugriff aufgerufen
     /// Implementiert Lazy Initialization um Duplikate zu vermeiden
+    /// ? ERWEITERT: Überschreibt CurrentPhase NICHT wenn bereits gesetzt
     /// </summary>
     public void EnsureGroupPhaseExists()
     {
-        //System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists START for {_tournament.Name} ===");
-        //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Current Phases count = {_tournament.Phases.Count}");
+        System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists START for {_tournament.Name} ===");
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Current Phases count = {_tournament.Phases.Count}");
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase = {_tournament.CurrentPhase?.PhaseType}");
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: SkipGroupPhase = {_tournament.GameRules.SkipGroupPhase}");
+        
+        // ? WICHTIG: Wenn SkipGroupPhase aktiv ist, NICHTS tun!
+        if (_tournament.GameRules.SkipGroupPhase)
+        {
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: SkipGroupPhase is active, skipping GroupPhase management");
+            System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END (early exit - SkipGroupPhase) ===");
+            return;
+        }
+        
+        // ? WICHTIG: Wenn bereits eine CurrentPhase gesetzt ist (z.B. KO-Phase), NICHT überschreiben!
+        if (_tournament.CurrentPhase != null && _tournament.CurrentPhase.PhaseType != TournamentPhaseType.GroupPhase)
+        {
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase is already set to {_tournament.CurrentPhase.PhaseType}, not changing");
+            System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END (early exit - other phase active) ===");
+            return;
+        }
         
         // Prüfe ob bereits eine GroupPhase existiert
         var existingGroupPhase = _tournament.Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
         
         if (existingGroupPhase == null)
         {
-            //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: No GroupPhase found, creating new one");
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: No GroupPhase found, creating new one");
             
             // Erstelle eine neue GroupPhase
             var groupPhase = new TournamentPhase
@@ -353,27 +408,37 @@ nextPhase = existingPhase;
                 IsActive = true // Gruppenphase ist standardmäßig aktiv
             };
             
-            //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new TournamentPhase with {groupPhase.Groups.Count} groups");
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new TournamentPhase");
         
             _tournament.Phases.Add(groupPhase);
-            _tournament.CurrentPhase = groupPhase;
             
-            //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new GroupPhase, total phases = {_tournament.Phases.Count}");
+            // ? NUR setzen wenn CurrentPhase null ist
+            if (_tournament.CurrentPhase == null)
+            {
+                _tournament.CurrentPhase = groupPhase;
+                System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Set new GroupPhase as CurrentPhase");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Created new GroupPhase, total phases = {_tournament.Phases.Count}");
         }
         else
         {
-            //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: GroupPhase already exists, setting as CurrentPhase");
+            System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: GroupPhase already exists");
             
-            // Setze die existierende GroupPhase als CurrentPhase wenn noch keine gesetzt
+            // ? Setze die existierende GroupPhase als CurrentPhase NUR wenn noch keine gesetzt
             if (_tournament.CurrentPhase == null)
             {
                 _tournament.CurrentPhase = existingGroupPhase;
+                System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: Set existing GroupPhase as CurrentPhase");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase already set to {_tournament.CurrentPhase.PhaseType}, not overwriting");
             }
         }
 
-        // WICHTIG: KEINE Groups.Count Aufrufe hier - das würde zu Rekursion führen!
-        //System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase = {_tournament.CurrentPhase?.PhaseType}");
-        //System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END ===");
+        System.Diagnostics.Debug.WriteLine($"EnsureGroupPhaseExists: CurrentPhase = {_tournament.CurrentPhase?.PhaseType}");
+        System.Diagnostics.Debug.WriteLine($"=== EnsureGroupPhaseExists END ===");
     }
 
     /// <summary>
@@ -473,15 +538,38 @@ nextPhase = existingPhase;
     /// <summary>
     /// NEUE ÖFFENTLICHE METHODE: Führt vollständige Phase-Validierung nach JSON-Loading durch
     /// Sollte aufgerufen werden nachdem Tournament-Daten geladen wurden
+    /// ? ERWEITERT: Berücksichtigt SkipGroupPhase Modus
     /// </summary>
     public void ValidateAndRepairPhases()
     {
-        //System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases START for {_tournament.Name} ===");
+        System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases START for {_tournament.Name} ===");
+        System.Diagnostics.Debug.WriteLine($"SkipGroupPhase: {_tournament.GameRules.SkipGroupPhase}");
+        System.Diagnostics.Debug.WriteLine($"Current Phase: {_tournament.CurrentPhase?.PhaseType}");
+        System.Diagnostics.Debug.WriteLine($"Phases count: {_tournament.Phases.Count}");
         
         try
         {
-            // 1. Stelle sicher dass GroupPhase existiert
-            EnsureGroupPhaseExists();
+            // ? WICHTIG: Wenn SkipGroupPhase aktiv ist und wir bereits in KO-Phase sind,
+            // NICHT die GroupPhase erstellen!
+            if (_tournament.GameRules.SkipGroupPhase && 
+                _tournament.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("ValidateAndRepairPhases: SkipGroupPhase mode - skipping GroupPhase creation");
+                
+                // Nur UUID-Validierung und UI-Refresh
+                EnsureAllMatchesHaveUuids();
+                _tournament.TriggerUIRefresh();
+                
+                System.Diagnostics.Debug.WriteLine("ValidateAndRepairPhases: Done (SkipGroupPhase mode)");
+                return;
+            }
+            
+            // Normale Validierung mit Gruppenphase
+            // 1. Stelle sicher dass GroupPhase existiert (nur wenn nicht SkipGroupPhase)
+            if (!_tournament.GameRules.SkipGroupPhase)
+            {
+                EnsureGroupPhaseExists();
+            }
             
             // 2. Repariere Finals-Phase falls vorhanden
             EnsureFinalsPhaseIntegrity();
@@ -492,7 +580,7 @@ nextPhase = existingPhase;
             // 4. Trigger UI-Refresh um sicherzustellen dass alles geladen wird
             _tournament.TriggerUIRefresh();
             
-            //System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: All phases validated and repaired");
+            System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: All phases validated and repaired");
         }
         catch (Exception ex)
         {
@@ -500,7 +588,7 @@ nextPhase = existingPhase;
             System.Diagnostics.Debug.WriteLine($"ValidateAndRepairPhases: Stack trace: {ex.StackTrace}");
         }
         
-        //System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases END ===");
+        System.Diagnostics.Debug.WriteLine($"=== ValidateAndRepairPhases END ===");
     }
 
     /// <summary>
@@ -633,5 +721,71 @@ nextPhase = existingPhase;
         }
         
         //System.Diagnostics.Debug.WriteLine($"=== EnsureAllMatchesHaveUuids END ===");
+    }
+    
+    /// <summary>
+    /// ? NEU: Erstellt eine KO-Phase direkt aus allen Spielern (ohne Gruppenphase)
+    /// Wird verwendet wenn GameRules.SkipGroupPhase = true
+    /// </summary>
+    /// <param name="allPlayers">Liste aller Turnierteilnehmer</param>
+    /// <returns>Eine neue KO-Phase mit allen Spielern</returns>
+    public TournamentPhase CreateDirectKnockoutPhase(System.Collections.Generic.List<Player> allPlayers)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"=== CreateDirectKnockoutPhase START ===");
+            System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Players count = {allPlayers?.Count ?? 0}");
+            
+            // Validierung
+            if (allPlayers == null || allPlayers.Count <= 1)
+            {
+                throw new InvalidOperationException($"Nicht genügend Spieler für direkte KO-Phase: {allPlayers?.Count ?? 0}");
+            }
+            
+            // Erstelle KO-Phase
+            var knockoutPhase = new TournamentPhase
+            {
+                Name = _tournament.GameRules.KnockoutMode == KnockoutMode.DoubleElimination 
+                    ? "KO-Phase (Double Elimination)" 
+                    : "KO-Phase (Single Elimination)",
+                PhaseType = TournamentPhaseType.KnockoutPhase,
+                IsActive = true // Direkt aktiv, da keine Gruppenphase
+            };
+            
+            System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Created phase '{knockoutPhase.Name}'");
+            
+            // Alle Spieler sind qualifiziert (keine Gruppenphase)
+            knockoutPhase.QualifiedPlayers = new ObservableCollection<Player>(allPlayers);
+            
+            // Generiere Bracket
+            var bracketGenerator = new KnockoutBracketGenerator(_tournament);
+            
+            if (_tournament.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Generating double elimination bracket");
+                bracketGenerator.GenerateDoubleEliminationBracket(knockoutPhase, allPlayers);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Generating single elimination bracket");
+                bracketGenerator.GenerateSingleEliminationBracket(knockoutPhase, allPlayers);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Generated {knockoutPhase.WinnerBracket.Count} winner bracket matches");
+            if (_tournament.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
+            {
+                System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Generated {knockoutPhase.LoserBracket.Count} loser bracket matches");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"=== CreateDirectKnockoutPhase END ===");
+            
+            return knockoutPhase;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: CRITICAL ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"CreateDirectKnockoutPhase: Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 }

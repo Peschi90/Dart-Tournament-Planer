@@ -176,18 +176,32 @@ UpdateStatus);
             var tournamentClass = _tournamentClasses[i];
             
             // ✅ NEU: Abonniere PropertyChanged Events für Phasen-Änderungen
-       if (tournamentClass is INotifyPropertyChanged notifyPropertyChanged)
-{
-    // Entferne alte Handler falls vorhanden
-  notifyPropertyChanged.PropertyChanged -= OnTournamentClassPropertyChanged;
-  // Füge neuen Handler hinzu
-      notifyPropertyChanged.PropertyChanged += OnTournamentClassPropertyChanged;
-          }
+            if (tournamentClass is INotifyPropertyChanged notifyPropertyChanged)
+            {
+                // Entferne alte Handler falls vorhanden
+                notifyPropertyChanged.PropertyChanged -= OnTournamentClassPropertyChanged;
+                // Füge neuen Handler hinzu
+                notifyPropertyChanged.PropertyChanged += OnTournamentClassPropertyChanged;
+            }
 
-            // Skip classes without groups if "Only Active Classes" is enabled
-            if (_showOnlyActiveClasses && 
-                (tournamentClass.Groups == null || tournamentClass.Groups.Count == 0))
-                continue;
+            // ✅ ERWEITERT: Skip classes without groups UNLESS they have an active KO phase (SkipGroupPhase mode)
+            if (_showOnlyActiveClasses)
+            {
+                bool hasGroups = tournamentClass.Groups != null && tournamentClass.Groups.Count > 0;
+                bool hasKOPhase = tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase;
+                bool hasSkipGroupPhase = tournamentClass.GameRules.SkipGroupPhase;
+                
+                System.Diagnostics.Debug.WriteLine($"[TournamentOverview] Class '{tournamentClass.Name}': hasGroups={hasGroups}, hasKOPhase={hasKOPhase}, SkipGroupPhase={hasSkipGroupPhase}");
+                
+                // Skip nur wenn KEINE Groups UND KEINE KO-Phase
+                if (!hasGroups && !hasKOPhase)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TournamentOverview] Skipping class '{tournamentClass.Name}' (no groups and no KO phase)");
+                    continue;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"[TournamentOverview] Including class '{tournamentClass.Name}' (has groups or KO phase)");
+            }
 
             var tabItem = _tabHelper.CreateTournamentClassTab(tournamentClass, i);
             MainTabControl.Items.Add(tabItem);

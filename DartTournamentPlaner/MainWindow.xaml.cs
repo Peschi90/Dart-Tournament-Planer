@@ -16,139 +16,98 @@ using System.Reflection;
 using System.Text.Json;
 using DartTournamentPlaner.Services.License;
 using DartTournamentPlaner.Views.License;
-using DartTournamentPlaner.Services.PowerScore;  // ✅ NEU: PowerScoring Service
+using DartTournamentPlaner.Services.PowerScore;
 
 namespace DartTournamentPlaner;
 
 /// <summary>
 /// Vereinfachtes Code-Behind für das Hauptfenster
-/// Delegiert die meiste Logik an spezialisierte Services
+/// REFACTORED: Delegiert Logik an spezialisierte Helper-Klassen:
+/// - MainWindowServiceInitializer: Service-Initialisierung
+/// - MainWindowEventHandlers: Menü- und UI-Event-Handlers
+/// - MainWindowHubHandlers: Hub-Integration und Match-Updates
+/// - MainWindowUIHelper: UI-Updates und Status-Management
 /// </summary>
 public partial class MainWindow : Window
 {
-    // Services
-    private readonly ConfigService _configService;
-    private readonly LocalizationService _localizationService;
-    private readonly IApiIntegrationService _apiService;
-    
-    // Neue Services
-    private readonly TournamentManagementService _tournamentService;
-    private readonly LicensedHubService _hubService;  // NEU: Lizenzierter Hub Service
-    private readonly HubMatchProcessingService _hubMatchProcessor;
-    private readonly MainWindowUIHelper _uiHelper;
-
-    // NEU: License Services
-    private readonly Services.License.LicenseManager _licenseManager;
-    private readonly LicenseFeatureService _licenseFeatureService;
-    
-    // ✅ NEU: PowerScoring Service
-    private readonly PowerScoringService _powerScoringService;
+    // Helper-Klassen
+    private readonly MainWindowServiceInitializer _serviceInitializer;
+    private readonly MainWindowEventHandlers _eventHandlers;
+    private readonly MainWindowHubHandlers _hubHandlers;
 
     // Auto-Save System
     private readonly DispatcherTimer _autoSaveTimer = new DispatcherTimer();
     private bool _hasUnsavedChanges = false;
 
     // Properties für Legacy-Kompatibilität
-    public ITournamentHubService? TournamentHubService => _hubService.TournamentHubService;
-    public string GetCurrentTournamentId() => _hubService.GetCurrentTournamentId();
-    public bool IsRegisteredWithHub => _hubService.IsRegisteredWithHub;
+    public ITournamentHubService? TournamentHubService => _serviceInitializer.HubService.TournamentHubService;
+    public string GetCurrentTournamentId() => _serviceInitializer.HubService.GetCurrentTournamentId();
+    public bool IsRegisteredWithHub => _serviceInitializer.HubService.IsRegisteredWithHub;
 
     /// <summary>
-    /// Konstruktor des Hauptfensters - vereinfacht durch Service-Delegation
+    /// Konstruktor des Hauptfensters - stark vereinfacht durch Service-Delegation
     /// </summary>
     public MainWindow()
     {
         InitializeComponent();
-        
-        // Services aus App.xaml.cs holen
-        _configService = App.ConfigService ?? throw new InvalidOperationException("ConfigService not initialized");
-        _localizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not initialized");
-        
-        // NEU: License Services initialisieren
-        _licenseManager = new Services.License.LicenseManager();
-        _licenseFeatureService = new LicenseFeatureService(_licenseManager);
-        
-        // NEU: Ersetze API Service durch lizenzierten API Service
-        var originalApiService = App.ApiIntegrationService ?? throw new InvalidOperationException("ApiIntegrationService not initialized");
-        _apiService = new LicensedApiIntegrationService(_licenseFeatureService, _localizationService);
-        
-        // Neue Services initialisieren
-        _tournamentService = new TournamentManagementService(_localizationService, App.DataService!);
-        
-        // NEU: Erstelle lizenzierten Hub Service
-        var innerHubService = new HubIntegrationService(_configService, _localizationService, _apiService, Dispatcher);
-        _hubService = new LicensedHubService(innerHubService, _licenseFeatureService, _localizationService, _licenseManager);
-        
-        _hubMatchProcessor = new HubMatchProcessingService(_tournamentService.GetTournamentClassById);
-        _uiHelper = new MainWindowUIHelper(_localizationService, Dispatcher);
-        
-        // ✅ NEU: PowerScoring Service initialisieren
-        _powerScoringService = new PowerScoringService();
-        
-        // Services konfigurieren und starten
+
+        // Service-Initialisierung
+        _serviceInitializer = new MainWindowServiceInitializer(this);
+
+        // Event-Handlers initialisieren
+        _eventHandlers = new MainWindowEventHandlers(
+            this,
+            _serviceInitializer,
+            SaveDataInternal,
+            MarkAsChanged,
+            UpdateTranslations,
+            ConfigureTournamentTabs);
+
+        // Hub-Handlers initialisieren
+        _hubHandlers = new MainWindowHubHandlers(
+            this,
+            _serviceInitializer,
+            MarkAsChanged,
+            RefreshMatchDisplays);
+
+        // Services konfigurieren
         InitializeServices();
         InitializeAutoSave();
         InitializeApiService();
-        
+
         UpdateTranslations();
         LoadData();
-        
-        _ = Task.Run(async () => await _hubService.InitializeAsync());
-        
-        // NEU: Lizenz-System initialisieren
+
+        _ = Task.Run(async () => await _serviceInitializer.InitializeHubAsync());
         _ = InitializeLicenseSystemAsync();
     }
+
+    #region Service Initialization
 
     private void InitializeServices()
     {
         // UI Helper konfigurieren
-        _uiHelper.HubStatusIndicator = HubStatusIndicator;
-        _uiHelper.HubStatusText = HubStatusText;
-        _uiHelper.HubSyncStatus = HubSyncStatus;
-        //_uiHelper.ApiStatusIndicator = ApiStatusIndicator;
-        //_uiHelper.ApiStatusText = ApiStatusText;
-        _uiHelper.StatusTextBlock = StatusTextBlock;
-        _uiHelper.LastSavedBlock = LastSavedBlock;
-        _uiHelper.LanguageStatusBlock = LanguageStatusBlock;
-        //_uiHelper.ApiStatusMenuItem = ApiStatusMenuItem;
-        //_uiHelper.StartApiMenuItem = StartApiMenuItem;
-        //_uiHelper.StopApiMenuItem = StopApiMenuItem;
-        //_uiHelper.OpenApiDocsMenuItem = OpenApiDocsMenuItem;
+        _serviceInitializer.UiHelper.HubStatusIndicator = HubStatusIndicator;
+        _serviceInitializer.UiHelper.HubStatusText = HubStatusText;
+        _serviceInitializer.UiHelper.HubSyncStatus = HubSyncStatus;
+        _serviceInitializer.UiHelper.StatusTextBlock = StatusTextBlock;
+        _serviceInitializer.UiHelper.LastSavedBlock = LastSavedBlock;
+        _serviceInitializer.UiHelper.LanguageStatusBlock = LanguageStatusBlock;
 
-        // Event-Handler
-        _localizationService.PropertyChanged += (s, e) => UpdateTranslations();
-        _configService.LanguageChanged += (s, language) => 
-        {
-            _localizationService.SetLanguage(language);
-            Dispatcher.BeginInvoke(() =>
-            {
-                _uiHelper.UpdateLanguageStatus();
-                UpdateTranslations();
-                ForceUIUpdate();
-            }, DispatcherPriority.Render);
-        };
-
-        // Tournament Service Events
-        _tournamentService.DataChanged += () => MarkAsChanged();
-
-        // Hub Service Events
-        _hubService.MatchResultReceived += OnHubMatchResultReceived;
-        _hubService.HubStatusChanged += OnHubStatusChanged;
-        _hubService.HubConnectionStateChanged += OnHubConnectionStateChanged; // ✅ NEW: Subscribe to detailed state changes
-        _hubService.TournamentNeedsResync += OnTournamentNeedsResync; // ✅ NEW: Subscribe to resync event
-        _hubService.DataChanged += () => MarkAsChanged();
-        
-      // ✨ NEU: Live-Update Event-Handler
-        if (_hubService.TournamentHubService != null)
-        {
-            _hubService.TournamentHubService.OnMatchStarted += OnHubMatchStarted;
-            _hubService.TournamentHubService.OnLegCompleted += OnHubLegCompleted;
-            _hubService.TournamentHubService.OnMatchProgressUpdated += OnHubMatchProgressUpdated;
-            System.Diagnostics.Debug.WriteLine("✅ [MainWindow] Live-Update Event-Handler registriert");
-        }
-
-      // NEU: License Service Events
-        _licenseFeatureService.LicenseStatusChanged += OnLicenseStatusChanged;
+        // Services mit Event-Handlers konfigurieren
+        _serviceInitializer.ConfigureServices(
+            markAsChanged: MarkAsChanged,
+            updateTranslations: UpdateTranslations,
+            forceUIUpdate: ForceUIUpdate,
+            configureTournamentTabs: ConfigureTournamentTabs,
+            onHubMatchResultReceived: _hubHandlers.OnHubMatchResultReceived,
+            onHubConnectionStateChanged: _hubHandlers.OnHubConnectionStateChanged,
+            onTournamentNeedsResync: _hubHandlers.OnTournamentNeedsResync,
+            onApiMatchResultUpdated: OnApiMatchResultUpdated,
+            onLicenseStatusChanged: OnLicenseStatusChanged,
+            onHubMatchStarted: _hubHandlers.OnHubMatchStarted,
+            onHubLegCompleted: _hubHandlers.OnHubLegCompleted,
+            onHubMatchProgressUpdated: _hubHandlers.OnHubMatchProgressUpdated);
 
         // Tournament Tabs konfigurieren
         ConfigureTournamentTabs();
@@ -156,10 +115,10 @@ public partial class MainWindow : Window
 
     private void ConfigureTournamentTabs()
     {
-        PlatinTab.TournamentClass = _tournamentService.PlatinClass;
-        GoldTab.TournamentClass = _tournamentService.GoldClass;
-        SilberTab.TournamentClass = _tournamentService.SilberClass;
-        BronzeTab.TournamentClass = _tournamentService.BronzeClass;
+        PlatinTab.TournamentClass = _serviceInitializer.TournamentService.PlatinClass;
+        GoldTab.TournamentClass = _serviceInitializer.TournamentService.GoldClass;
+        SilberTab.TournamentClass = _serviceInitializer.TournamentService.SilberClass;
+        BronzeTab.TournamentClass = _serviceInitializer.TournamentService.BronzeClass;
 
         PlatinTab.DataChanged += (s, e) => MarkAsChanged();
         GoldTab.DataChanged += (s, e) => MarkAsChanged();
@@ -171,8 +130,8 @@ public partial class MainWindow : Window
     {
         _autoSaveTimer.Tick += AutoSave_Tick;
         UpdateAutoSaveTimer();
-        
-        _configService.Config.PropertyChanged += (s, e) =>
+
+        _serviceInitializer.ConfigService.Config.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(AppConfig.AutoSave) || e.PropertyName == nameof(AppConfig.AutoSaveInterval))
             {
@@ -185,40 +144,120 @@ public partial class MainWindow : Window
     {
         try
         {
-            _apiService.MatchResultUpdated += OnApiMatchResultUpdated;
-            _uiHelper.UpdateApiStatus(_apiService.IsApiRunning, _apiService.ApiUrl);
+            _serviceInitializer.UiHelper.UpdateApiStatus(_serviceInitializer.ApiService.IsApiRunning, _serviceInitializer.ApiService.ApiUrl);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Error initializing API service: {ex.Message}");
+            Debug.WriteLine($"Error initializing API service: {ex.Message}");
         }
     }
 
-    private void ForceUIUpdate()
+    private async Task InitializeLicenseSystemAsync()
+    {
+        await _serviceInitializer.InitializeLicenseSystemAsync();
+        Dispatcher.Invoke(() => UpdateLicenseMenuVisibility());
+    }
+
+    #endregion
+
+    #region Data Management
+
+    private async void LoadData()
     {
         try
         {
-            UpdateTranslations();
-            _uiHelper.UpdateLanguageStatus();
-            _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-            
-            PlatinTab?.UpdateTranslations();
-            GoldTab?.UpdateTranslations();
-            SilberTab?.UpdateTranslations();
-            BronzeTab?.UpdateTranslations();
+            var success = await _serviceInitializer.TournamentService.LoadDataAsync();
+            if (success)
+            {
+                ConfigureTournamentTabs();
+                _hasUnsavedChanges = false;
+                _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"MainWindow: ForceUIUpdate ERROR: {ex.Message}");
+            Debug.WriteLine($"LoadData: ERROR: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Öffentliche Methode um Tournament-Daten neu zu laden und UI zu aktualisieren
+    /// Wird von PowerScoring aufgerufen nach Turnier-Erstellung
+    /// </summary>
+    public void RefreshTournamentData()
+    {
+        try
+        {
+            Debug.WriteLine("🔄 RefreshTournamentData called - reloading UI...");
+
+            ConfigureTournamentTabs();
+
+            _hasUnsavedChanges = false;
+            _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+
+            _serviceInitializer.TournamentService.TriggerUIRefresh();
+
+            Debug.WriteLine("✅ RefreshTournamentData complete - UI updated");
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"❌ RefreshTournamentData ERROR: {ex.Message}");
+        }
+    }
+
+    private async Task SaveDataInternal()
+    {
+        try
+        {
+            var success = await _serviceInitializer.TournamentService.SaveDataAsync();
+            if (success)
+            {
+                _hasUnsavedChanges = false;
+                _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+            }
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    private void MarkAsChanged()
+    {
+        _hasUnsavedChanges = true;
+        _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+
+        if (_serviceInitializer.ConfigService.Config.AutoSave)
+        {
+            _autoSaveTimer.Stop();
+            _autoSaveTimer.Interval = TimeSpan.FromSeconds(2);
+            _autoSaveTimer.Start();
+        }
+
+        // Hub-Synchronisation
+        if (_serviceInitializer.HubService.IsRegisteredWithHub && !_serviceInitializer.HubService.IsSyncing)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(3000);
+                if (!_serviceInitializer.HubService.IsSyncing)
+                {
+                    await _serviceInitializer.HubService.SyncTournamentAsync(_serviceInitializer.TournamentService.GetTournamentData());
+                }
+            });
+        }
+    }
+
+    #endregion
+
+    #region Auto-Save
 
     private void UpdateAutoSaveTimer()
     {
         _autoSaveTimer.Stop();
-        if (_configService.Config.AutoSave)
+        if (_serviceInitializer.ConfigService.Config.AutoSave)
         {
-            _autoSaveTimer.Interval = TimeSpan.FromMinutes(_configService.Config.AutoSaveInterval);
+            _autoSaveTimer.Interval = TimeSpan.FromMinutes(_serviceInitializer.ConfigService.Config.AutoSaveInterval);
             _autoSaveTimer.Start();
         }
     }
@@ -232,122 +271,55 @@ public partial class MainWindow : Window
         }
     }
 
-    private async void LoadData()
+    #endregion
+
+    #region UI Updates
+
+    private void ForceUIUpdate()
     {
         try
         {
-            var success = await _tournamentService.LoadDataAsync();
-            if (success)
-            {
-                ConfigureTournamentTabs(); // Tabs mit geladenen Daten neu konfigurieren
-                _hasUnsavedChanges = false;
-                _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-            }
+            UpdateTranslations();
+            _serviceInitializer.UiHelper.UpdateLanguageStatus();
+            _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+
+            PlatinTab?.UpdateTranslations();
+            GoldTab?.UpdateTranslations();
+            SilberTab?.UpdateTranslations();
+            BronzeTab?.UpdateTranslations();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadData: ERROR: {ex.Message}");
-        }
-    }
-    
-    /// <summary>
-    /// ✅ PHASE 3: Öffentliche Methode um Tournament-Daten neu zu laden und UI zu aktualisieren
-    /// Wird von PowerScoring aufgerufen nach Turnier-Erstellung
-    /// </summary>
-    public void RefreshTournamentData()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("🔄 RefreshTournamentData called - reloading UI...");
-            
-            // Konfiguriere Tabs neu mit aktuellen Daten aus TournamentManagementService
-            ConfigureTournamentTabs();
-            
-            // Markiere als "sauber" (frisch geladen)
-            _hasUnsavedChanges = false;
-            _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-            
-            // Trigger UI-Refresh
-            _tournamentService.TriggerUIRefresh();
-            
-            System.Diagnostics.Debug.WriteLine("✅ RefreshTournamentData complete - UI updated");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ RefreshTournamentData ERROR: {ex.Message}");
-        }
-    }
-
-    private async Task SaveDataInternal()
-    {
-        try
-        {
-            var success = await _tournamentService.SaveDataAsync();
-            if (success)
-            {
-                _hasUnsavedChanges = false;
-                _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-            }
-        }
-        catch
-        {
-            throw; // Tournament Service zeigt bereits Fehler-Dialog
-        }
-    }
-
-    private void MarkAsChanged()
-    {
-        _hasUnsavedChanges = true;
-        _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-        
-        if (_configService.Config.AutoSave)
-        {
-            _autoSaveTimer.Stop();
-            _autoSaveTimer.Interval = TimeSpan.FromSeconds(2);
-            _autoSaveTimer.Start();
-        }
-        
-        // Hub-Synchronisation
-        if (_hubService.IsRegisteredWithHub && !_hubService.IsSyncing)
-        {
-            Task.Run(async () =>
-            {
-                await Task.Delay(3000);
-                if (!_hubService.IsSyncing)
-                {
-                    await _hubService.SyncTournamentAsync(_tournamentService.GetTournamentData());
-                }
-            });
+            Debug.WriteLine($"MainWindow: ForceUIUpdate ERROR: {ex.Message}");
         }
     }
 
     private void UpdateTranslations()
     {
-        Title = _localizationService.GetString("AppTitle");
-        
+        Title = _serviceInitializer.LocalizationService.GetString("AppTitle");
+
         // Menü-Übersetzungen über UI Helper
-        _uiHelper.UpdateMenuTranslations(
-            FileMenuItem, NewMenuItem, OpenMenuItem, SaveMenuItem, SaveAsMenuItem, 
+        _serviceInitializer.UiHelper.UpdateMenuTranslations(
+            FileMenuItem, NewMenuItem, OpenMenuItem, SaveMenuItem, SaveAsMenuItem,
             PrintMenuItem, ExitMenuItem, ViewMenuItem, OverviewModeMenuItem,
             TournamentHubMenuItem, RegisterWithHubMenuItem, UnregisterFromHubMenuItem,
             ShowJoinUrlMenuItem, ManualSyncMenuItem, HubSettingsMenuItem,
             LicenseMenuItem, LicenseStatusMenuItem, ActivateLicenseMenuItem, LicenseInfoMenuItem, RemoveLicenseMenuItem, PurchaseLicenseMenuItem,
             SettingsMenuItem, HelpMenuItem, HelpContentMenuItem, BugReportMenuItem, AboutMenuItem
         );
-        //ApiMenuItem, StartApiMenuItem, StopApiMenuItem, OpenApiDocsMenuItem,
 
         // Tab-Header aktualisieren
-        _uiHelper.UpdateTabHeaders(PlatinTabItem, GoldTabItem, SilverTabItem, BronzeTabItem);
+        _serviceInitializer.UiHelper.UpdateTabHeaders(PlatinTabItem, GoldTabItem, SilverTabItem, BronzeTabItem);
 
         // Spenden-Button aktualisieren
-        DonationButton.Content = _localizationService.GetString("Donate");
-        DonationButton.ToolTip = _localizationService.GetString("DonateTooltip");
+        DonationButton.Content = _serviceInitializer.LocalizationService.GetString("Donate");
+        DonationButton.ToolTip = _serviceInitializer.LocalizationService.GetString("DonateTooltip");
 
         // Status aktualisieren
-        _uiHelper.UpdateLanguageStatus();
-        _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-        _uiHelper.UpdateApiStatus(_apiService.IsApiRunning, _apiService.ApiUrl);
-        
+        _serviceInitializer.UiHelper.UpdateLanguageStatus();
+        _serviceInitializer.UiHelper.UpdateStatusBar(_hasUnsavedChanges);
+        _serviceInitializer.UiHelper.UpdateApiStatus(_serviceInitializer.ApiService.IsApiRunning, _serviceInitializer.ApiService.ApiUrl);
+
         // Child-Controls aktualisieren
         PlatinTab?.Dispatcher.BeginInvoke(() => PlatinTab?.UpdateTranslations());
         GoldTab?.Dispatcher.BeginInvoke(() => GoldTab?.UpdateTranslations());
@@ -355,209 +327,91 @@ public partial class MainWindow : Window
         BronzeTab?.Dispatcher.BeginInvoke(() => BronzeTab?.UpdateTranslations());
     }
 
-    // Event Handlers - vereinfacht
-
-    private void OnHubMatchResultReceived(HubMatchUpdateEventArgs e)
+    private void RefreshMatchDisplays()
     {
-  // ✅ Dieser Handler verarbeitet nur noch die alten "tournament-match-updated" Events
-        // Die neuen Live-Events (match-started, leg-completed, match-progress) 
- //haben dedizierte Event-Handler (OnHubMatchStarted, OnHubLegCompleted, OnHubMatchProgressUpdated)
-      // und werden NICHT mehr über MatchResultReceived gefeuert
-        
-    var success = _hubMatchProcessor.ProcessHubMatchUpdate(e, out var errorMessage);
-        
-if (success)
-    {
-            MarkAsChanged();
-ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
- }
-        else if (!string.IsNullOrEmpty(errorMessage))
-     {
-   System.Diagnostics.Debug.WriteLine($"❌ Hub Match Update Error: {errorMessage}");
-        }
-    }
-
-    private void OnHubStatusChanged(bool isConnected)
-    {
-        // ✅ DEPRECATED: This method is replaced by OnHubConnectionStateChanged
-        // The detailed state handler provides more accurate status updates
-        // Keep this method for backwards compatibility but don't update UI here
-        System.Diagnostics.Debug.WriteLine($"🔔 [MainWindow] OnHubStatusChanged (legacy): {isConnected}");
-        
-        // NOTE: UI updates are now handled by OnHubConnectionStateChanged
-        // which provides detailed connection state information
-    }
-    
-    // ✅ NEW: Detailed connection state handler
-    private void OnHubConnectionStateChanged(HubConnectionState state)
-    {
-        System.Diagnostics.Debug.WriteLine($"🔔 [MainWindow] Hub connection state changed: {state}");
-        
-        // Update UI based on detailed state
-        var tournamentId = _hubService.GetCurrentTournamentId();
-        var isSyncing = _hubService.IsSyncing;
-        var lastSyncTime = _hubService.LastSyncTime ?? DateTime.MinValue;
-        
-        _uiHelper.UpdateHubStatusDetailed(state, tournamentId, isSyncing, lastSyncTime);
-    }
-    
-    // ✅ NEW: Tournament resync handler (called after reconnect)
-    private async Task OnTournamentNeedsResync()
-    {
-        System.Diagnostics.Debug.WriteLine($"🔄 [MainWindow] Tournament needs resync after reconnect");
-        
         try
         {
-            // Get current tournament data
-            var tournamentData = _tournamentService.GetTournamentData();
-            
-            if (tournamentData == null)
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [MainWindow] No tournament data available for resync");
-                return;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"🔄 [MainWindow] Syncing tournament data after reconnect...");
-            
-            // Sync tournament data with Hub
-            var success = await _hubService.SyncTournamentAsync(tournamentData);
-            
-            if (success)
-            {
-                System.Diagnostics.Debug.WriteLine($"✅ [MainWindow] Tournament data resynced successfully");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"⚠️ [MainWindow] Tournament data resync failed");
-            }
+            Debug.WriteLine("📊 [REFRESH-DISPLAYS] Match displays refreshed");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ [MainWindow] Error resyncing tournament data: {ex.Message}");
+            Debug.WriteLine($"❌ [REFRESH-DISPLAYS] Error: {ex.Message}");
         }
     }
 
-    private void OnApiMatchResultUpdated(object? sender, MatchResultUpdateEventArgs e)
+    #endregion
+
+    #region License Management
+
+    private async Task OnLicenseStatusChanged(object? sender, Models.License.LicenseStatus status)
     {
-        Dispatcher.Invoke(() =>
+        await Dispatcher.InvokeAsync(() =>
+        {
+            UpdateLicenseMenuVisibility();
+
+            if (status.IsLicensed)
+            {
+                Debug.WriteLine($"License active: {status.LicenseType} - {status.CustomerName}");
+            }
+        });
+    }
+
+    private void UpdateLicenseMenuVisibility()
+    {
+        var hasLicense = _serviceInitializer.LicenseManager.HasLicense();
+        var currentStatus = _serviceInitializer.LicenseFeatureService.CurrentStatus;
+
+        LicenseInfoMenuItem.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
+        LicenseSeparator.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
+
+        if (hasLicense && currentStatus.IsValid)
+        {
+            ActivateLicenseMenuItem.Header = "🔄 Lizenz erneuern";
+        }
+        else
+        {
+            ActivateLicenseMenuItem.Header = "✨ Lizenz aktivieren";
+        }
+    }
+
+    private void UpdateLicenseMenuVisibility(bool isLicensed)
+    {
+        try
+        {
+            LicenseInfoMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+            RemoveLicenseMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+            LicenseSeparator.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error updating license menu visibility: {ex.Message}");
+        }
+    }
+
+    #endregion
+
+    #region API Event Handlers
+
+    private async Task OnApiMatchResultUpdated(object? sender, MatchResultUpdateEventArgs e)
+    {
+        await Dispatcher.InvokeAsync(() =>
         {
             try
             {
-                var tournamentClass = _tournamentService.GetTournamentClassById(e.ClassId);
+                var tournamentClass = _serviceInitializer.TournamentService.GetTournamentClassById(e.ClassId);
                 tournamentClass?.TriggerUIRefresh();
                 MarkAsChanged();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error processing API match result: {ex.Message}");
+                Debug.WriteLine($"Error processing API match result: {ex.Message}");
             }
         });
     }
 
-    private void ShowToastNotification(string title, string message, string source)
-    {
-        System.Diagnostics.Debug.WriteLine($"🔔 {title}: {message} (Source: {source})");
-    }
+    #endregion
 
-    // Menü Event Handlers - vereinfacht
-
-    private void New_Click(object sender, RoutedEventArgs e)
-    {
-        var title = _localizationService.GetString("NewTournament");
-        var message = _localizationService.GetString("CreateNewTournament");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
-        
-        if (result == MessageBoxResult.Yes)
-        {
-            _tournamentService.ResetAllTournaments();
-            ConfigureTournamentTabs();
-            _hasUnsavedChanges = false;
-            _uiHelper.UpdateStatusBar(_hasUnsavedChanges);
-        }
-    }
-
-    private void Open_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog
-        {
-            Filter = "Tournament files (*.json)|*.json|All files (*.*)|*.*",
-            DefaultExt = "json"
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var title = _localizationService.GetString("Information");
-            var message = _localizationService.GetString("CustomFileNotImplemented");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    private async void Save_Click(object sender, RoutedEventArgs e)
-    {
-        await SaveDataInternal();
-    }
-
-    private void SaveAs_Click(object sender, RoutedEventArgs e)
-    {
-        var dialog = new SaveFileDialog
-        {
-            Filter = "Tournament files (*.json)|*.json|All files (*.*)|*.*",
-            DefaultExt = "json"
-        };
-
-        if (dialog.ShowDialog() == true)
-        {
-            var title = _localizationService.GetString("Information");
-            var message = _localizationService.GetString("CustomFileSaveNotImplemented");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    private void Settings_Click(object sender, RoutedEventArgs e)
-    {
-        var settingsWindow = new SettingsWindow(_configService, _localizationService, App.ThemeService);
-        settingsWindow.Owner = this;
-        
-        if (settingsWindow.ShowDialog() == true)
-        {
-            UpdateAutoSaveTimer();
-        }
-    }
-
-    private void About_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            AboutDialog.ShowDialog(this, _localizationService);
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("About");
-            var message = _localizationService.GetString("AboutText");
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    private void Help_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var helpWindow = new HelpWindow(_localizationService);
-            helpWindow.Owner = this;
-            helpWindow.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("ErrorOpeningHelp")} {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private async void Exit_Click(object sender, RoutedEventArgs e)
-    {
-        await HandleAppExit();
-    }
+    #region Window Lifecycle
 
     protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
@@ -569,8 +423,8 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
     {
         if (_hasUnsavedChanges)
         {
-            var title = _localizationService.GetString("UnsavedChanges");
-            var message = _localizationService.GetString("SaveBeforeExit");
+            var title = _serviceInitializer.LocalizationService.GetString("UnsavedChanges");
+            var message = _serviceInitializer.LocalizationService.GetString("SaveBeforeExit");
             var result = MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
             switch (result)
@@ -579,8 +433,7 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
                     try
                     {
                         await SaveDataInternal();
-                        // NEU: License Manager disposing
-                        _licenseManager?.Dispose();
+                        _serviceInitializer.LicenseManager?.Dispose();
                         Application.Current.Shutdown();
                     }
                     catch
@@ -589,8 +442,7 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
                     }
                     break;
                 case MessageBoxResult.No:
-                    // NEU: License Manager disposing
-                    _licenseManager?.Dispose();
+                    _serviceInitializer.LicenseManager?.Dispose();
                     Application.Current.Shutdown();
                     break;
                 case MessageBoxResult.Cancel:
@@ -599,322 +451,77 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
         }
         else
         {
-            // NEU: License Manager disposing
-            _licenseManager?.Dispose();
+            _serviceInitializer.LicenseManager?.Dispose();
             Application.Current.Shutdown();
         }
     }
 
-    // NEU: Lizenz-System Initialisierung
-    private async Task InitializeLicenseSystemAsync()
-    {
-        try
-        {
-            await _licenseFeatureService.InitializeAsync();
-            
-            // UI für Lizenz-Status aktualisieren
-            Dispatcher.Invoke(() => UpdateLicenseMenuVisibility());
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"License system initialization error: {ex.Message}");
-        }
-    }
-    
-    // NEU: Lizenz-Status Event Handler
-    private void OnLicenseStatusChanged(object? sender, Models.License.LicenseStatus status)
-    {
-        Dispatcher.Invoke(() =>
-        {
-            UpdateLicenseMenuVisibility();
-            
-            // Optional: Status in der Statusleiste anzeigen
-            if (status.IsLicensed)
-            {
-                System.Diagnostics.Debug.WriteLine($"License active: {status.LicenseType} - {status.CustomerName}");
-            }
-        });
-    }
-    
-    // NEU: Lizenz-Menü Sichtbarkeit aktualisieren
-    private void UpdateLicenseMenuVisibility()
-    {
-        var hasLicense = _licenseManager.HasLicense();
-        var currentStatus = _licenseFeatureService.CurrentStatus;
-        
-        // Lizenz-Info nur anzeigen wenn Lizenz vorhanden
-        LicenseInfoMenuItem.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
-        LicenseSeparator.Visibility = hasLicense ? Visibility.Visible : Visibility.Collapsed;
-        
-        // Aktivierung-Text ändern basierend auf Status
-        if (hasLicense && currentStatus.IsValid)
-        {
-            ActivateLicenseMenuItem.Header = "🔄 Lizenz erneuern";
-        }
-        else
-        {
-            ActivateLicenseMenuItem.Header = "✨ Lizenz aktivieren";
-        }
-    }
-    
-    // NEU: Lizenz Event Handlers
-    
-    private void LicenseStatus_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var statusWindow = new Views.License.LicenseStatusWindow(_licenseManager, _licenseFeatureService, _localizationService);
-            statusWindow.Owner = this;
-            statusWindow.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen des Lizenz-Status: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-    
-    private async void ActivateLicense_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var dialog = new SimpleLicenseActivationDialog(_localizationService, _licenseManager);
-            
-            if (await dialog.ShowDialogAsync())
-            {
-                // Lizenz wurde erfolgreich aktiviert
-                UpdateLicenseMenuVisibility();
-                
-                // Feature Service Status aktualisieren
-                await _licenseFeatureService.InitializeAsync();
-                
-                System.Diagnostics.Debug.WriteLine($"✅ License activated and UI updated");
-            }
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Aktivieren der Lizenz: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-    
-    private void LicenseInfo_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var dialog = new SimpleLicenseInfoDialog(_licenseManager, _licenseFeatureService, _localizationService);
-            dialog.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Anzeigen der Lizenz-Informationen: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-    
-    private void PurchaseLicense_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var purchaseDialog = new Views.License.PurchaseLicenseDialog(_localizationService, _licenseManager);
-            purchaseDialog.Owner = this;
-            purchaseDialog.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen des Lizenzkauf-Dialogs: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
+    #endregion
 
-    private void OverviewMode_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            // ✅ Tournament Overview wiederherstellt
-            // Hole Tournament-ID aus TournamentData
-            var tournamentData = _tournamentService.GetTournamentData();
-            var tournamentId = tournamentData?.TournamentId;
-            
-            // Hole inneren HubService (falls vorhanden)
-            HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
-            
-            // Erstelle Tournament Overview Window mit allen benötigten Services
-            var overviewWindow = new TournamentOverviewWindow(
-                _tournamentService.AllTournamentClasses,
-                _localizationService,
-                hubIntegrationService,
-                _licenseFeatureService,
-                tournamentId
-            );
-            
-            overviewWindow.Owner = this;
-            overviewWindow.ShowDialog();
-            
-            System.Diagnostics.Debug.WriteLine("✅ Tournament Overview window opened");
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Error";
-            var message = $"Error opening Tournament Overview: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-            System.Diagnostics.Debug.WriteLine($"❌ Tournament Overview Error: {ex.Message}");
-        }
-    }
+    #region Menu Event Handlers - Delegiert an Helper-Klassen
 
-    // ✅ NEU: PowerScoring Event-Handler
-    private void PowerScoring_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            // Prüfe ob PowerScoring-Feature lizenziert ist
-            if (!_licenseFeatureService.IsFeatureEnabled(Models.License.LicenseFeatures.POWERSCORING))
-            {
-                // Zeige modernen License Required Dialog
-                var requestLicense = Views.License.PowerScoringLicenseRequiredDialog.ShowDialog(
-                    this,
-                    _localizationService,
-                    _licenseManager);
-                
-                if (requestLicense)
-                {
-                    // Öffne Purchase Dialog
-                    PurchaseLicense_Click(sender, e);
-                }
-                
-                return;
-            }
+    // File Menu
+    private void New_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnNew(sender, e);
+    private void Open_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnOpen(sender, e);
+    private async void Save_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnSave(sender, e);
+    private void SaveAs_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnSaveAs(sender, e);
+    private void Print_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnPrint(sender, e);
+    private async void Exit_Click(object sender, RoutedEventArgs e) => await HandleAppExit();
 
-            // ✅ PHASE 3: Öffne PowerScoring-Fenster mit allen Services
-            var powerScoringWindow = new PowerScoringWindow(
-                _powerScoringService, 
-                _localizationService,
-                _hubService,              // ✅ Hub-Service für WebSocket-Integration
-                _configService,           // ✅ Config-Service für Einstellungen
-                _tournamentService,       // ✅ PHASE 3: Tournament-Service für Turnier-Erstellung
-                this);                    // ✅ PHASE 3: MainWindow-Referenz für UI-Refresh
-            powerScoringWindow.Owner = this;
-            powerScoringWindow.ShowDialog();
-            
-            System.Diagnostics.Debug.WriteLine("✅ PowerScoring-Fenster geöffnet");
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen von PowerScoring: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-            System.Diagnostics.Debug.WriteLine($"❌ PowerScoring Error: {ex.Message}");
-        }
-    }
+    // View Menu
+    private void OverviewMode_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnOverviewMode(sender, e);
+    private void PowerScoring_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnPowerScoring(sender, e);
+    private void ToggleDarkMode_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnToggleDarkMode(sender, e);
 
-    private void BugReport_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var bugReportDialog = new BugReportDialog(_localizationService);
-            bugReportDialog.Owner = this;
-            bugReportDialog.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
+    // Settings Menu
+    private void Settings_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnSettings(sender, e);
 
-    private void Donation_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var donationDialog = new DonationDialog(_localizationService);
-            donationDialog.Owner = this;
-            donationDialog.ShowDialog();
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
+    // Help Menu
+    private void Help_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnHelp(sender, e);
+    private void BugReport_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnBugReport(sender, e);
+    private void About_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnAbout(sender, e);
 
-    private void Print_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            // TEMPORARY DEBUG: Zeige Debug-Dialog vor dem Print
-            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift))
-            {
-                Views.License.LicenseDebugDialog.ShowDebugDialog(this, _licenseFeatureService, _licenseManager, _localizationService);
-                return;
-            }
-            
-            // ✅ Hole den inneren HubIntegrationService direkt vom LicensedHubService
-            HubIntegrationService? hubIntegrationService = _hubService?.InnerHubService;
-        
-            // ⭐ NEU: Hole Tournament-ID aus TournamentData
-            string? tournamentId = _tournamentService.GetTournamentData()?.TournamentId;
-        
-            if (hubIntegrationService != null)
-            {
-                System.Diagnostics.Debug.WriteLine("[Print_Click] HubIntegrationService erfolgreich extrahiert für QR-Codes");
-                System.Diagnostics.Debug.WriteLine($"[Print_Click] Hub registered: {hubIntegrationService.IsRegisteredWithHub}");
-                System.Diagnostics.Debug.WriteLine($"[Print_Click] Tournament ID: {tournamentId ?? "null"}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("[Print_Click] Kein HubIntegrationService verfügbar - Drucke ohne QR-Codes");
-            }
-            
-            // ✅ FIXED: Verwende PrintHelper mit Tournament-ID
-            Helpers.PrintHelper.ShowPrintDialog(
-                _tournamentService.AllTournamentClasses, 
-                _tournamentService.PlatinClass, 
-                this, 
-                _localizationService,
-                _licenseFeatureService,  // LicenseFeatureService für Lizenzprüfung
-                _licenseManager,         // LicenseManager für Dialog
-                hubIntegrationService,   // HubService für QR-Codes
-                tournamentId);         // ⭐ NEU: Tournament-ID für QR-Code URLs
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen des Druckdialogs: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-            System.Diagnostics.Debug.WriteLine($"[Print_Click] Fehler: {ex.Message}\n{ex.StackTrace}");
-        }
-    }
+    // Donation
+    private void Donation_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnDonation(sender, e);
 
-    // API Event Handlers
+    // License Menu
+    private void LicenseStatus_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnLicenseStatus(sender, e);
+    private async void ActivateLicense_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnActivateLicense(sender, e);
+    private void LicenseInfo_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnLicenseInfo(sender, e);
+    private void PurchaseLicense_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnPurchaseLicense(sender, e);
+    private async void RemoveLicense_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnRemoveLicense(sender, e);
 
+    // Hub Menu - Delegiert an Hub Handlers
+    private async void RegisterWithHub_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnRegisterWithHub(sender, e);
+    private async void UnregisterFromHub_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnUnregisterFromHub(sender, e);
+    private async void ManualSyncWithHub_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnManualSyncWithHub(sender, e);
+    private void ShowJoinUrl_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnShowJoinUrl(sender, e);
+    private void HubSettings_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnHubSettings(sender, e);
+    private void HubStatus_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => _hubHandlers.OnHubStatusClick(sender, e);
+
+    // API Menu - Delegiert an Event Handlers (diese könnten auch in separate Klasse)
     private async void StartApi_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            var success = await _apiService.StartApiAsync(_tournamentService.GetTournamentData(), 5000);
-            
-            var title = success ? 
-                (_localizationService.GetString("Success") ?? "Erfolgreich") :
-                (_localizationService.GetString("Error") ?? "Fehler");
-            
+            var success = await _serviceInitializer.ApiService.StartApiAsync(_serviceInitializer.TournamentService.GetTournamentData(), 5000);
+
+            var title = success ?
+                (_serviceInitializer.LocalizationService.GetString("Success") ?? "Erfolgreich") :
+                (_serviceInitializer.LocalizationService.GetString("Error") ?? "Fehler");
+
             var message = success ?
-                (_localizationService.GetString("APIStarted") ?? $"API erfolgreich gestartet!\n\nURL: {_apiService.ApiUrl}") :
-                (_localizationService.GetString("APIStartError") ?? "API konnte nicht gestartet werden.");
-            
-            MessageBox.Show(message, title, MessageBoxButton.OK, 
+                (_serviceInitializer.LocalizationService.GetString("APIStarted") ?? $"API erfolgreich gestartet!\n\nURL: {_serviceInitializer.ApiService.ApiUrl}") :
+                (_serviceInitializer.LocalizationService.GetString("APIStartError") ?? "API konnte nicht gestartet werden.");
+
+            MessageBox.Show(message, title, MessageBoxButton.OK,
                 success ? MessageBoxImage.Information : MessageBoxImage.Error);
-            
-            _uiHelper.UpdateApiStatus(_apiService.IsApiRunning, _apiService.ApiUrl);
+
+            _serviceInitializer.UiHelper.UpdateApiStatus(_serviceInitializer.ApiService.IsApiRunning, _serviceInitializer.ApiService.ApiUrl);
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var title = _serviceInitializer.LocalizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Starten der API: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -924,20 +531,20 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
     {
         try
         {
-            var success = await _apiService.StopApiAsync();
-            
+            var success = await _serviceInitializer.ApiService.StopApiAsync();
+
             if (success)
             {
-                var title = _localizationService.GetString("Success") ?? "Erfolgreich";
-                var message = _localizationService.GetString("APIStopped") ?? "API gestoppt.";
+                var title = _serviceInitializer.LocalizationService.GetString("Success") ?? "Erfolgreich";
+                var message = _serviceInitializer.LocalizationService.GetString("APIStopped") ?? "API gestoppt.";
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            
-            _uiHelper.UpdateApiStatus(_apiService.IsApiRunning, _apiService.ApiUrl);
+
+            _serviceInitializer.UiHelper.UpdateApiStatus(_serviceInitializer.ApiService.IsApiRunning, _serviceInitializer.ApiService.ApiUrl);
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var title = _serviceInitializer.LocalizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Stoppen der API: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -947,19 +554,19 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
     {
         try
         {
-            if (!_apiService.IsApiRunning)
+            if (!_serviceInitializer.ApiService.IsApiRunning)
             {
-                var title = _localizationService.GetString("Information") ?? "Information";
+                var title = _serviceInitializer.LocalizationService.GetString("Information") ?? "Information";
                 var message = "API ist nicht gestartet. Starten Sie die API zuerst.";
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            if (_apiService.ApiUrl != null)
+            if (_serviceInitializer.ApiService.ApiUrl != null)
             {
                 var processInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = _apiService.ApiUrl,
+                    FileName = _serviceInitializer.ApiService.ApiUrl,
                     UseShellExecute = true
                 };
                 System.Diagnostics.Process.Start(processInfo);
@@ -967,901 +574,9 @@ ShowToastNotification("Match Update", $"Match {e.MatchId} aktualisiert", "Hub");
         }
         catch (Exception ex)
         {
-            var title = _localizationService.GetString("Error") ?? "Fehler";
+            var title = _serviceInitializer.LocalizationService.GetString("Error") ?? "Fehler";
             var message = $"Fehler beim Öffnen des Browsers: {ex.Message}";
             MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    // Tournament Hub Event Handlers
-
-    private async void RegisterWithHub_Click(object sender, RoutedEventArgs e)
-    {
-        // ⭐ NEU: Verwende neuen HubRegistrationDialog mit custom ID Support
-      var success = HubRegistrationDialog.ShowDialog(
-      this,
-        _hubService,
- _tournamentService,
-         MarkAsChanged,
-    _localizationService);
-
-        if (success)
- {
-   System.Diagnostics.Debug.WriteLine("✅ [RegisterWithHub_Click] Hub registration successful");
- }
-        else
-        {
-    System.Diagnostics.Debug.WriteLine("⚠️ [RegisterWithHub_Click] Hub registration cancelled or failed");
-        }
-    }
-
-    private async void UnregisterFromHub_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (!_hubService.IsRegisteredWithHub)
-            {
-                var infoTitle = _localizationService.GetString("Information");
-                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
-                MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var confirmTitle = _localizationService.GetString("UnregisterTournamentTitle");
-            var confirmMessage = _localizationService.GetString("UnregisterTournamentConfirm", 
-                _hubService.GetCurrentTournamentId());
-            
-            var result = MessageBox.Show(confirmMessage, confirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question);
-            
-            if (result == MessageBoxResult.Yes)
-            {
-                await _hubService.UnregisterTournamentAsync();
-                
-                var title = _localizationService.GetString("Success");
-                var message = _localizationService.GetString("UnregisterTournamentSuccess");
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("UnregisterTournamentError", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private async void ManualSyncWithHub_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (!_hubService.IsRegisteredWithHub)
-            {
-                var infoTitle = _localizationService.GetString("Information");
-                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
-                MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var success = await _hubService.SyncTournamentAsync(_tournamentService.GetTournamentData());
-            
-            var title = success ?
-                _localizationService.GetString("Success") :
-                _localizationService.GetString("Error");
-            
-            var message = success ?
-                _localizationService.GetString("SyncSuccess") :
-                _localizationService.GetString("SyncError");
-            
-            MessageBox.Show(message, title, MessageBoxButton.OK, 
-                success ? MessageBoxImage.Information : MessageBoxImage.Error);
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("ManualSyncError", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void ShowJoinUrl_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(_hubService.GetCurrentTournamentId()))
-            {
-                var infoTitle = _localizationService.GetString("Information");
-                var infoMessage = _localizationService.GetString("NoTournamentRegistered");
-                MessageBox.Show(infoMessage, infoTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                return;
-            }
-
-            var joinUrl = _hubService.GetJoinUrl();
-            
-            var dialogTitle = _localizationService.GetString("JoinUrlTitle");
-            var dialogMessage = _localizationService.GetString("JoinUrlMessage", 
-                _hubService.GetCurrentTournamentId(), joinUrl);
-            
-            MessageBox.Show(dialogMessage, dialogTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-            System.Windows.Clipboard.SetText(joinUrl);
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("JoinUrlError", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void HubSettings_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var currentHubUrl = _hubService.TournamentHubService.HubUrl;
-            
-            var input = Microsoft.VisualBasic.Interaction.InputBox(
-                _localizationService.GetString("HubSettingsPrompt"),
-                _localizationService.GetString("HubSettingsTitle"),
-                currentHubUrl
-            );
-            
-            if (!string.IsNullOrWhiteSpace(input) && input != currentHubUrl)
-            {
-                _hubService.UpdateHubUrl(input);
-                
-                var title = _localizationService.GetString("Success");
-                var message = _localizationService.GetString("HubUrlUpdated", input);
-                MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-        catch (Exception ex)
-        {
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("HubSettingsError", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-
-    private void HubStatus_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        try
-        {
-            // Verwende die globale Debug Console vom HubIntegrationService
-            var globalDebugWindow = HubIntegrationService.GlobalDebugWindow;
-            
-            if (globalDebugWindow?.IsVisible == true)
-            {
-                globalDebugWindow.Hide();
-                System.Diagnostics.Debug.WriteLine("🔍 Global Debug Console hidden via MainWindow");
-            }
-            else
-            {
-                globalDebugWindow?.Show();
-                globalDebugWindow?.AddDebugMessage(_localizationService.GetString("DebugConsoleStarted"), "INFO");
-                System.Diagnostics.Debug.WriteLine("🔍 Global Debug Console opened via MainWindow");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error toggling Hub Debug Console: {ex.Message}");
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("HubSettingsError", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-    
-    // ✅ NEU: Dark Mode Toggle Event Handler
-    private void ToggleDarkMode_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            App.ThemeService?.ToggleTheme();
-            
-            // Menü-Text aktualisieren basierend auf aktuellerem Theme
-            var currentTheme = App.ThemeService?.GetCurrentTheme() ?? "Light";
-            var isDark = currentTheme.ToLower() == "dark";
-            var newText = isDark ? "☀️ Switch to Light Mode" : "🌙 Switch to Dark Mode";
-            
-            // Versuche Übersetzung zu finden
-            var translationKey = isDark ? "SwitchToLightMode" : "SwitchToDarkMode";
-            var translatedText = _localizationService.GetString(translationKey);
-            
-            if (!string.IsNullOrEmpty(translatedText) && translatedText != translationKey)
-            {
-                newText = isDark ? "☀️ " + translatedText : "🌙 " + translatedText;
-            }
-            
-            if (sender is MenuItem menuItem)
-            {
-                menuItem.Header = newText;
-            }
-            
-            System.Diagnostics.Debug.WriteLine($"🎨 Theme toggled to: {currentTheme}");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error toggling dark mode: {ex.Message}");
-            
-            var title = _localizationService.GetString("Error") ?? "Error";
-            var message = $"Error switching theme: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
-    
-    private async void RemoveLicense_Click(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var title = _localizationService.GetString("RemoveLicense") ?? "Lizenz entfernen";
-            var message = _localizationService.GetString("RemoveLicenseConfirmation") ?? 
-                "Möchten Sie die aktivierte Lizenz wirklich entfernen?\n\n" +
-                "• Die Anwendung wird danach als unlizenziert ausgeführt\n" +
-                "• Alle Core-Features bleiben verfügbar\n" +
-                "• Sie können jederzeit eine neue Lizenz aktivieren\n\n" +
-                "Fortfahren?";
-            
-            var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-            
-            if (result == MessageBoxResult.Yes)
-            {
-                // Progress anzeigen
-                var progressDialog = new SimpleLicenseActivationDialog(_localizationService, _licenseManager);
-                
-                // Lizenz entfernen
-                var success = await _licenseManager.RemoveLicenseAndResetAsync();
-                
-                if (success)
-                {
-                    // LicenseFeatureService aktualisieren
-                    await _licenseFeatureService.InitializeAsync();
-                    
-                    // UI-Status aktualisieren
-                    UpdateLicenseMenuVisibility(false);
-                    
-                    var successTitle = _localizationService.GetString("Success") ?? "Erfolg";
-                    var successMessage = _localizationService.GetString("LicenseRemovedSuccess") ?? 
-                        "✅ Lizenz wurde erfolgreich entfernt!\n\n" +
-                        "Die Anwendung läuft jetzt im unlizenzierte Modus mit allen Core-Features.\n" +
-                        "Sie können jederzeit über das Lizenz-Menü eine neue Lizenz aktivieren.";
-                    
-                    MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    var errorTitle = _localizationService.GetString("Error") ?? "Fehler";
-                    var errorMessage = _localizationService.GetString("LicenseRemoveError") ?? 
-                        "❌ Fehler beim Entfernen der Lizenz.\n\nBitte versuchen Sie es erneut oder kontaktieren Sie den Support.";
-                    
-                    MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            var errorTitle = _localizationService.GetString("Error") ?? "Fehler";
-            var errorMessage = $"Unerwarteter Fehler beim Entfernen der Lizenz:\n\n{ex.Message}";
-            
-            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
-    }
-    
-    /// <summary>
-    /// Aktualisiert die Sichtbarkeit der Lizenz-Menüeinträge basierend auf dem Lizenz-Status
-    /// </summary>
-    private void UpdateLicenseMenuVisibility(bool isLicensed)
-    {
-        try
-      {
-          LicenseInfoMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
-       RemoveLicenseMenuItem.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
-   LicenseSeparator.Visibility = isLicensed ? Visibility.Visible : Visibility.Collapsed;
-     }
-      catch (Exception ex)
-        {
-    Debug.WriteLine($"Error updating license menu visibility: {ex.Message}");
-        }
-    }
-
-    #region ✨ NEU: Live-Match-Update Event-Handler
-
-    /// <summary>
- /// ✨ NEU: Handler für Match-Start Events vom Hub
- /// </summary>
-    private void OnHubMatchStarted(HubMatchUpdateEventArgs args)
-    {
-        Dispatcher.Invoke(() =>
-        {
-    try
-     {
- Debug.WriteLine($"🎬 [MATCH-STARTED] {args.GetMatchIdentificationSummary()}");
-        Debug.WriteLine($"   📊 Status from Hub: '{args.Status}' (IsMatchStarted: {args.IsMatchStarted})");
- Debug.WriteLine($"   📊 Status Description: {args.GetStatusDescription()}");
-  
-      // ⚠️ WICHTIG: Prüfe ob Status korrekt ist
- if (args.Status != "InProgress")
-   {
-  Debug.WriteLine($"   ⚠️ WARNING: Status should be 'InProgress' but is '{args.Status}'!");
-     }
-    
-   // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
-   // Dies führt die Match-Suche inkl. UUID-Synchronisation durch!
-        Debug.WriteLine($"🔍 [MATCH-STARTED] Calling ProcessHubMatchUpdate...");
-            Debug.WriteLine($"   _hubMatchProcessor is null: {_hubMatchProcessor == null}");
-    
-            if (_hubMatchProcessor == null)
-       {
-         Debug.WriteLine($"   ❌ ERROR: _hubMatchProcessor is NULL!");
-           return;
-            }
-            
-            var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
-   
-   if (!success && !string.IsNullOrEmpty(errorMessage))
-    {
-      Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
-      }
-    else if (success)
-            {
-     Debug.WriteLine($"   ✅ Match processing succeeded!");
-     }
-  
-  // ✅ FIX: Aktualisiere Match Status UND Score (für Notes-Update)
-        // Match in UI als "In Progress" markieren
-     UpdateMatchStatusInUI(args, "InProgress");
-      
-        // ✅ NEU: Aktualisiere auch den Score damit Notes gesetzt werden
-      UpdateMatchScoreInUI(args);
-   
-            // Optionale Benachrichtigung
-    if (_configService.Config.ShowMatchStartNotifications)
-  {
-  ShowMatchStartNotification(args);
-     }
-        }
-       catch (Exception ex)
-      {
-    Debug.WriteLine($"❌ [MATCH-STARTED] Error handling match started event: {ex.Message}");
-    }
-    });
-    }
-
-    /// <summary>
-    /// ✨ NEU: Handler für Leg-Completed Events vom Hub
-    /// </summary>
-    private void OnHubLegCompleted(HubMatchUpdateEventArgs args)
-    {
-        Dispatcher.Invoke(() =>
-{
-    try
-{
-         Debug.WriteLine($"🎯 [LEG-COMPLETED] {args.GetMatchIdentificationSummary()}");
-  Debug.WriteLine($"   📊 Leg {args.CurrentLeg}/{args.TotalLegs} - Score: {args.Player1Legs}-{args.Player2Legs}");
-           
-  // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
-     var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
-    
- if (!success && !string.IsNullOrEmpty(errorMessage))
-   {
-  Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
-     }
-        
-// Match-Stand in UI aktualisieren
-         UpdateMatchScoreInUI(args);
-    
-   // Leg-Details loggen (optional)
-     if (args.LegResults != null && args.LegResults.Count > 0)
-        {
-    var lastLeg = args.LegResults.LastOrDefault();
-          if (lastLeg != null)
-       {
-               Debug.WriteLine($"   🏆 Winner: {lastLeg.Winner}");
-  Debug.WriteLine($"   ⏱️ Duration: {lastLeg.Duration:mm\\:ss}");
-     Debug.WriteLine($"   🎯 Darts: P1={lastLeg.Player1Darts}, P2={lastLeg.Player2Darts}");
-     }
-          }
-   
-        // UI aktualisieren
-    RefreshMatchDisplays();
-      }
-            catch (Exception ex)
-      {
- Debug.WriteLine($"❌ [LEG-COMPLETED] Error handling leg completed event: {ex.Message}");
-            }
- });
-  }
-
-    /// <summary>
-    /// ✨ NEU: Handler für Match-Progress Events vom Hub
-    /// </summary>
-    private void OnHubMatchProgressUpdated(HubMatchUpdateEventArgs args)
-    {
-        Dispatcher.Invoke(() =>
-    {
-     try
-        {
-        Debug.WriteLine($"📈 [MATCH-PROGRESS] {args.GetMatchIdentificationSummary()}");
-      
-           // ✅ CRITICAL FIX: Verarbeite das Match-Update über den Processor
-       var success = _hubMatchProcessor.ProcessHubMatchUpdate(args, out var errorMessage);
-    
- if (!success && !string.IsNullOrEmpty(errorMessage))
-{
-  Debug.WriteLine($"   ❌ Match processing failed: {errorMessage}");
-      }
-      
-   if (args.MatchDuration.HasValue)
-  {
-      Debug.WriteLine($"   ⏱️ Duration: {args.MatchDuration.Value:mm\\:ss}");
-    }
- 
-       if (args.CurrentPlayer1LegScore.HasValue && args.CurrentPlayer2LegScore.HasValue)
-     {
-    Debug.WriteLine($"   📊 Current Leg: {args.CurrentPlayer1LegScore}-{args.CurrentPlayer2LegScore}");
-     }
- 
-     // UI mit aktuellem Stand aktualisieren (ohne Speicherung)
-       UpdateMatchProgressInUI(args);
-            }
-    catch (Exception ex)
-   {
-    Debug.WriteLine($"❌ [MATCH-PROGRESS] Error handling match progress event: {ex.Message}");
-            }
-        });
-    }
-
-    /// <summary>
-    /// ✨ NEU: Aktualisiert Match-Status in der UI
-    /// ERWEITERT: Unterstützt Match und KnockoutMatch
-    /// </summary>
-    private void UpdateMatchStatusInUI(HubMatchUpdateEventArgs args, string status)
-    {
-        try
- {
-   var tournamentData = _tournamentService.GetTournamentData();
-       if (tournamentData == null) return;
-            
-   // Finde das Match
- var matchObj = FindMatchInTournament(tournamentData, args);
-   if (matchObj == null)
-       {
-        Debug.WriteLine($"⚠️ [UPDATE-STATUS] Match not found: {args.GetMatchIdentificationSummary()}");
-       return;
-     }
- 
-       // ✅ WICHTIG: Setze den MatchStatus Enum basierend auf den String-Status
-  MatchStatus matchStatus;
-       switch (status)
-     {
-       case "InProgress":
-    matchStatus = MatchStatus.InProgress;
-         break;
-    case "Finished":
-        matchStatus = MatchStatus.Finished;
-        break;
-      case "NotStarted":
-  matchStatus = MatchStatus.NotStarted;
-      break;
-case "Bye":
-         matchStatus = MatchStatus.Bye;
-      break;
-      default:
-         Debug.WriteLine($"⚠️ [UPDATE-STATUS] Unknown status: {status}, defaulting to InProgress");
-     matchStatus = MatchStatus.InProgress;
-     break;
-     }
-         
-     // ✅ Behandle Match und KnockoutMatch unterschiedlich
-if (matchObj is Match match)
-       {
-   match.Status = matchStatus;
-        
- // Status in Notes speichern (für visuelle Live-Anzeige)
-         var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
-         var statusIndicator = status == "InProgress" ? liveIndicator : "";
-        match.Notes = $"{statusIndicator} {match.Notes?.Replace(liveIndicator, "").Trim()}".Trim();
-   
-       Debug.WriteLine($"✅ [UPDATE-STATUS] Match status updated to: {matchStatus} ({status})");
-            Debug.WriteLine($"   📊 Match.StatusDisplay will now show: {match.StatusDisplay}");
-     }
-    else if (matchObj is KnockoutMatch koMatch)
-  {
- koMatch.Status = matchStatus;
-    
-     // Status in Notes speichern
-var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
-       var statusIndicator = status == "InProgress" ? liveIndicator : "";
-       koMatch.Notes = $"{statusIndicator} {koMatch.Notes?.Replace(liveIndicator, "").Trim()}".Trim();
-
-  Debug.WriteLine($"✅ [UPDATE-STATUS] KO Match status updated to: {matchStatus} ({status})");
-        Debug.WriteLine($"   📊 KnockoutMatch.StatusDisplay will now show: {koMatch.StatusDisplay}");
-        }
-      }
-        catch (Exception ex)
-    {
-        Debug.WriteLine($"❌ [UPDATE-STATUS] Error: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// ✨ NEU: Aktualisiert Match-Score in der UI (Leg-Updates)
-    /// ERWEITERT: Unterstützt Match und KnockoutMatch
-    /// </summary>
-    private void UpdateMatchScoreInUI(HubMatchUpdateEventArgs args)
-    {
-     try
- {
-var tournamentData = _tournamentService.GetTournamentData();
-     if (tournamentData == null) return;
-       
-    var matchObj = FindMatchInTournament(tournamentData, args);
-     if (matchObj == null) return;
-  
-  // ✅ Behandle Match und KnockoutMatch unterschiedlich
-        if (matchObj is Match match)
-        {
-            UpdateRegularMatch(match, args);
-   }
-   else if (matchObj is KnockoutMatch koMatch)
-    {
-  UpdateKnockoutMatch(koMatch, args);
-        }
-    }
-    catch (Exception ex)
-{
-   Debug.WriteLine($"❌ [UPDATE-SCORE] Error: {ex.Message}");
-}
-    }
-
- /// <summary>
-    /// ✅ NEU: Aktualisiert ein reguläres Match (Gruppenphase oder Finals)
-    /// </summary>
-    private void UpdateRegularMatch(Match match, HubMatchUpdateEventArgs args)
-    {
- // Score aktualisieren
-   match.Player1Legs = args.Player1Legs;
-        match.Player2Legs = args.Player2Legs;
-        match.Player1Sets = args.Player1Sets;
-     match.Player2Sets = args.Player2Sets;
-    
-     // ✅ CRITICAL FIX: Robustere Status-Logik mit Debug-Logging
-Debug.WriteLine($"🔍 [UPDATE-REGULAR-MATCH] Status Check:");
-      Debug.WriteLine($"   args.IsMatchCompleted: {args.IsMatchCompleted}");
-      Debug.WriteLine($"   args.IsMatchStarted: {args.IsMatchStarted}");
-        Debug.WriteLine($"args.Status: {args.Status}");
-       Debug.WriteLine($"   Current match.Status: {match.Status}");
- 
-        if (args.IsMatchCompleted)
-        {
-   match.Status = MatchStatus.Finished;
-Debug.WriteLine($"   ✅ Match marked as Finished");
-        }
-        else if (args.IsMatchStarted)
- {
-       match.Status = MatchStatus.InProgress;
-    Debug.WriteLine($"   ✅ Match marked as InProgress");
-      }
-    else
-{
-    Debug.WriteLine($"   ⚠️ WARNING: Neither IsMatchCompleted nor IsMatchStarted is true!");
-   }
- 
-   // Berechne maximale Legs
-        int calculatedTotalLegs = CalculateMaxLegs(match, args);
-     
- // Leg-Info in Notes hinzufügen
-  var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
-    var legProgress = _localizationService.GetString("Hub_LegProgress", args.CurrentLeg, calculatedTotalLegs);
-   match.Notes = $"{liveIndicator} - {legProgress}";
-   
-  Debug.WriteLine($"✅ [UPDATE-SCORE] Match score updated: {args.Player1Legs}-{args.Player2Legs}");
- Debug.WriteLine($"   📊 Calculated total legs: {calculatedTotalLegs} (Hub sent: {args.TotalLegs})");
-        Debug.WriteLine($" 📊 Status: {match.Status}, Display: {match.StatusDisplay}");
-        Debug.WriteLine($"   📝 Notes: {match.Notes}");
-   
-        // ✅ NEU: Triggere UI-Refresh damit die Änderungen sofort sichtbar sind
-     try
-  {
- var tournamentData = _tournamentService.GetTournamentData();
-        if (tournamentData != null)
- {
-  var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
-    if (tournamentClass != null)
-      {
-     Debug.WriteLine($"🔄 [UI-REFRESH] Triggering UI refresh for tournament class {tournamentClass.Name}");
-tournamentClass.TriggerUIRefresh();
- }
-       }
-}
-        catch (Exception ex)
-      {
-     Debug.WriteLine($"⚠️ [UI-REFRESH] Error triggering UI refresh: {ex.Message}");
-   }
-
-    // Speichere nur bei abgeschlossenem Match
-if (args.IsMatchCompleted)
- {
-    MarkAsChanged();
-    }
-    }
-    /// <summary>
-    /// ✅ NEU: Aktualisiert ein KnockoutMatch
-    /// </summary>
-private void UpdateKnockoutMatch(KnockoutMatch koMatch, HubMatchUpdateEventArgs args)
-  {
- // Score aktualisieren
-  koMatch.Player1Legs = args.Player1Legs;
-    koMatch.Player2Legs = args.Player2Legs;
-    koMatch.Player1Sets = args.Player1Sets;
-      koMatch.Player2Sets = args.Player2Sets;
-    
-    // Status setzen
-        if (args.IsMatchCompleted)
-        {
-      koMatch.Status = MatchStatus.Finished;
-          Debug.WriteLine($"   ✅ KO Match marked as Finished");
-        }
- else if (args.IsMatchStarted)
-        {
-     koMatch.Status = MatchStatus.InProgress;
-       Debug.WriteLine($"   ✅ KO Match marked as InProgress");
-      }
- 
-        // Berechne maximale Legs
-        var tempMatch = new Match { Id = koMatch.Id, UniqueId = koMatch.UniqueId };
-  int calculatedTotalLegs = CalculateMaxLegs(tempMatch, args);
-  
-        // Leg-Info in Notes hinzufügen
-      var liveIndicator = _localizationService.GetString("Hub_LiveIndicator");
-        var legProgress = _localizationService.GetString("Hub_LegProgress", args.CurrentLeg, calculatedTotalLegs);
-        koMatch.Notes = $"{liveIndicator} - {legProgress}";
-     
-        Debug.WriteLine($"✅ [UPDATE-SCORE] KO Match score updated: {args.Player1Legs}-{args.Player2Legs}");
-        Debug.WriteLine($"   📊 Calculated total legs: {calculatedTotalLegs} (Hub sent: {args.TotalLegs})");
-        Debug.WriteLine($"   📊 Status: {koMatch.Status}, Display: {koMatch.StatusDisplay}");
-     Debug.WriteLine($"   📝 Notes: {koMatch.Notes}");
-   
-     // ✅ NEU: Aktualisiere Tournament Tree Renderer wenn vorhanden
-        Debug.WriteLine($"🌳 [TREE-UPDATE] Checking TournamentTreeRenderer.CurrentInstance...");
-      Debug.WriteLine($"   📦 Current Instance: {TournamentTreeRenderer.CurrentInstance != null}");
-     
-        if (TournamentTreeRenderer.CurrentInstance != null)
-    {
-            try
-            {
-    // Bestimme ob Match im Loser Bracket ist
- bool isLoserBracket = args.MatchType?.Contains("Loser") == true;
-    
-      Debug.WriteLine($"🌳 [TREE-UPDATE] Refreshing match {koMatch.Id} in tree (Loser: {isLoserBracket})");
-     TournamentTreeRenderer.CurrentInstance.RefreshMatchInTree(koMatch.Id, isLoserBracket);
-  }
-            catch (Exception ex)
-            {
-  Debug.WriteLine($"❌ [TREE-UPDATE] Error: {ex.Message}");
-       }
-        }
-        else
-        {
-      Debug.WriteLine($"⚠️ [TREE-UPDATE] TournamentTreeRenderer.CurrentInstance is NULL - tree won't update!");
-       Debug.WriteLine($"   💡 Hint: Switch to KO Tab to initialize the tree renderer");
-        }
-   
-        // Speichere nur bei abgeschlossenem Match
-    if (args.IsMatchCompleted)
-        {
- MarkAsChanged();
-        }
-    }
-
-    /// <summary>
-    /// ✨ NEU: Berechnet die maximale Anzahl an Legs basierend auf Spielregeln
-    /// ERWEITERT: Unterstützt KO-Matches mit rundenspezifischen Regeln
-  /// </summary>
-    private int CalculateMaxLegs(Match match, HubMatchUpdateEventArgs args)
-    {
-        try
-        {
-            var tournamentData = _tournamentService.GetTournamentData();
-            if (tournamentData == null) return args.TotalLegs;
-    
- var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
- if (tournamentClass == null) return args.TotalLegs;
-     
-      var gameRules = tournamentClass.GameRules;
-    if (gameRules == null) return args.TotalLegs;
-   
-         int legsToWin = gameRules.LegsToWin;
-      
-         // ✅ KORRIGIERT: Prüfe nur auf "Knockout", nicht auf "Final" (Finals ist Round Robin!)
-            if (args.MatchType?.Contains("Knockout") == true)
- {
-        Debug.WriteLine($"   🏆 KO match detected: {args.MatchType}");
-      
-       if (args.TotalLegs > 0)
-    {
-      legsToWin = args.TotalLegs;
-        Debug.WriteLine($"   🔧 Using Hub's totalLegs ({args.TotalLegs}) as LegsToWin for KO match");
-    }
-       }
-         else
-  {
-       Debug.WriteLine($" 📊 Regular match (Group/Finals): {args.MatchType ?? "Unknown"}");
-          Debug.WriteLine($"   📋 Using GameRules.LegsToWin = {legsToWin}");
-    }
-   
-        int maxLegs = (2 * legsToWin) - 1;
-      
- Debug.WriteLine($"🎯 Game Rules: LegsToWin = {legsToWin}, Calculated MaxLegs = {maxLegs}");
-  
-        return maxLegs;
-    }
-   catch (Exception ex)
-        {
-   Debug.WriteLine($" ⚠️ Error calculating max legs: {ex.Message}, using Hub value");
-     return (2 * args.TotalLegs) - 1;
-        }
-    }
-
-    /// <summary>
-    /// ✨ NEU: Aktualisiert Match-Progress in der UI (ohne Speicherung)
-    /// </summary>
-    private void UpdateMatchProgressInUI(HubMatchUpdateEventArgs args)
-    {
-        try
-        {
-       RefreshMatchDisplays();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"❌ [UPDATE-PROGRESS] Error: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// ✨ NEU: Zeigt eine Benachrichtigung für Match-Start
-    /// </summary>
-    private void ShowMatchStartNotification(HubMatchUpdateEventArgs args)
-    {
-    try
-        {
-  var tournamentData = _tournamentService.GetTournamentData();
-   if (tournamentData == null) return;
-
-            var matchObj = FindMatchInTournament(tournamentData, args);
-      if (matchObj == null) return;
-   
-            var className = tournamentData.TournamentClasses
-      .FirstOrDefault(c => c.Id == args.ClassId)?.Name ?? "Unknown Class";
- 
-         string? player1Name = null;
-       string? player2Name = null;
-    
-    if (matchObj is Match match)
-            {
-         player1Name = match.Player1?.Name;
-          player2Name = match.Player2?.Name;
-            }
-            else if (matchObj is KnockoutMatch koMatch)
-   {
-     player1Name = koMatch.Player1?.Name;
-      player2Name = koMatch.Player2?.Name;
-        }
-
-            var message = _localizationService.GetString(
-          "Hub_MatchStartNotification", 
-      player1Name ?? "Player 1", 
-    player2Name ?? "Player 2", 
-           className);
- 
-        Debug.WriteLine($"📢 {message}");
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"❌ [NOTIFICATION] Error: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// ✨ NEU: Hilfsmethode zum Finden eines Matches
-    /// </summary>
-    private object? FindMatchInTournament(TournamentData tournamentData, HubMatchUpdateEventArgs args)
-    {
-   var tournamentClass = tournamentData.TournamentClasses.FirstOrDefault(c => c.Id == args.ClassId);
-    if (tournamentClass == null) return null;
- 
-        if (args.GroupId.HasValue)
-  {
-          var group = tournamentClass.Groups.FirstOrDefault(g => g.Id == args.GroupId.Value);
-            if (group != null)
-            {
-                return group.Matches.FirstOrDefault(m => 
-        (args.HasUuid && m.UniqueId == args.MatchUuid) ||
-                 (!args.HasUuid && m.Id == args.MatchId)
-     );
-            }
-        }
-   
- // ✅ CRITICAL FIX: Suche auch in Finals!
-        if (!args.GroupId.HasValue && args.GroupName?.Contains("Finals") == true)
-        {
-        Debug.WriteLine($"   🔍 Searching for Finals match: {args.GroupName}");
-            
-            if (tournamentClass.CurrentPhase?.FinalsGroup != null)
-            {
-       var finalsMatch = tournamentClass.CurrentPhase.FinalsGroup.Matches.FirstOrDefault(m =>
-       (args.HasUuid && m.UniqueId == args.MatchUuid) ||
-(!args.HasUuid && m.Id == args.MatchId)
-      );
-    
-         if (finalsMatch != null)
-  {
-           Debug.WriteLine($"   ✅ Found match in Finals");
-    return finalsMatch;
-   }
-            }
-          
-            Debug.WriteLine($"   ⚠️ Finals match not found");
-     }
-        
-        // ✅ Suche in KO-Phase (unverändert)
-        if (!args.GroupId.HasValue && args.MatchType?.Contains("Knockout") == true)
-        {
-  Debug.WriteLine($"   🔍 Searching for KO match: {args.MatchType}");
-
-          foreach (var phase in tournamentClass.Phases)
-            {
-      if (phase.PhaseType == TournamentPhaseType.KnockoutPhase)
-        {
-                  foreach (var koMatch in phase.WinnerBracket)
-            {
-         if ((args.HasUuid && koMatch.UniqueId == args.MatchUuid) ||
-   (!args.HasUuid && koMatch.Id == args.MatchId))
-  {
-   Debug.WriteLine($"   ✅ Found KO match in Winner Bracket");
-           return koMatch;
-          }
-  }
-          
-       foreach (var koMatch in phase.LoserBracket)
-             {
-         if ((args.HasUuid && koMatch.UniqueId == args.MatchUuid) ||
-           (!args.HasUuid && koMatch.Id == args.MatchId))
-      {
-           Debug.WriteLine($"   ✅ Found KO match in Loser Bracket");
-      return koMatch;
-             }
-    }
-    }
-          }
-     
-         Debug.WriteLine($"   ⚠️ KO match not found in any bracket");
-        }
- 
-        if (!args.GroupId.HasValue)
-        {
-        foreach (var group in tournamentClass.Groups)
-            {
-          var match = group.Matches.FirstOrDefault(m =>
-     (args.HasUuid && m.UniqueId == args.MatchUuid) ||
-        (!args.HasUuid && m.Id == args.MatchId)
-     );
-        if (match != null) return match;
-         }
-        }
-    
-        return null;
-    }
-
-    /// <summary>
-    /// ✨ NEU: Aktualisiert alle Match-Anzeigen
-    /// </summary>
-  private void RefreshMatchDisplays()
-    {
-        try
-        {
-Debug.WriteLine("📊 [REFRESH-DISPLAYS] Match displays refreshed");
-        }
-        catch (Exception ex)
-        {
-     Debug.WriteLine($"❌ [REFRESH-DISPLAYS] Error: {ex.Message}");
         }
     }
 

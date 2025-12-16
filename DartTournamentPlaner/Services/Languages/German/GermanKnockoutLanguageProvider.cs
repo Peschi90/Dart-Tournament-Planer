@@ -172,6 +172,25 @@ public class GermanKnockoutLanguageProvider : ILanguageSection
             ["BracketOptimized"] = "Bracket wurde optimiert",
             ["BracketGenerationFailed"] = "Bracket-Generierung fehlgeschlagen",
             
+            // ✅ NEU: Direkte Knockout-Generierung (Gruppenphase überspringen)
+            ["GenerateKnockout"] = "KO-Phase generieren",
+            ["NotEnoughPlayersForKnockout"] = "Es werden mindestens 2 Spieler für die KO-Phase benötigt!",
+            ["ConfirmDirectKnockoutGeneration"] = "KO-Phase direkt starten?\n\n" +
+                                                   "• {0} Spieler\n" +
+                                                   "• Modus: {1}\n" +
+                                                   "• Keine Gruppenphase\n\n" +
+                                                   "Fortfahren?",
+            ["DirectKnockoutGeneratedSuccess"] = "KO-Phase wurde erfolgreich erstellt!\n\n" +
+                                                  "• {0} Matches im Winner Bracket\n" +
+                                                  "• Modus: {1}",
+            ["ErrorGeneratingKnockout"] = "Fehler beim Erstellen der KO-Phase:",
+            
+            // ✅ NEU: Generate Knockout Dialog
+            ["ConfirmDirectKnockoutQuestion"] = "Möchten Sie die KO-Phase direkt starten?",
+            ["NoGroupPhase"] = "Keine Gruppenphase",
+            ["DirectKnockoutInfo"] = "Das Turnier beginnt direkt mit dem K.O.-System. Alle Spieler werden automatisch ins Bracket eingefügt.",
+            ["Continue"] = "✓ Fortfahren",
+            
             // =====================================
             // SEEDING UND PAARUNGEN
             // =====================================

@@ -60,6 +60,10 @@ public partial class GameRulesWindow : Window
         SetsToWinTextBox.Text = _gameRules.SetsToWin.ToString();
         LegsPerSetTextBox.Text = _gameRules.LegsPerSet.ToString();
         
+        // ? NEU: Set skip group phase value
+        SkipGroupPhaseCheckBox.IsChecked = _gameRules.SkipGroupPhase;
+        System.Diagnostics.Debug.WriteLine($"InitializeUI: Set SkipGroupPhase to {_gameRules.SkipGroupPhase}");
+        
         // KORRIGIERT: Set post-group phase values mit korrekter Tag-Behandlung
         var postGroupPhaseTag = _gameRules.PostGroupPhaseMode.ToString();
         System.Diagnostics.Debug.WriteLine($"InitializeUI: Looking for PostGroupPhaseMode tag: {postGroupPhaseTag}");
@@ -118,6 +122,10 @@ public partial class GameRulesWindow : Window
         QualifyingPlayersLabel.Text = _localizationService.GetString("QualifyingPlayersPerGroup") + ":";
         KnockoutModeLabel.Text = _localizationService.GetString("KnockoutMode") + ":";
         IncludeGroupPhaseLosersBracketCheckBox.Content = _localizationService.GetString("IncludeGroupPhaseLosersBracket");
+        
+        // ? NEU: Skip Group Phase Translation
+        SkipGroupPhaseCheckBox.Content = _localizationService.GetString("SkipGroupPhase");
+        SkipGroupPhaseCheckBox.ToolTip = _localizationService.GetString("SkipGroupPhaseTooltip");
         
         // Button translations
         SaveButton.Content = _localizationService.GetString("Save");
@@ -181,10 +189,44 @@ public partial class GameRulesWindow : Window
 
     private void UpdateVisibility()
     {
-        // Show/hide qualifying players (only for post-group phases)
-        var showQualifying = PostGroupPhaseModeComboBox.SelectedValue?.ToString() != "None";
-        QualifyingPlayersLabel.Visibility = showQualifying ? Visibility.Visible : Visibility.Collapsed;
-        QualifyingPlayersTextBox.Visibility = showQualifying ? Visibility.Visible : Visibility.Collapsed;
+        // ? NEU: Show/hide elements based on skip group phase
+        var skipGroupPhase = SkipGroupPhaseCheckBox.IsChecked == true;
+        
+        if (skipGroupPhase)
+        {
+            // Wenn Gruppenphase übersprungen wird:
+            // - PostGroupPhaseMode nicht anzeigen (ist automatisch KnockoutBracket)
+            // - QualifyingPlayers nicht anzeigen (alle Spieler qualifiziert)
+            // - KnockoutMode anzeigen
+            PostGroupPhaseModeLabel.Visibility = Visibility.Collapsed;
+            PostGroupPhaseModeComboBox.Visibility = Visibility.Collapsed;
+            QualifyingPlayersLabel.Visibility = Visibility.Collapsed;
+            QualifyingPlayersTextBox.Visibility = Visibility.Collapsed;
+            IncludeGroupPhaseLosersBracketCheckBox.Visibility = Visibility.Collapsed;
+            
+            KnockoutModeLabel.Visibility = Visibility.Visible;
+            KnockoutModeComboBox.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            // Normale Anzeige mit Gruppenphase
+            PostGroupPhaseModeLabel.Visibility = Visibility.Visible;
+            PostGroupPhaseModeComboBox.Visibility = Visibility.Visible;
+            
+            // Show/hide qualifying players (only for post-group phases)
+            var showQualifying = PostGroupPhaseModeComboBox.SelectedValue?.ToString() != "None";
+            QualifyingPlayersLabel.Visibility = showQualifying ? Visibility.Visible : Visibility.Collapsed;
+            QualifyingPlayersTextBox.Visibility = showQualifying ? Visibility.Visible : Visibility.Collapsed;
+            
+            // Show KnockoutMode nur wenn PostGroupPhase auf KnockoutBracket steht
+            var isKnockout = ((ComboBoxItem?)PostGroupPhaseModeComboBox.SelectedItem)?.Tag?.ToString() == "KnockoutBracket";
+            KnockoutModeLabel.Visibility = isKnockout ? Visibility.Visible : Visibility.Collapsed;
+            KnockoutModeComboBox.Visibility = isKnockout ? Visibility.Visible : Visibility.Collapsed;
+            
+            // IncludeGroupPhaseLosersBracket nur bei Double Elimination anzeigen
+            var isDoubleElimination = ((ComboBoxItem?)KnockoutModeComboBox.SelectedItem)?.Tag?.ToString() == "DoubleElimination";
+            IncludeGroupPhaseLosersBracketCheckBox.Visibility = (isKnockout && isDoubleElimination) ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     private void UpdatePreview()
@@ -331,6 +373,38 @@ public partial class GameRulesWindow : Window
         // WICHTIG: Sofort DataChanged Event feuern
         DataChanged?.Invoke(this, EventArgs.Empty);
     }
+    
+    // ? NEU: Event Handlers für SkipGroupPhaseCheckBox
+    private void SkipGroupPhaseCheckBox_Checked(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SkipGroupPhaseCheckBox_Checked: Setting SkipGroupPhase to true");
+        _gameRules.SkipGroupPhase = true;
+        
+        // Setze automatisch PostGroupPhaseMode auf KnockoutBracket
+        _gameRules.PostGroupPhaseMode = PostGroupPhaseMode.KnockoutBracket;
+        
+        // Update ComboBox Selection
+        foreach (ComboBoxItem item in PostGroupPhaseModeComboBox.Items)
+        {
+            if (item.Tag?.ToString() == "KnockoutBracket")
+            {
+                PostGroupPhaseModeComboBox.SelectedItem = item;
+                break;
+            }
+        }
+        
+        UpdateVisibility();
+        DataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void SkipGroupPhaseCheckBox_Unchecked(object sender, RoutedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("SkipGroupPhaseCheckBox_Unchecked: Setting SkipGroupPhase to false");
+        _gameRules.SkipGroupPhase = false;
+        
+        UpdateVisibility();
+        DataChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
@@ -376,6 +450,10 @@ public partial class GameRulesWindow : Window
                     _gameRules.LegsPerSet = legsPerSet;
                 }
             }
+            
+            // ? WICHTIG: SkipGroupPhase Property speichern!
+            _gameRules.SkipGroupPhase = SkipGroupPhaseCheckBox.IsChecked == true;
+            System.Diagnostics.Debug.WriteLine($"SaveButton_Click: Setting SkipGroupPhase to {_gameRules.SkipGroupPhase}");
 
             // KORRIGIERT: Korrekte Behandlung der PostGroupPhaseMode ComboBox
             if (PostGroupPhaseModeComboBox.SelectedItem is ComboBoxItem postGroupModeItem && 

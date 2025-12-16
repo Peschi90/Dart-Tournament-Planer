@@ -477,6 +477,13 @@ public class TournamentTabUIManager : IDisposable
 
     public void RefreshKnockoutView()
     {
+        System.Diagnostics.Debug.WriteLine("=== RefreshKnockoutView START ===");
+        System.Diagnostics.Debug.WriteLine($"CurrentPhase: {_tournamentClass?.CurrentPhase?.PhaseType}");
+        System.Diagnostics.Debug.WriteLine($"WinnerBracket count: {_tournamentClass?.CurrentPhase?.WinnerBracket?.Count ?? -1}");
+        System.Diagnostics.Debug.WriteLine($"LoserBracket count: {_tournamentClass?.CurrentPhase?.LoserBracket?.Count ?? -1}");
+        System.Diagnostics.Debug.WriteLine($"KnockoutMatchesDataGrid is null: {KnockoutMatchesDataGrid == null}");
+        System.Diagnostics.Debug.WriteLine($"LoserBracketDataGrid is null: {LoserBracketDataGrid == null}");
+        
         if (_tournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
         {
             if (KnockoutParticipantsListBox != null)
@@ -485,16 +492,34 @@ public class TournamentTabUIManager : IDisposable
             var winnerBracketMatches = _tournamentClass.CurrentPhase.WinnerBracket.Select(match =>
                 new KnockoutMatchViewModel(match, _tournamentClass)).ToList();
             
+            System.Diagnostics.Debug.WriteLine($"Created {winnerBracketMatches.Count} winner bracket ViewModels");
+            
             if (KnockoutMatchesDataGrid != null)
+            {
                 KnockoutMatchesDataGrid.ItemsSource = winnerBracketMatches;
+                System.Diagnostics.Debug.WriteLine($"✅ Set KnockoutMatchesDataGrid.ItemsSource with {winnerBracketMatches.Count} items");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("❌ KnockoutMatchesDataGrid is NULL!");
+            }
             
             if (_tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination)
             {
                 var loserBracketMatches = _tournamentClass.CurrentPhase.LoserBracket.Select(match =>
                     new KnockoutMatchViewModel(match, _tournamentClass)).ToList();
                 
+                System.Diagnostics.Debug.WriteLine($"Created {loserBracketMatches.Count} loser bracket ViewModels");
+                
                 if (LoserBracketDataGrid != null)
+                {
                     LoserBracketDataGrid.ItemsSource = loserBracketMatches;
+                    System.Diagnostics.Debug.WriteLine($"✅ Set LoserBracketDataGrid.ItemsSource with {loserBracketMatches.Count} items");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("❌ LoserBracketDataGrid is NULL!");
+                }
                 
                 if (LoserBracketTab != null)
                     LoserBracketTab.Visibility = Visibility.Visible;
@@ -510,9 +535,17 @@ public class TournamentTabUIManager : IDisposable
             }
             
             // Draw tournament trees
+            System.Diagnostics.Debug.WriteLine("Drawing bracket trees...");
             DrawBracketTree();
             DrawLoserBracketTree();
+            System.Diagnostics.Debug.WriteLine("Bracket trees drawn");
         }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Not in KnockoutPhase! CurrentPhase: {_tournamentClass?.CurrentPhase?.PhaseType}");
+        }
+        
+        System.Diagnostics.Debug.WriteLine("=== RefreshKnockoutView END ===");
     }
 
     public void UpdatePhaseDisplay()
@@ -640,7 +673,9 @@ public class TournamentTabUIManager : IDisposable
         if (RemoveGroupButton != null)
             RemoveGroupButton.IsEnabled = GroupsListBox?.SelectedItem != null;
 
-        // ✅ KORRIGIERT: Reset-Buttons sollten immer aktiviert sein, wenn es Gruppen oder Daten gibt
+        // ✅ NEU: Berücksichtige SkipGroupPhase-Modus
+        bool skipGroupPhase = _tournamentClass.GameRules.SkipGroupPhase;
+        
         var hasGroups = _tournamentClass.Groups.Count > 0;
         var hasGeneratedMatches = _tournamentClass.Groups.Any(g => g.MatchesGenerated && g.Matches.Count > 0);
         var isInAdvancedPhase = _tournamentClass.CurrentPhase?.PhaseType != TournamentPhaseType.GroupPhase;
@@ -675,10 +710,41 @@ public class TournamentTabUIManager : IDisposable
 
         if (ResetMatchesButton != null)
             ResetMatchesButton.IsEnabled = canResetMatches;
+        
+        // ✅ NEU: Generate Matches Button - Text und Verhalten anpassen
+        if (GenerateMatchesButton != null)
+        {
+            if (skipGroupPhase)
+            {
+                // Im SkipGroupPhase-Modus: Button generiert direkt KO-Phase
+                GenerateMatchesButton.Content = _localizationService?.GetString("GenerateKnockout") ?? "⚔️ KO-Phase generieren";
+                GenerateMatchesButton.IsEnabled = hasGroups && _tournamentClass.Groups.SelectMany(g => g.Players).Count() >= 2;
+                GenerateMatchesButton.ToolTip = _localizationService?.GetString("GenerateKnockoutTooltip") 
+                    ?? "Erstellt direkt die KO-Phase mit allen Spielern (ohne Gruppenphase)";
+            }
+            else
+            {
+                // Normaler Modus: Button generiert Gruppen-Matches
+                GenerateMatchesButton.Content = _localizationService?.GetString("GenerateMatches") ?? "🎯 Spiele generieren";
+                var selectedGroup = GroupsListBox?.SelectedItem as Group;
+                GenerateMatchesButton.IsEnabled = selectedGroup?.Players.Count >= 2;
+                GenerateMatchesButton.ToolTip = _localizationService?.GetString("GenerateMatchesTooltip") 
+                    ?? "Erstellt Round-Robin Matches für die ausgewählte Gruppe";
+            }
+        }
+        
+        // ✅ NEU: Gruppen-Management Buttons - Deaktivieren wenn SkipGroupPhase aktiv und KO-Phase läuft
+        bool allowGroupManagement = !skipGroupPhase || _tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase;
+        
+        if (AddPlayerButton != null)
+            AddPlayerButton.IsEnabled = allowGroupManagement && GroupsListBox?.SelectedItem != null;
+        if (PlayerNameTextBox != null)
+            PlayerNameTextBox.IsEnabled = allowGroupManagement && GroupsListBox?.SelectedItem != null;
             
-        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: Phase={_tournamentClass.CurrentPhase?.PhaseType}, canResetMatches={canResetMatches}");
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: Phase={_tournamentClass.CurrentPhase?.PhaseType}, SkipGroupPhase={skipGroupPhase}, canResetMatches={canResetMatches}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetTournamentButton.IsEnabled = {ResetTournamentButton?.IsEnabled}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetMatchesButton.IsEnabled = {ResetMatchesButton?.IsEnabled}");
+        System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] GenerateMatchesButton.Content = {GenerateMatchesButton?.Content}");
     }
 
     private void UpdatePlayerManagementButtons(bool enabled, Group? selectedGroup, bool allowGeneration = true)

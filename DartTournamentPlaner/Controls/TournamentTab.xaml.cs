@@ -194,7 +194,7 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
                         // Zugriff auf den inneren HubIntegrationService über Reflection
                         var innerServiceField = licensedHubService.GetType()
                             .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        
+                
                         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] InnerServiceField found: {innerServiceField != null}");
                         
                         var hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
@@ -249,7 +249,11 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
             () => _uiManager?.RefreshFinalsView(),
             () => _uiManager?.RefreshKnockoutView(),
             () => Window.GetWindow(this),
-            getHubService
+            getHubService,
+            // ✅ NEU: Callback für Tab-Wechsel
+            (phaseType) => SwitchToPhaseTab(phaseType),
+            // ✅ NEU: Callback für vollständiges UI-Update
+            () => _uiManager?.UpdateUI()
         );
 
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] TournamentTabEventHandlers initialized with HubService callback");
@@ -559,28 +563,75 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
     {
         try
         {
-            _uiManager?.UpdateUI();
-            _uiManager?.UpdatePlayersView(SelectedGroup);
-            _uiManager?.UpdateMatchesView(SelectedGroup);
-            _uiManager?.UpdatePhaseDisplay();
+            System.Diagnostics.Debug.WriteLine("🔄 RefreshUIButton_Click: Starting UI refresh...");
+            System.Diagnostics.Debug.WriteLine($"🔄 Current Phase: {TournamentClass?.CurrentPhase?.PhaseType}");
+            System.Diagnostics.Debug.WriteLine($"🔄 Phases count: {TournamentClass?.Phases.Count}");
             
+            // ✅ WICHTIG: ValidateAndRepairPhases DARF KEINE Daten löschen!
+            // Es soll nur sicherstellen dass die Phase-Struktur konsistent ist
+            if (TournamentClass?.CurrentPhase != null)
+            {
+                System.Diagnostics.Debug.WriteLine("🔄 Skipping ValidateAndRepairPhases to preserve data");
+                // NICHT aufrufen: TournamentClass?.ValidateAndRepairPhases();
+            }
+            
+            // Aktualisiere UI Manager (ohne Daten zu ändern)
+            _uiManager?.UpdateUI();
+            
+            // Aktualisiere aktuelle View basierend auf Phase
             if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
             {
+                System.Diagnostics.Debug.WriteLine("🔄 Refreshing KO view...");
+                System.Diagnostics.Debug.WriteLine($"🔄 Winner Bracket matches: {TournamentClass.CurrentPhase.WinnerBracket?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"🔄 Loser Bracket matches: {TournamentClass.CurrentPhase.LoserBracket?.Count ?? 0}");
+                
+                // Refreshe KO View
                 _uiManager?.RefreshKnockoutView();
+                
+                // Stelle sicher dass KO-Tab ausgewählt ist
+                if (MainTabControl != null && KnockoutTabItem != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("🔄 Switching to KO tab...");
+                    MainTabControl.SelectedItem = KnockoutTabItem;
+                }
+                
+                // Force UI update über Dispatcher
+                Dispatcher.BeginInvoke(() =>
+                {
+                    System.Diagnostics.Debug.WriteLine("🔄 Dispatcher: Forcing KO view refresh...");
+                    _uiManager?.RefreshKnockoutView();
+                }, DispatcherPriority.Loaded);
+            }
+            else if (TournamentClass?.CurrentPhase?.PhaseType == TournamentPhaseType.RoundRobinFinals)
+            {
+                System.Diagnostics.Debug.WriteLine("🔄 Refreshing Finals view...");
+                _uiManager?.RefreshFinalsView();
+                
+                // Stelle sicher dass Finals-Tab ausgewählt ist
+                if (MainTabControl != null && FinalsTabItem != null)
+                {
+                    MainTabControl.SelectedItem = FinalsTabItem;
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("🔄 Refreshing Group phase view...");
+                _uiManager?.UpdatePlayersView(SelectedGroup);
+                _uiManager?.UpdateMatchesView(SelectedGroup);
             }
             
-            var parentGrid = Window.GetWindow(this)?.Content as Grid;
-            if (parentGrid != null)
-            {
-                var successMessage = _localizationService?.GetString("UIRefreshed") ?? "Benutzeroberfläche wurde aktualisiert";
-                var title = _localizationService?.GetString("Information") ?? "Information";
-                TournamentUIHelper.ShowToastNotification(parentGrid, title, successMessage);
-            }
+            // Aktualisiere Phase Display
+            _uiManager?.UpdatePhaseDisplay();
+            
+            System.Diagnostics.Debug.WriteLine("✅ RefreshUIButton_Click: UI refresh complete");
         }
         catch (Exception ex)
         {
-            var errorMessage = $"{_localizationService?.GetString("ErrorRefreshing") ?? "Fehler beim Aktualisieren:"} {ex.Message}";
-            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
+            System.Diagnostics.Debug.WriteLine($"❌ RefreshUIButton_Click ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            var title = _localizationService?.GetString("Error") ?? "Fehler";
+            var message = $"Fehler beim Aktualisieren der UI: {ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -700,6 +751,62 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
                 MainTabControl.SelectedItem = KnockoutTabItem;
                 break;
         }
+    }
+    
+    /// <summary>
+    /// ✅ NEU: Öffentliche Methode für Phase-Tab-Wechsel (für Event Handlers)
+    /// </summary>
+    private void SwitchToPhaseTab(TournamentPhaseType phaseType)
+    {
+        System.Diagnostics.Debug.WriteLine($"🔄 SwitchToPhaseTab called for phase: {phaseType}");
+        
+        if (MainTabControl == null)
+        {
+            System.Diagnostics.Debug.WriteLine("❌ MainTabControl is null!");
+            return;
+        }
+        
+        Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                switch (phaseType)
+                {
+                    case TournamentPhaseType.KnockoutPhase:
+                        System.Diagnostics.Debug.WriteLine($"✅ Switching to KnockoutTabItem");
+                        if (KnockoutTabItem != null)
+                        {
+                            MainTabControl.SelectedItem = KnockoutTabItem;
+                            System.Diagnostics.Debug.WriteLine($"✅ KnockoutTabItem selected: {MainTabControl.SelectedItem == KnockoutTabItem}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("❌ KnockoutTabItem is null!");
+                        }
+                        break;
+                        
+                    case TournamentPhaseType.RoundRobinFinals:
+                        System.Diagnostics.Debug.WriteLine($"✅ Switching to FinalsTabItem");
+                        if (FinalsTabItem != null)
+                        {
+                            MainTabControl.SelectedItem = FinalsTabItem;
+                        }
+                        break;
+                        
+                    case TournamentPhaseType.GroupPhase:
+                        System.Diagnostics.Debug.WriteLine($"✅ Switching to GroupPhaseTabItem");
+                        if (GroupPhaseTabItem != null)
+                        {
+                            MainTabControl.SelectedItem = GroupPhaseTabItem;
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error switching tab: {ex.Message}");
+            }
+        }, DispatcherPriority.Normal);
     }
 
     private void ResetMatchesButton_Click(object sender, RoutedEventArgs e)
@@ -837,111 +944,108 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
             await _eventHandlers.HandleMatchDoubleClick(selectedMatch, "Group");
         }
     }
-
-    private void EditMatchResult_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { DataContext: Match match }) return;
-
- try
-        {
-     // ✅ FIXED: HubIntegrationService UND Tournament-ID über TournamentManagementService holen
-   HubIntegrationService? hubService = null;
-          string? tournamentId = null;
- 
-try
-      {
-   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Starting HubService and TournamentId retrieval...");
-        
-  if (Application.Current.MainWindow is MainWindow mainWindow)
-   {
-       System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] MainWindow found: {mainWindow.GetType().Name}");
-       
-       // Zugriff auf den LicensedHubService über Reflection
-var hubServiceField = mainWindow.GetType()
-     .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-  
-    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceField found: {hubServiceField != null}");
     
-   var hubServiceValue = hubServiceField?.GetValue(mainWindow);
-       System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
- 
-   if (hubServiceValue is LicensedHubService licensedHubService)
-         {
-         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] LicensedHubService found, getting inner service...");
-
-// Zugriff auf den inneren HubIntegrationService über Reflection
-            var innerServiceField = licensedHubService.GetType()
-    .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-     
-   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] InnerServiceField found: {innerServiceField != null}");
-  
-        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
-        
-    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubIntegrationService retrieved: {hubService != null}");
-    
-    if (hubService != null)
-         {
-   System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubService registered: {hubService.IsRegisteredWithHub}");
-     }
-  else
- {
-System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] HubIntegrationService is null");
-   }
-    }
-   else
-    {
-  System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] Not a LicensedHubService or null");
-      }
-   
-         // ⭐ KORRIGIERT: Hole Tournament-ID über TournamentManagementService
-          var tournamentServiceField = mainWindow.GetType()
-      .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-   
- System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] TournamentServiceField found: {tournamentServiceField != null}");
-   
-    if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
-{
-     var tournamentData = tournamentService.GetTournamentData();
-       tournamentId = tournamentData?.TournamentId;
- 
-    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Tournament ID from TournamentService: {tournamentId ?? "null"}");
-  }
-       else
-    {
-  System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] Could not get TournamentManagementService");
-   }
-   }
-}
-            catch (Exception hubEx)
-       {
-   System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] Could not get HubService or TournamentId: {hubEx.Message}");
-    System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] StackTrace: {hubEx.StackTrace}");
-         }
-
-     var gameRules = TournamentClass?.GameRules ?? new GameRules();
-  
-   // ✅ FIXED: HubService UND Tournament-ID als Parameter übergeben
-System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creating MatchResultWindow with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
-            var dialog = new MatchResultWindow(match, gameRules, _localizationService, hubService, tournamentId);
-  
-            if (dialog.ShowDialog() == true)
-       {
-    TournamentClass?.TriggerUIRefresh();
-        DataChanged?.Invoke(this, EventArgs.Empty);
-  }
-        }
-        catch (Exception ex)
-   {
-  var title = _localizationService?.GetString("Error");
-      var message = $"{_localizationService?.GetString("ErrorEditingMatchResult")}\n\n{ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-     }
-    }
-
-    // Knockout-specific event handlers
+    // Context Menu Handler für Knockout DataGrids
     private void KnockoutDataGrid_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
     {
-        // Placeholder for context menu functionality
+        try
+        {
+            if (sender is not DataGrid dataGrid)
+                return;
+                
+            if (dataGrid.SelectedItem is not KnockoutMatchViewModel viewModel)
+                return;
+                
+            var match = viewModel.Match;
+            if (match == null)
+                return;
+                
+            System.Diagnostics.Debug.WriteLine($"🖱️ [Context Menu] Right-click on match {match.Id}");
+            
+            // Erstelle Context Menu
+            var contextMenu = new ContextMenu();
+            
+            // ✅ 1. Match Ergebnis eingeben / bearbeiten
+            if (match.Player1 != null && match.Player2 != null)
+            {
+                var editMenuItem = new MenuItem
+                {
+                    Header = match.Status == MatchStatus.NotStarted ? "📝 Ergebnis eingeben" : "✏️ Ergebnis bearbeiten",
+                    Icon = new TextBlock { Text = match.Status == MatchStatus.NotStarted ? "📝" : "✏️", FontSize = 12 }
+                };
+                editMenuItem.Click += async (s, args) => 
+                {
+                    await _eventHandlers.HandleKnockoutMatchDoubleClick(match, match.BracketType == BracketType.Winner ? "Winner Bracket" : "Loser Bracket");
+                };
+                contextMenu.Items.Add(editMenuItem);
+                
+                contextMenu.Items.Add(new Separator());
+            }
+            
+            // ✅ 2. Bye Management
+            if (match.Player1 != null && match.Player2 != null && match.Status == MatchStatus.NotStarted)
+            {
+                // Freilos an Player 1
+                var byePlayer1 = new MenuItem
+                {
+                    Header = $"🎯 Freilos an {match.Player1.Name}",
+                    Icon = new TextBlock { Text = "🎯", FontSize = 12 }
+                };
+                byePlayer1.Click += (s, args) => 
+                {
+                    if (TournamentKnockoutHelper.ProcessByeSelection(TournamentClass, match, Window.GetWindow(this), _localizationService))
+                    {
+                        _uiManager?.RefreshKnockoutView();
+                        DataChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                };
+                contextMenu.Items.Add(byePlayer1);
+                
+                // Freilos an Player 2
+                var byePlayer2 = new MenuItem
+                {
+                    Header = $"🎯 Freilos an {match.Player2.Name}",
+                    Icon = new TextBlock { Text = "🎯", FontSize = 12 }
+                };
+                byePlayer2.Click += (s, args) => 
+                {
+                    if (TournamentKnockoutHelper.ProcessByeSelection(TournamentClass, match, Window.GetWindow(this), _localizationService))
+                    {
+                        _uiManager?.RefreshKnockoutView();
+                        DataChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                };
+                contextMenu.Items.Add(byePlayer2);
+            }
+
+            if (match.Status == MatchStatus.Bye)
+            {
+                var undoBye = new MenuItem
+                {
+                    Header = "↩️ Freilos rückgängig",
+                    Icon = new TextBlock { Text = "↩️", FontSize = 12 }
+                };
+                undoBye.Click += (s, args) => 
+                {
+                    if (TournamentKnockoutHelper.HandleUndoKnockoutBye(TournamentClass, match, _localizationService))
+                    {
+                        _uiManager?.RefreshKnockoutView();
+                        DataChanged?.Invoke(this, EventArgs.Empty);
+                    }
+                };
+                contextMenu.Items.Add(undoBye);
+            }
+            
+            // Zeige Menu nur wenn Items vorhanden
+            if (contextMenu.Items.Count > 0)
+            {
+                contextMenu.IsOpen = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [Context Menu] Error: {ex.Message}");
+        }
     }
 
     private void GiveByeButton_Click(object sender, RoutedEventArgs e)
@@ -950,7 +1054,12 @@ System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creati
 
         if (sender is Button button)
         {
-            if (button.Tag is KnockoutMatch knockoutMatch)
+            // ✅ FIX: Tag ist jetzt KnockoutMatchViewModel!
+            if (button.Tag is KnockoutMatchViewModel viewModel)
+            {
+                match = viewModel.Match;
+            }
+            else if (button.Tag is KnockoutMatch knockoutMatch)
             {
                 match = knockoutMatch;
             }
@@ -972,7 +1081,12 @@ System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creati
 
         if (sender is Button button)
         {
-            if (button.Tag is KnockoutMatch knockoutMatch)
+            // ✅ FIX: Tag ist jetzt KnockoutMatchViewModel!
+            if (button.Tag is KnockoutMatchViewModel viewModel)
+            {
+                match = viewModel.Match;
+            }
+            else if (button.Tag is KnockoutMatch knockoutMatch)
             {
                 match = knockoutMatch;
             }
@@ -988,13 +1102,113 @@ System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creati
         }
     }
 
+    private void EditMatchResult_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: Match match }) return;
+
+        try
+        {
+            // ✅ FIXED: HubIntegrationService UND Tournament-ID über TournamentManagementService holen
+            HubIntegrationService? hubService = null;
+            string? tournamentId = null;
+ 
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Starting HubService and TournamentId retrieval...");
+        
+                if (Application.Current.MainWindow is MainWindow mainWindow)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] MainWindow found: {mainWindow.GetType().Name}");
+       
+                    // Zugriff auf den LicensedHubService über Reflection
+                    var hubServiceField = mainWindow.GetType()
+                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+  
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceField found: {hubServiceField != null}");
+    
+                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
+ 
+                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] LicensedHubService found, getting inner service...");
+
+                        // Zugriff auf den inneren HubIntegrationService über Reflection
+                        var innerServiceField = licensedHubService.GetType()
+                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+     
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] InnerServiceField found: {innerServiceField != null}");
+  
+                        hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
+        
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubIntegrationService retrieved: {hubService != null}");
+    
+                        if (hubService != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] HubService registered: {hubService.IsRegisteredWithHub}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] HubIntegrationService is null");
+                        }
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-EditMatchResult] Not a LicensedHubService or null");
+                    }
+   
+                    // ⭐ KORRIGIERT: Hole Tournament-ID über TournamentManagementService
+                    var tournamentServiceField = mainWindow.GetType()
+                        .GetField("_tournamentService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+   
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] TournamentServiceField found: {tournamentServiceField != null}");
+   
+                    if (tournamentServiceField?.GetValue(mainWindow) is TournamentManagementService tournamentService)
+                    {
+                        var tournamentData = tournamentService.GetTournamentData();
+                        tournamentId = tournamentData?.TournamentId;
+ 
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Tournament ID from TournamentService: {tournamentId ?? "null"}");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] Could not get TournamentManagementService");
+                    }
+                }
+            }
+            catch (Exception hubEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] Could not get HubService or TournamentId: {hubEx.Message}");
+                System.Diagnostics.Debug.WriteLine($"⚠️ [TournamentTab-EditMatchResult] StackTrace: {hubEx.StackTrace}");
+            }
+
+            var gameRules = TournamentClass?.GameRules ?? new GameRules();
+  
+            // ✅ FIXED: HubService UND Tournament-ID als Parameter übergeben
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creating MatchResultWindow with HubService: {hubService != null}, TournamentId: {tournamentId ?? "null"}");
+            var dialog = new MatchResultWindow(match, gameRules, _localizationService, hubService, tournamentId);
+  
+            if (dialog.ShowDialog() == true)
+            {
+                TournamentClass?.TriggerUIRefresh();
+                DataChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        catch (Exception ex)
+        {
+            var title = _localizationService?.GetString("Error");
+            var message = $"{_localizationService?.GetString("ErrorEditingMatchResult")}\n\n{ex.Message}";
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+    
     private void UpdateNextIds()
     {
         // This method is kept for backward compatibility
         // The actual logic is now handled by the EventHandlers class
         // which calculates the next IDs dynamically
     }
-
+    
     /// <summary>
     /// ✅ NEU: Aktualisiert die Statistik-Ansicht
     /// </summary>
@@ -1002,268 +1216,64 @@ System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-EditMatchResult] Creati
     {
         try
         {
-            if (TournamentClass == null)
+            if (StatisticsView != null && TournamentClass != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] No TournamentClass available for statistics");
-                return;
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Updating statistics tab for class: {TournamentClass.Name}");
-
-            // NEU: Lizenzprüfung für Statistics Feature
-            var hasStatisticsLicense = CheckStatisticsLicense();
-            
-            if (!hasStatisticsLicense)
-            {
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics license not available - showing license required control");
-                ShowStatisticsLicenseRequired();
-                return;
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics license verified - showing statistics view");
-                ShowStatisticsView();
-            }
-
-            // ✅ KORRIGIERT: Finde StatisticsView im Control-Tree
-            PlayerStatisticsView? statisticsView = null;
-
-            // Suche nach PlayerStatisticsView in den Tabs
-            if (MainTabControl?.Items != null)
-            {
-                foreach (TabItem tab in MainTabControl.Items)
+                try
                 {
-                    // Prüfe direkt auf Content
-                    if (tab.Content is PlayerStatisticsView psv)
+                    // Lade License Services wenn noch nicht vorhanden
+                    if (_licenseFeatureService == null && Application.Current.MainWindow is MainWindow mainWindow)
                     {
-                        statisticsView = psv;
-                        break;
+                        try
+                        {
+                            var licenseServiceField = mainWindow.GetType()
+                                .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            _licenseFeatureService = licenseServiceField?.GetValue(mainWindow) as LicenseFeatureService;
+                            
+                            var licenseManagerField = mainWindow.GetType()
+                                .GetField("_licenseManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            _licenseManager = licenseManagerField?.GetValue(mainWindow) as Services.License.LicenseManager;
+                        }
+                        catch (Exception licEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Could not get License services: {licEx.Message}");
+                        }
                     }
                     
-                    // Suche in Container
-                    statisticsView = FindStatisticsViewInContainer(tab.Content);
-                    if (statisticsView != null) break;
-                }
-            }
-
-            if (statisticsView != null)
-            {
-                // Validiere und repariere Statistiken falls nötig
-                TournamentClass.ValidateAndRepairStatistics();
-
-                // ✅ NEU: Update translations first
-                statisticsView.UpdateTranslations();
-
-                // aktualisiere die statistik-View
-                statisticsView.TournamentClass = TournamentClass;
-
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics tab updated successfully with class: {TournamentClass.Name}");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] PlayerStatisticsView not found in control tree");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Error updating statistics tab: {ex.Message}");
-            var title = _localizationService.GetString("Error");
-            var message = _localizationService.GetString("ErrorLoadingStatistics", ex.Message);
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
-        }
-    }
-
-    /// <summary>
-    /// NEU: Prüft ob Statistics-Lizenz vorhanden ist
-    /// </summary>
-    private bool CheckStatisticsLicense()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("🔍 CheckStatisticsLicense: Starting license check...");
-            
-            // Hole License Services vom MainWindow
-            if (Application.Current.MainWindow is MainWindow mainWindow)
-            {
-                // Verwende Reflection um auf private Felder zuzugreifen
-                var licenseFeatureServiceField = mainWindow.GetType()
-                    .GetField("_licenseFeatureService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                var licenseManagerField = mainWindow.GetType()
-                    .GetField("_licenseManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
-                _licenseFeatureService = licenseFeatureServiceField?.GetValue(mainWindow) as LicenseFeatureService;
-                _licenseManager = licenseManagerField?.GetValue(mainWindow) as Services.License.LicenseManager;
-
-                System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: LicenseFeatureService found: {_licenseFeatureService != null}");
-                System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: LicenseManager found: {_licenseManager != null}");
-
-                if (_licenseFeatureService != null)
-                {
-                    var status = _licenseFeatureService.CurrentStatus;
-                    var hasStatistics = _licenseFeatureService.HasFeature(DartTournamentPlaner.Models.License.LicenseFeatures.STATISTICS);
-                    
-                    System.Diagnostics.Debug.WriteLine($"🔍 Statistics License Check:");
-                    System.Diagnostics.Debug.WriteLine($"   - License Service available: TRUE");
-                    System.Diagnostics.Debug.WriteLine($"   - Status.IsLicensed: {status?.IsLicensed ?? false}");
-                    System.Diagnostics.Debug.WriteLine($"   - Status.IsValid: {status?.IsValid ?? false}");
-                    System.Diagnostics.Debug.WriteLine($"   - HasFeature(STATISTICS): {hasStatistics}");
-                    System.Diagnostics.Debug.WriteLine($"   - ActiveFeatures Count: {status?.ActiveFeatures?.Count ?? 0}");
-                    
-                    if (status?.ActiveFeatures != null && status.ActiveFeatures.Any())
+                    // Setze License Services in StatisticsView
+                    if (_licenseFeatureService != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"   - Active Features: {string.Join(", ", status.ActiveFeatures)}");
+                        var licenseFeatureServiceProperty = StatisticsView.GetType()
+                            .GetProperty("LicenseFeatureService", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        licenseFeatureServiceProperty?.SetValue(StatisticsView, _licenseFeatureService);
                     }
                     
-                    var result = status?.IsLicensed == true && hasStatistics;
-                    System.Diagnostics.Debug.WriteLine($"🔍 CheckStatisticsLicense: Final result: {result}");
-                    return result;
+                    if (_licenseManager != null)
+                    {
+                        var licenseManagerProperty = StatisticsView.GetType()
+                            .GetProperty("LicenseManager", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+                        licenseManagerProperty?.SetValue(StatisticsView, _licenseManager);
+                    }
+                    
+                    // Setze TournamentClass
+                    StatisticsView.TournamentClass = TournamentClass;
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics view updated with class: {TournamentClass.Name}");
+                }
+                catch (Exception statsEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] Statistics view update error: {statsEx.Message}");
                 }
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine("❌ CheckStatisticsLicense: MainWindow not found or wrong type");
-            }
-
-            System.Diagnostics.Debug.WriteLine("⚠️ License services not available - allowing statistics access");
-            return true; // Fallback: erlaubt Zugriff wenn Service nicht verfügbar
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"❌ Error checking statistics license: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"❌ StackTrace: {ex.StackTrace}");
-            return true; // Fallback: erlaubt Zugriff bei Fehlern
+            System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-TAB] UpdateStatisticsTab ERROR: {ex.Message}");
         }
     }
-
-    /// <summary>
-    /// NEU: Zeigt das Statistics License Required Dialog
-    /// </summary>
-    private void ShowStatisticsLicenseRequired()
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine("🔒 ShowStatisticsLicenseRequired: Starting...");
-            
-            // Verstecke Statistics View
-            if (StatisticsView != null)
-            {
-                StatisticsView.Visibility = Visibility.Collapsed;
-                System.Diagnostics.Debug.WriteLine("✅ StatisticsView hidden");
-            }
-
-            // NEU: Zeige das moderne StatisticsLicenseRequiredDialog
-            StatisticsLicenseRequiredDialog.ShowLicenseRequiredDialog(
-                Window.GetWindow(this),
-                _localizationService,
-                _licenseManager
-            );
-            
-            System.Diagnostics.Debug.WriteLine("✅ StatisticsLicenseRequiredDialog shown");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error showing statistics license required: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// NEU: Zeigt die normale Statistics View
-    /// </summary>
-    private void ShowStatisticsView()
-    {
-        try
-        {
-            // Zeige Statistics View
-            if (StatisticsView != null)
-            {
-                StatisticsView.Visibility = Visibility.Visible;
-                System.Diagnostics.Debug.WriteLine("✅ StatisticsView set to visible");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"❌ Error showing statistics view: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// ✅ NEU: Rekursive Suche nach PlayerStatisticsView in Container-Elementen
-    /// </summary>
-    private PlayerStatisticsView? FindStatisticsViewInContainer(object? container)
-    {
-        if (container == null) return null;
-
-        if (container is PlayerStatisticsView statisticsView)
-        {
-            return statisticsView;
-        }
-
-        if (container is Panel panel)
-        {
-            foreach (var child in panel.Children)
-            {
-                var result = FindStatisticsViewInContainer(child);
-                if (result != null) return result;
-            }
-        }
-
-        if (container is ContentControl contentControl)
-        {
-            return FindStatisticsViewInContainer(contentControl.Content);
-        }
-
-        if (container is Decorator decorator)
-        {
-            return FindStatisticsViewInContainer(decorator.Child);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Dispose-Pattern für ordnungsgemäße Ressourcenverwaltung
-    /// </summary>
+    
     public void Dispose()
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Geschützte Dispose-Methode
-    /// </summary>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            try
-            {
-                // Tournament Class Events abmelden
-                if (_tournamentClass != null)
-                {
-                    _tournamentClass.UIRefreshRequested -= OnTournamentUIRefreshRequested;
-                }
-
-                // Unsubscribe from group events
-                UnsubscribeFromGroupEvents(_selectedGroup);
-
-                // Localization Service Events abmelden
-                if (_localizationService != null)
-                {
-                    // Das Event wird automatisch aufgeräumt wenn das Control disposed wird
-                }
-
-                // Manager Classes ordnungsgemäß disposed
-                _uiManager?.Dispose();
-                _eventHandlers?.Dispose();
-                _translationManager?.Dispose();
-
-                System.Diagnostics.Debug.WriteLine($"[TournamentTab] Disposed successfully");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[TournamentTab] Error during dispose: {ex.Message}");
-            }
-        }
+        _uiManager?.Dispose();
+        _eventHandlers?.Dispose();
+        _translationManager?.Dispose();
     }
 }

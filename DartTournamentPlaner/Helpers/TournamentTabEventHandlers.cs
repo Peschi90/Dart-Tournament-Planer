@@ -30,6 +30,8 @@ public class TournamentTabEventHandlers : IDisposable
     private readonly Action _refreshKnockoutView;
     private readonly Func<Window> _getWindow;
     private readonly Func<HubIntegrationService?> _getHubService;
+    private readonly Action<TournamentPhaseType> _switchToPhaseTab;
+    private readonly Action? _updateUI; // ✅ NEU: Für vollständige UI-Updates
 
     public TournamentTabEventHandlers(
         TournamentClass tournamentClass,
@@ -45,7 +47,9 @@ public class TournamentTabEventHandlers : IDisposable
         Action refreshFinalsView,
         Action refreshKnockoutView,
         Func<Window> getWindow,
-        Func<HubIntegrationService?> getHubService = null)
+        Func<HubIntegrationService?> getHubService = null,
+        Action<TournamentPhaseType>? switchToPhaseTab = null,
+        Action? updateUI = null) // ✅ NEU
     {
         _tournamentClass = tournamentClass;
         _localizationService = localizationService;
@@ -61,6 +65,8 @@ public class TournamentTabEventHandlers : IDisposable
         _refreshKnockoutView = refreshKnockoutView;
         _getWindow = getWindow;
         _getHubService = getHubService ?? (() => null);
+        _switchToPhaseTab = switchToPhaseTab ?? ((phaseType) => { }); // ✅ Default no-op
+        _updateUI = updateUI; // ✅ NEU
     }
 
     public void ConfigureRulesButton_Click(object sender, RoutedEventArgs e)
@@ -84,6 +90,11 @@ public class TournamentTabEventHandlers : IDisposable
                 }
                 
                 _onDataChanged();
+                
+                // ✅ NEU: Trigger vollständiges UI-Update nach Regel-Änderungen
+                _updateUI?.Invoke();
+                
+                System.Diagnostics.Debug.WriteLine("ConfigureRulesButton_Click: UI update triggered");
             };
             
             gameRulesWindow.ShowDialog();
@@ -212,6 +223,15 @@ public class TournamentTabEventHandlers : IDisposable
     public void GenerateMatchesButton_Click(object sender, RoutedEventArgs e)
     {
         var selectedGroup = _getSelectedGroup();
+        
+        // ✅ NEU: Prüfe ob Gruppenphase übersprungen werden soll
+        if (_tournamentClass.GameRules.SkipGroupPhase)
+        {
+            GenerateDirectKnockoutMatches();
+            return;
+        }
+        
+        // Normale Gruppenphase-Generierung
         if (selectedGroup == null) return;
 
         try
@@ -234,6 +254,133 @@ public class TournamentTabEventHandlers : IDisposable
         catch (Exception ex)
         {
             var errorMessage = $"{_localizationService.GetString("ErrorGeneratingMatches") ?? "Fehler beim Erstellen der Spiele:"} {ex.Message}";
+            TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
+        }
+    }
+    
+    /// <summary>
+    /// ✅ NEU: Generiert direkt KO-Phase ohne Gruppenphase
+    /// Sammelt alle Spieler aus allen Gruppen und erstellt das Bracket
+    /// </summary>
+    private void GenerateDirectKnockoutMatches()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: START");
+            
+            // Sammle alle Spieler aus allen Gruppen
+            var allPlayers = _tournamentClass.Groups
+                .SelectMany(g => g.Players)
+                .ToList();
+            
+            System.Diagnostics.Debug.WriteLine($"GenerateDirectKnockoutMatches: Found {allPlayers.Count} players");
+            
+            // Validierung
+            if (allPlayers.Count < 2)
+            {
+                var message = _localizationService.GetString("NotEnoughPlayersForKnockout") 
+                    ?? "Es werden mindestens 2 Spieler für die KO-Phase benötigt!";
+                TournamentDialogHelper.ShowWarning(message, null, _localizationService);
+                return;
+            }
+            
+            // Bestätigung vom Benutzer
+            var knockoutMode = _tournamentClass.GameRules.KnockoutMode == KnockoutMode.DoubleElimination 
+                ? (_localizationService.GetString("DoubleElimination") ?? "Doppeltes K.O.")
+                : (_localizationService.GetString("SingleElimination") ?? "Einfaches K.O.");
+            
+            // ✅ NEU: Verwende benutzerdefinierten Dialog statt MessageBox
+            var dialog = new GenerateKnockoutDialog(allPlayers.Count, knockoutMode, _localizationService);
+            dialog.Owner = _getWindow();
+            
+            var result = dialog.ShowDialog();
+            
+            if (result != true)
+            {
+                System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: User cancelled");
+                return;
+            }
+            
+            // Erstelle direkte KO-Phase
+            var knockoutPhase = _tournamentClass.GetPhaseManager().CreateDirectKnockoutPhase(allPlayers);
+            
+            // ✅ WICHTIG: Phases und CurrentPhase korrekt setzen
+            _tournamentClass.Phases.Clear();
+            _tournamentClass.Phases.Add(knockoutPhase);
+            _tournamentClass.CurrentPhase = knockoutPhase;
+            knockoutPhase.IsActive = true;
+            knockoutPhase.IsCompleted = false;
+            
+            System.Diagnostics.Debug.WriteLine($"GenerateDirectKnockoutMatches: Created KO phase with {knockoutPhase.WinnerBracket.Count} winner matches");
+            System.Diagnostics.Debug.WriteLine($"GenerateDirectKnockoutMatches: Phase is now current: {_tournamentClass.CurrentPhase?.PhaseType}");
+            
+            // ✅ WICHTIG: Erst Daten ändern markieren
+            _onDataChanged();
+            
+            // ✅ WICHTIG: UI über Dispatcher aktualisieren um Race Conditions zu vermeiden
+            var mainWindow = _getWindow();
+            if (mainWindow != null)
+            {
+                mainWindow.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    try
+                    {
+                        System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: Starting UI updates...");
+                        
+                        // 1. Wechsle zum KO-Tab über Callback
+                        System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: Calling _switchToPhaseTab...");
+                        _switchToPhaseTab(TournamentPhaseType.KnockoutPhase);
+                        
+                        // 2. Warte kurz damit Tab-Wechsel abgeschlossen ist
+                        System.Threading.Thread.Sleep(200);
+                        
+                        // 3. Refreshe KO View
+                        System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: Calling _refreshKnockoutView...");
+                        _refreshKnockoutView();
+                        
+                        // 4. Update andere Views
+                        _updatePlayersView();
+                        _updateMatchesView();
+                        
+                        // 5. Force nochmal ein KO View Refresh nach weiterer kurzer Wartezeit
+                        System.Threading.Thread.Sleep(100);
+                        _refreshKnockoutView();
+                        
+                        System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: UI updates complete");
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"GenerateDirectKnockoutMatches: UI update error: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
+            
+            var successMessage = string.Format(
+                _localizationService.GetString("DirectKnockoutGeneratedSuccess") 
+                    ?? "KO-Phase wurde erfolgreich erstellt!\n\n" +
+                       "• {0} Matches im Winner Bracket\n" +
+                       "• Modus: {1}",
+                knockoutPhase.WinnerBracket.Count,
+                knockoutMode
+            );
+            
+            // Erfolgsmeldung auch über Dispatcher
+            if (mainWindow != null)
+            {
+                mainWindow.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    TournamentDialogHelper.ShowInformation(successMessage, null, _localizationService);
+                }), System.Windows.Threading.DispatcherPriority.Normal);
+            }
+            
+            System.Diagnostics.Debug.WriteLine("GenerateDirectKnockoutMatches: END - Success");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GenerateDirectKnockoutMatches: ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            var errorMessage = $"{_localizationService.GetString("ErrorGeneratingKnockout") ?? "Fehler beim Erstellen der KO-Phase:"} {ex.Message}";
             TournamentDialogHelper.ShowError(errorMessage, null, _localizationService);
         }
     }
@@ -562,17 +709,206 @@ System.Diagnostics.Debug.WriteLine($"❌ [TournamentTabEventHandlers] HubService
     match.Notes = internalMatch.Notes;
        match.EndTime = internalMatch.EndTime;
   
- System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] KnockoutMatch {match.Id} result copied back from MatchResultWindow");
-    
-   await SendKnockoutMatchResultToHub(match, _tournamentClass, bracketType);
-     _refreshKnockoutView();
-       _onDataChanged();
-      }
+ // ✅ WICHTIG: Setze auch den Verlierer!
+            if (match.Winner != null)
+            {
+                if (match.Player1 == match.Winner)
+                {
+                    match.Loser = match.Player2;
+                }
+                else if (match.Player2 == match.Winner)
+                {
+                    match.Loser = match.Player1;
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"🎯 Match {match.Id}: Winner = {match.Winner.Name}, Loser = {match.Loser?.Name ?? "none"}");
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] KnockoutMatch {match.Id} result copied back from MatchResultWindow");
+            
+            // ✅ WICHTIG: Propagiere Gewinner/Verlierer in nächste Runde!
+            PropagateKnockoutMatchResult(match);
+            
+            // ✅ NEU: Prüfe und handle automatische Byes nach der Propagierung!
+            if (_tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.KnockoutPhase)
+            {
+                // Erstelle temporären ByeMatchManager für Bye-Prüfung
+                var byeManager = new ByeMatchManager(_tournamentClass);
+                byeManager.CheckAndHandleAutomaticByes(
+                    _tournamentClass.CurrentPhase.WinnerBracket, 
+                    _tournamentClass.CurrentPhase.LoserBracket);
+                
+                if (_tournamentClass.CurrentPhase.LoserBracket != null)
+                {
+                    byeManager.CheckAndHandleAutomaticByes(
+                        _tournamentClass.CurrentPhase.LoserBracket, 
+                        _tournamentClass.CurrentPhase.WinnerBracket);
+                }
+                
+                System.Diagnostics.Debug.WriteLine("✅ Checked for automatic byes after match result");
+            }
+            
+            await SendKnockoutMatchResultToHub(match, _tournamentClass, bracketType);
+            _refreshKnockoutView();
+            _onDataChanged();
+        }
         else
         {
    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTabEventHandlers] MatchResultWindow was cancelled for KnockoutMatch {match.Id}");
         }
   }
+    /// <summary>
+    /// ✅ NEU: Propagiert Gewinner und Verlierer eines KnockoutMatches in die nächsten Runden
+    /// ✅ ERWEITERT: Unterstützt auch Bye-Matches
+    /// ✅ ERWEITERT: Behandelt Grand Final speziell (LF Winner → Grand Final)
+    /// </summary>
+    private void PropagateKnockoutMatchResult(KnockoutMatch match)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🔄 [PropagateKnockoutMatchResult] Starting for match {match.Id}, Winner: {match.Winner?.Name}, Loser: {match.Loser?.Name}, Status: {match.Status}, Round: {match.Round}");
+            
+            var currentPhase = _tournamentClass.CurrentPhase;
+            if (currentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("❌ Not in KnockoutPhase!");
+                return;
+            }
+            
+            // ✅ WICHTIG: Für Bye-Matches müssen wir auch propagieren!
+            // Bei Bye hat der Gewinner bereits gewonnen ohne zu spielen
+            if (match.Status == MatchStatus.Bye && match.Winner == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ Bye match but no winner set yet - skipping propagation");
+                return;
+            }
+            
+            // ✅ SPEZIALFALL: Loser Final Winner geht ins Grand Final!
+            if (match.Round == KnockoutRound.LoserFinal && match.Winner != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"🏆 [SPECIAL] Loser Final Winner {match.Winner.Name} should go to Grand Final!");
+                
+                // Finde das Grand Final (immer im Winner Bracket)
+                var grandFinal = currentPhase.WinnerBracket.FirstOrDefault(m => m.Round == KnockoutRound.GrandFinal);
+                if (grandFinal != null)
+                {
+                    // Loser Final Winner ist immer Player2 im Grand Final (kommt vom Loser Bracket)
+                    // Winner Bracket Final Winner ist Player1
+                    if (grandFinal.SourceMatch2 == match || grandFinal.Player2 == null)
+                    {
+                        grandFinal.Player2 = match.Winner;
+                        System.Diagnostics.Debug.WriteLine($"✅✅✅ Set {match.Winner.Name} as Player2 in Grand Final (from Loser Final)");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Grand Final not found!");
+                }
+            }
+            
+            // Finde alle Matches die von diesem Match abhängen
+            // Winner Bracket: Suche nach Matches die SourceMatch1 oder SourceMatch2 = match haben
+            foreach (var nextMatch in currentPhase.WinnerBracket)
+            {
+                bool updated = false;
+                
+                if (nextMatch.SourceMatch1 == match)
+                {
+                    // Setze Player1 des nächsten Matches
+                    if (nextMatch.Player1FromWinner && match.Winner != null)
+                    {
+                        nextMatch.Player1 = match.Winner;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                    }
+                    else if (!nextMatch.Player1FromWinner && match.Loser != null)
+                    {
+                        nextMatch.Player1 = match.Loser;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                    }
+                }
+                
+                if (nextMatch.SourceMatch2 == match)
+                {
+                    // Setze Player2 des nächsten Matches
+                    if (nextMatch.Player2FromWinner && match.Winner != null)
+                    {
+                        nextMatch.Player2 = match.Winner;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                    }
+                    else if (!nextMatch.Player2FromWinner && match.Loser != null)
+                    {
+                        nextMatch.Player2 = match.Loser;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                    }
+                }
+                
+                if (updated)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 Updated match {nextMatch.Id}: {nextMatch.Player1?.Name ?? "TBD"} vs {nextMatch.Player2?.Name ?? "TBD"}");
+                }
+            }
+            
+            // Loser Bracket: Suche nach Matches die SourceMatch1 oder SourceMatch2 = match haben
+            if (currentPhase.LoserBracket != null)
+            {
+                foreach (var nextMatch in currentPhase.LoserBracket)
+                {
+                    bool updated = false;
+                    
+                    if (nextMatch.SourceMatch1 == match)
+                    {
+                        // Setze Player1 des nächsten Matches
+                        if (nextMatch.Player1FromWinner && match.Winner != null)
+                        {
+                            nextMatch.Player1 = match.Winner;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of LB match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                        }
+                        else if (!nextMatch.Player1FromWinner && match.Loser != null)
+                        {
+                            nextMatch.Player1 = match.Loser;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of LB match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                        }
+                    }
+                    
+                    if (nextMatch.SourceMatch2 == match)
+                    {
+                        // Setze Player2 des nächsten Matches
+                        if (nextMatch.Player2FromWinner && match.Winner != null)
+                        {
+                            nextMatch.Player2 = match.Winner;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of LB match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                        }
+                        else if (!nextMatch.Player2FromWinner && match.Loser != null)
+                        {
+                            nextMatch.Player2 = match.Loser;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of LB match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                        }
+                    }
+                    
+                    if (updated)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔄 Updated LB match {nextMatch.Id}: {nextMatch.Player1?.Name ?? "TBD"} vs {nextMatch.Player2?.Name ?? "TBD"}");
+                    }
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [PropagateKnockoutMatchResult] Completed for match {match.Id}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [PropagateKnockoutMatchResult] ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
+    
     // Vereinfachte RoundRules Klasse für interne Verwendung
     private class SimpleRoundRules
     {

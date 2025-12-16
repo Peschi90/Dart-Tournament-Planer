@@ -4,20 +4,30 @@
 - **📧 Automatic License Request Email**: License requests are now sent automatically via email without opening a mail client
   - Smart fallback to mail client if automatic sending fails
   - User receives a copy at their email address
+- **⚡ Skip Group Phase**: Start tournaments directly with knockout phase without group stage
 
 ### 🎨 UI/UX Improvements
 - **Modern Email Dialogs**: New success and error dialogs with professional design
 - **Feature Update**: "PowerScoring" replaces deprecated "API Access" in license requests
-
-### 🔧 Technical
-- **MailKit Integration**: Added MailKit library for reliable SMTP email delivery (Port 465)
-- **EmailService**: New service class for automated email handling
+- **Generate Knockout Dialog**: Modern confirmation dialog replacing standard MessageBox
 
 ### 🐛 Bug Fixes
+- **Bye Match Loser Propagation**: Bye match losers now correctly moved to loser bracket
+- **DataGrid Context Menus**: Added right-click menus to Winner/Loser Bracket DataGrids (edit, give bye, undo bye)
+- **DataGrid Button Handlers**: Fixed Give Bye and Undo Bye buttons in DataGrids
+- **TournamentOverview Filter**: Classes with "Skip Group Phase" now correctly displayed
 - **Email Button Fix**: License request button no longer hangs during email sending
 
 ### 🌍 Localization
 - Complete German/English translations for email system dialogs
+- **Skip Group Phase Translations**: Game rules and confirmation dialogs fully translated
+- **Generate Knockout Dialog**: All UI elements translated
+
+### 🔧 Technical
+- **MailKit Integration**: Added MailKit library for reliable SMTP email delivery (Port 465)
+- **EmailService**: New service class for automated email handling
+- **ByeMatchManager**: Improved bye match loser handling and propagation logic
+- **GenerateKnockoutDialog**: New reusable dialog component with localization support
 
 ## v0.1.13
 

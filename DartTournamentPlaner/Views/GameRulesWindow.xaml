@@ -390,45 +390,58 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="16"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>  <!-- SkipGroupPhaseCheckBox -->
                                     <RowDefinition Height="12"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>  <!-- PostGroupPhaseMode -->
                                     <RowDefinition Height="12"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>  <!-- QualifyingPlayers -->
                                     <RowDefinition Height="12"/>
-                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>  <!-- KnockoutMode -->
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>  <!-- IncludeGroupPhaseLosersBracket -->
                                 </Grid.RowDefinitions>
-                                
+                
                                 <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="&#x1F3C6;" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Nach der Gruppenphase" FontWeight="SemiBold" FontSize="15" 
                                                Foreground="#374151" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Name="PostGroupPhaseModeLabel" Text="Modus:" 
+                                <!-- NEU: Gruppenphase ueberspringen Option -->
+                                <CheckBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" 
+                                          Name="SkipGroupPhaseCheckBox" 
+                                          Content="Gruppenphase ueberspringen (direkt KO-Phase)" 
+                                          Margin="0,0,0,0"
+                                          FontWeight="SemiBold"
+                                          Foreground="#8B5CF6"
+                                          Checked="SkipGroupPhaseCheckBox_Checked" 
+                                          Unchecked="SkipGroupPhaseCheckBox_Unchecked"
+                                          ToolTip="Startet das Turnier direkt mit der KO-Phase ohne Gruppenphase"/>
+                                
+                                <TextBlock Grid.Row="4" Grid.Column="0" Name="PostGroupPhaseModeLabel" Text="Modus:" 
                                            VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" Name="PostGroupPhaseModeComboBox" 
+                                <ComboBox Grid.Row="4" Grid.Column="1" Name="PostGroupPhaseModeComboBox" 
                                           Margin="8,0,0,0" SelectionChanged="PostGroupPhaseModeComboBox_SelectionChanged">
                                     <ComboBoxItem Content="&#x270B; Nur Gruppenphase" Tag="None"/>
                                     <ComboBoxItem Content="&#x1F3AF; Finalrunde (Round Robin)" Tag="RoundRobinFinals"/>
                                     <ComboBoxItem Content="&#x2694; K.-o.-System" Tag="KnockoutBracket"/>
                                 </ComboBox>
                                 
-                                <TextBlock Grid.Row="4" Grid.Column="0" Name="QualifyingPlayersLabel" Text="Qualifizierte pro Gruppe:" 
+                                <TextBlock Grid.Row="6" Grid.Column="0" Name="QualifyingPlayersLabel" Text="Qualifizierte pro Gruppe:" 
                                            VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280"/>
-                                <TextBox Grid.Row="4" Grid.Column="1" Name="QualifyingPlayersTextBox" 
+                                <TextBox Grid.Row="6" Grid.Column="1" Name="QualifyingPlayersTextBox" 
                                          Width="80" HorizontalAlignment="Left" Margin="8,0,0,0"
                                          TextChanged="QualifyingPlayersTextBox_TextChanged"/>
                                 
-                                <TextBlock Grid.Row="6" Grid.Column="0" Name="KnockoutModeLabel" Text="K.-o.-Modus:" 
+                                <TextBlock Grid.Row="8" Grid.Column="0" Name="KnockoutModeLabel" Text="K.-o.-Modus:" 
                                            VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280"/>
-                                <ComboBox Grid.Row="6" Grid.Column="1" Name="KnockoutModeComboBox" 
+                                <ComboBox Grid.Row="8" Grid.Column="1" Name="KnockoutModeComboBox" 
                                           Margin="8,0,0,0" SelectionChanged="KnockoutModeComboBox_SelectionChanged">
                                     <ComboBoxItem Content="&#x2694; Einfaches K.-o." Tag="SingleElimination"/>
                                     <ComboBoxItem Content="&#x1F504; Doppeltes K.-o." Tag="DoubleElimination"/>
                                 </ComboBox>
                                 
-                                <CheckBox Grid.Row="8" Grid.Column="1" Name="IncludeGroupPhaseLosersBracketCheckBox" 
+                                <CheckBox Grid.Row="10" Grid.Column="1" Name="IncludeGroupPhaseLosersBracketCheckBox" 
                                           Content="Gruppenphase-Verlierer ins Loser Bracket" 
                                           Margin="8,0,0,0" Checked="IncludeGroupPhaseLosersBracketCheckBox_Checked" 
                                           Unchecked="IncludeGroupPhaseLosersBracketCheckBox_Unchecked"/>

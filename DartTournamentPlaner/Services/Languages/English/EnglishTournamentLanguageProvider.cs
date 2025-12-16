@@ -87,6 +87,10 @@ public class EnglishTournamentLanguageProvider : ILanguageSection
             ["SingleElimination"] = "Single Elimination",
             ["DoubleElimination"] = "Double Elimination (Winner + Loser Bracket)",
             ["IncludeGroupPhaseLosersBracket"] = "Include Group Phase Losers in Loser Bracket",
+            
+            // ✅ NEU: Skip Group Phase Option
+            ["SkipGroupPhase"] = "⚡ Skip Group Phase (direct KO Phase)",
+            ["SkipGroupPhaseTooltip"] = "Starts the tournament directly with the KO phase without group phase",
 
             // Round Specific Rules
             ["RoundSpecificRules"] = "Round Specific Rules",

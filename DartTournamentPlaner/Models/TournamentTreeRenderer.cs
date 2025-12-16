@@ -30,6 +30,159 @@ public class TournamentTreeRenderer
     _tournament = tournament ?? throw new ArgumentNullException(nameof(tournament));
     CurrentInstance = this; // Setze statische Referenz
     }
+    
+    /// <summary>
+    /// ✅ NEU: Propagiert Match-Ergebnisse aus dem Tournament Tree mit spezieller Grand Final Logik
+    /// </summary>
+    private void PropagateMatchResultFromTree(KnockoutMatch match)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"🔄 [PropagateFromTree] Starting for match {match.Id}, Winner: {match.Winner?.Name}, Loser: {match.Loser?.Name}, Round: {match.Round}");
+            
+            var currentPhase = _tournament.CurrentPhase;
+            if (currentPhase?.PhaseType != TournamentPhaseType.KnockoutPhase)
+            {
+                System.Diagnostics.Debug.WriteLine("❌ Not in KnockoutPhase!");
+                return;
+            }
+            
+            if (match.Winner == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ No winner set - skipping propagation");
+                return;
+            }
+            
+            // ✅ SPEZIALFALL: Loser Final Winner geht ins Grand Final!
+            if (match.Round == KnockoutRound.LoserFinal)
+            {
+                System.Diagnostics.Debug.WriteLine($"🏆 [SPECIAL] Loser Final Winner {match.Winner.Name} should go to Grand Final!");
+                
+                // Finde das Grand Final (immer im Winner Bracket)
+                var grandFinal = currentPhase.WinnerBracket.FirstOrDefault(m => m.Round == KnockoutRound.GrandFinal);
+                if (grandFinal != null)
+                {
+                    // Loser Final Winner ist immer Player2 im Grand Final
+                    grandFinal.Player2 = match.Winner;
+                    System.Diagnostics.Debug.WriteLine($"✅✅✅ Set {match.Winner.Name} as Player2 in Grand Final (from Loser Final)");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("⚠️ Grand Final not found!");
+                }
+            }
+            
+            // Normale Propagierung für alle anderen Matches
+            // Winner Bracket
+            foreach (var nextMatch in currentPhase.WinnerBracket)
+            {
+                bool updated = false;
+                
+                if (nextMatch.SourceMatch1 == match)
+                {
+                    if (nextMatch.Player1FromWinner)
+                    {
+                        nextMatch.Player1 = match.Winner;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                    }
+                    else if (match.Loser != null)
+                    {
+                        nextMatch.Player1 = match.Loser;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                    }
+                }
+                
+                if (nextMatch.SourceMatch2 == match)
+                {
+                    if (nextMatch.Player2FromWinner)
+                    {
+                        nextMatch.Player2 = match.Winner;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                    }
+                    else if (match.Loser != null)
+                    {
+                        nextMatch.Player2 = match.Loser;
+                        updated = true;
+                        System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                    }
+                }
+                
+                if (updated)
+                {
+                    System.Diagnostics.Debug.WriteLine($"🔄 Updated match {nextMatch.Id}: {nextMatch.Player1?.Name ?? "TBD"} vs {nextMatch.Player2?.Name ?? "TBD"}");
+                }
+            }
+            
+            // Loser Bracket
+            if (currentPhase.LoserBracket != null)
+            {
+                foreach (var nextMatch in currentPhase.LoserBracket)
+                {
+                    bool updated = false;
+                    
+                    if (nextMatch.SourceMatch1 == match)
+                    {
+                        if (nextMatch.Player1FromWinner)
+                        {
+                            nextMatch.Player1 = match.Winner;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of LB match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                        }
+                        else if (match.Loser != null)
+                        {
+                            nextMatch.Player1 = match.Loser;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player1 of LB match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                        }
+                    }
+                    
+                    if (nextMatch.SourceMatch2 == match)
+                    {
+                        if (nextMatch.Player2FromWinner)
+                        {
+                            nextMatch.Player2 = match.Winner;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of LB match {nextMatch.Id} to {match.Winner.Name} (from Winner)");
+                        }
+                        else if (match.Loser != null)
+                        {
+                            nextMatch.Player2 = match.Loser;
+                            updated = true;
+                            System.Diagnostics.Debug.WriteLine($"✅ Set Player2 of LB match {nextMatch.Id} to {match.Loser.Name} (from Loser)");
+                        }
+                    }
+                    
+                    if (updated)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"🔄 Updated LB match {nextMatch.Id}: {nextMatch.Player1?.Name ?? "TBD"} vs {nextMatch.Player2?.Name ?? "TBD"}");
+                    }
+                }
+            }
+            
+            // ✅ NEU: Prüfe automatische Byes nach der Propagierung
+            var byeManager = new ByeMatchManager(_tournament);
+            byeManager.CheckAndHandleAutomaticByes(
+                currentPhase.WinnerBracket, 
+                currentPhase.LoserBracket);
+            
+            if (currentPhase.LoserBracket != null)
+            {
+                byeManager.CheckAndHandleAutomaticByes(
+                    currentPhase.LoserBracket, 
+                    currentPhase.WinnerBracket);
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"✅ [PropagateFromTree] Completed for match {match.Id}");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [PropagateFromTree] ERROR: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
 
     /// <summary>
     /// ✅ NEU: Aktualisiert ein spezifisches Match im Turnierbaum (für Live-Updates)
@@ -800,23 +953,42 @@ else
             }
 
             if (resultWindow.ShowDialog() == true)
-  {
-   var internalMatch = resultWindow.InternalMatch;
-      match.Player1Sets = internalMatch.Player1Sets;
-     match.Player2Sets = internalMatch.Player2Sets;
-      match.Player1Legs = internalMatch.Player1Legs;
-           match.Player2Legs = internalMatch.Player2Legs;
-      match.Winner = internalMatch.Winner;
-   match.Status = internalMatch.Status;
+            {
+                var internalMatch = resultWindow.InternalMatch;
+                match.Player1Sets = internalMatch.Player1Sets;
+                match.Player2Sets = internalMatch.Player2Sets;
+                match.Player1Legs = internalMatch.Player1Legs;
+                match.Player2Legs = internalMatch.Player2Legs;
+                match.Winner = internalMatch.Winner;
+                match.Status = internalMatch.Status;
                 match.Notes = internalMatch.Notes;
                 match.StartTime = internalMatch.StartTime;
                 match.EndTime = DateTime.Now;
+                
+                // ✅ WICHTIG: Setze auch den Verlierer!
+                if (match.Winner != null)
+                {
+                    if (match.Player1 == match.Winner)
+                    {
+                        match.Loser = match.Player2;
+                    }
+                    else if (match.Player2 == match.Winner)
+                    {
+                        match.Loser = match.Player1;
+                    }
+                    
+                    System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} result saved");
+                    System.Diagnostics.Debug.WriteLine($"  Winner: {match.Winner.Name}, Loser: {match.Loser?.Name}, Sets: {match.Player1Sets}:{match.Player2Sets}, Legs: {match.Player1Legs}:{match.Player2Legs}");
+                }
 
-                System.Diagnostics.Debug.WriteLine($"OpenMatchResultDialog: Match {match.Id} result saved");
-                System.Diagnostics.Debug.WriteLine($"  Winner: {match.Winner?.Name}, Sets: {match.Player1Sets}:{match.Player2Sets}, Legs: {match.Player1Legs}:{match.Player2Legs}");
-
-                // Process the result through the tournament system
+                // ✅ NEU: Verwende die verbesserte Propagierungslogik!
+                PropagateMatchResultFromTree(match);
+                
+                // Process the result through the tournament system for statistics etc.
                 _tournament.ProcessMatchResult(match);
+                
+                // Trigger UI refresh
+                _tournament.TriggerUIRefresh();
             }
         }
         catch (Exception ex)

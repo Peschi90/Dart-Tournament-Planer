@@ -1,0 +1,169 @@
+<Window x:Class="DartTournamentPlaner.Views.GenerateKnockoutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Generate Knockout Phase" 
+        Height="600" Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="Transparent"
+        AllowsTransparency="True"
+        WindowStyle="None">
+    
+    <Window.Resources>
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernDialogButton" TargetType="Button">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="MinWidth" Value="120"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
+                                                  BlurRadius="8" Opacity="0.15"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    
+    <Border Background="#F9FAFB" CornerRadius="16" BorderBrush="#E5E7EB" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" 
+                              BlurRadius="24" Opacity="0.2"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#8B5CF6" CornerRadius="16,16,0,0" Padding="24,20">
+                <StackPanel>
+                    <TextBlock Text="⚡" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock Name="TitleTextBlock" Text="KO-Phase generieren" 
+                               FontSize="20" FontWeight="Bold" 
+                               Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Content -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,20">
+                <StackPanel>
+                    <!-- Question -->
+                    <TextBlock Name="QuestionTextBlock" 
+                               Text="Moechten Sie die KO-Phase direkt starten?"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="#374151" TextWrapping="Wrap"
+                               Margin="0,0,0,20"/>
+                    
+                    <!-- Info Cards -->
+                    <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" 
+                            CornerRadius="12" Padding="8" Margin="0,0,0,6">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
+                                              BlurRadius="6" Opacity="0.08"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="👥" FontSize="16" Margin="0,0,8,0"/>
+                                <TextBlock Name="PlayersLabel" Text="Spieler:" 
+                                           FontWeight="SemiBold" Foreground="#6B7280"/>
+                            </StackPanel>
+                            <TextBlock Name="PlayersValueText" FontSize="24" FontWeight="Bold" 
+                                       Foreground="#8B5CF6" Margin="15,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <Border Background="White" BorderBrush="#E5E7EB" BorderThickness="1" 
+                            CornerRadius="12" Padding="10" Margin="0,0,0,8">
+                        <Border.Effect>
+                            <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
+                                              BlurRadius="6" Opacity="0.08"/>
+                        </Border.Effect>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Text="⚔️" FontSize="16" Margin="0,0,8,0"/>
+                                <TextBlock Name="ModeLabel" Text="Modus:" 
+                                           FontWeight="SemiBold" Foreground="#6B7280"/>
+                            </StackPanel>
+                            <TextBlock Name="ModeValueText" FontSize="16" FontWeight="Medium" 
+                                       Foreground="#374151" Margin="15,0,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <Border Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1" 
+                            CornerRadius="12" Padding="16" Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Top"/>
+                            <TextBlock Name="NoGroupPhaseWarningText" 
+                                       Text="Keine Gruppenphase"
+                                       FontWeight="Medium" Foreground="#92400E" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Additional Info -->
+                    <Border Background="#EFF6FF" BorderBrush="#3B82F6" BorderThickness="1" 
+                            CornerRadius="12" Padding="10">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="ℹ️" FontSize="14" Margin="0,0,4,0"/>
+                                <TextBlock Name="InfoHeaderText" Text="Information" 
+                                           FontWeight="SemiBold" Foreground="#1E40AF"/>
+                            </StackPanel>
+                            <TextBlock Name="InfoDetailsText" 
+                                       Text="Das Turnier beginnt direkt mit dem K.O.-System. Alle Spieler werden automatisch ins Bracket eingefuegt."
+                                       Foreground="#1E3A8A" TextWrapping="Wrap" LineHeight="20"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+            
+            <!-- Buttons -->
+            <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" 
+                    Background="White" CornerRadius="0,0,16,16" Padding="24,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <Button Name="CancelButton" Grid.Column="1"
+                            Content="✗ Abbrechen" 
+                            Style="{StaticResource ModernDialogButton}"
+                            Background="#F3F4F6" Foreground="#374151"
+                            Margin="0,0,12,0"
+                            Click="CancelButton_Click"/>
+                    
+                    <Button Name="ContinueButton" Grid.Column="2"
+                            Content="✓ Fortfahren"
+                            Style="{StaticResource ModernDialogButton}"
+                            Background="#8B5CF6" Foreground="White"
+                            Click="ContinueButton_Click"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

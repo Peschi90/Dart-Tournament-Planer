@@ -162,7 +162,22 @@ public partial class TournamentClass : INotifyPropertyChanged
         {
             //System.Diagnostics.Debug.WriteLine($"TournamentClass.Groups getter called for {Name}");
             
-            // NEUE STRATEGIE: Stelle sicher dass GroupPhase existiert (nach JSON-Loading)
+            // ✅ VOLLSTÄNDIGE ÄNDERUNG: Bei SkipGroupPhase NIEMALS EnsureGroupPhaseExists aufrufen!
+            // Stattdessen: Direkt die Groups aus Phases holen oder leere Collection zurückgeben
+            if (_gameRules.SkipGroupPhase)
+            {
+                // Suche nach existierender GroupPhase (falls vorhanden für Spielerverwaltung)
+                var groupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+                if (groupPhase != null)
+                {
+                    return groupPhase.Groups;
+                }
+                
+                // Fallback: Leere Collection (Spieler werden direkt in KO-Phase verwendet)
+                return new ObservableCollection<Group>();
+            }
+            
+            // Normale Logik für Nicht-SkipGroupPhase Modus
             _phaseManager.EnsureGroupPhaseExists();
             
             // WICHTIG: Erst schauen ob direkt Groups auf TournamentClass-Ebene vorhanden sind (für Legacy/Loading)
@@ -195,12 +210,12 @@ public partial class TournamentClass : INotifyPropertyChanged
             }
             
             // Wenn wir in späteren Phasen sind, gib die Groups aus der Gruppenphase zurück
-            var groupPhase = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
+            var groupPhaseAlt = Phases.FirstOrDefault(p => p.PhaseType == TournamentPhaseType.GroupPhase);
             
-            if (groupPhase?.Groups != null)
+            if (groupPhaseAlt?.Groups != null)
             {
-                //System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {groupPhase.Groups.Count} groups");
-                return groupPhase.Groups;
+                //System.Diagnostics.Debug.WriteLine($"  Not in GroupPhase, found GroupPhase with {groupPhaseAlt.Groups.Count} groups");
+                return groupPhaseAlt.Groups;
             }
             
             //System.Diagnostics.Debug.WriteLine($"  ERROR: No GroupPhase found after EnsureGroupPhaseExists - this should not happen!");
@@ -300,6 +315,12 @@ public partial class TournamentClass : INotifyPropertyChanged
     /// DELEGIERT an TournamentPhaseManager
     /// </summary>
     public void AdvanceToNextPhase() => _phaseManager.AdvanceToNextPhase();
+    
+    /// <summary>
+    /// ✅ NEU: Gibt den TournamentPhaseManager zurück für erweiterte Phase-Operationen
+    /// Wird für direkte KO-Generierung benötigt
+    /// </summary>
+    public TournamentPhaseManager GetPhaseManager() => _phaseManager;
 
     /// <summary>
     /// Stellt sicher, dass mindestens eine GroupPhase existiert

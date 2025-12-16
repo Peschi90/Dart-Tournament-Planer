@@ -86,6 +86,10 @@ public class GermanTournamentLanguageProvider : ILanguageSection
             ["SingleElimination"] = "Einfaches KO",
             ["DoubleElimination"] = "Doppeltes KO (Winner + Loser Bracket)",
             ["IncludeGroupPhaseLosersBracket"] = "Gruppenphase-Verlierer ins Loser Bracket",
+            
+            // ✅ NEU: Gruppenphase überspringen Option
+            ["SkipGroupPhase"] = "⚡ Gruppenphase überspringen (direkt KO-Phase)",
+            ["SkipGroupPhaseTooltip"] = "Startet das Turnier direkt mit der KO-Phase ohne Gruppenphase",
 
             // Rundenspezifische Regeln
             ["RoundSpecificRules"] = "Rundenspezifische Regeln",

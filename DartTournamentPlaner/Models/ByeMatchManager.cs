@@ -67,9 +67,17 @@ public class ByeMatchManager
         }
 
         // 2. Propagiere Verlierer ins andere Bracket (Winner → Loser)
+        System.Diagnostics.Debug.WriteLine($"      DEBUG-PWAB: otherBracket != null? {otherBracket != null}");
+        System.Diagnostics.Debug.WriteLine($"      DEBUG-PWAB: completedMatch.BracketType = {completedMatch.BracketType}");
+        System.Diagnostics.Debug.WriteLine($"      DEBUG-PWAB: completedMatch.Loser = {completedMatch.Loser?.Name ?? "null"}");
+        
         if (otherBracket != null && completedMatch.BracketType == BracketType.Winner)
         {
-            var loser = GetMatchLoser(completedMatch);
+            // ✅ WICHTIG: Verwende match.Loser wenn es gesetzt ist (z.B. bei Byes), sonst GetMatchLoser
+            var loser = completedMatch.Loser ?? GetMatchLoser(completedMatch);
+            
+            System.Diagnostics.Debug.WriteLine($"      DEBUG-PWAB: loser (after fallback) = {loser?.Name ?? "null"}");
+            
             if (loser != null)
             {
                 System.Diagnostics.Debug.WriteLine($"      WB Match {completedMatch.Id}: Loser {loser.Name} goes to LB");
@@ -77,6 +85,8 @@ public class ByeMatchManager
                 var crossBracketDependents = otherBracket.Where(m => 
                     (m.SourceMatch1?.Id == completedMatch.Id && !m.Player1FromWinner) ||
                     (m.SourceMatch2?.Id == completedMatch.Id && !m.Player2FromWinner)).ToList();
+
+                System.Diagnostics.Debug.WriteLine($"      DEBUG-PWAB: Found {crossBracketDependents.Count} cross-bracket dependents");
 
                 foreach (var dependent in crossBracketDependents)
                 {
@@ -93,6 +103,14 @@ public class ByeMatchManager
                     }
                 }
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"      ⚠️ PWAB: No loser found for match {completedMatch.Id}!");
+            }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"      ⚠️ PWAB: Skipping loser propagation - condition failed!");
         }
 
         // 3. KRITISCH: Prüfe nach der Propagation auf neue automatische Freilose
@@ -105,12 +123,37 @@ public class ByeMatchManager
 
     /// <summary>
     /// Direktes Propagieren von Spielergewinnen-Nachrichten ohne Nachverfolgung von Freilosen
+    /// ✅ ERWEITERT: Propagiert auch Verlierer ins Loser Bracket (wichtig für Bye-Matches mit echtem Gegner)
     /// </summary>
     public void PropagateMatchResultDirectly(KnockoutMatch completedMatch, ObservableCollection<KnockoutMatch> sameBracket, ObservableCollection<KnockoutMatch>? otherBracket)
     {
         if (completedMatch.Winner == null) return;
 
         System.Diagnostics.Debug.WriteLine($"    Directly propagating match {completedMatch.Id} (winner: {completedMatch.Winner.Name})");
+        
+        // ✅ WICHTIG: Bei Bye-Matches mit einem echten Gegner, bestimme den Verlierer!
+        Player? loser = null;
+        if (completedMatch.Status == MatchStatus.Bye)
+        {
+            // Bei Bye: Der Gegner des Gewinners ist der Verlierer (wenn vorhanden)
+            if (completedMatch.Player1 == completedMatch.Winner && completedMatch.Player2 != null)
+            {
+                loser = completedMatch.Player2;
+                completedMatch.Loser = loser;
+                System.Diagnostics.Debug.WriteLine($"      Bye match loser determined: {loser.Name} (was Player2)");
+            }
+            else if (completedMatch.Player2 == completedMatch.Winner && completedMatch.Player1 != null)
+            {
+                loser = completedMatch.Player1;
+                completedMatch.Loser = loser;
+                System.Diagnostics.Debug.WriteLine($"      Bye match loser determined: {loser.Name} (was Player1)");
+            }
+        }
+        else
+        {
+            // Bei normalen Matches, hole den Verlierer
+            loser = GetMatchLoser(completedMatch);
+        }
 
         // 1. Propagiere Gewinner in das gleiche Bracket
         var sameBracketDependents = sameBracket.Where(m => 
@@ -132,33 +175,40 @@ public class ByeMatchManager
             }
         }
 
-        // 2. Propagiere Verlierer ins andere Bracket (Winner → Loser)
-        if (otherBracket != null && completedMatch.BracketType == BracketType.Winner)
+        // 2. ✅ NEU: Propagiere Verlierer ins andere Bracket (Winner → Loser) AUCH BEI BYE!
+        System.Diagnostics.Debug.WriteLine($"      DEBUG: otherBracket != null? {otherBracket != null}");
+        System.Diagnostics.Debug.WriteLine($"      DEBUG: completedMatch.BracketType = {completedMatch.BracketType}");
+        System.Diagnostics.Debug.WriteLine($"      DEBUG: loser != null? {loser != null}");
+        
+        if (otherBracket != null && completedMatch.BracketType == BracketType.Winner && loser != null)
         {
-            var loser = GetMatchLoser(completedMatch);
-            if (loser != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"      WB Match {completedMatch.Id}: Loser {loser.Name} goes to LB");
-                
-                var crossBracketDependents = otherBracket.Where(m => 
-                    (m.SourceMatch1?.Id == completedMatch.Id && !m.Player1FromWinner) ||
-                    (m.SourceMatch2?.Id == completedMatch.Id && !m.Player2FromWinner)).ToList();
+            System.Diagnostics.Debug.WriteLine($"      WB Match {completedMatch.Id}: Loser {loser.Name} goes to LB (from Bye or normal match)");
+            
+            var crossBracketDependents = otherBracket.Where(m => 
+                (m.SourceMatch1?.Id == completedMatch.Id && !m.Player1FromWinner) ||
+                (m.SourceMatch2?.Id == completedMatch.Id && !m.Player2FromWinner)).ToList();
 
-                foreach (var dependent in crossBracketDependents)
+            System.Diagnostics.Debug.WriteLine($"      DEBUG: Found {crossBracketDependents.Count} cross-bracket dependents");
+
+            foreach (var dependent in crossBracketDependents)
+            {
+                if (dependent.SourceMatch1?.Id == completedMatch.Id && !dependent.Player1FromWinner)
                 {
-                    if (dependent.SourceMatch1?.Id == completedMatch.Id && !dependent.Player1FromWinner)
-                    {
-                        dependent.Player1 = loser;
-                        System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player1 in LB match {dependent.Id}");
-                    }
-                    
-                    if (dependent.SourceMatch2?.Id == completedMatch.Id && !dependent.Player2FromWinner)
-                    {
-                        dependent.Player2 = loser;
-                        System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player2 in LB match {dependent.Id}");
-                    }
+                    dependent.Player1 = loser;
+                    System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player1 in LB match {dependent.Id}");
+                }
+                
+                if (dependent.SourceMatch2?.Id == completedMatch.Id && !dependent.Player2FromWinner)
+                {
+                    dependent.Player2 = loser;
+                    System.Diagnostics.Debug.WriteLine($"      Set loser {loser.Name} as Player2 in LB match {dependent.Id}");
                 }
             }
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"      ⚠️ SKIPPING loser propagation - condition failed!");
+            System.Diagnostics.Debug.WriteLine($"         otherBracket: {otherBracket != null}, BracketType: {completedMatch.BracketType}, loser: {loser?.Name ?? "null"}");
         }
     }
 
@@ -441,7 +491,21 @@ public class ByeMatchManager
             // Apply the bye - WICHTIG: Status wird auf Bye gesetzt für korrektes Design
             match.Status = MatchStatus.Bye;
             match.Winner = winner;
-            match.Loser = null; // Freilos hat keinen Verlierer
+            
+            // ✅ WICHTIG: Setze Loser wenn beide Spieler vorhanden waren!
+            if (match.Player1 != null && match.Player2 != null)
+            {
+                // Beide Spieler waren vorhanden - der andere ist der Verlierer
+                match.Loser = (match.Player1.Id == winner.Id) ? match.Player2 : match.Player1;
+                System.Diagnostics.Debug.WriteLine($"  Bye match loser set to {match.Loser.Name} (other player)");
+            }
+            else
+            {
+                // Nur ein Spieler vorhanden - kein Verlierer
+                match.Loser = null;
+                System.Diagnostics.Debug.WriteLine($"  No loser (only one player was present)");
+            }
+            
             match.Player1Sets = 0;
             match.Player2Sets = 0;
             match.Player1Legs = 0;
@@ -567,7 +631,7 @@ public class ByeMatchManager
     /// <summary>
     /// NEU: ÖFFENTLICHE METHODE zur Validierung von Freilos-Operationen
     /// </summary>
-    /// <param name="match">Das zu validierende Match</param>
+    /// <param name="match">Das zuvalidierende Match</param>
     /// <returns>Validierungsresultat</returns>
     public ByeValidationResult ValidateByeOperation(KnockoutMatch match)
     {

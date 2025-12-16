@@ -103,6 +103,9 @@ public class GameRules : INotifyPropertyChanged
     private int _qualifyingPlayersPerGroup = 2;
     private KnockoutMode _knockoutMode = KnockoutMode.SingleElimination;
     private bool _includeGroupPhaseLosersBracket = false;
+    
+    // ? NEU: Option zum Überspringen der Gruppenphase (direkt KO)
+    private bool _skipGroupPhase = false;
 
     // Round-specific rules for knockout phases
     private Dictionary<KnockoutRound, RoundRules> _knockoutRoundRules;
@@ -233,6 +236,26 @@ public class GameRules : INotifyPropertyChanged
         {
             _includeGroupPhaseLosersBracket = value;
             OnPropertyChanged();
+        }
+    }
+    
+    /// <summary>
+    /// ? NEU: Gibt an ob die Gruppenphase übersprungen wird (direkt KO-Phase)
+    /// Wenn true: Turnier startet direkt mit Winner Bracket (und optional Loser Bracket)
+    /// </summary>
+    public bool SkipGroupPhase
+    {
+        get => _skipGroupPhase;
+        set
+        {
+            _skipGroupPhase = value;
+            OnPropertyChanged();
+            
+            // Wenn Skip Group Phase aktiviert wird, setze Post-Group Phase Mode automatisch auf Knockout
+            if (value && _postGroupPhaseMode != PostGroupPhaseMode.KnockoutBracket)
+            {
+                PostGroupPhaseMode = PostGroupPhaseMode.KnockoutBracket;
+            }
         }
     }
 

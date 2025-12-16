@@ -172,6 +172,25 @@ public class EnglishKnockoutLanguageProvider : ILanguageSection
             ["BracketOptimized"] = "Bracket has been optimized",
             ["BracketGenerationFailed"] = "Bracket generation failed",
             
+            // ✅ NEU: Direct Knockout Generation (Skip Group Phase)
+            ["GenerateKnockout"] = "Generate Knockout Phase",
+            ["NotEnoughPlayersForKnockout"] = "At least 2 players are required for the knockout phase!",
+            ["ConfirmDirectKnockoutGeneration"] = "Start knockout phase directly?\n\n" +
+                                                   "• {0} players\n" +
+                                                   "• Mode: {1}\n" +
+                                                   "• No group phase\n\n" +
+                                                   "Continue?",
+            ["DirectKnockoutGeneratedSuccess"] = "Knockout phase has been successfully created!\n\n" +
+                                                  "• {0} matches in Winner Bracket\n" +
+                                                  "• Mode: {1}",
+            ["ErrorGeneratingKnockout"] = "Error generating knockout phase:",
+            
+            // ✅ NEU: Generate Knockout Dialog
+            ["ConfirmDirectKnockoutQuestion"] = "Do you want to start the knockout phase directly?",
+            ["NoGroupPhase"] = "No Group Phase",
+            ["DirectKnockoutInfo"] = "The tournament will start directly with the knockout system. All players will be automatically placed in the bracket.",
+            ["Continue"] = "✓ Continue",
+
             // =====================================
             // SEEDING AND PAIRINGS
             // =====================================
