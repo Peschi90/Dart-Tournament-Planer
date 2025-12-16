@@ -55,8 +55,8 @@
 
         <!-- Input Field Style -->
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Margin" Value="0,6,0,16"/>
+            <Setter Property="Padding" Value="2,3"/>
+            <Setter Property="Margin" Value="0,2,0,10"/>
             <Setter Property="BorderBrush" Value="#D1D5DB"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Background" Value="White"/>
@@ -325,14 +325,14 @@
 
             <!-- Content ScrollViewer with white background -->
             <Border Grid.Row="1" Background="White" Margin="0">
-                <ScrollViewer Padding="32,24" VerticalScrollBarVisibility="Auto">
-                    <StackPanel MaxWidth="600">
+                <ScrollViewer Padding="32,24" VerticalScrollBarVisibility="Visible" >
+                    <StackPanel MaxWidth="650">
                         
                         <!-- Personal Information Card -->
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="PurchasePersonalInformation" Text="Personal Information" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="#374151" Margin="0,0,0,10"/>
                                 
                                 <!-- Name Fields -->
                                 <Grid>
@@ -390,7 +390,7 @@
                                 <StackPanel x:Name="FeaturesPanel">
                                     <CheckBox x:Name="StatisticsFeature" Content="Advanced Statistics" Margin="0,4"/>
                                     <CheckBox x:Name="HubConnectionFeature" Content="Tournament Hub Connection" Margin="0,4"/>
-                                    <CheckBox x:Name="ApiConnectionFeature" Content="API Access" Margin="0,4"/>
+                                    <CheckBox x:Name="PowerScoringFeature" Content="PowerScoring - Intelligent Player Seeding" Margin="0,4"/>
                                     <CheckBox x:Name="PrintFeature" Content="Enhanced Printing" Margin="0,4"/>
                                     <CheckBox x:Name="TournamentOverviewFeature" Content="Tournament Overview" Margin="0,4"/>
                                 </StackPanel>

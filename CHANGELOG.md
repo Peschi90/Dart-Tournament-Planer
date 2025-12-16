@@ -1,4 +1,25 @@
-﻿## v0.1.13
+﻿## v0.1.14
+
+### 🎯 New Features
+- **📧 Automatic License Request Email**: License requests are now sent automatically via email without opening a mail client
+  - Smart fallback to mail client if automatic sending fails
+  - User receives a copy at their email address
+
+### 🎨 UI/UX Improvements
+- **Modern Email Dialogs**: New success and error dialogs with professional design
+- **Feature Update**: "PowerScoring" replaces deprecated "API Access" in license requests
+
+### 🔧 Technical
+- **MailKit Integration**: Added MailKit library for reliable SMTP email delivery (Port 465)
+- **EmailService**: New service class for automated email handling
+
+### 🐛 Bug Fixes
+- **Email Button Fix**: License request button no longer hangs during email sending
+
+### 🌍 Localization
+- Complete German/English translations for email system dialogs
+
+## v0.1.13
 
 ### 🎯 New Features
 - **🆔 Custom Tournament-ID**: Users can set custom Tournament-IDs or generate them automatically

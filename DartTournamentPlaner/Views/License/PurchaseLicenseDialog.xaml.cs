@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
@@ -15,11 +16,13 @@ public partial class PurchaseLicenseDialog : Window
 {
     private readonly LocalizationService _localizationService;
     private readonly LicenseManager _licenseManager;
+    private readonly EmailService _emailService;
 
     public PurchaseLicenseDialog(LocalizationService localizationService, LicenseManager licenseManager)
     {
         _localizationService = localizationService;
         _licenseManager = licenseManager;
+        _emailService = new EmailService();
         
         InitializeComponent();
         InitializeWindow();
@@ -48,7 +51,7 @@ public partial class PurchaseLicenseDialog : Window
         CompanyLabel.Text = _localizationService.GetString("Company") ?? "Unternehmen / Organisation";
         
         LicenseTypeLabel.Text = _localizationService.GetString("LicenseType") ?? "Lizenztyp" + " *";
-        //ActivationsLabel.Text = _localizationService.GetString("RequiredActivations") ?? "Anzahl benötigter Aktivierungen";
+        //ActivationsLabel.Text = _localizationService.GetString("RequiredActivations") ?? "Anzahl benötigtiger Aktivierungen";
         FeaturesLabel.Text = _localizationService.GetString("RequiredFeatures") ?? "Benötigte Features";
         
         MessageLabel.Text = _localizationService.GetString("AdditionalMessage") ?? "Nachricht / Besondere Anforderungen";
@@ -65,8 +68,9 @@ public partial class PurchaseLicenseDialog : Window
         // Häufig verwendete Features vorauswählen
         StatisticsFeature.IsChecked = true;
         HubConnectionFeature.IsChecked = true;
-        ApiConnectionFeature.IsChecked = true;
-        PrintFeature.IsChecked = true;  // Sicherstellen dass Print Feature ausgewählt ist
+        PowerScoringFeature.IsChecked = true;
+        PrintFeature.IsChecked = true;
+        TournamentOverviewFeature.IsChecked = true;
     }
 
     /// <summary>
@@ -164,44 +168,160 @@ public partial class PurchaseLicenseDialog : Window
         Close();
     }
 
-    private void SendRequestButton_Click(object sender, RoutedEventArgs e)
+    private async void SendRequestButton_Click(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] SendRequestButton_Click started");
+        
         try
         {
             // Validierung
             if (!ValidateForm())
+            {
+                System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Validation failed");
                 return;
+            }
+
+            System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Validation passed");
+
+            // Button deaktivieren während des Sendens
+            SendRequestButton.IsEnabled = false;
+            SendRequestButton.Content = _localizationService.GetString("SendingEmail") ?? "Wird gesendet...";
+
+            System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Button disabled, building email content");
 
             // E-Mail-Inhalt erstellen
             var emailContent = BuildEmailContent();
+            var subject = "License Request - Dart Tournament Planner";
             
-            // E-Mail öffnen
-            var success = OpenEmailClient(emailContent);
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Email content built, length: {emailContent.Length}");
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Calling SendLicenseRequestAsync...");
             
-            if (success)
+            // Versuche E-Mail automatisch zu senden
+            var result = await _emailService.SendLicenseRequestAsync(subject, emailContent, EmailTextBox.Text);
+            
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] SendLicenseRequestAsync returned. Success: {result.Success}");
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Result message: {result.Message}");
+            
+            if (result.Success)
             {
-                var title = _localizationService.GetString("Success") ?? "Erfolg";
-                var message = _localizationService.GetString("EmailClientOpened") ?? 
-                    "Ihr E-Mail-Client wurde geöffnet mit einer vorbereiteten Lizenzanfrage.\n\n" +
-                    "Bitte senden Sie die E-Mail ab, um Ihre Lizenzanfrage zu übermitteln.\n" +
-                    "Sie erhalten innerhalb von 24 Stunden eine Antwort.";
+                System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Showing success dialog");
                 
-                //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                // Erfolgreiche automatische Sendung - zeige modernen Erfolgs-Dialog
+                EmailSuccessDialog.ShowDialog(this, _localizationService);
                 
-                // Zeige Spenden-Dialog nach erfolgreicher E-Mail-Erstellung
+                System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Success dialog shown, showing donation dialog");
+                
+                // Zeige Spenden-Dialog nach erfolgreicher E-Mail-Sendung
                 ShowDonationDialog();
                 
                 DialogResult = true;
                 Close();
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] Email send failed, showing error dialog");
+                System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Error details: {result.Exception?.ToString()}");
+                
+                // Automatischer Versand fehlgeschlagen - zeige modernen Fehler-Dialog
+                var errorDetails = result.Exception != null ? result.Message : null;
+                var fallbackResult = EmailErrorDialog.ShowDialog(this, _localizationService, errorDetails);
+                
+                if (fallbackResult == true)
+                {
+                    System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] User chose to open mail client");
+                    
+                    var mailClientSuccess = OpenEmailClient(emailContent, subject);
+                    
+                    if (mailClientSuccess)
+                    {
+                        var clientTitle = _localizationService.GetString("EmailClientOpened") ?? "E-Mail-Client geöffnet";
+                        var clientMessage = _localizationService.GetString("EmailClientOpenedMessage") ?? 
+                            "Ihr E-Mail-Client wurde mit einer vorbereiteten Lizenzanfrage geöffnet.\n\n" +
+                            "Bitte senden Sie die E-Mail ab, um Ihre Anfrage zu übermitteln.";
+                        
+                        MessageBox.Show(this, clientMessage, clientTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                        
+                        // Zeige Spenden-Dialog auch bei manuellem Versand
+                        ShowDonationDialog();
+                        
+                        DialogResult = true;
+                        Close();
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] User chose not to open mail client, re-enabling button");
+                    
+                    // Button wieder aktivieren
+                    SendRequestButton.IsEnabled = true;
+                    SendRequestButton.Content = _localizationService.GetString("SendLicenseRequest") ?? "Lizenzanfrage senden";
+                }
+            }
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Exception in SendRequestButton_Click: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] Exception type: {ex.GetType().Name}");
+            System.Diagnostics.Debug.WriteLine($"[PurchaseLicenseDialog] StackTrace: {ex.StackTrace}");
+            
             var title = _localizationService.GetString("Error") ?? "Fehler";
-            var message = $"Fehler beim Öffnen des E-Mail-Clients:\n\n{ex.Message}\n\n" +
+            var message = $"{_localizationService.GetString("UnexpectedError") ?? "Ein unerwarteter Fehler ist aufgetreten"}:\n\n{ex.Message}\n\n" +
                          "Bitte wenden Sie sich direkt an support@license-dtp.i3ull3t.de";
             
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            
+            // Button wieder aktivieren
+            SendRequestButton.IsEnabled = true;
+            SendRequestButton.Content = _localizationService.GetString("SendLicenseRequest") ?? "Lizenzanfrage senden";
+        }
+        
+        System.Diagnostics.Debug.WriteLine("[PurchaseLicenseDialog] SendRequestButton_Click completed");
+    }
+
+    private bool OpenEmailClient(string emailContent, string subject)
+    {
+        try
+        {
+            var recipient = "support@license-dtp.i3ull3t.de";
+            
+            // Mailto-URL erstellen
+            var mailtoUrl = $"mailto:{recipient}?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(emailContent)}";
+            
+            // Standard-E-Mail-Client öffnen
+            var processInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = mailtoUrl,
+                UseShellExecute = true
+            };
+            
+            System.Diagnostics.Process.Start(processInfo);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Fallback: Zeige E-Mail-Inhalt in MessageBox
+            var title = _localizationService.GetString("EmailClientError") ?? "E-Mail-Client Fehler";
+            var message = (_localizationService.GetString("EmailClientErrorMessage") ?? 
+                          "E-Mail-Client konnte nicht geöffnet werden. Hier ist der E-Mail-Inhalt zum manuellen Kopieren") + ":\n\n" +
+                         $"Empfänger: support@license-dtp.i3ull3t.de\n" +
+                         $"Betreff: {subject}\n\n" +
+                         emailContent + "\n\n" +
+                         $"Fehler: {ex.Message}";
+            
+            MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+            
+            // Inhalt in Zwischenablage kopieren
+            try
+            {
+                Clipboard.SetText($"To: support@license-dtp.i3ull3t.de\nSubject: {subject}\n\n{emailContent}");
+                MessageBox.Show(this, 
+                    _localizationService.GetString("EmailContentCopied") ?? "E-Mail-Inhalt wurde in die Zwischenablage kopiert.", 
+                    _localizationService.GetString("Info") ?? "Information", 
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch { }
+            
+            return true;
         }
     }
 
@@ -252,9 +372,7 @@ public partial class PurchaseLicenseDialog : Window
     {
         var content = new StringBuilder();
         
-        // Header
-        content.AppendLine("Subject: License Request - Dart Tournament Planner");
-        content.AppendLine();
+        // Header - ohne "Subject:" Zeile da der Subject separat übergeben wird
         content.AppendLine("Hello Dart Tournament Planner Support Team,");
         content.AppendLine();
         content.AppendLine("I would like to request a license for Dart Tournament Planner with the following details:");
@@ -275,10 +393,6 @@ public partial class PurchaseLicenseDialog : Window
         var selectedLicenseType = LicenseTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
         if (selectedLicenseType != null)
             content.AppendLine($"License Type: {selectedLicenseType.Content}");
-        
-        //var selectedActivations = ActivationsComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem;
-        //if (selectedActivations != null)
-        //    content.AppendLine($"Required Activations: {selectedActivations.Content}");
         
         // Features
         var selectedFeatures = GetSelectedFeatures();
@@ -337,8 +451,8 @@ public partial class PurchaseLicenseDialog : Window
             features.Add("Advanced Statistics");
         if (HubConnectionFeature.IsChecked == true)
             features.Add("Tournament Hub Connection");
-        if (ApiConnectionFeature.IsChecked == true)
-            features.Add("API Access");
+        if (PowerScoringFeature.IsChecked == true)
+            features.Add("PowerScoring - Intelligent Player Seeding");
         if (PrintFeature.IsChecked == true)
             features.Add("Enhanced Printing");
         if (TournamentOverviewFeature.IsChecked == true)
@@ -346,66 +460,6 @@ public partial class PurchaseLicenseDialog : Window
 
         
         return features.ToArray();
-    }
-
-    private bool OpenEmailClient(string emailContent)
-    {
-        try
-        {
-            var recipient = "support@license-dtp.i3ull3t.de";
-            var subject = "License Request - Dart Tournament Planner";
-            
-            // Split content to extract subject and body properly
-            var lines = emailContent.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-            var bodyLines = new List<string>();
-            bool skipFirstLines = true;
-            
-            foreach (var line in lines)
-            {
-                if (skipFirstLines && (line.StartsWith("Subject:") || string.IsNullOrEmpty(line)))
-                {
-                    if (line.StartsWith("Subject:"))
-                        skipFirstLines = false;
-                    continue;
-                }
-                bodyLines.Add(line);
-            }
-            
-            var body = string.Join("\n", bodyLines);
-            
-            // Mailto-URL erstellen
-            var mailtoUrl = $"mailto:{recipient}?subject={Uri.EscapeDataString(subject)}&body={Uri.EscapeDataString(body)}";
-            
-            // Standard-E-Mail-Client öffnen
-            var processInfo = new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = mailtoUrl,
-                UseShellExecute = true
-            };
-            
-            System.Diagnostics.Process.Start(processInfo);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            // Fallback: Zeige E-Mail-Inhalt in MessageBox
-            var title = "E-Mail-Inhalt kopieren";
-            var message = "E-Mail-Client konnte nicht geöffnet werden. Hier ist der E-Mail-Inhalt zum manuellen Kopieren:\n\n" +
-                         "Empfänger: support@license-dtp.i3ull3t.de\n\n" +
-                         emailContent + "\n\n" +
-                         $"Fehler: {ex.Message}";
-            
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            // Inhalt in Zwischenablage kopieren
-            try
-            {
-                Clipboard.SetText($"To: support@license-dtp.i3ull3t.de\n\n{emailContent}");
-            }
-            catch { }
-            
-            return true;
-        }
     }
 
     private void ShowDonationDialog()

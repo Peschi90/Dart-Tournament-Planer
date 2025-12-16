@@ -64,6 +64,19 @@ public class GermanLicenseLanguageProvider : ILanguageSection
             ["SendLicenseRequest"] = "Lizenzanfrage senden",
             ["ValidationError"] = "Validierungsfehler",
             ["EmailClientOpened"] = "E-Mail-Client wurde geöffnet",
+            
+            // Neue E-Mail-bezogene Übersetzungen
+            ["SendingEmail"] = "Wird gesendet...",
+            ["EmailSentSuccessfully"] = "Ihre Lizenzanfrage wurde erfolgreich versendet!\n\nSie erhalten eine Kopie der E-Mail an Ihre angegebene Adresse.\nUnser Support-Team wird sich innerhalb von 24 Stunden bei Ihnen melden.",
+            ["EmailSentSuccessTitle"] = "E-Mail erfolgreich versendet!",
+            ["AutomaticSendFailed"] = "Automatischer Versand fehlgeschlagen",
+            ["FallbackToMailClient"] = "Die E-Mail konnte nicht automatisch versendet werden.\n\nMöchten Sie Ihren E-Mail-Client öffnen, um die Anfrage manuell zu versenden?",
+            ["OpenEmailClient"] = "E-Mail-Client öffnen",
+            ["EmailClientOpenedMessage"] = "Ihr E-Mail-Client wurde mit einer vorbereiteten Lizenzanfrage geöffnet.\n\nBitte senden Sie die E-Mail ab, um Ihre Anfrage zu übermitteln.",
+            ["UnexpectedError"] = "Ein unerwarteter Fehler ist aufgetreten",
+            ["EmailClientError"] = "E-Mail-Client Fehler",
+            ["EmailClientErrorMessage"] = "E-Mail-Client konnte nicht geöffnet werden. Hier ist der E-Mail-Inhalt zum manuellen Kopieren",
+            ["EmailContentCopied"] = "E-Mail-Inhalt wurde in die Zwischenablage kopiert.",
 
             // Spenden-Dialog
             ["SupportProject"] = "Projekt unterstützen",

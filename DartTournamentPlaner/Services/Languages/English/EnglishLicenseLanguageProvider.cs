@@ -64,6 +64,20 @@ public class EnglishLicenseLanguageProvider : ILanguageSection
             ["ValidationError"] = "Validation Error",
             ["EmailClientOpened"] = "Email client opened",
 
+            // New email-related translations
+            ["SendingEmail"] = "Sending...",
+            ["EmailSentSuccessfully"] = "Your license request has been sent successfully!\n\nYou will receive a copy of the email at your provided address.\nOur support team will contact you within 24 hours.",
+            ["EmailSentSuccessTitle"] = "Email sent successfully!",
+            ["AutomaticSendFailed"] = "Automatic send failed",
+            ["FallbackToMailClient"] = "The email could not be sent automatically.\n\nWould you like to open your email client to send the request manually?",
+            ["OpenEmailClient"] = "Open Email Client",
+            ["EmailClientOpenedMessage"] = "Your email client has been opened with a prepared license request.\n\nPlease send the email to submit your request.",
+            ["UnexpectedError"] = "An unexpected error occurred",
+            ["EmailClientError"] = "Email client error",
+            ["EmailClientErrorMessage"] = "Email client could not be opened. Here is the email content for manual copying",
+            ["EmailContentCopied"] = "Email content has been copied to clipboard.",
+            ["Info"] = "Information",
+
             // Donation Dialog
             ["SupportProject"] = "Support Project",
             ["SupportProjectTitle"] = "Support Our Project",
