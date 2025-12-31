@@ -16,6 +16,32 @@
     <SolidColorBrush x:Key="SuccessBrush" Color="#34D399"/>
     <SolidColorBrush x:Key="WarningBrush" Color="#FBBF24"/>
     
+    <!-- Dialog Palette (pastel gradients) -->
+    <LinearGradientBrush x:Key="DialogPrimaryGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#1F3A4D" Offset="0"/>
+        <GradientStop Color="#16413D" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DialogInfoGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#1E3A5F" Offset="0"/>
+        <GradientStop Color="#123347" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DialogSuccessGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#1F4D3A" Offset="0"/>
+        <GradientStop Color="#1B4332" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DialogWarningGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#5C4320" Offset="0"/>
+        <GradientStop Color="#4A3417" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DialogErrorGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#5C2B2B" Offset="0"/>
+        <GradientStop Color="#4A2020" Offset="1"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="DialogSurfaceGradient" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#2D2D30" Offset="0"/>
+        <GradientStop Color="#232326" Offset="1"/>
+    </LinearGradientBrush>
+    
     <!-- Header Gradient -->
     <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#2D2D30" Offset="0"/>
@@ -30,13 +56,12 @@
     
     <!-- Button Gradients -->
     <LinearGradientBrush x:Key="ButtonGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#0EA5E9" Offset="0"/>
-        <GradientStop Color="#0284C7" Offset="1"/>
+        <GradientStop Color="#1F3A4D" Offset="0"/>
+        <GradientStop Color="#16413D" Offset="1"/>
     </LinearGradientBrush>
-    
     <LinearGradientBrush x:Key="ButtonHoverGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#0284C7" Offset="0"/>
-        <GradientStop Color="#0369A1" Offset="1"/>
+        <GradientStop Color="#274A64" Offset="0"/>
+        <GradientStop Color="#1F4D3A" Offset="1"/>
     </LinearGradientBrush>
     
     <!-- Status Bar Colors -->

@@ -126,7 +126,7 @@
             <!-- Header -->
             <Border Grid.Row="0" 
                     x:Name="HeaderBorder"
-                    Background="{StaticResource WarningGradient}" 
+                    Background="{DynamicResource DialogErrorGradient}" 
                     CornerRadius="16,16,0,0" 
                     Padding="30,20">
                 <StackPanel HorizontalAlignment="Center">
@@ -135,7 +135,7 @@
                                Text="Automatischer Versand fehlgeschlagen" 
                                FontSize="24" 
                                FontWeight="Bold" 
-                               Foreground="White" 
+                               Foreground="{DynamicResource TextBrush}" 
                                HorizontalAlignment="Center"
                                TextAlignment="Center"/>
                 </StackPanel>
@@ -202,7 +202,7 @@
                             Content="E-Mail-Client öffnen" 
                             Style="{StaticResource PrimaryButton}"
                             MinWidth="200"
-                            Click="YesButton_Click"/>
+                            Click="YesButton_Click" Background="{DynamicResource ErrorBrush}" Foreground="{DynamicResource TextBrush}"/>
                 </StackPanel>
             </Border>
         </Grid>

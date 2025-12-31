@@ -37,15 +37,10 @@
             <GradientStop Color="#F8FAFC" Offset="1"/>
         </LinearGradientBrush>
 
-        <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#3B82F6" Offset="0"/>
-            <GradientStop Color="#2563EB" Offset="1"/>
-        </LinearGradientBrush>
-
         <!-- Modern Card Style -->
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="24"/>
@@ -68,15 +63,15 @@
 
         <!-- Feature Badge Style -->
         <Style x:Key="FeatureBadge" TargetType="Border">
-            <Setter Property="Background" Value="#EFF6FF"/>
-            <Setter Property="BorderBrush" Value="#DBEAFE"/>
+            <Setter Property="Background" Value="#E0F2FE"/>
+            <Setter Property="BorderBrush" Value="#BAE6FD"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="8"/>
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Margin" Value="4,4"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect Color="#3B82F6" Direction="0" ShadowDepth="0" 
+                    <DropShadowEffect Color="#67E8F9" Direction="0" ShadowDepth="0" 
                                       BlurRadius="8" Opacity="0.1"/>
                 </Setter.Value>
             </Setter>
@@ -84,8 +79,8 @@
 
         <!-- Modern Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,12"/>
             <Setter Property="Margin" Value="8,4"/>
@@ -105,17 +100,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#2563EB" Offset="0"/>
-                                            <GradientStop Color="#1D4ED8" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0" 
+                                        <DropShadowEffect Color="#67E8F9" Direction="270" ShadowDepth="0" 
                                                           BlurRadius="20" Opacity="0.3"/>
                                     </Setter.Value>
                                 </Setter>
@@ -131,9 +119,9 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -160,19 +148,12 @@
         </Style>
 
         <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#EF4444" Offset="0"/>
-                        <GradientStop Color="#DC2626" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource DialogErrorGradient}"/>
         </Style>
     </Window.Resources>
 
     <!-- Main container with modern design -->
-    <Border Background="{StaticResource MainBackgroundBrush}" 
+    <Border Background="{DynamicResource MainBackgroundBrush}" 
             CornerRadius="16" 
             Effect="{StaticResource HeaderShadow}"
             Margin="8">
@@ -185,9 +166,9 @@
 
             <!-- Header with modern gradient design -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
+                    Background="{DynamicResource DialogSuccessGradient}" 
                     CornerRadius="16,16,0,0" 
-                    BorderBrush="#E5E7EB" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,0,0,1" 
                     Padding="32,24"
                     Effect="{StaticResource HeaderShadow}">
@@ -200,9 +181,9 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock x:Name="TitleText" Text="🔑 License Information" 
                                    FontSize="28" FontWeight="Bold" 
-                                   Foreground="#1F2937" Margin="0,0,0,8"/>
+                                   Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                         <TextBlock x:Name="SubtitleText" Text="Current license and feature information" 
-                                   FontSize="16" Foreground="#6B7280"/>
+                                   FontSize="16" Foreground="{DynamicResource SecondaryTextBrush}"/>
                     </StackPanel>
                     
                     <!-- Status Badge -->
@@ -216,14 +197,14 @@
             </Border>
 
             <!-- Content ScrollViewer with white background -->
-            <Border Grid.Row="1" Background="White" Margin="0">
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" Margin="0">
                 <ScrollViewer Padding="32" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <!-- License Status Card -->
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock Text="📊 License Status" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -264,7 +245,7 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock Text="📄 License Details" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -320,7 +301,7 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock Text="🚀 Available Features" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <WrapPanel x:Name="FeaturesPanel" Orientation="Horizontal">
                                     <!-- Features are added dynamically -->
@@ -329,7 +310,7 @@
                                 <TextBlock x:Name="NoFeaturesText" 
                                            Text="All core features are available" 
                                            FontSize="14" FontStyle="Italic"
-                                           Foreground="#6B7280" 
+                                           Foreground="{DynamicResource SecondaryTextBrush}" 
                                            Visibility="Collapsed"
                                            Margin="0,12,0,0"/>
                             </StackPanel>
@@ -339,7 +320,7 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock Text="🖥️ System Information" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -378,9 +359,9 @@
 
             <!-- Footer Buttons -->
             <Border Grid.Row="2" 
-                    Background="White" 
+                    Background="{DynamicResource SurfaceBrush}" 
                     CornerRadius="0,0,16,16"
-                    BorderBrush="#E5E7EB" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,1,0,0" 
                     Padding="32,20">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

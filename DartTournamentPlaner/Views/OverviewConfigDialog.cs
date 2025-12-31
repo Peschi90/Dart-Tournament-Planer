@@ -20,6 +20,15 @@ public partial class OverviewConfigDialog : Window
     public int SubTabInterval { get; set; }
     public bool ShowOnlyActiveClasses { get; set; }
 
+    private Brush GetBrush(string key, Brush fallback)
+    {
+        if (TryFindResource(key) is Brush b)
+            return b;
+        if (Application.Current != null && Application.Current.TryFindResource(key) is Brush appBrush)
+            return appBrush;
+        return fallback;
+    }
+
     public OverviewConfigDialog()
     {
         // ✅ KORRIGIERT: Hole LocalizationService aus Application static property
@@ -36,16 +45,16 @@ public partial class OverviewConfigDialog : Window
         ResizeMode = ResizeMode.NoResize;
         
         // Moderner Glaseffekt-Hintergrund
-        Background = new LinearGradientBrush(
+        Background = GetBrush("DialogSurfaceGradient", new LinearGradientBrush(
             Color.FromRgb(248, 250, 252),
-            Color.FromRgb(241, 245, 249), 90);
+            Color.FromRgb(241, 245, 249), 90));
 
         // Hauptcontainer mit modernem Card-Design
         var mainBorder = new Border
         {
-            Background = new LinearGradientBrush(
+            Background = GetBrush("DialogSurfaceGradient", new LinearGradientBrush(
                 Color.FromRgb(255, 255, 255),
-                Color.FromRgb(253, 253, 253), 90),
+                Color.FromRgb(253, 253, 253), 90)),
             CornerRadius = new CornerRadius(16),
             Margin = new Thickness(16),
             Effect = new DropShadowEffect
@@ -72,9 +81,9 @@ public partial class OverviewConfigDialog : Window
         // ✅ KORRIGIERT: Header mit korrekten Padding-Parametern
         var headerBorder = new Border
         {
-            Background = new LinearGradientBrush(
+            Background = GetBrush("DialogInfoGradient", new LinearGradientBrush(
                 Color.FromRgb(30, 64, 175),
-                Color.FromRgb(30, 58, 138), 90),
+                Color.FromRgb(30, 58, 138), 90)),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(20, 16, 20, 16),
             Margin = new Thickness(0, 0, 0, 0),
@@ -136,9 +145,9 @@ public partial class OverviewConfigDialog : Window
         // ✅ KORRIGIERT: Show Only Active Classes Checkbox mit korrekten Padding-Parametern
         var checkboxBorder = new Border
         {
-            Background = new LinearGradientBrush(
+            Background = GetBrush("DialogWarningGradient", new LinearGradientBrush(
                 Color.FromRgb(239, 246, 255),
-                Color.FromRgb(219, 234, 254), 90),
+                Color.FromRgb(219, 234, 254), 90)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(59, 130, 246)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
@@ -187,8 +196,7 @@ public partial class OverviewConfigDialog : Window
         var cancelButton = CreateModernButton(
             _localizationService.GetString("Cancel") ?? "Abbrechen",
             Color.FromRgb(100, 116, 139),
-            Color.FromRgb(71, 85, 105)
-        );
+            Color.FromRgb(71, 85, 105));
         cancelButton.IsCancel = true;
         cancelButton.Margin = new Thickness(0, 0, 12, 0);
         cancelButton.Click += CancelButton_Click;
@@ -196,16 +204,14 @@ public partial class OverviewConfigDialog : Window
         var applyButton = CreateModernButton(
             _localizationService.GetString("Apply") ?? "Anwenden",
             Color.FromRgb(59, 130, 246),
-            Color.FromRgb(37, 99, 235)
-        );
+            Color.FromRgb(37, 99, 235));
         applyButton.Margin = new Thickness(0, 0, 12, 0);
         applyButton.Click += ApplyButton_Click;
 
         var saveButton = CreateModernButton(
             _localizationService.GetString("Save") ?? "Speichern",
             Color.FromRgb(34, 197, 94),
-            Color.FromRgb(22, 163, 74)
-        );
+            Color.FromRgb(22, 163, 74));
         saveButton.IsDefault = true;
         saveButton.Click += SaveButton_Click;
 
@@ -315,10 +321,10 @@ public partial class OverviewConfigDialog : Window
             Padding = new Thickness(24, 12, 24, 12),
             FontSize = 14,
             FontWeight = FontWeights.Medium,
-            Foreground = Brushes.White,
+            Foreground = GetBrush("TextBrush", Brushes.Black),
             BorderThickness = new Thickness(0),
             Cursor = System.Windows.Input.Cursors.Hand,
-            Background = new LinearGradientBrush(startColor, endColor, 90)
+            Background = GetBrush("DialogPrimaryGradient", new LinearGradientBrush(startColor, endColor, 90))
         };
 
         var template = new ControlTemplate(typeof(Button));

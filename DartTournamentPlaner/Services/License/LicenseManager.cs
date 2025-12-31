@@ -638,4 +638,12 @@ public class LicenseManager
         
         return result;
     }
+    
+    /// <summary>
+    /// Gibt den gespeicherten Lizenzschlüssel zurück (falls vorhanden)
+    /// </summary>
+    public string? GetStoredLicenseKey()
+    {
+        return LoadLicenseKey();
+    }
 }

@@ -440,7 +440,37 @@ public class GermanUILanguageProvider : ILanguageSection
             ["LoserBracketRules"] = "Verliererbaum-Regeln",
             ["RoundRobinFinalsRules"] = "Round-Robin-Finals-Regeln",
             ["RoundRobinFinals"] = "Finalrunde",
-            ["ResetToDefault"] = "Auf Standard zurücksetzen"
+            ["ResetToDefault"] = "Auf Standard zurücksetzen",
+
+            // =====================================
+            // AUTHENTICATION
+            // =====================================
+            ["Account"] = "Konto",
+            ["Login"] = "Anmelden",
+            ["Logout"] = "Abmelden",
+            ["Register"] = "Registrieren",
+            ["Username"] = "Benutzername",
+            ["Password"] = "Passwort",
+            ["ConfirmPassword"] = "Passwort wiederholen",
+            ["Email"] = "E-Mail",
+            ["FirstName"] = "Vorname",
+            ["LastName"] = "Nachname",
+            ["RememberSession"] = "Angemeldet bleiben",
+            ["LoginSubtitle"] = "Melde dich mit deinem Konto an.",
+            ["RegisterSubtitle"] = "Erstelle ein neues Konto für den Hub.",
+            ["LogoutSuccess"] = "Erfolgreich abgemeldet.",
+            ["AuthRegistrationFailed"] = "Registrierung fehlgeschlagen.",
+            ["Profile"] = "Profil",
+            ["ProfileInfoText"] = "Deine Profildaten werden zentral im Hub verwaltet. Bearbeitung folgt in Kürze.",
+
+            // Neu hinzugefügte Übersetzungen
+            ["AuthNotLoggedIn"] = "Nicht angemeldet.",
+            ["ProfileUpdated"] = "Profil aktualisiert.",
+            ["LicenseAutoFill"] = "Lizenz aus Anwendung übernehmen",
+            ["LicenseAutoFillSuccess"] = "Lizenzschlüssel übernommen.",
+            ["LicenseAutoFillMissing"] = "Kein Lizenzschlüssel gefunden.",
+            ["LoginSuccess"] = "Erfolgreich angemeldet. Willkommen zurück und viel Spaß mit dem Dart Turnierplaner!",
+            ["RegistrationSuccess"] = "Registrierung erfolgreich abgeschlossen. Du kannst dein Konto jetzt im Dart Turnierplaner nutzen.",
         };
     }
 }

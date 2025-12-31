@@ -40,15 +40,8 @@
 
         <!-- Modern Button Styles -->
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#3B82F6" Offset="0"/>
-                        <GradientStop Color="#2563EB" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,12"/>
             <Setter Property="Margin" Value="8"/>
@@ -68,14 +61,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#2563EB" Offset="0"/>
-                                            <GradientStop Color="#1D4ED8" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -84,14 +70,7 @@
         </Style>
 
         <Style x:Key="DonationButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background">
-                <Setter.Value>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#FF9800" Offset="0"/>
-                        <GradientStop Color="#F57C00" Offset="1"/>
-                    </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background" Value="{DynamicResource DialogSuccessGradient}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -105,14 +84,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#F57C00" Offset="0"/>
-                                            <GradientStop Color="#EF6C00" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
                                         <DropShadowEffect Color="#FF9800" Direction="270" ShadowDepth="0" 
@@ -127,9 +99,9 @@
         </Style>
 
         <Style x:Key="CancelButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -164,7 +136,7 @@
     </Window.Resources>
 
     <!-- Main container with modern design -->
-    <Border Background="{StaticResource MainBackgroundBrush}" 
+    <Border Background="{DynamicResource MainBackgroundBrush}" 
             CornerRadius="16" 
             Effect="{StaticResource HeaderShadow}"
             Margin="8">
@@ -177,9 +149,9 @@
 
             <!-- Header with modern gradient design -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
+                    Background="{DynamicResource DialogPrimaryGradient}" 
                     CornerRadius="16,16,0,0" 
-                    BorderBrush="#E5E7EB" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,0,0,1" 
                     Padding="20,5"
                     Effect="{StaticResource HeaderShadow}">
@@ -187,7 +159,7 @@
                     <TextBlock Text="💝" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,0"/>
                     <TextBlock Name="TitleTextBlock" Text="Support Development" 
                                FontSize="28" FontWeight="Bold" 
-                               Foreground="#1F2937" HorizontalAlignment="Center"/>
+                               Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
@@ -205,7 +177,7 @@
                                    TextAlignment="Center"
                                    Margin="0,0,0,24"/>
 
-                        <Border Background="#FFF7ED" 
+                        <Border Background="{DynamicResource SurfaceBrush}" 
                                 CornerRadius="12" 
                                 Padding="20" 
                                 BorderBrush="#FB923C" 

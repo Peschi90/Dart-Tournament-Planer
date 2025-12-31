@@ -29,6 +29,7 @@ public class MainWindowServiceInitializer
     public LicenseManager LicenseManager { get; }
     public LicenseFeatureService LicenseFeatureService { get; }
     public PowerScoringService PowerScoringService { get; }
+    public UserAuthService UserAuthService { get; }
 
     public MainWindowServiceInitializer(MainWindow mainWindow)
     {
@@ -38,6 +39,7 @@ public class MainWindowServiceInitializer
         // Services aus App.xaml.cs holen
         ConfigService = App.ConfigService ?? throw new InvalidOperationException("ConfigService not initialized");
         LocalizationService = App.LocalizationService ?? throw new InvalidOperationException("LocalizationService not initialized");
+        UserAuthService = App.UserAuthService ?? throw new InvalidOperationException("UserAuthService not initialized");
 
         // License Services initialisieren
         LicenseManager = new Services.License.LicenseManager();

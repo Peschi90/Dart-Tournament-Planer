@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="License Debug" Height="500" Width="600"
         WindowStartupLocation="CenterOwner">
-    <Grid Margin="10">
+    <Grid Margin="10" Background="{DynamicResource MainBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -17,7 +17,8 @@
                  TextWrapping="Wrap"
                  VerticalScrollBarVisibility="Auto"
                  HorizontalScrollBarVisibility="Auto"
-                 Background="#F5F5F5"
+                 Background="{DynamicResource SurfaceBrush}"
+                 Foreground="{DynamicResource TextBrush}"
                  Padding="10"/>
         
         <StackPanel Grid.Row="1" 
@@ -29,11 +30,17 @@
                     Width="80" 
                     Height="30" 
                     Margin="0,0,10,0"
+                    Background="{DynamicResource DialogInfoGradient}"
+                    Foreground="{DynamicResource TextBrush}"
                     Click="RefreshButton_Click"/>
             <Button x:Name="CloseButton" 
                     Content="Close" 
                     Width="80" 
                     Height="30"
+                    Background="{DynamicResource SurfaceBrush}"
+                    Foreground="{DynamicResource TextBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1.5"
                     Click="CloseButton_Click"/>
         </StackPanel>
     </Grid>

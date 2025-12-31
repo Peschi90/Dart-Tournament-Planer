@@ -20,7 +20,16 @@ public partial class LicenseStatusWindow : Window
     private readonly LocalizationService _localizationService;
     private LicenseStatus _currentStatus;
     private LicenseValidationResult? _lastValidationResult;
-    
+
+    private Brush GetBrush(string key, Brush fallback)
+    {
+        if (TryFindResource(key) is Brush b)
+            return b;
+        if (Application.Current?.TryFindResource(key) is Brush appBrush)
+            return appBrush;
+        return fallback;
+    }
+
     public LicenseStatusWindow(Services.License.LicenseManager licenseManager, 
                               LicenseFeatureService licenseFeatureService,
                               LocalizationService localizationService)
@@ -114,96 +123,84 @@ public partial class LicenseStatusWindow : Window
     {
         // Status Icon und Border
         StatusIcon.Text = "✅";
-        StatusIconBorder.Background = new SolidColorBrush(Color.FromRgb(220, 252, 231)); // Light Green
-        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)); // Green
+        StatusIconBorder.Background = GetBrush("DialogSuccessGradient", new SolidColorBrush(Color.FromRgb(220, 252, 231)));
+        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
         
-        // Status Information
         if (licenseData.ExpiresAt.HasValue && licenseData.ExpiresAt.Value < DateTime.Now)
         {
-            // Expired
             StatusTitle.Text = "License Expired";
-            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
-            StatusDescription.Text = $"Your license expired on {licenseData.ExpiresAt.Value:dd.MM.yyyy}. " +
-                "Please contact support for renewal.";
+            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+            StatusDescription.Text = $"Your license expired on {licenseData.ExpiresAt.Value:dd.MM.yyyy}. Please contact support for renewal.";
             PrimaryActionButton.Content = "Renew License";
         }
         else if (isOffline)
         {
             StatusTitle.Text = "Licensed (Offline)";
-            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(245, 124, 0)); // Orange
-            StatusDescription.Text = "Your license is valid but validated offline. " +
-                "An internet connection is required for full validation.";
+            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
+            StatusDescription.Text = "Your license is valid but validated offline. An internet connection is required for full validation.";
             PrimaryActionButton.Content = "Validate Online";
         }
         else
         {
             StatusTitle.Text = "Fully Licensed";
-            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)); // Green
-            StatusDescription.Text = $"Your license is active and valid. " +
-                $"You have access to all premium features of {licenseData.ProductName ?? "Dart Tournament Planner"}.";
+            StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
+            StatusDescription.Text = $"Your license is active and valid. You have access to all premium features of {licenseData.ProductName ?? "Dart Tournament Planner"}. ";
             PrimaryActionButton.Content = "Show Details";
         }
         
-        // Quick Info anzeigen
         QuickInfoGrid.Visibility = Visibility.Visible;
         QuickCustomerText.Text = licenseData.CustomerName ?? "Not available";
         
         if (licenseData.ExpiresAt.HasValue)
         {
             QuickExpiryText.Text = licenseData.ExpiresAt.Value.ToString("dd.MM.yyyy");
-            
-            // Warnung bei bald ablaufender Lizenz
             var daysUntilExpiry = (licenseData.ExpiresAt.Value - DateTime.Now).Days;
             if (daysUntilExpiry <= 30 && daysUntilExpiry >= 0)
             {
-                QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(245, 124, 0)); // Orange
+                QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(245, 158, 11));
                 if (daysUntilExpiry <= 7)
                 {
-                    QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+                    QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
                 }
+            }
+            else
+            {
+                QuickExpiryText.Foreground = GetBrush("TextBrush", new SolidColorBrush(Color.FromRgb(34, 197, 94)));
             }
         }
         else
         {
             QuickExpiryText.Text = "Unlimited";
-            QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94)); // Green
+            QuickExpiryText.Foreground = new SolidColorBrush(Color.FromRgb(34, 197, 94));
         }
         
         QuickFeaturesText.Text = licenseData.Features?.Length.ToString() ?? "All Core Features";
-        
-        // Features anzeigen
         LoadFeatures(licenseData.Features, true);
     }
-    
+
     private void ShowUnlicensedDisplay()
     {
-        // Status Icon und Border
         StatusIcon.Text = "🆓";
-        StatusIconBorder.Background = new SolidColorBrush(Color.FromRgb(243, 244, 246)); // Light Gray
-        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)); // Gray
+        StatusIconBorder.Background = GetBrush("DialogInfoGradient", new SolidColorBrush(Color.FromRgb(243, 244, 246)));
+        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128));
         
-        // Status Information
         StatusTitle.Text = "Free Version";
-        StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128)); // Gray
-        StatusDescription.Text = "You are using the free version of Dart Tournament Planner. " +
-            "All core features are available! Activate a license for additional premium features.";
+        StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(107, 114, 128));
+        StatusDescription.Text = "You are using the free version of Dart Tournament Planner. All core features are available! Activate a license for additional premium features.";
         PrimaryActionButton.Content = "Activate License";
         
-        // Quick Info verstecken
         QuickInfoGrid.Visibility = Visibility.Collapsed;
-        
-        // Core-Features anzeigen
         LoadFeatures(null, false);
     }
-    
+
     private void ShowErrorDisplay(string errorMessage)
     {
         StatusIcon.Text = "⚠️";
-        StatusIconBorder.Background = new SolidColorBrush(Color.FromRgb(254, 226, 226)); // Light Red
-        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38)); // Red
+        StatusIconBorder.Background = GetBrush("DialogErrorGradient", new SolidColorBrush(Color.FromRgb(254, 226, 226)));
+        StatusIcon.Foreground = new SolidColorBrush(Color.FromRgb(220, 38, 38));
         
         StatusTitle.Text = "Error Loading";
-        StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+        StatusTitle.Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68));
         StatusDescription.Text = errorMessage;
         PrimaryActionButton.Content = "Try Again";
         

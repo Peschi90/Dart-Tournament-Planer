@@ -19,7 +19,7 @@
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -243,10 +243,10 @@
     </Window.Resources>
     
     <!-- Hauptcontainer mit modernem Design -->
-    <Border Background="Transparent" Margin="10">
-        <Border Background="{x:Static SystemColors.WindowBrush}" 
+    <Border Background="{DynamicResource BackgroundBrush}" Margin="10">
+        <Border Background="{DynamicResource SurfaceBrush}" 
                 CornerRadius="12" 
-                BorderBrush="#E2E8F0" 
+                BorderBrush="{DynamicResource BorderBrush}" 
                 BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" 
@@ -262,20 +262,14 @@
                 
                 <!-- Header mit Gradient -->
                 <Border Grid.Row="0" CornerRadius="12,12,0,0" 
-                        Padding="24,18,24,18" MouseLeftButtonDown="Header_MouseLeftButtonDown">
-                    <Border.Background>
-                        <LinearGradientBrush>
-                            <GradientStop Color="#F59E0B" Offset="0"/>
-                            <GradientStop Color="#D97706" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    
+                        Padding="24,18,24,18" MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                        Background="{DynamicResource DialogPrimaryGradient}">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#x1F3AF;" FontSize="20" Margin="0,0,12,0" 
                                    VerticalAlignment="Center"/>
                         <TextBlock Name="TitleBlock" Text="Spielregeln" 
                                    FontSize="18" FontWeight="SemiBold" 
-                                   Foreground="White" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
                 
@@ -497,7 +491,7 @@
                                 Margin="0,0,12,0" IsCancel="True"/>
                         <Button Name="SaveButton" Content="Speichern" 
                                 Style="{StaticResource ModernButton}"
-                                Click="SaveButton_Click" IsDefault="True"/>
+                                Click="SaveButton_Click" IsDefault="True" Background="{DynamicResource ButtonGradient}"/>
                     </StackPanel>
                 </Border>
             </Grid>

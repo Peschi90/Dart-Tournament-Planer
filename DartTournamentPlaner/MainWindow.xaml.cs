@@ -305,8 +305,11 @@ public partial class MainWindow : Window
             TournamentHubMenuItem, RegisterWithHubMenuItem, UnregisterFromHubMenuItem,
             ShowJoinUrlMenuItem, ManualSyncMenuItem, HubSettingsMenuItem,
             LicenseMenuItem, LicenseStatusMenuItem, ActivateLicenseMenuItem, LicenseInfoMenuItem, RemoveLicenseMenuItem, PurchaseLicenseMenuItem,
+            AccountMenuItem, LoginMenuItem, ProfileMenuItem, LogoutMenuItem,
             SettingsMenuItem, HelpMenuItem, HelpContentMenuItem, BugReportMenuItem, AboutMenuItem
         );
+
+        _serviceInitializer.UiHelper.UpdateAuthMenu(_serviceInitializer.UserAuthService, AccountMenuItem, LoginMenuItem, ProfileMenuItem, LogoutMenuItem);
 
         // Tab-Header aktualisieren
         _serviceInitializer.UiHelper.UpdateTabHeaders(PlatinTabItem, GoldTabItem, SilverTabItem, BronzeTabItem);
@@ -476,6 +479,11 @@ public partial class MainWindow : Window
     // Settings Menu
     private void Settings_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnSettings(sender, e);
 
+    // Account Menu
+    private void Login_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnLogin(sender, e);
+    private void Profile_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnProfile(sender, e);
+    private async void Logout_Click(object sender, RoutedEventArgs e) => await _eventHandlers.OnLogout(sender, e);
+
     // Help Menu
     private void Help_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnHelp(sender, e);
     private void BugReport_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnBugReport(sender, e);
@@ -581,4 +589,9 @@ public partial class MainWindow : Window
     }
 
     #endregion
+
+    private void ViewMenuItem_Click()
+    {
+
+    }
 }

@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Input;
+using System.Windows.Data;
 using DartTournamentPlaner.Services;
 
 namespace DartTournamentPlaner.Helpers;
@@ -13,6 +14,11 @@ namespace DartTournamentPlaner.Helpers;
 /// </summary>
 public static class TournamentDialogHelper
 {
+    private static T GetResource<T>(string key, T fallback) where T : class
+    {
+        return Application.Current?.Resources[key] as T ?? fallback;
+    }
+
     /// <summary>
     /// Zeigt einen modernen Eingabedialog an mit ansprechendem Design
     /// </summary>
@@ -33,7 +39,7 @@ public static class TournamentDialogHelper
             ResizeMode = ResizeMode.NoResize,
             WindowStyle = WindowStyle.None,
             AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent,
+            Background = Brushes.Transparent,
             ShowInTaskbar = false
         };
 
@@ -42,15 +48,18 @@ public static class TournamentDialogHelper
             dialog.Owner = owner;
         }
 
-        // Hauptcontainer mit abgerundeten Ecken und Schatten
+        var borderBrush = GetResource("BorderBrush", new SolidColorBrush(Color.FromRgb(226, 232, 240)));
+        var surfaceBrush = GetResource("SurfaceBrush", new SolidColorBrush(Color.FromRgb(248, 249, 250)));
+        var textBrush = GetResource("TextBrush", Brushes.White);
+        var secondaryTextBrush = GetResource("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(71, 85, 105)));
+        var accentBrush = GetResource("AccentBrush", new SolidColorBrush(Color.FromRgb(59, 130, 246)));
+        var headerBrush = GetResource("DialogPrimaryGradient", new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(99, 102, 241), 0));
+
         var mainBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(248, 249, 250),  // Helles Grau oben
-                Color.FromRgb(241, 243, 245),  // Etwas dunkleres Grau unten
-                90),
+            Background = surfaceBrush,
             CornerRadius = new CornerRadius(12),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
             Effect = new DropShadowEffect
             {
@@ -63,80 +72,41 @@ public static class TournamentDialogHelper
             Margin = new Thickness(10)
         };
 
-        var mainGrid = new Grid
-        {
-            Margin = new Thickness(0)
-        };
-        
-        // Definiere Reihen
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Buttons
+        var mainGrid = new Grid { Margin = new Thickness(0) };
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Header mit Icon und Titel
         var headerBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(59, 130, 246),   // Blau links
-                Color.FromRgb(99, 102, 241),   // Lila rechts
-                0),
+            Background = headerBrush,
             CornerRadius = new CornerRadius(12, 12, 0, 0),
             Padding = new Thickness(24, 16, 24, 16)
         };
 
-        var headerPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        // Icon
-        var iconText = new TextBlock
-        {
-            Text = "📝",
-            FontSize = 20,
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        // Titel
-        var titleText = new TextBlock
-        {
-            Text = title,
-            FontSize = 16,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var iconText = new TextBlock { Text = "📝", FontSize = 20, Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
+        var titleText = new TextBlock { Text = title, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = textBrush, VerticalAlignment = VerticalAlignment.Center };
         headerPanel.Children.Add(iconText);
         headerPanel.Children.Add(titleText);
         headerBorder.Child = headerPanel;
         Grid.SetRow(headerBorder, 0);
 
-        // Content-Bereich
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(24, 24, 24, 20),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        // Prompt-Text
+        var contentPanel = new StackPanel { Margin = new Thickness(24, 24, 24, 20), VerticalAlignment = VerticalAlignment.Center };
         var promptText = new TextBlock
         {
             Text = prompt,
             FontSize = 14,
             FontWeight = FontWeights.Medium,
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             Margin = new Thickness(0, 0, 0, 16),
             TextWrapping = TextWrapping.Wrap
         };
 
-        // Eingabefeld mit modernem Design
         var textBoxBorder = new Border
         {
-            Background = Brushes.White,
-            BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+            Background = surfaceBrush,
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(2)
@@ -151,17 +121,17 @@ public static class TournamentDialogHelper
             Background = Brushes.Transparent,
             VerticalAlignment = VerticalAlignment.Center,
             MinHeight = 40,
-            FontFamily = new System.Windows.Media.FontFamily("Segoe UI")
+            FontFamily = new FontFamily("Segoe UI"),
+            Foreground = textBrush
         };
 
-        // Fokus-Effekt für TextBox
         textBox.GotFocus += (s, e) =>
         {
-            textBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(59, 130, 246));
+            textBoxBorder.BorderBrush = accentBrush;
             textBoxBorder.BorderThickness = new Thickness(2);
             textBoxBorder.Effect = new DropShadowEffect
             {
-                Color = Color.FromRgb(59, 130, 246),
+                Color = (accentBrush as SolidColorBrush)?.Color ?? Color.FromRgb(59, 130, 246),
                 BlurRadius = 8,
                 Direction = 0,
                 ShadowDepth = 0,
@@ -171,65 +141,49 @@ public static class TournamentDialogHelper
 
         textBox.LostFocus += (s, e) =>
         {
-            textBoxBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225));
+            textBoxBorder.BorderBrush = borderBrush;
             textBoxBorder.BorderThickness = new Thickness(1);
             textBoxBorder.Effect = null;
         };
 
         textBoxBorder.Child = textBox;
-
         contentPanel.Children.Add(promptText);
         contentPanel.Children.Add(textBoxBorder);
         Grid.SetRow(contentPanel, 1);
 
-        // Button-Bereich
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(24, 0, 24, 24)
-        };
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(24, 0, 24, 24) };
 
-        // Abbrechen-Button
         var cancelButton = new Button
         {
             Content = localizationService?.GetString("Cancel") ?? "Abbrechen",
             Width = 100,
             Height = 36,
             Margin = new Thickness(0, 0, 12, 0),
-            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+            Background = surfaceBrush,
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsCancel = true
+            IsCancel = true,
+            Style = CreateModernButtonStyle(false)
         };
 
-        // Style für Cancel Button
-        cancelButton.Style = CreateModernButtonStyle(false);
-
-        // OK-Button 
         var okButton = new Button
         {
             Content = localizationService?.GetString("OK") ?? "OK",
             Width = 100,
             Height = 36,
-            Background = new LinearGradientBrush(
-                Color.FromRgb(59, 130, 246),
-                Color.FromRgb(37, 99, 235),
-                90),
+            Background = headerBrush,
             BorderThickness = new Thickness(0),
-            Foreground = Brushes.White,
+            Foreground = textBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsDefault = true
+            IsDefault = true,
+            Style = CreateModernButtonStyle(true)
         };
-
-        // Style für OK Button
-        okButton.Style = CreateModernButtonStyle(true);
 
         buttonPanel.Children.Add(cancelButton);
         buttonPanel.Children.Add(okButton);
@@ -241,11 +195,9 @@ public static class TournamentDialogHelper
         mainBorder.Child = mainGrid;
         dialog.Content = mainBorder;
 
-        // Event Handler
         okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
         cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
 
-        // Enter-Taste im TextBox
         textBox.KeyDown += (s, e) =>
         {
             if (e.Key == Key.Enter)
@@ -260,14 +212,7 @@ public static class TournamentDialogHelper
             }
         };
 
-        // Fokus auf TextBox setzen und Text auswählen
-        dialog.Loaded += (s, e) => 
-        { 
-            textBox.Focus(); 
-            textBox.SelectAll(); 
-        };
-
-        // Window kann mit Maus bewegt werden
+        dialog.Loaded += (s, e) => { textBox.Focus(); textBox.SelectAll(); };
         headerBorder.MouseLeftButtonDown += (s, e) => { dialog.DragMove(); };
 
         return dialog.ShowDialog() == true ? textBox.Text?.Trim() : null;
@@ -279,54 +224,40 @@ public static class TournamentDialogHelper
     private static Style CreateModernButtonStyle(bool isPrimary)
     {
         var style = new Style(typeof(Button));
+        var textBrush = GetResource("TextBrush", Brushes.White);
+        style.Setters.Add(new Setter(Control.ForegroundProperty, textBrush));
+        style.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(12, 6, 12, 6)));
+        style.Setters.Add(new Setter(Control.BorderThicknessProperty, new Thickness(0)));
+        style.Setters.Add(new Setter(Control.CursorProperty, Cursors.Hand));
 
-        // Template für abgerundete Ecken und Hover-Effekte
         var template = new ControlTemplate(typeof(Button));
-        
         var border = new FrameworkElementFactory(typeof(Border));
         border.Name = "border";
-        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
-        border.SetBinding(Border.BackgroundProperty, new System.Windows.Data.Binding("Background") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-        border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding("BorderBrush") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-        border.SetBinding(Border.BorderThicknessProperty, new System.Windows.Data.Binding("BorderThickness") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.TemplatedParent) });
-        
+        border.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
+        border.SetBinding(Border.BackgroundProperty, new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+        border.SetBinding(Border.BorderBrushProperty, new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+        border.SetBinding(Border.BorderThicknessProperty, new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
+
         var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
         contentPresenter.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
         contentPresenter.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
-        
         border.AppendChild(contentPresenter);
         template.VisualTree = border;
 
-        // Hover-Trigger
-        var hoverTrigger = new Trigger
-        {
-            Property = UIElement.IsMouseOverProperty,
-            Value = true
-        };
-
+        var hoverTrigger = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
         if (isPrimary)
         {
-            hoverTrigger.Setters.Add(new Setter
-            {
-                Property = Control.BackgroundProperty,
-                Value = new LinearGradientBrush(
-                    Color.FromRgb(37, 99, 235),
-                    Color.FromRgb(29, 78, 216),
-                    90)
-            });
+            var hoverBrush = GetResource("DialogInfoGradient", new LinearGradientBrush(Color.FromRgb(37, 99, 235), Color.FromRgb(29, 78, 216), 0));
+            hoverTrigger.Setters.Add(new Setter(Control.BackgroundProperty, hoverBrush));
         }
         else
         {
-            hoverTrigger.Setters.Add(new Setter
-            {
-                Property = Control.BackgroundProperty,
-                Value = new SolidColorBrush(Color.FromRgb(241, 245, 249))
-            });
+            var hoverBrush = GetResource("HoverBrush", new SolidColorBrush(Color.FromRgb(241, 245, 249)));
+            hoverTrigger.Setters.Add(new Setter(Control.BackgroundProperty, hoverBrush));
         }
-
         template.Triggers.Add(hoverTrigger);
-        style.Setters.Add(new Setter(Control.TemplateProperty, template));
 
+        style.Setters.Add(new Setter(Control.TemplateProperty, template));
         return style;
     }
 
@@ -437,7 +368,7 @@ public static class TournamentDialogHelper
             ResizeMode = ResizeMode.NoResize,
             WindowStyle = WindowStyle.None,
             AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent,
+            Background = Brushes.Transparent,
             ShowInTaskbar = false
         };
 
@@ -446,15 +377,19 @@ public static class TournamentDialogHelper
             dialog.Owner = owner;
         }
 
-        // Hauptcontainer
+        var borderBrush = GetResource("BorderBrush", new SolidColorBrush(Color.FromRgb(226, 232, 240)));
+        var surfaceBrush = GetResource("SurfaceBrush", new SolidColorBrush(Color.FromRgb(248, 249, 250)));
+        var textBrush = GetResource("TextBrush", Brushes.White);
+        var secondaryTextBrush = GetResource("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(71, 85, 105)));
+        var warningBrush = GetResource("DialogErrorGradient", new LinearGradientBrush(Color.FromRgb(239, 68, 68), Color.FromRgb(220, 38, 38), 0));
+        var infoBrush = GetResource("DialogPrimaryGradient", new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 0));
+        var headerBrush = isWarning ? warningBrush : infoBrush;
+
         var mainBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(248, 249, 250),
-                Color.FromRgb(241, 243, 245),
-                90),
+            Background = surfaceBrush,
             CornerRadius = new CornerRadius(12),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
             Effect = new DropShadowEffect
             {
@@ -472,123 +407,74 @@ public static class TournamentDialogHelper
         mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
         mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Buttons
 
-        // Header mit Farbe basierend auf Warnung
-        var headerColor = isWarning 
-            ? new LinearGradientBrush(Color.FromRgb(239, 68, 68), Color.FromRgb(220, 38, 38), 0)  // Rot für Warnungen
-            : new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 0); // Blau für Info
-
         var headerBorder = new Border
         {
-            Background = headerColor,
+            Background = headerBrush,
             CornerRadius = new CornerRadius(12, 12, 0, 0),
             Padding = new Thickness(24, 16, 24, 16)
         };
 
-        var headerPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var iconText = new TextBlock
-        {
-            Text = icon,
-            FontSize = 20,
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = title,
-            FontSize = 16,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var iconText = new TextBlock { Text = icon, FontSize = 20, Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
+        var titleText = new TextBlock { Text = title, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = textBrush, VerticalAlignment = VerticalAlignment.Center };
         headerPanel.Children.Add(iconText);
         headerPanel.Children.Add(titleText);
         headerBorder.Child = headerPanel;
         Grid.SetRow(headerBorder, 0);
 
-        // Content
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(24, 24, 24, 20),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var contentPanel = new StackPanel { Margin = new Thickness(24, 24, 24, 20), VerticalAlignment = VerticalAlignment.Center };
         var messageText = new TextBlock
         {
             Text = message,
             FontSize = 14,
             FontWeight = FontWeights.Medium,
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             TextWrapping = TextWrapping.Wrap,
             LineHeight = 22,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center
         };
-
         contentPanel.Children.Add(messageText);
         Grid.SetRow(contentPanel, 1);
 
-        // Buttons
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(24, 0, 24, 24)
-        };
-
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(24, 0, 24, 24) };
         bool result = false;
 
-        // Abbrechen Button
         var cancelButton = new Button
         {
             Content = localizationService?.GetString("Cancel") ?? "Abbrechen",
             Width = 120,
             Height = 40,
             Margin = new Thickness(0, 0, 15, 0),
-            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+            Background = surfaceBrush,
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsCancel = true
+            IsCancel = true,
+            Style = CreateModernButtonStyle(false)
         };
 
-        cancelButton.Style = CreateModernButtonStyle(false);
-        cancelButton.Click += (s, e) => { result = false; dialog.Close(); };
-
-        // Bestätigen Button (Farbe je nach Art)
-        var confirmText = isWarning 
-            ? (localizationService?.GetString("Remove") ?? "Entfernen")
-            : (localizationService?.GetString("OK") ?? "OK");
-
-        var confirmColor = isWarning
-            ? new LinearGradientBrush(Color.FromRgb(239, 68, 68), Color.FromRgb(220, 38, 38), 90)  // Rot
-            : new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 90); // Blau
-
+        var confirmText = isWarning ? (localizationService?.GetString("Remove") ?? "Entfernen") : (localizationService?.GetString("OK") ?? "OK");
         var confirmButton = new Button
         {
             Content = confirmText,
             Width = 120,
             Height = 40,
             Margin = new Thickness(15, 0, 0, 0),
-            Background = confirmColor,
+            Background = headerBrush,
             BorderThickness = new Thickness(0),
-            Foreground = Brushes.White,
+            Foreground = textBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsDefault = false  // Sicherheit: Nicht default bei Lösch-Aktionen
+            IsDefault = !isWarning,
+            Style = CreateModernButtonStyle(true)
         };
 
-        confirmButton.Style = CreateModernButtonStyle(true);
+        cancelButton.Click += (s, e) => { result = false; dialog.Close(); };
         confirmButton.Click += (s, e) => { result = true; dialog.Close(); };
 
         buttonPanel.Children.Add(cancelButton);
@@ -601,18 +487,8 @@ public static class TournamentDialogHelper
         mainBorder.Child = mainGrid;
         dialog.Content = mainBorder;
 
-        // Window bewegbar machen
         headerBorder.MouseLeftButtonDown += (s, e) => { dialog.DragMove(); };
-        
-        // Escape = Cancel
-        dialog.KeyDown += (s, e) =>
-        {
-            if (e.Key == Key.Escape)
-            {
-                result = false;
-                dialog.Close();
-            }
-        };
+        dialog.KeyDown += (s, e) => { if (e.Key == Key.Escape) { result = false; dialog.Close(); } };
 
         dialog.ShowDialog();
         return result;
@@ -949,7 +825,7 @@ public static class TournamentDialogHelper
             ResizeMode = ResizeMode.NoResize,
             WindowStyle = WindowStyle.None,
             AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent,
+            Background = Brushes.Transparent,
             ShowInTaskbar = false,
             Topmost = true
         };
@@ -960,24 +836,25 @@ public static class TournamentDialogHelper
             dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
 
-        // Header-Farbe je nach Message-Type
-        var headerColor = type switch
+        var borderBrush = GetResource("BorderBrush", new SolidColorBrush(Color.FromRgb(226, 232, 240)));
+        var surfaceBrush = GetResource("SurfaceBrush", new SolidColorBrush(Color.FromRgb(248, 249, 250)));
+        var textBrush = GetResource("TextBrush", Brushes.White);
+        var secondaryTextBrush = GetResource("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(71, 85, 105)));
+        var infoBrush = GetResource("DialogPrimaryGradient", new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 0));
+        var warningBrush = GetResource("DialogWarningGradient", new LinearGradientBrush(Color.FromRgb(245, 158, 11), Color.FromRgb(217, 119, 6), 0));
+        var errorBrush = GetResource("DialogErrorGradient", new LinearGradientBrush(Color.FromRgb(239, 68, 68), Color.FromRgb(220, 38, 38), 0));
+        var headerBrush = type switch
         {
-            MessageType.Information => new LinearGradientBrush(Color.FromRgb(34, 197, 94), Color.FromRgb(22, 163, 74), 0),   // Grün
-            MessageType.Warning => new LinearGradientBrush(Color.FromRgb(245, 158, 11), Color.FromRgb(217, 119, 6), 0),     // Orange
-            MessageType.Error => new LinearGradientBrush(Color.FromRgb(239, 68, 68), Color.FromRgb(220, 38, 38), 0),        // Rot
-            _ => new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 0)                       // Blau
+            MessageType.Warning => warningBrush,
+            MessageType.Error => errorBrush,
+            _ => infoBrush
         };
 
-        // Hauptcontainer
         var mainBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(248, 249, 250),
-                Color.FromRgb(241, 243, 245),
-                90),
+            Background = surfaceBrush,
             CornerRadius = new CornerRadius(12),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
             Effect = new DropShadowEffect
             {
@@ -991,92 +868,56 @@ public static class TournamentDialogHelper
         };
 
         var mainGrid = new Grid();
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Button
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Header
         var headerBorder = new Border
         {
-            Background = headerColor,
+            Background = headerBrush,
             CornerRadius = new CornerRadius(12, 12, 0, 0),
             Padding = new Thickness(20, 14, 20, 14)
         };
 
-        var headerPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var iconText = new TextBlock
-        {
-            Text = icon,
-            FontSize = 18,
-            Margin = new Thickness(0, 0, 10, 0),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = title,
-            FontSize = 15,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var iconText = new TextBlock { Text = icon, FontSize = 18, Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center };
+        var titleText = new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeights.SemiBold, Foreground = textBrush, VerticalAlignment = VerticalAlignment.Center };
         headerPanel.Children.Add(iconText);
         headerPanel.Children.Add(titleText);
         headerBorder.Child = headerPanel;
         Grid.SetRow(headerBorder, 0);
 
-        // Content
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(20, 20, 20, 15),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var contentPanel = new StackPanel { Margin = new Thickness(20, 20, 20, 15), VerticalAlignment = VerticalAlignment.Center };
         var messageText = new TextBlock
         {
             Text = message,
             FontSize = 13,
             FontWeight = FontWeights.Normal,
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             TextWrapping = TextWrapping.Wrap,
             LineHeight = 20,
             HorizontalAlignment = HorizontalAlignment.Center,
             TextAlignment = TextAlignment.Center
         };
-
         contentPanel.Children.Add(messageText);
         Grid.SetRow(contentPanel, 1);
 
-        // OK Button
-        var buttonPanel = new StackPanel
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(20, 0, 20, 20)
-        };
-
+        var buttonPanel = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(20, 0, 20, 20) };
         var okButton = new Button
         {
             Content = localizationService?.GetString("OK") ?? "OK",
             Width = 100,
             Height = 36,
-            Background = headerColor,
+            Background = headerBrush,
             BorderThickness = new Thickness(0),
-            Foreground = Brushes.White,
+            Foreground = textBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsDefault = true
+            IsDefault = true,
+            Style = CreateModernButtonStyle(true)
         };
-
-        okButton.Style = CreateModernButtonStyle(true);
         okButton.Click += (s, e) => { dialog.Close(); };
-
         buttonPanel.Children.Add(okButton);
         Grid.SetRow(buttonPanel, 2);
 
@@ -1086,19 +927,8 @@ public static class TournamentDialogHelper
         mainBorder.Child = mainGrid;
         dialog.Content = mainBorder;
 
-        // Window bewegbar machen
         headerBorder.MouseLeftButtonDown += (s, e) => { dialog.DragMove(); };
-        
-        // Enter/Escape zum Schließen
-        dialog.KeyDown += (s, e) =>
-        {
-            if (e.Key == Key.Enter || e.Key == Key.Escape)
-            {
-                dialog.Close();
-            }
-        };
-
-        // Auto-Focus auf OK Button
+        dialog.KeyDown += (s, e) => { if (e.Key == Key.Enter || e.Key == Key.Escape) dialog.Close(); };
         dialog.Loaded += (s, e) => { okButton.Focus(); };
 
         dialog.ShowDialog();
@@ -1136,7 +966,7 @@ public static class TournamentDialogHelper
             ResizeMode = ResizeMode.NoResize,
             WindowStyle = WindowStyle.None,
             AllowsTransparency = true,
-            Background = System.Windows.Media.Brushes.Transparent,
+            Background = Brushes.Transparent,
             ShowInTaskbar = false
         };
 
@@ -1145,15 +975,17 @@ public static class TournamentDialogHelper
             dialog.Owner = owner;
         }
 
-        // Hauptcontainer
+        var borderBrush = GetResource("BorderBrush", new SolidColorBrush(Color.FromRgb(226, 232, 240)));
+        var surfaceBrush = GetResource("SurfaceBrush", new SolidColorBrush(Color.FromRgb(248, 249, 250)));
+        var textBrush = GetResource("TextBrush", Brushes.White);
+        var secondaryTextBrush = GetResource("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(71, 85, 105)));
+        var headerBrush = GetResource("DialogPrimaryGradient", new LinearGradientBrush(Color.FromRgb(59, 130, 246), Color.FromRgb(37, 99, 235), 0));
+
         var mainBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(248, 249, 250),
-                Color.FromRgb(241, 243, 245),
-                90),
+            Background = surfaceBrush,
             CornerRadius = new CornerRadius(12),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(226, 232, 240)),
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
             Effect = new DropShadowEffect
             {
@@ -1167,156 +999,71 @@ public static class TournamentDialogHelper
         };
 
         var mainGrid = new Grid();
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Header
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Content
-        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Buttons
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Header
         var headerBorder = new Border
         {
-            Background = new LinearGradientBrush(
-                Color.FromRgb(34, 197, 94),  // Grün links
-                Color.FromRgb(22, 163, 74),  // Dunkelgrün rechts
-                0),
+            Background = headerBrush,
             CornerRadius = new CornerRadius(12, 12, 0, 0),
             Padding = new Thickness(24, 16, 24, 16)
         };
-
-        var headerPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
-        var titleText = new TextBlock
-        {
-            Text = dialog.Title,
-            FontSize = 16,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = Brushes.White,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var titleText = new TextBlock { Text = dialog.Title, FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = textBrush, VerticalAlignment = VerticalAlignment.Center };
         headerPanel.Children.Add(titleText);
         headerBorder.Child = headerPanel;
         Grid.SetRow(headerBorder, 0);
 
-        // Content
-        var contentPanel = new StackPanel
-        {
-            Margin = new Thickness(24, 24, 24, 20),
-            VerticalAlignment = VerticalAlignment.Center
-        };
+        var contentPanel = new StackPanel { Margin = new Thickness(24, 24, 24, 20), VerticalAlignment = VerticalAlignment.Center };
 
-        // Spieler 1
-        var player1Panel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 16)
-        };
-
-        var player1RadioButton = new RadioButton
-        {
-            GroupName = "ByePlayer",
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.Resources["ModernRadioButton"]
-        };
-
-        var player1Text = new TextBlock
-        {
-            Text = player1Name,
-            FontSize = 14,
-            FontWeight = FontWeights.Medium,
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var player1Panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 16) };
+        var player1RadioButton = new RadioButton { GroupName = "ByePlayer", Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, Style = (Style)Application.Current.Resources["ModernRadioButton"] };
+        var player1Text = new TextBlock { Text = player1Name, FontSize = 14, FontWeight = FontWeights.Medium, Foreground = secondaryTextBrush, VerticalAlignment = VerticalAlignment.Center };
         player1Panel.Children.Add(player1RadioButton);
         player1Panel.Children.Add(player1Text);
-
         contentPanel.Children.Add(player1Panel);
 
-        // Spieler 2
-        var player2Panel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 24)
-        };
-
-        var player2RadioButton = new RadioButton
-        {
-            GroupName = "ByePlayer",
-            Margin = new Thickness(0, 0, 12, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Style = (Style)Application.Current.Resources["ModernRadioButton"]
-        };
-
-        var player2Text = new TextBlock
-        {
-            Text = player2Name,
-            FontSize = 14,
-            FontWeight = FontWeights.Medium,
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
-            VerticalAlignment = VerticalAlignment.Center
-        };
-
+        var player2Panel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 24) };
+        var player2RadioButton = new RadioButton { GroupName = "ByePlayer", Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center, Style = (Style)Application.Current.Resources["ModernRadioButton"] };
+        var player2Text = new TextBlock { Text = player2Name, FontSize = 14, FontWeight = FontWeights.Medium, Foreground = secondaryTextBrush, VerticalAlignment = VerticalAlignment.Center };
         player2Panel.Children.Add(player2RadioButton);
         player2Panel.Children.Add(player2Text);
-
         contentPanel.Children.Add(player2Panel);
         Grid.SetRow(contentPanel, 1);
 
-        // Button-Bereich
-        var buttonPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(24, 0, 24, 24)
-        };
-
-        // Abbrechen-Button
+        var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(24, 0, 24, 24) };
         var cancelButton = new Button
         {
             Content = localizationService?.GetString("Cancel") ?? "Abbrechen",
             Width = 100,
             Height = 36,
             Margin = new Thickness(0, 0, 12, 0),
-            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(203, 213, 225)),
+            Background = surfaceBrush,
+            BorderBrush = borderBrush,
             BorderThickness = new Thickness(1),
-            Foreground = new SolidColorBrush(Color.FromRgb(71, 85, 105)),
+            Foreground = secondaryTextBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsCancel = true
+            IsCancel = true,
+            Style = CreateModernButtonStyle(false)
         };
 
-        // Style für Cancel Button
-        cancelButton.Style = CreateModernButtonStyle(false);
-
-        // OK-Button 
         var okButton = new Button
         {
             Content = localizationService?.GetString("OK") ?? "OK",
             Width = 100,
             Height = 36,
-            Background = new LinearGradientBrush(
-                Color.FromRgb(59, 130, 246),
-                Color.FromRgb(37, 99, 235),
-                90),
+            Background = headerBrush,
             BorderThickness = new Thickness(0),
-            Foreground = Brushes.White,
+            Foreground = textBrush,
             FontWeight = FontWeights.Medium,
             FontSize = 13,
             Cursor = Cursors.Hand,
-            IsDefault = true
+            IsDefault = true,
+            Style = CreateModernButtonStyle(true)
         };
-
-        // Style für OK Button
-        okButton.Style = CreateModernButtonStyle(true);
 
         buttonPanel.Children.Add(cancelButton);
         buttonPanel.Children.Add(okButton);
@@ -1328,44 +1075,24 @@ public static class TournamentDialogHelper
         mainBorder.Child = mainGrid;
         dialog.Content = mainBorder;
 
-        // Event Handler
         okButton.Click += (s, e) => { dialog.DialogResult = true; dialog.Close(); };
         cancelButton.Click += (s, e) => { dialog.DialogResult = false; dialog.Close(); };
 
-        // Enter-Taste im TextBox
         player1RadioButton.KeyDown += (s, e) =>
         {
-            if (e.Key == Key.Enter)
-            {
-                dialog.DialogResult = true;
-                dialog.Close();
-            }
-            else if (e.Key == Key.Escape)
-            {
-                dialog.DialogResult = false;
-                dialog.Close();
-            }
+            if (e.Key == Key.Enter) { dialog.DialogResult = true; dialog.Close(); }
+            else if (e.Key == Key.Escape) { dialog.DialogResult = false; dialog.Close(); }
         };
-
         player2RadioButton.KeyDown += (s, e) =>
         {
-            if (e.Key == Key.Enter)
-            {
-                dialog.DialogResult = true;
-                dialog.Close();
-            }
-            else if (e.Key == Key.Escape)
-            {
-                dialog.DialogResult = false;
-                dialog.Close();
-            }
+            if (e.Key == Key.Enter) { dialog.DialogResult = true; dialog.Close(); }
+            else if (e.Key == Key.Escape) { dialog.DialogResult = false; dialog.Close(); }
         };
 
-        // Window kann mit Maus bewegt werden
         headerBorder.MouseLeftButtonDown += (s, e) => { dialog.DragMove(); };
 
-        return dialog.ShowDialog() == true 
-            ? (player1RadioButton.IsChecked == true ? 1 : 2) 
+        return dialog.ShowDialog() == true
+            ? (player1RadioButton.IsChecked == true ? 1 : 2)
             : (int?)null;
     }
 

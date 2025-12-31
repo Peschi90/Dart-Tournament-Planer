@@ -5,6 +5,8 @@ using System.Windows;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Views;
+using DartTournamentPlaner.Views.Auth;
+using DartTournamentPlaner.Views.Common;
 using DartTournamentPlaner.Views.License;
 using Microsoft.Win32;
 
@@ -463,6 +465,79 @@ public class MainWindowEventHandlers
             var errorMessage = $"Unerwarteter Fehler beim Entfernen der Lizenz:\n\n{ex.Message}";
 
             MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    #endregion
+
+    #region Account Menu Handlers
+
+    public void OnLogin(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new AuthDialog(_services.UserAuthService, _services.LocalizationService);
+            dialog.Owner = _mainWindow;
+            dialog.ShowDialog();
+
+            _services.UiHelper.UpdateAuthMenu(_services.UserAuthService, _mainWindow.AccountMenuItem, _mainWindow.LoginMenuItem, _mainWindow.ProfileMenuItem, _mainWindow.LogoutMenuItem);
+        }
+        catch (Exception ex)
+        {
+            StyledInfoDialog.Show(
+                _services.LocalizationService.GetString("Error") ?? "Fehler",
+                $"Fehler beim Öffnen des Login-Dialogs: {ex.Message}",
+                _services.LocalizationService);
+        }
+    }
+
+    public async Task OnLogout(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            await _services.UserAuthService.LogoutAsync();
+            _services.UiHelper.UpdateAuthMenu(_services.UserAuthService, _mainWindow.AccountMenuItem, _mainWindow.LoginMenuItem, _mainWindow.ProfileMenuItem, _mainWindow.LogoutMenuItem);
+
+            StyledInfoDialog.Show(
+                _services.LocalizationService.GetString("Information") ?? "Info",
+                _services.LocalizationService.GetString("LogoutSuccess") ?? "Erfolgreich abgemeldet.",
+                _services.LocalizationService,
+                isSuccess: true,
+                owner: _mainWindow);
+        }
+        catch (Exception ex)
+        {
+            StyledInfoDialog.Show(
+                _services.LocalizationService.GetString("Error") ?? "Fehler",
+                $"Fehler beim Abmelden: {ex.Message}",
+                _services.LocalizationService,
+                isError: true,
+                owner: _mainWindow);
+        }
+    }
+
+    public void OnProfile(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (_services.UserAuthService.CurrentUser == null)
+            {
+                OnLogin(sender, e);
+                return;
+            }
+
+            var profileDialog = new ProfileDialog(_services.UserAuthService, _services.LocalizationService, _services.LicenseManager);
+            profileDialog.Owner = _mainWindow;
+            profileDialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            StyledInfoDialog.Show(
+                _services.LocalizationService.GetString("Error") ?? "Fehler",
+                $"Fehler beim Öffnen des Profils: {ex.Message}",
+                _services.LocalizationService,
+                isError: true,
+                owner: _mainWindow);
         }
     }
 

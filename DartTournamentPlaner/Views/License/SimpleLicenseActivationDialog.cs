@@ -368,35 +368,79 @@ public class LicenseActivationProgressWindow : Window
     {
         Title = _localizationService.GetString("ActivatingLicense") ?? "Lizenz wird aktiviert...";
         Width = 400;
-        Height = 150;
+        Height = 180;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
-        
+        Background = (System.Windows.Media.Brush)Application.Current.Resources["BackgroundBrush"];
+        Foreground = (System.Windows.Media.Brush)Application.Current.Resources["TextBrush"];
+        WindowStyle = WindowStyle.None;
+        AllowsTransparency = true;
+
+        var shell = new Border
+        {
+            CornerRadius = new CornerRadius(12),
+            BorderThickness = new Thickness(1),
+            BorderBrush = (System.Windows.Media.Brush)Application.Current.Resources["BorderBrush"],
+            Background = (System.Windows.Media.Brush)Application.Current.Resources["SurfaceBrush"],
+            Effect = new System.Windows.Media.Effects.DropShadowEffect
+            {
+                Color = System.Windows.Media.Colors.Black,
+                BlurRadius = 16,
+                Direction = 270,
+                ShadowDepth = 6,
+                Opacity = 0.15
+            }
+        };
+
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var header = new Border
+        {
+            Background = (System.Windows.Media.Brush)Application.Current.Resources["DialogPrimaryGradient"],
+            CornerRadius = new CornerRadius(12, 12, 0, 0),
+            Padding = new Thickness(16, 12, 16, 12)
+        };
+        var headerText = new System.Windows.Controls.TextBlock
+        {
+            Text = _localizationService.GetString("ActivatingLicense") ?? "Lizenz wird aktiviert...",
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = (System.Windows.Media.Brush)Application.Current.Resources["TextBrush"]
+        };
+        header.Child = headerText;
+        grid.Children.Add(header);
+
         var stackPanel = new System.Windows.Controls.StackPanel
         {
             Margin = new Thickness(20),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center
         };
-        
+        Grid.SetRow(stackPanel, 1);
+
         var progressBar = new System.Windows.Controls.ProgressBar
         {
             Height = 20,
             IsIndeterminate = true,
-            Margin = new Thickness(0, 0, 0, 15)
+            Margin = new Thickness(0, 10, 0, 15)
         };
-        
+
         var textBlock = new System.Windows.Controls.TextBlock
         {
             Text = _localizationService.GetString("ValidatingLicense") ?? "Lizenz wird validiert...",
             HorizontalAlignment = HorizontalAlignment.Center,
-            FontSize = 14
+            FontSize = 14,
+            Foreground = (System.Windows.Media.Brush)Application.Current.Resources["TextBrush"]
         };
-        
+
         stackPanel.Children.Add(progressBar);
         stackPanel.Children.Add(textBlock);
-        
-        Content = stackPanel;
+
+        grid.Children.Add(stackPanel);
+        shell.Child = grid;
+        Content = shell;
     }
 }

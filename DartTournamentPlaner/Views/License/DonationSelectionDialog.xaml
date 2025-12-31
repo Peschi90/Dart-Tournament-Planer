@@ -79,17 +79,10 @@
                                 </Setter>
                                 <Setter TargetName="AmountText" Property="Foreground" Value="#9333EA"/>
                             </Trigger>
-                            
+							
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="border" Property="BorderBrush" Value="#9333EA"/>
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#F3E8FF" Offset="0"/>
-                                            <GradientStop Color="#EDE9FE" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
                                 <Setter TargetName="RadioIndicator" Property="Stroke" Value="#9333EA"/>
                                 <Setter TargetName="RadioFill" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="AmountText" Property="Foreground" Value="#6B46C1"/>
@@ -144,8 +137,8 @@
 
         <!-- Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource HeaderGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="24,12"/>
             <Setter Property="Margin" Value="8,4,8,4"/>
@@ -164,12 +157,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#9333EA" Direction="270" ShadowDepth="0" 
-                                                          BlurRadius="20" Opacity="0.4"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -205,7 +193,7 @@
 
             <!-- Header -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
+                    Background="{DynamicResource DialogPrimaryGradient}" 
                     CornerRadius="16,16,0,0" 
                     Padding="15,0">
                 <StackPanel HorizontalAlignment="Center">
@@ -278,7 +266,7 @@
                                      Grid.Row="3"
                                      GroupName="DonationAmount"
                                      Content="10 EUR"
-									 Tag="You are Awesome!"
+							 Tag="You are Awesome!"
                                      Style="{StaticResource DonationButtonStyle}"
                                      Margin="0,0,0,8" />
                     </Grid>
@@ -300,7 +288,7 @@
                     </Border>
 
                     <!-- Info Text -->
-                    <Border Background="#FEF3C7" 
+                    <Border Background="{DynamicResource SurfaceBrush}" 
                             BorderBrush="#F59E0B" 
                             BorderThickness="1" 
                             CornerRadius="8" 
@@ -346,7 +334,7 @@
                     <Button x:Name="DonateButton" 
                             Content="💝 Donate via PayPal" 
                             Style="{StaticResource PrimaryButton}" 
-                            Click="DonateButton_Click"/>
+                            Click="DonateButton_Click" Background="{DynamicResource DialogSuccessGradient}"/>
                 </StackPanel>
             </Border>
         </Grid>

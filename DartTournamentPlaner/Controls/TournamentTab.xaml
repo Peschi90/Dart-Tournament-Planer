@@ -126,7 +126,7 @@
         <!-- Modern Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="Margin" Value="6"/>
@@ -349,7 +349,7 @@
                             <Button DockPanel.Dock="Top" Name="ConfigureRulesButton" Content="⚙️ Regeln konfigurieren" 
                                     Style="{StaticResource SuccessButton}"
                                     Click="ConfigureRulesButton_Click"
-                                    Margin="0,0,0,16"/>
+                                    Margin="0,0,0,16" Background="{DynamicResource ButtonGradient}"/>
                             
                             <!-- Phase Info -->
                             <Border DockPanel.Dock="Top" 
@@ -379,12 +379,12 @@
                             <Button DockPanel.Dock="Top" Name="ResetMatchesButton" Content="⚠️ Spiele zurücksetzen"
                                     Style="{StaticResource WarningButton}"
                                     Click="ResetMatchesButton_Click"
-                                    Margin="0,0,0,12"/>
+                                    Margin="0,0,0,12" Background="{DynamicResource ErrorBrush}"/>
 
                             <Button DockPanel.Dock="Top" Name="ResetTournamentButton" Content="🔄 Turnier zurücksetzen"
                                     Style="{StaticResource DangerButton}"
                                     Click="ResetTournamentButton_Click"
-                                    Margin="0,0,0,16"/>
+                                    Margin="0,0,0,16" Background="{DynamicResource ErrorBrush}"/>
                             
                             <!-- Group Management -->
                             <TextBlock DockPanel.Dock="Top" Name="GroupsHeaderText" Text="📁 Gruppen:" 

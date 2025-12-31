@@ -439,7 +439,41 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["LoserBracketRules"] = "Loser Bracket Rules",
             ["RoundRobinFinalsRules"] = "Round Robin Finals Rules",
             ["RoundRobinFinals"] = "Finals Round",
-            ["ResetToDefault"] = "Reset to Default"
+            ["ResetToDefault"] = "Reset to Default",
+
+            // =====================================
+            // AUTHENTICATION
+            // =====================================
+            
+            ["Account"] = "Account",
+            ["Login"] = "Login",
+            ["Logout"] = "Logout",
+            ["Register"] = "Register",
+            ["Username"] = "Username",
+            ["Password"] = "Password",
+            ["ConfirmPassword"] = "Repeat Password",
+            ["Email"] = "Email",
+            ["FirstName"] = "First name",
+            ["LastName"] = "Last name",
+            ["RememberSession"] = "Remember me",
+            ["LoginSubtitle"] = "Sign in with your account.",
+            ["RegisterSubtitle"] = "Create a new account to sync with the hub.",
+            ["LogoutSuccess"] = "You have been logged out successfully.",
+            ["AuthRegistrationFailed"] = "Registration failed.",
+            ["Profile"] = "Profile",
+            ["ProfileInfoText"] = "Your profile data is managed centrally on the hub. Editing will be available soon.",
+            ["LoginSuccess"] = "Logged in successfully. Welcome back and have fun with Dart Tournament Planner!",
+            ["RegistrationSuccess"] = "Registration completed successfully. You can now use your account in the Dart Tournament Planner.",
+
+            // =====================================
+            // PROFILE & LICENSE
+            // =====================================
+            
+            ["ProfileUpdated"] = "Profile updated.",
+            ["LicenseAutoFill"] = "Insert license from app",
+            ["LicenseAutoFillSuccess"] = "License key inserted.",
+            ["LicenseAutoFillMissing"] = "No license key stored.",
+            ["AuthNotLoggedIn"] = "Not logged in.",
         };
     }
 }

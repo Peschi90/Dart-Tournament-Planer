@@ -11,6 +11,9 @@ public class AppConfig : INotifyPropertyChanged
     private int _autoSaveInterval = 5; // minutes
     private bool _showMatchStartNotifications = false; // ? NEU: Match-Start Benachrichtigungen
     private string _hubUrl = "https://dtp.i3ull3t.de"; // ? FIXED: Standard-URL ohne Port
+    private string? _authSessionToken;
+    private string? _authUsername;
+    private bool _rememberAuthSession;
 
     public string Language
     {
@@ -73,6 +76,45 @@ public class AppConfig : INotifyPropertyChanged
         set
         {
             _hubUrl = value?.Trim() ?? "https://dtp.i3ull3t.de";
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Gespeicherter Session-Token für die Benutzeranmeldung (optional)
+    /// </summary>
+    public string? AuthSessionToken
+    {
+        get => _authSessionToken;
+        set
+        {
+            _authSessionToken = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Zuletzt verwendeter Benutzername für den Login-Dialog
+    /// </summary>
+    public string? AuthUsername
+    {
+        get => _authUsername;
+        set
+        {
+            _authUsername = value;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Steuert, ob die Session lokal gemerkt werden soll
+    /// </summary>
+    public bool RememberAuthSession
+    {
+        get => _rememberAuthSession;
+        set
+        {
+            _rememberAuthSession = value;
             OnPropertyChanged();
         }
     }

@@ -180,7 +180,7 @@
 
             <!-- Header with modern gradient design -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
+                    Background="{DynamicResource DialogPrimaryGradient}" 
                     CornerRadius="16,16,0,0" 
                     BorderBrush="#E5E7EB" 
                     BorderThickness="0,0,0,1" 
@@ -189,9 +189,9 @@
                 <StackPanel>
                     <TextBlock x:Name="TitleTextBlock" Text="?? Help - Dart Tournament Planner"
                                FontSize="28" FontWeight="Bold" 
-                               Foreground="#1F2937" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                     <TextBlock Text="Comprehensive guide for using the Dart Tournament Planner"
-                               FontSize="16" Foreground="#6B7280"/>
+                               FontSize="16" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </StackPanel>
             </Border>
 

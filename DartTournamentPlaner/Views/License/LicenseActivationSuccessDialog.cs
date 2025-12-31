@@ -29,6 +29,15 @@ public class LicenseActivationSuccessDialog : Window
     private TextBlock _warningText;
     private Button _continueButton;
 
+    private Brush GetBrush(string key, Brush fallback)
+    {
+        if (TryFindResource(key) is Brush b)
+            return b;
+        if (Application.Current != null && Application.Current.TryFindResource(key) is Brush appBrush)
+            return appBrush;
+        return fallback;
+    }
+
     public LicenseActivationSuccessDialog(LocalizationService localizationService, Models.License.LicenseValidationResult result)
     {
         try
@@ -93,7 +102,7 @@ public class LicenseActivationSuccessDialog : Window
             // Create main container
             var mainBorder = new Border
             {
-                Background = CreateGradientBrush(Colors.White, Color.FromRgb(240, 253, 244)),
+                Background = GetBrush("DialogSurfaceGradient", CreateGradientBrush(Colors.White, Color.FromRgb(240, 253, 244))),
                 BorderBrush = new SolidColorBrush(Color.FromRgb(187, 247, 208)),
                 BorderThickness = new Thickness(2),
                 CornerRadius = new CornerRadius(16),
@@ -110,7 +119,7 @@ public class LicenseActivationSuccessDialog : Window
             // Header
             var headerBorder = new Border
             {
-                Background = CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105)),
+                Background = GetBrush("DialogSuccessGradient", CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105))),
                 CornerRadius = new CornerRadius(14, 14, 0, 0),
                 Padding = new Thickness(24, 20, 24, 20)
             };
@@ -136,7 +145,7 @@ public class LicenseActivationSuccessDialog : Window
                 Text = "Lizenz erfolgreich aktiviert!",
                 FontSize = 20,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = Brushes.White,
+                Foreground = GetBrush("TextBrush", Brushes.Black),
                 VerticalAlignment = VerticalAlignment.Center
             };
             
@@ -144,7 +153,7 @@ public class LicenseActivationSuccessDialog : Window
             {
                 Text = "Alle Premium-Features sind jetzt verfügbar",
                 FontSize = 14,
-                Foreground = new SolidColorBrush(Color.FromRgb(209, 250, 229)),
+                Foreground = GetBrush("SecondaryTextBrush", new SolidColorBrush(Color.FromRgb(55, 65, 81))),
                 Margin = new Thickness(0, 4, 0, 0)
             };
             
@@ -378,8 +387,8 @@ public class LicenseActivationSuccessDialog : Window
             MinWidth = 140,
             Cursor = Cursors.Hand,
             BorderThickness = new Thickness(0),
-            Background = CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105)),
-            Foreground = Brushes.White
+            Background = GetBrush("DialogSuccessGradient", CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105))),
+            Foreground = GetBrush("TextBrush", Brushes.Black)
         };
         
         // Simple style for success button
@@ -397,7 +406,7 @@ public class LicenseActivationSuccessDialog : Window
         borderElement.Name = "border";
         borderElement.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
         borderElement.SetValue(Border.EffectProperty, CreateDropShadow());
-        borderElement.SetValue(Border.BackgroundProperty, CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105)));
+        borderElement.SetValue(Border.BackgroundProperty, GetBrush("DialogSuccessGradient", CreateGradientBrush(Color.FromRgb(16, 185, 129), Color.FromRgb(5, 150, 105))));
         
         var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
         contentPresenter.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);

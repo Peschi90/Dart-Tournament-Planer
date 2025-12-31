@@ -13,13 +13,13 @@
     
     <!-- This XAML is actually not used as the C# class creates the UI programmatically -->
     <!-- But we need a valid XAML structure for compilation -->
-    <Grid>
-        <Border Background="White" CornerRadius="12">
+    <Grid Background="{DynamicResource MainBackgroundBrush}">
+        <Border Background="{DynamicResource DialogInfoGradient}" CornerRadius="12" Padding="16">
             <TextBlock Text="This dialog is created programmatically in code-behind" 
                        HorizontalAlignment="Center" 
                        VerticalAlignment="Center"
                        FontSize="14"
-                       Foreground="Gray"/>
+                       Foreground="{DynamicResource TextBrush}"/>
         </Border>
     </Grid>
 </Window>

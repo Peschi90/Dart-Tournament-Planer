@@ -76,7 +76,7 @@
 
             <!-- Header -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource SuccessGradient}" 
+                    Background="{DynamicResource DialogSuccessGradient}" 
                     CornerRadius="16,16,0,0" 
                     Padding="30,20">
                 <StackPanel HorizontalAlignment="Center">
@@ -123,7 +123,7 @@
                         Style="{StaticResource PrimaryButton}"
                         HorizontalAlignment="Center"
                         MinWidth="150"
-                        Click="OkButton_Click"/>
+                        Click="OkButton_Click" Background="{DynamicResource SuccessBrush}" Foreground="{DynamicResource TextBrush}"/>
             </Border>
         </Grid>
     </Border>

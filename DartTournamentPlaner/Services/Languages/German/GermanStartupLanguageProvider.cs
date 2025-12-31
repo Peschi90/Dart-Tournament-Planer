@@ -20,6 +20,7 @@ public class GermanStartupLanguageProvider : ILanguageSection
             
             // Status-Texte für verschiedene Startup-Phasen
             ["InitializingServices"] = "Initialisiere Services...",
+            ["InitializingAuthentication"] = "Initialisiere Anmeldung...",
             ["ServicesReady"] = "Services bereit",
             ["CheckingForUpdates"] = "Suche nach Updates...",
             ["ConnectingToGitHub"] = "Verbinde mit GitHub...",

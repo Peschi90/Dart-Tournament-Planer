@@ -18,6 +18,7 @@ public partial class App : Application
     public static UpdateService? UpdateService { get; private set; }
     public static IApiIntegrationService? ApiIntegrationService { get; private set; }
     public static ThemeService? ThemeService { get; private set; } // ✅ NEU: Theme Service
+    public static UserAuthService? UserAuthService { get; private set; }
 
     /// <summary>
     /// Global event that fires when the application language changes
@@ -57,6 +58,9 @@ public partial class App : Application
             // Set initial language from config
             System.Diagnostics.Debug.WriteLine($"App.OnStartup: Setting initial language to '{ConfigService.Config.Language}'");
             LocalizationService.ChangeLanguage(ConfigService.Config.Language);
+            
+            // Auth Service initialisieren (nach Config & Sprache)
+            UserAuthService = new UserAuthService(ConfigService, LocalizationService);
             
             // Connect ConfigService language changes to LocalizationService
             ConfigService.LanguageChanged += (sender, language) =>
@@ -149,6 +153,23 @@ public partial class App : Application
                 splashWindow.UpdateProgress(0.1);
                 progress.Report(LocalizationService?.GetTranslation("InitializingServices") ?? "Initialisiere Services...");
                 await Task.Delay(400); // Pause für visuelle Wahrnehmung
+                
+                // ✅ Auth-Service Schema sicherstellen & Session wiederherstellen
+                try
+                {
+                    splashWindow.UpdateProgress(0.18);
+                    progress.Report(LocalizationService?.GetTranslation("InitializingAuthentication") ?? "Initialisiere Anmeldung...");
+
+                    if (UserAuthService != null)
+                    {
+                        await UserAuthService.InitializeAsync();
+                        await UserAuthService.TryRestoreSessionAsync();
+                    }
+                }
+                catch (Exception authEx)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Auth initialization failed: {authEx.Message}");
+                }
                 
                 splashWindow.UpdateProgress(0.25);
                 progress.Report(LocalizationService?.GetTranslation("ServicesReady") ?? "Services bereit");

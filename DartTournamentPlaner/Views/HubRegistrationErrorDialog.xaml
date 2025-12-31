@@ -18,8 +18,8 @@
 
         <!-- Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource ErrorGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource DialogErrorGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="20,10"/>
             <Setter Property="Margin" Value="8"/>
@@ -79,7 +79,7 @@
 
             <!-- Header -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource ErrorGradient}" 
+                    Background="{DynamicResource DialogErrorGradient}" 
                     CornerRadius="16,16,0,0" 
                     Padding="32,20">
                 <StackPanel HorizontalAlignment="Center">
@@ -88,7 +88,7 @@
                                Text="Tournament Registration Failed" 
                                FontSize="20" 
                                FontWeight="Bold" 
-                               Foreground="White" 
+                               Foreground="{DynamicResource TextBrush}" 
                                HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>

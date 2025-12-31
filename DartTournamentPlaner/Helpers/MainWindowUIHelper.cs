@@ -323,11 +323,11 @@ public class MainWindowUIHelper
         MenuItem fileMenuItem, MenuItem newMenuItem, MenuItem openMenuItem, 
         MenuItem saveMenuItem, MenuItem saveAsMenuItem, MenuItem printMenuItem, MenuItem exitMenuItem,
         MenuItem viewMenuItem, MenuItem overviewModeMenuItem,
-        //MenuItem apiMenuItem, MenuItem startApiMenuItem, MenuItem stopApiMenuItem, MenuItem openApiDocsMenuItem,
         MenuItem tournamentHubMenuItem, MenuItem registerWithHubMenuItem, MenuItem unregisterFromHubMenuItem,
         MenuItem showJoinUrlMenuItem, MenuItem manualSyncMenuItem, MenuItem hubSettingsMenuItem,
         MenuItem licenseMenuItem, MenuItem licenseStatusMenuItem, MenuItem activateLicenseMenuItem, 
         MenuItem licenseInfoMenuItem, MenuItem removeLicenseMenuItem, MenuItem purchaseLicenseMenuItem,
+        MenuItem accountMenuItem, MenuItem loginMenuItem, MenuItem profileMenuItem, MenuItem logoutMenuItem,
         MenuItem settingsMenuItem, MenuItem helpMenuItem, MenuItem helpContentMenuItem, 
         MenuItem bugReportMenuItem, MenuItem aboutMenuItem)
     {
@@ -344,12 +344,6 @@ public class MainWindowUIHelper
         viewMenuItem.Header = _localizationService.GetString("View");
         overviewModeMenuItem.Header = _localizationService.GetString("TournamentOverview");
         
-        // API-Menü
-        //apiMenuItem.Header = "🌐 " + (_localizationService.GetString("API") ?? "API");
-        //startApiMenuItem.Header = "▶️ " + (_localizationService.GetString("StartAPI") ?? "API starten");
-        //stopApiMenuItem.Header = "⏹️ " + (_localizationService.GetString("StopAPI") ?? "API stoppen");
-        //openApiDocsMenuItem.Header = "📖 " + (_localizationService.GetString("APIDocumentation") ?? "API Dokumentation");
-        
         // Tournament Hub-Menü
         tournamentHubMenuItem.Header = "🎯 " + (_localizationService.GetString("TournamentHub") ?? "Tournament Hub");
         registerWithHubMenuItem.Header = "🏁 " + (_localizationService.GetString("RegisterWithHub") ?? "Bei Hub registrieren");
@@ -358,13 +352,19 @@ public class MainWindowUIHelper
         manualSyncMenuItem.Header = "🔄 " + (_localizationService.GetString("ManualSync") ?? "Manuell synchronisieren");
         hubSettingsMenuItem.Header = "⚙️ " + (_localizationService.GetString("HubSettings") ?? "Hub-Einstellungen");
         
-        // NEU: Lizenz-Menü
+        // Lizenz-Menü
         licenseMenuItem.Header = "🔑 " + (_localizationService.GetString("License") ?? "Lizenz");
         licenseStatusMenuItem.Header = "📊 " + (_localizationService.GetString("LicenseStatus") ?? "Lizenz-Status");
         activateLicenseMenuItem.Header = "✨ " + (_localizationService.GetString("ActivateLicense") ?? "Lizenz aktivieren");
         licenseInfoMenuItem.Header = "📋 " + (_localizationService.GetString("LicenseInfo") ?? "Lizenz-Informationen");
         removeLicenseMenuItem.Header = "🗑️ " + (_localizationService.GetString("RemoveLicense") ?? "Lizenz entfernen");
         purchaseLicenseMenuItem.Header = "🛒 " + (_localizationService.GetString("PurchaseLicense") ?? "Lizenz kaufen");
+
+        // Account-Menü
+        accountMenuItem.Header = "👤 " + (_localizationService.GetString("Account") ?? "Account");
+        loginMenuItem.Header = _localizationService.GetString("Login") ?? "Login";
+        profileMenuItem.Header = _localizationService.GetString("Profile") ?? "Profile";
+        logoutMenuItem.Header = _localizationService.GetString("Logout") ?? "Logout";
         
         // Hilfe-Menü
         settingsMenuItem.Header = _localizationService.GetString("Settings");
@@ -372,5 +372,24 @@ public class MainWindowUIHelper
         helpContentMenuItem.Header = "📖 " + _localizationService.GetString("Help");
         bugReportMenuItem.Header = _localizationService.GetString("BugReport");
         aboutMenuItem.Header = _localizationService.GetString("About");
+    }
+    
+    public void UpdateAuthMenu(UserAuthService authService, MenuItem accountMenuItem, MenuItem loginMenuItem, MenuItem profileMenuItem, MenuItem logoutMenuItem)
+    {
+        try
+        {
+            var user = authService.CurrentUser;
+            loginMenuItem.IsEnabled = user == null;
+            profileMenuItem.IsEnabled = user != null;
+            profileMenuItem.Visibility = user != null ? Visibility.Visible : Visibility.Collapsed;
+            logoutMenuItem.IsEnabled = user != null;
+
+            var baseHeader = "👤 " + (_localizationService.GetString("Account") ?? "Account");
+            accountMenuItem.Header = user != null ? $"{baseHeader} ({user.Username})" : baseHeader;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateAuthMenu error: {ex.Message}");
+        }
     }
 }

@@ -26,26 +26,10 @@
                           BlurRadius="12" 
                           Opacity="0.1"/>
 
-        <!-- Modern Gradient Backgrounds -->
-        <LinearGradientBrush x:Key="MainBackgroundBrush" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#F8FAFC" Offset="0"/>
-            <GradientStop Color="#F1F5F9" Offset="1"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#FFFFFF" Offset="0"/>
-            <GradientStop Color="#F8FAFC" Offset="1"/>
-        </LinearGradientBrush>
-
-        <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#3B82F6" Offset="0"/>
-            <GradientStop Color="#2563EB" Offset="1"/>
-        </LinearGradientBrush>
-
         <!-- Modern Card Style -->
         <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="24"/>
@@ -57,9 +41,10 @@
         <Style x:Key="InputFieldStyle" TargetType="TextBox">
             <Setter Property="Padding" Value="2,3"/>
             <Setter Property="Margin" Value="0,2,0,10"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -74,7 +59,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource DialogPrimaryGradient}"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
                                         <DropShadowEffect Color="#3B82F6" Direction="0" ShadowDepth="0" 
@@ -95,9 +80,10 @@
         <Style x:Key="ComboBoxStyle" TargetType="ComboBox">
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="Margin" Value="0,6,0,16"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -139,8 +125,8 @@
                                       MinWidth="{TemplateBinding ActualWidth}"
                                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <Border x:Name="DropDownBorder"
-                                            Background="White" 
-                                            BorderBrush="#E5E7EB" 
+                                            Background="{DynamicResource SurfaceBrush}" 
+                                            BorderBrush="{DynamicResource BorderBrush}" 
                                             BorderThickness="1" 
                                             CornerRadius="8"
                                             Effect="{StaticResource CardShadow}"/>
@@ -183,8 +169,8 @@
                 <Border x:Name="Border" 
                         Grid.ColumnSpan="2"
                         CornerRadius="8"
-                        Background="White"
-                        BorderBrush="#D1D5DB"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
                         BorderThickness="2"/>
                 <Border Grid.Column="0"
                         CornerRadius="8,0,0,8"
@@ -193,7 +179,7 @@
                         BorderThickness="0"/>
                 <Path x:Name="Arrow"
                       Grid.Column="1"     
-                      Fill="#6B7280"
+                      Fill="{DynamicResource SecondaryTextBrush}"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"
                       Data="M 0 0 L 4 4 L 8 0 Z"/>
@@ -203,7 +189,7 @@
                     <Setter TargetName="Border" Property="BorderBrush" Value="#9CA3AF"/>
                 </Trigger>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter TargetName="Border" Property="BorderBrush" Value="#3B82F6"/>
+                    <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource DialogPrimaryGradient}"/>
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
                     <Setter TargetName="Border" Property="Background" Value="#F3F4F6"/>
@@ -221,8 +207,8 @@
 
         <!-- Action Button Styles -->
         <Style x:Key="PrimaryButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="24,12"/>
             <Setter Property="Margin" Value="8"/>
@@ -242,14 +228,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background">
-                                    <Setter.Value>
-                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="#2563EB" Offset="0"/>
-                                            <GradientStop Color="#1D4ED8" Offset="1"/>
-                                        </LinearGradientBrush>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
                                 <Setter TargetName="border" Property="Effect">
                                     <Setter.Value>
                                         <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0" 
@@ -264,9 +243,9 @@
         </Style>
 
         <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="#374151"/>
-            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="2"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -283,8 +262,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#9CA3AF"/>
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -294,7 +273,7 @@
     </Window.Resources>
 
     <!-- Main container with modern design -->
-    <Border Background="{StaticResource MainBackgroundBrush}" 
+    <Border Background="{DynamicResource MainBackgroundBrush}" 
             CornerRadius="16" 
             Effect="{StaticResource HeaderShadow}"
             Margin="8">
@@ -307,24 +286,24 @@
 
             <!-- Header with modern gradient design -->
             <Border Grid.Row="0" 
-                    Background="{StaticResource HeaderGradient}" 
+                    Background="{DynamicResource DialogInfoGradient}" 
                     CornerRadius="16,16,0,0" 
-                    BorderBrush="#E5E7EB" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,0,0,1" 
                     Padding="32,24"
                     Effect="{StaticResource HeaderShadow}">
                 <StackPanel>
                     <TextBlock x:Name="TitleText" Text="License Purchase" 
                                FontSize="28" FontWeight="Bold" 
-                               Foreground="#1F2937" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource TextBrush}" Margin="0,0,0,8"/>
                     <TextBlock x:Name="SubtitleText" 
                                Text="Fill out the form below to request a license for Dart Tournament Planner" 
-                               FontSize="16" Foreground="#6B7280"/>
+                               FontSize="16" Foreground="{DynamicResource SecondaryTextBrush}"/>
                 </StackPanel>
             </Border>
 
             <!-- Content ScrollViewer with white background -->
-            <Border Grid.Row="1" Background="White" Margin="0">
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" Margin="0">
                 <ScrollViewer Padding="32,24" VerticalScrollBarVisibility="Visible" >
                     <StackPanel MaxWidth="650">
                         
@@ -332,7 +311,7 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="PurchasePersonalInformation" Text="Personal Information" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,10"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
                                 
                                 <!-- Name Fields -->
                                 <Grid>
@@ -344,25 +323,25 @@
                                     
                                     <StackPanel Grid.Column="0">
                                         <TextBlock x:Name="FirstNameLabel" Text="First Name *" 
-                                                   FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                         <TextBox x:Name="FirstNameTextBox" Style="{StaticResource InputFieldStyle}"/>
                                     </StackPanel>
                                     
                                     <StackPanel Grid.Column="2">
                                         <TextBlock x:Name="LastNameLabel" Text="Last Name *" 
-                                                   FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                                   FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                         <TextBox x:Name="LastNameTextBox" Style="{StaticResource InputFieldStyle}"/>
                                     </StackPanel>
                                 </Grid>
                                 
                                 <!-- Email -->
                                 <TextBlock x:Name="EmailLabel" Text="Email Address *" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="EmailTextBox" Style="{StaticResource InputFieldStyle}"/>
                                 
                                 <!-- Company -->
                                 <TextBlock x:Name="CompanyLabel" Text="Company / Organization" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="CompanyTextBox" Style="{StaticResource InputFieldStyle}"/>
                             </StackPanel>
                         </Border>
@@ -371,11 +350,11 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="PurchaseLicenseRequirements" Text="License Requirements" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <!-- License Type -->
                                 <TextBlock x:Name="LicenseTypeLabel" Text="License Type *" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="LicenseTypeComboBox" Style="{StaticResource ComboBoxStyle}">
                                     <ComboBoxItem Content="Personal License (Single activation)" Tag="personal"/>
                                     <ComboBoxItem Content="Professional License (Up to 5 activations)" Tag="professional"/>
@@ -385,7 +364,7 @@
                                 
                                 <!-- Features -->
                                 <TextBlock x:Name="FeaturesLabel" Text="Required Features" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,16,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,16,0,4"/>
                                 
                                 <StackPanel x:Name="FeaturesPanel">
                                     <CheckBox x:Name="StatisticsFeature" Content="Advanced Statistics" Margin="0,4"/>
@@ -401,11 +380,11 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="PurchaseAdditionalInformation" Text="Additional Information" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <!-- Message -->
                                 <TextBlock x:Name="MessageLabel" Text="Message / Special Requirements" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                 <TextBox x:Name="MessageTextBox" 
                                          Style="{StaticResource InputFieldStyle}"
                                          TextWrapping="Wrap"
@@ -414,7 +393,7 @@
                                 
                                 <!-- How did you hear about us -->
                                 <TextBlock x:Name="SourceLabel" Text="How did you hear about us?" 
-                                           FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,4"/>
                                 <ComboBox x:Name="SourceComboBox" Style="{StaticResource ComboBoxStyle}">
                                     <ComboBoxItem Content="Search Engine (Google, Bing, etc.)"/>
                                     <ComboBoxItem Content="Social Media"/>
@@ -430,23 +409,23 @@
                         <Border Style="{StaticResource CardStyle}">
                             <StackPanel>
                                 <TextBlock x:Name="PurchaseSystemInformation" Text="System Information" FontSize="20" FontWeight="Bold" 
-                                           Foreground="#374151" Margin="0,0,0,20"/>
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,20"/>
                                 
                                 <TextBlock x:Name ="PurchaseHardwareInfoI" Text="Your Hardware ID (automatically included in the request):" 
-                                           FontWeight="SemiBold" Foreground="#6B7280" Margin="0,0,0,8"/>
+                                           FontWeight="SemiBold" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
                                 
-                                <Border Background="#F9FAFB" 
-                                        BorderBrush="#E5E7EB" 
+                                <Border Background="{DynamicResource HoverBrush}" 
+                                        BorderBrush="{DynamicResource BorderBrush}" 
                                         BorderThickness="1" 
                                         CornerRadius="6" 
                                         Padding="12,8">
                                     <TextBlock x:Name="HardwareIdText" 
                                               FontFamily="Consolas" FontSize="12" 
-                                              Foreground="#6B7280" TextWrapping="Wrap"/>
+                                              Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
                                 </Border>
                                 
                                 <TextBlock x:Name="PurchaseHardwareInfoII" Text="This Hardware ID will be used for license activation and is required for processing your request." 
-                                           FontSize="12" Foreground="#9CA3AF" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                                           FontSize="12" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,8,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -455,9 +434,9 @@
 
             <!-- Footer Buttons -->
             <Border Grid.Row="2" 
-                    Background="White" 
+                    Background="{DynamicResource SurfaceBrush}" 
                     CornerRadius="0,0,16,16"
-                    BorderBrush="#E5E7EB" 
+                    BorderBrush="{DynamicResource BorderBrush}" 
                     BorderThickness="0,1,0,0" 
                     Padding="32,20">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

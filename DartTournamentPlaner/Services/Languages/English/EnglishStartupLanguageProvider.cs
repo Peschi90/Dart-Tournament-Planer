@@ -20,6 +20,7 @@ public class EnglishStartupLanguageProvider : ILanguageSection
             
             // Status texts for different startup phases
             ["InitializingServices"] = "Initializing services...",
+            ["InitializingAuthentication"] = "Initializing authentication...",
             ["ServicesReady"] = "Services ready",
             ["CheckingForUpdates"] = "Checking for updates...",
             ["ConnectingToGitHub"] = "Connecting to GitHub...",

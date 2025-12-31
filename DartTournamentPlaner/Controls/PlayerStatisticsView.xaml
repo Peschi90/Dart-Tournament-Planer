@@ -162,7 +162,7 @@
         <!-- Filter und Aktionen -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,5" HorizontalAlignment="Center">
             <Button x:Name="RefreshButton" Content="🔄 Aktualisieren" Margin="10,0" 
-                    Padding="15,8" Click="RefreshButton_Click"/>
+                    Padding="15,8" Click="RefreshButton_Click" Background="{DynamicResource ButtonGradient}"/>
             
             <TextBlock Text="{Binding Players.Count}" Margin="20,0,5,0" VerticalAlignment="Center" FontWeight="Bold"/>
             <TextBlock x:Name="PlayersWithStatsText" Text="Spieler mit Statistiken" VerticalAlignment="Center"/>

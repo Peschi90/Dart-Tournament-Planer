@@ -26,7 +26,7 @@
         <!-- Modern Button Style -->
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource ButtonGradient}"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="16,10"/>
             <Setter Property="Margin" Value="6"/>
@@ -271,7 +271,7 @@
 
         <!-- Header -->
         <Border Grid.Row="0" 
-                Background="{DynamicResource HeaderGradient}"
+                Background="{DynamicResource DialogPrimaryGradient}"
                 CornerRadius="8"
                 Padding="20"
                 Margin="0,0,0,20"
@@ -280,7 +280,7 @@
                 <TextBlock Text="🎯 PowerScoring"
                            FontSize="24"
                            FontWeight="Bold"
-                           Foreground="{DynamicResource AccentBrush}"/>
+                           Foreground="{DynamicResource TextBrush}"/>
                 <TextBlock Text="Erfassen Sie die Spieler-Scores fuer eine optimale Gruppeneinteilung"
                            FontSize="14"
                            Foreground="{DynamicResource SecondaryTextBrush}"

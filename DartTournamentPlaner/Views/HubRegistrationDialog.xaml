@@ -1,229 +1,213 @@
 <Window x:Class="DartTournamentPlaner.Views.HubRegistrationDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Mit Hub registrieren"
-     Width="500" Height="420"
-     WindowStartupLocation="CenterOwner"
+        Title="Mit Hub registrieren"
+        Width="500" Height="420"
+        WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent">
 
+    <Window.Resources>
+        <!-- Button Styles aligned with HubLicenseRequiredDialog -->
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="8"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#3B82F6" Direction="270" ShadowDepth="0"
+                                                          BlurRadius="20" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+    </Window.Resources>
+
     <Border Background="{DynamicResource BackgroundBrush}"
-         BorderBrush="{DynamicResource AccentBrush}"
-            BorderThickness="2"
-     CornerRadius="12">
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="1"
+            CornerRadius="16"
+            Margin="10">
         <Border.Effect>
-      <DropShadowEffect Color="Black" Direction="315" ShadowDepth="8" BlurRadius="20" Opacity="0.3"/>
+            <DropShadowEffect Color="Black" Direction="315" ShadowDepth="8" BlurRadius="20" Opacity="0.3"/>
         </Border.Effect>
 
-     <Grid Margin="30">
+        <Grid Margin="30">
             <Grid.RowDefinitions>
-       <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
-         </Grid.RowDefinitions>
+            </Grid.RowDefinitions>
 
             <!-- Header -->
-    <StackPanel Grid.Row="0" Margin="0,0,0,20">
-     <TextBlock x:Name="HeaderTitle"
-         Text="🔗 Mit Hub registrieren"
-     FontSize="24"
-    FontWeight="Bold"
-    Foreground="{DynamicResource TextBrush}"
-  HorizontalAlignment="Center"
-     Margin="0,0,0,10"/>
-<TextBlock x:Name="HeaderSubtitle"
-     Text="Registrieren Sie Ihr Turnier fuer Live-Scoring"
-   FontSize="13"
-   Foreground="{DynamicResource SecondaryTextBrush}"
-    TextWrapping="Wrap"
-         TextAlignment="Center"/>
-  </StackPanel>
+            <Border Grid.Row="0"
+                    Background="{DynamicResource DialogPrimaryGradient}"
+                    CornerRadius="12"
+                    Padding="24,18"
+                    Margin="0,0,0,20">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock x:Name="HeaderTitle"
+                               Text="🔗 Mit Hub registrieren"
+                               FontSize="24"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource TextBrush}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <TextBlock x:Name="HeaderSubtitle"
+                               Text="Registrieren Sie Ihr Turnier fuer Live-Scoring"
+                               FontSize="13"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
-<!-- Content -->
-      <StackPanel Grid.Row="1">
-         <!-- Tournament-ID Input -->
-   <TextBlock x:Name="TournamentIdLabel"
-          Text="Tournament-ID (optional):"
-FontSize="14"
-FontWeight="SemiBold"
- Foreground="{DynamicResource TextBrush}"
-     Margin="0,0,0,8"/>
+            <!-- Content -->
+            <StackPanel Grid.Row="1">
+                <!-- Tournament-ID Input -->
+                <TextBlock x:Name="TournamentIdLabel"
+                           Text="Tournament-ID (optional):"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextBrush}"
+                           Margin="0,0,0,8"/>
 
-        <Grid Margin="0,0,0,15">
-         <Grid.ColumnDefinitions>
-         <ColumnDefinition Width="*"/>
-   <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
+                <Grid Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-<!-- Input for custom ID -->
- <TextBox x:Name="TournamentIdTextBox"
-        Grid.Column="0"
-   Height="40"
-    Padding="12,0"
-        FontSize="13"
- Background="{DynamicResource SurfaceBrush}"
-  Foreground="{DynamicResource TextBrush}"
-  BorderBrush="{DynamicResource BorderBrush}"
-   BorderThickness="2"
-          VerticalContentAlignment="Center"
-      Margin="0,0,10,0"
-    ToolTip="Leer lassen fuer automatische ID-Generierung"/>
+                    <TextBox x:Name="TournamentIdTextBox"
+                             Grid.Column="0"
+                             Height="40"
+                             Padding="12,0"
+                             FontSize="13"
+                             Background="{DynamicResource SurfaceBrush}"
+                             Foreground="{DynamicResource TextBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}"
+                             BorderThickness="2"
+                             VerticalContentAlignment="Center"
+                             Margin="0,0,10,0"
+                             ToolTip="Leer lassen fuer automatische ID-Generierung"/>
 
-       <!-- Button to generate new ID -->
-<Button x:Name="GenerateIdButton"
-      Grid.Column="1"
-Content="🔄"
-     Height="40"
-      Width="40"
-   FontSize="18"
-    Background="{DynamicResource SurfaceBrush}"
-         Foreground="{DynamicResource TextBrush}"
-  BorderBrush="{DynamicResource BorderBrush}"
-    BorderThickness="2"
-    Cursor="Hand"
-       ToolTip="Neue ID generieren"
-    Click="GenerateNewId_Click">
-    <Button.Style>
-         <Style TargetType="Button">
-      <Setter Property="Template">
-         <Setter.Value>
-           <ControlTemplate TargetType="Button">
-         <Border Background="{TemplateBinding Background}"
-   BorderBrush="{TemplateBinding BorderBrush}"
-     BorderThickness="{TemplateBinding BorderThickness}"
-    CornerRadius="8">
-        <ContentPresenter HorizontalAlignment="Center"
-      VerticalAlignment="Center"/>
-     </Border>
-          </ControlTemplate>
-</Setter.Value>
-     </Setter>
-       <Style.Triggers>
-      <Trigger Property="IsMouseOver" Value="True">
-             <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
- <Setter Property="Foreground" Value="White"/>
-         </Trigger>
-        </Style.Triggers>
-        </Style>
-      </Button.Style>
-</Button>
-    </Grid>
+                    <Button x:Name="GenerateIdButton"
+                            Grid.Column="1"
+                            Content="🔄"
+                            Height="40"
+                            Width="40"
+                            FontSize="18"
+                            Background="{DynamicResource SurfaceBrush}"
+                            Foreground="{DynamicResource TextBrush}"
+                            BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="2"
+                            Cursor="Hand"
+                            ToolTip="Neue ID generieren"
+                            Click="GenerateNewId_Click">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="8">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
 
-    <!-- Info-Text -->
-        <Border Background="{DynamicResource SurfaceBrush}"
-         BorderBrush="{DynamicResource BorderBrush}"
- BorderThickness="1"
-        CornerRadius="8"
-    Padding="15"
-          Margin="0,0,0,10">
-           <StackPanel>
-        <TextBlock x:Name="TipTextBlock"
-           FontSize="12"
-              Foreground="{DynamicResource SecondaryTextBrush}"
-         TextWrapping="Wrap">
-  <Run Text="💡 " FontWeight="Bold"/>
-<Run Text="Tipp: "/>
-    <Run Text="Lassen Sie das Feld leer fuer automatische ID-Generierung."/>
-   </TextBlock>
-   <TextBlock x:Name="NoteTextBlock"
-        FontSize="12"
-        Foreground="{DynamicResource SecondaryTextBrush}"
-         TextWrapping="Wrap"
-     Margin="0,5,0,0">
-<Run Text="📌 " FontWeight="Bold"/>
-    <Run Text="Verwenden Sie eine bekannte ID um ein bestehendes Turnier fortzusetzen."/>
-</TextBlock>
-     </StackPanel>
-         </Border>
-    </StackPanel>
+                <!-- Info-Text -->
+                <Border Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="15"
+                        Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock x:Name="TipTextBlock"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap">
+                            <Run Text="💡 " FontWeight="Bold"/>
+                            <Run Text="Tipp: "/>
+                            <Run Text="Lassen Sie das Feld leer fuer automatische ID-Generierung."/>
+                        </TextBlock>
+                        <TextBlock x:Name="NoteTextBlock"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,5,0,0">
+                            <Run Text="📌 " FontWeight="Bold"/>
+                            <Run Text="Verwenden Sie eine bekannte ID um ein bestehendes Turnier fortzusetzen."/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
-          <!-- Buttons -->
-     <StackPanel Grid.Row="2"
-           Orientation="Horizontal"
-              HorizontalAlignment="Right"
-      Margin="0,20,0,0">
-     <Button x:Name="CancelButton"
-   Content="Abbrechen"
-            Width="120"
-        Height="40"
-           Margin="0,0,10,0"
-   Background="{DynamicResource SurfaceBrush}"
-     Foreground="{DynamicResource TextBrush}"
-       BorderBrush="{DynamicResource BorderBrush}"
- BorderThickness="2"
-       FontSize="14"
-      FontWeight="SemiBold"
-    Cursor="Hand"
-             Click="Cancel_Click">
-    <Button.Style>
- <Style TargetType="Button">
-          <Setter Property="Template">
-        <Setter.Value>
-    <ControlTemplate TargetType="Button">
-   <Border Background="{TemplateBinding Background}"
-       BorderBrush="{TemplateBinding BorderBrush}"
-         BorderThickness="{TemplateBinding BorderThickness}"
-          CornerRadius="8">
-          <ContentPresenter HorizontalAlignment="Center"
-         VerticalAlignment="Center"/>
-  </Border>
-        </ControlTemplate>
-         </Setter.Value>
-         </Setter>
- <Style.Triggers>
-      <Trigger Property="IsMouseOver" Value="True">
-         <Setter Property="Background" Value="{DynamicResource BorderBrush}"/>
-          </Trigger>
-           </Style.Triggers>
-           </Style>
-           </Button.Style>
-    </Button>
+            <!-- Footer -->
+            <Border Grid.Row="2"
+                    Background="#F8FAFC"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,16,16"
+                    Padding="24,16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="CancelButton"
+                            Content="Abbrechen"
+                            Style="{StaticResource SecondaryButton}"
+                            Click="Cancel_Click"/>
 
-          <Button x:Name="RegisterButton"
-             Content="Registrieren"
-       Width="180"
-      Height="40"
-         Background="{DynamicResource AccentBrush}"
-       Foreground="White"
-    BorderThickness="0"
-       FontSize="14"
-             FontWeight="Bold"
-          Cursor="Hand"
-              Click="Register_Click">
-          <Button.Style>
-         <Style TargetType="Button">
-        <Setter Property="Template">
-   <Setter.Value>
-    <ControlTemplate TargetType="Button">
-               <Border Background="{TemplateBinding Background}"
-  BorderBrush="{TemplateBinding BorderBrush}"
-        BorderThickness="{TemplateBinding BorderThickness}"
-              CornerRadius="8">
-                    <Border.Effect>
-                        <DropShadowEffect Color="Black" Direction="270" ShadowDepth="2" 
-                                          BlurRadius="8" Opacity="0.2"/>
-                    </Border.Effect>
-  <ContentPresenter HorizontalAlignment="Center"
-  VerticalAlignment="Center"
-                                      Margin="10,0"/>
-     </Border>
-  </ControlTemplate>
-     </Setter.Value>
-                </Setter>
-         <Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-           <Setter Property="Opacity" Value="0.9"/>
-             </Trigger>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.7"/>
-                    </Trigger>
-     </Style.Triggers>
-     </Style>
-  </Button.Style>
-     </Button>
-          </StackPanel>
+                    <Button x:Name="RegisterButton"
+                            Content="Registrieren"
+                            Style="{StaticResource PrimaryButton}"
+                            Click="Register_Click"
+                            IsDefault="True"/>
+                </StackPanel>
+            </Border>
         </Grid>
     </Border>
 </Window>

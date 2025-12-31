@@ -1,0 +1,184 @@
+<Window x:Class="DartTournamentPlaner.Views.Auth.ProfileDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Profil" Height="500" Width="640"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
+    <Window.Resources>
+        <DropShadowEffect x:Key="CardShadow" Color="Black" Direction="270" ShadowDepth="4" BlurRadius="18" Opacity="0.12"/>
+
+        <LinearGradientBrush x:Key="HeaderGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#C7D2FE" Offset="0"/>
+            <GradientStop Color="#A5F3FC" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="PrimaryGradient" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#93C5FD" Offset="0"/>
+            <GradientStop Color="#60A5FA" Offset="1"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <Style x:Key="InputBox" TargetType="TextBox">
+            <Setter Property="Height" Value="50"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="0,4,0,8"/>
+            <Setter Property="BorderBrush" Value="#D1D5DB"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#8B5CF6"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="border" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="#8B5CF6" Direction="270" ShadowDepth="0" BlurRadius="12" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsReadOnly" Value="True">
+                                <Setter Property="Background" Value="#F9FAFB"/>
+                                <Setter Property="BorderBrush" Value="#E5E7EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="10,2"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="10" Background="{StaticResource PrimaryGradient}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#D1D5DB"/>
+                                <Setter Property="Foreground" Value="#9CA3AF"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="10" Padding="{TemplateBinding Padding}" Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="1.5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#E5E7EB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="Transparent" Padding="10">
+        <Border CornerRadius="14" Background="{DynamicResource BackgroundBrush}" BorderBrush="#E5E7EB" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" BlurRadius="22" Opacity="0.14"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" CornerRadius="14,14,0,0" Padding="16" Background="{StaticResource HeaderGradient}">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="👤" FontSize="18" Margin="0,0,8,0" Foreground="White"/>
+                        <TextBlock x:Name="TitleBlock" FontSize="17" FontWeight="SemiBold" Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" Margin="16" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock x:Name="InfoText" TextWrapping="Wrap" Foreground="{DynamicResource TextBrush}" Margin="0,0,0,10"/>
+
+                        <Border Style="{StaticResource CardBorder}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock x:Name="UsernameLabel" Grid.Row="0" Grid.Column="0" Margin="0,6" Foreground="#6B7280"/>
+                                <TextBox x:Name="UsernameValue" Grid.Row="0" Grid.Column="1" Margin="8,2" IsReadOnly="True" Style="{StaticResource InputBox}"/>
+
+                                <TextBlock x:Name="NameLabel" Grid.Row="1" Grid.Column="0" Margin="0,6" Foreground="#6B7280"/>
+                                <StackPanel Orientation="Horizontal" Grid.Row="1" Grid.Column="1" Margin="8,2" VerticalAlignment="Center">
+                                    <TextBox x:Name="FirstNameValue" Width="160" Margin="0,0,12,0" Style="{StaticResource InputBox}"/>
+                                    <TextBox x:Name="LastNameValue" Width="160" Style="{StaticResource InputBox}"/>
+                                </StackPanel>
+
+                                <TextBlock x:Name="EmailLabel" Grid.Row="2" Grid.Column="0" Margin="0,6" Foreground="#6B7280"/>
+                                <TextBox x:Name="EmailValue" Grid.Row="2" Grid.Column="1" Margin="8,2" Style="{StaticResource InputBox}"/>
+
+                                <TextBlock x:Name="LicenseLabel" Grid.Row="3" Grid.Column="0" Margin="0,6" Foreground="#6B7280"/>
+                                <TextBox x:Name="LicenseValue" Grid.Row="3" Grid.Column="1" Margin="8,2" Style="{StaticResource InputBox}"/>
+                                <Button x:Name="FillLicenseButton" Grid.Row="3" Grid.Column="2" Content="⤵" Width="38" Height="34" Margin="8,2,0,2" Click="FillLicenseButton_Click" Style="{StaticResource SecondaryButton}"/>
+                            </Grid>
+                        </Border>
+
+                        <TextBlock x:Name="StatusMessage" Foreground="#EF4444" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Background="White" CornerRadius="0,0,14,14">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="16">
+                        <Button x:Name="CloseButton" Width="130" Height="32" Click="CloseButton_Click" Style="{StaticResource SecondaryButton}"/>
+                        <Button x:Name="SaveButton" Width="130" Height="32" Click="SaveButton_Click" Style="{StaticResource PrimaryButton}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

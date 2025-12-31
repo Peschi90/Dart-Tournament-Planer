@@ -59,7 +59,7 @@
             </Grid.RowDefinitions>
             
             <!-- Header -->
-            <Border Grid.Row="0" Background="#8B5CF6" CornerRadius="16,16,0,0" Padding="24,20">
+            <Border Grid.Row="0" Background="{DynamicResource DialogPrimaryGradient}" CornerRadius="16,16,0,0" Padding="24,20">
                 <StackPanel>
                     <TextBlock Text="⚡" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                     <TextBlock Name="TitleTextBlock" Text="KO-Phase generieren" 
@@ -69,7 +69,7 @@
             </Border>
             
             <!-- Content -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,20">
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,20" Background="{DynamicResource BackgroundBrush}">
                 <StackPanel>
                     <!-- Question -->
                     <TextBlock Name="QuestionTextBlock" 
@@ -160,7 +160,7 @@
                     <Button Name="ContinueButton" Grid.Column="2"
                             Content="✓ Fortfahren"
                             Style="{StaticResource ModernDialogButton}"
-                            Background="#8B5CF6" Foreground="White"
+                            Background="{DynamicResource ButtonGradient}" Foreground="White"
                             Click="ContinueButton_Click"/>
                 </Grid>
             </Border>
