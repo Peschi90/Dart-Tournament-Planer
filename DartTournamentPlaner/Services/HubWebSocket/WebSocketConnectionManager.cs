@@ -324,6 +324,19 @@ public class WebSocketConnectionManager : IDisposable
     }
 
     /// <summary>
+    /// Meldet Planner-Client ab
+    /// </summary>
+    public async Task<bool> UnregisterPlannerAsync(object? payload = null)
+    {
+        _debugLog($"📤 [WS-CONNECTION] ===== UNREGISTER PLANNER =====", "WEBSOCKET");
+        var data = payload ?? new { reason = "user-logout" };
+        var result = await SendMessageAsync("unregister-planner", data);
+        _debugLog($"📤 [WS-CONNECTION] Unregister result: {result}", result ? "SUCCESS" : "ERROR");
+        _debugLog($"📤 [WS-CONNECTION] ===============================", "WEBSOCKET");
+        return result;
+    }
+
+    /// <summary>
     /// Abonniert Tournament-Updates
     /// </summary>
     public async Task<bool> SubscribeToTournamentAsync(string tournamentId)

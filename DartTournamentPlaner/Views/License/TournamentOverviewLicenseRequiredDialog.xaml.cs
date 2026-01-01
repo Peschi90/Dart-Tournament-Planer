@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
 
@@ -87,7 +88,7 @@ public partial class TournamentOverviewLicenseRequiredDialog : Window
         {
             var title = _localizationService.GetString("Error");
             var message = $"{_localizationService.GetString("Error")}: {ex.Message}";
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError(message, title, _localizationService, this);
         }
     }
 

@@ -24,7 +24,8 @@ public partial class PowerScoringWindow : Window
     private readonly ConfigService? _configService;
     private readonly TournamentManagementService? _tournamentManagementService; // ✅ PHASE 3
     private readonly MainWindow? _mainWindow; // ✅ PHASE 3: MainWindow Referenz
-    
+    private readonly bool _autoAcceptSavedSession;
+
     // Loading-State
     private readonly ObservableCollection<ProgressStepModel> _progressSteps = new();
     private Storyboard? _spinnerAnimation;
@@ -35,7 +36,8 @@ public partial class PowerScoringWindow : Window
         LicensedHubService? hubService = null,
         ConfigService? configService = null,
         TournamentManagementService? tournamentManagementService = null,
-        MainWindow? mainWindow = null) // ✅ PHASE 3
+        MainWindow? mainWindow = null,
+        bool autoAcceptSavedSession = false) // ✅ PHASE 3
     {
         InitializeComponent();
         
@@ -45,6 +47,7 @@ public partial class PowerScoringWindow : Window
         _configService = configService;
         _tournamentManagementService = tournamentManagementService; // ✅ PHASE 3
         _mainWindow = mainWindow; // ✅ PHASE 3
+        _autoAcceptSavedSession = autoAcceptSavedSession;
 
         InitializeRuleComboBox();
         
@@ -141,10 +144,18 @@ public partial class PowerScoringWindow : Window
         // Jetzt ist das Window vollständig geladen und kann als Owner für Dialoge verwendet werden
         TryLoadSavedSession();
     }
-    
-    /// <summary>
-    /// Synchronisiert Tournament-ID mit TournamentData
-    /// </summary>
+
+    private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+ 
+     /// <summary>
+     /// Synchronisiert Tournament-ID mit TournamentData
+     /// </summary>
     private void TournamentIdTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         try
@@ -777,75 +788,79 @@ public partial class PowerScoringWindow : Window
     {
         try
         {
-            if (_powerScoringService.HasSavedSession())
+            if (!_powerScoringService.HasSavedSession()) return;
+
+            bool shouldLoad = _autoAcceptSavedSession;
+
+            if (!_autoAcceptSavedSession)
             {
-                var result = PowerScoringConfirmDialog.ShowQuestion(
+                shouldLoad = PowerScoringConfirmDialog.ShowQuestion(
                     _localizationService.GetString("PowerScoring_Confirm_SavedSession_Title"),
                     _localizationService.GetString("PowerScoring_Confirm_SavedSession_Message"),
                     this);
+            }
+
+            if (!shouldLoad)
+            {
+                _powerScoringService.DeleteSavedSession();
+                System.Diagnostics.Debug.WriteLine("🗑️ Saved session deleted by user choice");
+                return;
+            }
+
+            var session = _powerScoringService.LoadSession();
+            if (session == null)
+            {
+                System.Diagnostics.Debug.WriteLine("⚠️ Session konnte nicht geladen werden (null)");
+                return;
+            }
+
+            // ✅ FIX: Aktualisiere Tournament-ID TextBox VOR UpdatePlayerList
+            if (!string.IsNullOrEmpty(session.TournamentId))
+            {
+                TournamentIdTextBox.Text = session.TournamentId;
+                System.Diagnostics.Debug.WriteLine($"📋 Tournament-ID from session: {session.TournamentId}");
+            }
+            
+            // Aktualisiere UI basierend auf geladener Session
+            if (session.Rule == PowerScoringRule.ThrowsOf3x1)
+                RuleComboBox.SelectedIndex = 0;
+            else if (session.Rule == PowerScoringRule.ThrowsOf3x8)
+                RuleComboBox.SelectedIndex = 1;
+            else if (session.Rule == PowerScoringRule.ThrowsOf3x10)
+                RuleComboBox.SelectedIndex = 2;
+            else if (session.Rule == PowerScoringRule.ThrowsOf3x15)
+                RuleComboBox.SelectedIndex = 3;
+            
+            // ✅ FIX: Jetzt UpdatePlayerList mit bereits gesetzter Tournament-ID
+            UpdatePlayerList();
+            
+            System.Diagnostics.Debug.WriteLine($"📋 Session loaded with {session.Players.Count} players");
+            
+            // Falls Session schon im Scoring-Modus war
+            if (session.Status == PowerScoringStatus.Scoring)
+            {
+                SetupPanel.Visibility = Visibility.Collapsed;
+                ScoringPanel.Visibility = Visibility.Visible;
+                StartScoringButton.Visibility = Visibility.Collapsed;
+                CompleteScoringButton.Visibility = Visibility.Visible;
                 
-                if (result)
-                {
-                    var session = _powerScoringService.LoadSession();
-                    if (session != null)
-                    {
-                        // ✅ FIX: Aktualisiere Tournament-ID TextBox VOR UpdatePlayerList
-                        if (!string.IsNullOrEmpty(session.TournamentId))
-                        {
-                            TournamentIdTextBox.Text = session.TournamentId;
-                            System.Diagnostics.Debug.WriteLine($"📋 Tournament-ID from session: {session.TournamentId}");
-                        }
-                        
-                        // Aktualisiere UI basierend auf geladener Session
-                        if (session.Rule == PowerScoringRule.ThrowsOf3x1)
-                            RuleComboBox.SelectedIndex = 0;
-                        else if (session.Rule == PowerScoringRule.ThrowsOf3x8)
-                            RuleComboBox.SelectedIndex = 1;
-                        else if (session.Rule == PowerScoringRule.ThrowsOf3x10)
-                            RuleComboBox.SelectedIndex = 2;
-                        else if (session.Rule == PowerScoringRule.ThrowsOf3x15)
-                            RuleComboBox.SelectedIndex = 3;
-                        
-                        // ✅ FIX: Jetzt UpdatePlayerList mit bereits gesetzter Tournament-ID
-                        UpdatePlayerList();
-                        
-                        System.Diagnostics.Debug.WriteLine($"📋 Session loaded with {session.Players.Count} players");
-                        
-                        // Falls Session schon im Scoring-Modus war
-                        if (session.Status == PowerScoringStatus.Scoring)
-                        {
-                            SetupPanel.Visibility = Visibility.Collapsed;
-                            ScoringPanel.Visibility = Visibility.Visible;
-                            StartScoringButton.Visibility = Visibility.Collapsed;
-                            CompleteScoringButton.Visibility = Visibility.Visible;
-                            
-                            BuildScoringUIWithQrCodes();
-                        }
-                        // Falls Session completed war
-                        else if (session.Status == PowerScoringStatus.Completed)
-                        {
-                            ShowResults();
-                        }
-                        
-                        PowerScoringConfirmDialog.ShowSuccess(
-                            _localizationService.GetString("PowerScoring_Success_SessionLoaded"),
-                            $"{_localizationService.GetString("PowerScoring_Success_SessionLoaded")}\n\n" +
-                            $"{_localizationService.GetString("PowerScoring_Player")}: {session.Players.Count}\n" +
-                            $"{_localizationService.GetString("PowerScoring_Rule")}: {session.Rule}\n" +
-                            $"Status: {session.Status}",
-                            this);
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine("⚠️ Session konnte nicht geladen werden (null)");
-                    }
-                }
-                else
-                {
-                    // User wollte Session nicht fortsetzen - lösche sie
-                    _powerScoringService.DeleteSavedSession();
-                    System.Diagnostics.Debug.WriteLine("🗑️ Saved session deleted by user choice");
-                }
+                BuildScoringUIWithQrCodes();
+            }
+            // Falls Session completed war
+            else if (session.Status == PowerScoringStatus.Completed)
+            {
+                ShowResults();
+            }
+            
+            if (!_autoAcceptSavedSession)
+            {
+                PowerScoringConfirmDialog.ShowSuccess(
+                    _localizationService.GetString("PowerScoring_Success_SessionLoaded"),
+                    $"{_localizationService.GetString("PowerScoring_Success_SessionLoaded")}\n\n" +
+                    $"{_localizationService.GetString("PowerScoring_Player")}: {session.Players.Count}\n" +
+                    $"{_localizationService.GetString("PowerScoring_Rule")}: {session.Rule}\n" +
+                    $"Status: {session.Status}",
+                    this);
             }
         }
         catch (Exception ex)

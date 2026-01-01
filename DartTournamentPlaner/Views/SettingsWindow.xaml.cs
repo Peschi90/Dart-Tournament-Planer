@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Views;
 
@@ -157,7 +158,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             
             var errorTitle = _localizationService.GetString("Error");
             var errorMessage = $"{_localizationService.GetString("ErrorSavingData")} {ex.Message}";
-            MessageBox.Show(errorMessage, errorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError(errorMessage, errorTitle, _localizationService, this);
         }
     }
 

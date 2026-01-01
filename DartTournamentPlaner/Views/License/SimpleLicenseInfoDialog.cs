@@ -1,4 +1,5 @@
 ﻿using System;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
 
@@ -31,8 +32,7 @@ public class SimpleLicenseInfoDialog
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Fehler beim Öffnen der Lizenz-Informationen: {ex.Message}", 
-                "Fehler", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError($"Fehler beim Öffnen der Lizenz-Informationen: {ex.Message}", "Fehler", _localizationService);
         }
     }
 }

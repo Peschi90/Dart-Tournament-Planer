@@ -6,7 +6,7 @@
         mc:Ignorable="d"
         Title="PowerScoring - Spieler-Einteilung"
         Height="750" Width="1000"
-        MinHeight="600" MinWidth="800"
+        MinHeight="750" MinWidth="1000"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BackgroundBrush}"
         Foreground="{DynamicResource TextBrush}"
@@ -271,11 +271,12 @@
 
         <!-- Header -->
         <Border Grid.Row="0" 
-                Background="{DynamicResource DialogPrimaryGradient}"
-                CornerRadius="8"
-                Padding="20"
-                Margin="0,0,0,20"
-                Effect="{StaticResource CardShadow}">
+                 Background="{DynamicResource DialogPrimaryGradient}"
+                 CornerRadius="8"
+                 Padding="20"
+                 Margin="0,0,0,20"
+                 MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                 Effect="{StaticResource CardShadow}">
             <StackPanel>
                 <TextBlock Text="🎯 PowerScoring"
                            FontSize="24"
@@ -392,7 +393,7 @@
 
                     <!-- Spielerliste -->
                     <StackPanel Grid.Row="3">
-                        <TextBlock Text="Spielerliste:"
+                        <TextBlock Text="spielerliste:"
                                    FontWeight="SemiBold"
                                    FontSize="14"
                                    Margin="0,0,0,8"/>
@@ -422,14 +423,16 @@
                                                                VerticalAlignment="Center"
                                                                FontSize="13"/>
                                                     <Button Grid.Column="1"
-                                                            Content="X"
-                                                            FontSize="14"
-                                                            FontWeight="Bold"
-                                                            Padding="8,4"
+                                                            Width="32" Height="32"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Padding="4"
                                                             Margin="0"
-                                                            Style="{StaticResource ModernButton}"
                                                             Click="RemovePlayerButton_Click"
-                                                            Tag="{Binding}"/>
+                                                            Tag="{Binding}">
+                                                        <Image Source="/Assets/Images/icons/icon-bin.png"
+                                                               Width="18" Height="18" Stretch="Uniform"/>
+                                                    </Button>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>

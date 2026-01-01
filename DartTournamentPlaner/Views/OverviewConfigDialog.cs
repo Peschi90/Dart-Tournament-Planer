@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using DartTournamentPlaner.Services;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Views;
 
@@ -365,11 +366,11 @@ public partial class OverviewConfigDialog : Window
         // Apply settings without closing
         if (ApplySettings())
         {
-            MessageBox.Show(
+            TournamentDialogHelper.ShowInformation(
                 _localizationService.GetString("SettingsApplied") ?? "Einstellungen wurden angewendet.",
                 _localizationService.GetString("Information") ?? "Information",
-                MessageBoxButton.OK, 
-                MessageBoxImage.Information);
+                _localizationService,
+                this);
         }
     }
 
@@ -387,15 +388,16 @@ public partial class OverviewConfigDialog : Window
     {
         if (!int.TryParse(_subTabIntervalTextBox.Text, out int tabInterval) || tabInterval < 1 || tabInterval > 300)
         {
-            MessageBox.Show(
+            TournamentDialogHelper.ShowWarning(
                 _localizationService.GetString("InvalidTabInterval") ?? 
                 "Ungültiger Wert für Tab-Zeit. Bitte geben Sie eine Zahl zwischen 1 und 300 Sekunden ein.",
                 _localizationService.GetString("Error") ?? "Fehler",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            _subTabIntervalTextBox.Focus();
-            _subTabIntervalTextBox.SelectAll();
-            return false;
-        }
+                _localizationService,
+                this);
+             _subTabIntervalTextBox.Focus();
+             _subTabIntervalTextBox.SelectAll();
+             return false;
+         }
 
         // Set both intervals to the same value for simplicity
         ClassInterval = tabInterval;

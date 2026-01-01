@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
 
@@ -151,9 +152,10 @@ public class SimpleLicenseActivationDialog
         // Final Fallback zu einfacher MessageBox
         System.Diagnostics.Debug.WriteLine("🔄 Using MessageBox as final fallback...");
         var message = BuildSuccessMessage(result);
-        MessageBox.Show(message, 
-            _localizationService.GetString("LicenseActivatedSuccessfully") ?? "Lizenz erfolgreich aktiviert!", 
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        TournamentDialogHelper.ShowInformation(message,
+            _localizationService.GetString("LicenseActivatedSuccessfully") ?? "Lizenz erfolgreich aktiviert!",
+            _localizationService,
+            Application.Current?.MainWindow);
     }
     
     /// <summary>
@@ -183,8 +185,8 @@ public class SimpleLicenseActivationDialog
                 // Format-Validierung
                 if (!IsValidLicenseKeyFormat(normalizedKey))
                 {
-                    MessageBox.Show("Ungültiges Lizenzschlüssel-Format.\n\nErwartet: BDF6-192D-E8BE-4178-B160-C6C3-6018-0FE3\n(8 Blöcke mit je 4 Hex-Zeichen)", 
-                        "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+                    TournamentDialogHelper.ShowError("Ungültiges Lizenzschlüssel-Format.\n\nErwartet: BDF6-192D-E8BE-4178-B160-C6C3-6018-0FE3\n(8 Blöcke mit je 4 Hex-Zeichen)",
+                        "Fehler", _localizationService, owner);
                     return false;
                 }
                 
@@ -213,9 +215,9 @@ public class SimpleLicenseActivationDialog
                                 $"Sie haben noch {result.Data?.RemainingActivations} Aktivierung(en) für diese Lizenz übrig.";
                             
 
-                            MessageBox.Show(warningMessage, warningTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+                            TournamentDialogHelper.ShowWarning(warningMessage, warningTitle, _localizationService, owner);
                         }
-                        MessageBox.Show(successMessage, successTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+                        TournamentDialogHelper.ShowInformation(successMessage, successTitle, _localizationService, owner);
                         return true;
                     }
                     else

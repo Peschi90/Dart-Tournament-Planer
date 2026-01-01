@@ -7,6 +7,7 @@ using System.Text.Json;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services.HubWebSocket;
 using DartTournamentPlaner.Services.HubSync;
+using DartTournamentPlaner.Models.HubSync;
 
 namespace DartTournamentPlaner.Services;
 
@@ -125,6 +126,7 @@ public interface ITournamentHubService
     Task<bool> SubscribeToTournamentAsync(string tournamentId);
     Task<bool> UnsubscribeFromTournamentAsync(string tournamentId);
     Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo);
+    Task<bool> UnregisterPlannerAsync(object? payload = null);
     Task CloseWebSocketAsync();
  
     // ✅ NEU: WebSocket Status
@@ -134,6 +136,7 @@ public interface ITournamentHubService
     event Action<HubMatchUpdateEventArgs> OnMatchResultReceivedFromHub;
     event Action<string, object> OnTournamentUpdateReceived;
     event Action<bool, string> OnConnectionStatusChanged;
+    event Action<HubTournamentSyncPayload> OnTournamentSyncMessageReceived;
     
  // ✨ NEU: Events für Live-Updates
     event Action<HubMatchUpdateEventArgs> OnMatchStarted;
@@ -173,6 +176,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     public event Action<HubMatchUpdateEventArgs>? OnMatchResultReceivedFromHub;
     public event Action<string, object>? OnTournamentUpdateReceived;
     public event Action<bool, string>? OnConnectionStatusChanged;
+    public event Action<HubTournamentSyncPayload>? OnTournamentSyncMessageReceived;
   
     // ✨ NEU: Events für Live-Updates (delegiert an WebSocketMessageHandler)
     public event Action<HubMatchUpdateEventArgs>? OnMatchStarted
@@ -222,6 +226,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         _connectionManager.ConnectionStatusChanged += OnConnectionStatusChangedInternal;
         _messageHandler.MatchResultReceived += OnMatchResultReceivedInternal;
         _messageHandler.TournamentUpdateReceived += OnTournamentUpdateReceivedInternal;
+        _messageHandler.TournamentSyncMessageReceived += OnTournamentSyncMessageReceivedInternal;
 
         DebugLog($"🎯 TournamentHubService initialized with modular architecture", "SUCCESS");
         DebugLog($"🔗 Hub URL: {HubUrl}", "INFO");
@@ -331,6 +336,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         DebugLog($"📋 [HUB-SERVICE] Registering as planner for: {tournamentId}", "WEBSOCKET");
         return await _connectionManager.RegisterAsPlannerAsync(tournamentId, plannerInfo);
+    }
+
+    public async Task<bool> UnregisterPlannerAsync(object? payload = null)
+    {
+        DebugLog("📤 [HUB-SERVICE] Unregistering planner client...", "WEBSOCKET");
+        return await _connectionManager.UnregisterPlannerAsync(payload);
     }
 
     /// <summary>
@@ -472,6 +483,12 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         DebugLog($"📥 [HUB-SERVICE] Tournament update received for: {tournamentId}", "TOURNAMENT");
         OnTournamentUpdateReceived?.Invoke(tournamentId, updateData);
+    }
+
+    private void OnTournamentSyncMessageReceivedInternal(HubTournamentSyncPayload payload)
+    {
+        DebugLog($"📦 [HUB-SERVICE] Tournament sync payload received (Tournament: {payload.TournamentName ?? payload.TournamentId ?? "unknown"})", "SYNC");
+        OnTournamentSyncMessageReceived?.Invoke(payload);
     }
 
     #endregion

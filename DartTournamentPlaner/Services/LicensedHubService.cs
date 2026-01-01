@@ -1,6 +1,8 @@
 ﻿using DartTournamentPlaner.Controls;
 using DartTournamentPlaner.Views;  // NEU: Für die neuen Dialog-Views
 using DartTournamentPlaner.Services.License;
+using DartTournamentPlaner.Models;
+using DartTournamentPlaner.Models.HubSync;
 using System;
 using System.Windows;
 
@@ -66,6 +68,12 @@ public class LicensedHubService
     {
         add => _innerHubService.PowerScoringMessageReceived += value;
         remove => _innerHubService.PowerScoringMessageReceived -= value;
+    }
+
+    public event Action<HubTournamentSyncPayload>? TournamentSyncPayloadReceived
+    {
+        add => _innerHubService.TournamentSyncPayloadReceived += value;
+        remove => _innerHubService.TournamentSyncPayloadReceived -= value;
     }
 
     public LicensedHubService(
@@ -298,4 +306,20 @@ else
     {
         _innerHubService.UpdateHubUrl(newHubUrl);
     }
-}
+
+    /// <summary>
+    /// Meldet den Planner (aktueller Benutzer) beim Hub an, ohne ein Turnier zu registrieren.
+    /// </summary>
+    public Task RegisterPlannerPresenceAsync(AuthenticatedUser? user)
+    {
+        return _innerHubService.RegisterPlannerPresenceAsync(user);
+    }
+
+    public Task UnregisterPlannerPresenceAsync(string reason = "user-logout")
+    {
+        return _innerHubService.UnregisterPlannerPresenceAsync(reason);
+    }
+
+    public IReadOnlyList<HubTournamentSyncPayload> GetStoredTournamentSyncMessages() => _innerHubService.GetStoredTournamentSyncMessages();
+    public HubTournamentSyncPayload? GetLastTournamentSyncPayload() => _innerHubService.GetLastTournamentSyncPayload();
+ }

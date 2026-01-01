@@ -13,6 +13,7 @@ using System.IO;
 using System.Drawing.Imaging;
 using System.Diagnostics;
 using System.Text.Json;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Views;
 
@@ -528,21 +529,21 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
             if (!validationResult.IsValid)
             {
                 // Zeige detaillierte Fehlermeldung und verhindere Speicherung
-                MessageBox.Show(
-                    $"{_localizationService.GetString("SaveBlocked")}\n\n{validationResult.ErrorMessage}", 
-                    _localizationService.GetString("ValidationError"), 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Error);
+                TournamentDialogHelper.ShowError(
+                    $"{_localizationService.GetString("SaveBlocked")}\n\n{validationResult.ErrorMessage}",
+                    _localizationService.GetString("ValidationError"),
+                    _localizationService,
+                    this);
                 return;
             }
 
             if (validationResult.Winner == null)
             {
-                MessageBox.Show(
-                    _localizationService.GetString("NoWinnerFound"), 
-                    _localizationService.GetString("ValidationError"), 
-                    MessageBoxButton.OK, 
-                    MessageBoxImage.Warning);
+                TournamentDialogHelper.ShowWarning(
+                    _localizationService.GetString("NoWinnerFound"),
+                    _localizationService.GetString("ValidationError"),
+                    _localizationService,
+                    this);
                 return;
             }
 
@@ -564,7 +565,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving result: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError($"Error saving result: {ex.Message}", "Error", _localizationService, this);
         }
     }
 
@@ -770,11 +771,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
-                $"Fehler beim Öffnen der Dart-Scoring Seite:\n{ex.Message}",
-                "Fehler",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError($"Fehler beim Öffnen der Dart-Scoring Seite:\n{ex.Message}", "Fehler", _localizationService, this);
                 
             System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error opening browser: {ex.Message}");
         }
@@ -804,11 +801,7 @@ public partial class MatchResultWindow : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show(
-                $"Fehler beim Kopieren der URL:\n{ex.Message}",
-                "Fehler",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError($"Fehler beim Kopieren der URL:\n{ex.Message}", "Fehler", _localizationService, this);
                 
             System.Diagnostics.Debug.WriteLine($"❌ [MatchResultWindow] Error copying URL: {ex.Message}");
         }

@@ -17,6 +17,7 @@ using System.Text.Json;
 using DartTournamentPlaner.Services.License;
 using DartTournamentPlaner.Views.License;
 using DartTournamentPlaner.Services.PowerScore;
+using DartTournamentPlaner.Models.HubSync;
 
 namespace DartTournamentPlaner;
 
@@ -43,6 +44,7 @@ public partial class MainWindow : Window
     public ITournamentHubService? TournamentHubService => _serviceInitializer.HubService.TournamentHubService;
     public string GetCurrentTournamentId() => _serviceInitializer.HubService.GetCurrentTournamentId();
     public bool IsRegisteredWithHub => _serviceInitializer.HubService.IsRegisteredWithHub;
+    internal MainWindowServiceInitializer Services => _serviceInitializer;
 
     /// <summary>
     /// Konstruktor des Hauptfensters - stark vereinfacht durch Service-Delegation
@@ -74,6 +76,9 @@ public partial class MainWindow : Window
         InitializeServices();
         InitializeAutoSave();
         InitializeApiService();
+
+        _serviceInitializer.OnTournamentSyncPayloadReceived += OnTournamentSyncPayloadReceived;
+        UpdateHubSyncBadge();
 
         UpdateTranslations();
         LoadData();
@@ -594,4 +599,59 @@ public partial class MainWindow : Window
     {
 
     }
+
+    #region Hub Sync Bell
+    private int _hubSyncUnreadCount = 0;
+
+    private void OnTournamentSyncPayloadReceived(Models.HubSync.HubTournamentSyncPayload payload)
+    {
+        _hubSyncUnreadCount++;
+        UpdateHubSyncBadge();
+    }
+
+    private void UpdateHubSyncBadge()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (HubSyncBadge == null || HubSyncBellImage == null) return;
+
+            if (_hubSyncUnreadCount <= 0)
+            {
+                HubSyncBadge.Visibility = Visibility.Collapsed;
+                HubSyncBellImage.Opacity = 0.4;
+            }
+            else
+            {
+                HubSyncBadge.Visibility = Visibility.Visible;
+                HubSyncBellImage.Opacity = 1.0;
+            }
+        });
+    }
+
+    private void HubSyncBell_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var payload = _serviceInitializer.GetLastTournamentSyncPayload();
+            if (payload == null)
+            {
+                MessageBox.Show("Keine Hub Sync Nachrichten vorhanden.", "Hub Sync", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new HubTournamentSyncDialog(payload)
+            {
+                Owner = this
+            };
+            dialog.Show();
+
+            _hubSyncUnreadCount = 0;
+            UpdateHubSyncBadge();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"❌ HubSyncBell_Click error: {ex.Message}");
+        }
+    }
+    #endregion
 }

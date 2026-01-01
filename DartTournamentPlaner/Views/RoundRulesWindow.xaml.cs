@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services;
 
@@ -337,7 +338,7 @@ public partial class RoundRulesWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error saving round rules: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError($"Error saving round rules: {ex.Message}", "Error", _localizationService, this);
         }
     }
 
@@ -349,13 +350,15 @@ public partial class RoundRulesWindow : Window
 
     private void ResetToDefaultButton_Click(object sender, RoutedEventArgs e)
     {
-        var result = MessageBox.Show(
-            _localizationService.GetString("ResetToDefault") + "?",
+        var result = TournamentDialogHelper.ShowConfirmation(
+            this,
             _localizationService.GetString("ResetToDefault"),
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
+            _localizationService.GetString("ResetToDefault") + "?",
+            "??",
+            true,
+            _localizationService);
 
-        if (result == MessageBoxResult.Yes)
+        if (result)
         {
             _gameRules.ResetKnockoutRulesToDefault();
             _gameRules.ResetRoundRobinFinalsRulesToDefault();

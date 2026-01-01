@@ -1,0 +1,158 @@
+<Window x:Class="DartTournamentPlaner.Views.HubSyncPlayerAssignmentDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Spieler zuweisen" Height="560" Width="720"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        MouseDown="Window_MouseDown">
+    <Window.Resources>
+        <DropShadowEffect x:Key="CardShadow" Color="Black" Direction="270" ShadowDepth="4" BlurRadius="16" Opacity="0.1"/>
+        <DropShadowEffect x:Key="HeaderShadow" Color="Black" Direction="270" ShadowDepth="2" BlurRadius="12" Opacity="0.1"/>
+
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource DialogPrimaryGradient}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}" Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource DialogInfoGradient}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}" Effect="{StaticResource CardShadow}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{DynamicResource HoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource MainBackgroundBrush}" CornerRadius="16" Effect="{StaticResource HeaderShadow}" Margin="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource DialogInfoGradient}"
+                    CornerRadius="16,16,0,0"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="24,16">
+                <StackPanel>
+                    <TextBlock Text="Spielerzuweisung" FontSize="22" FontWeight="Bold"/>
+                    <TextBlock Text="Ordnen Sie die importierten Spieler Klassen und Gruppen zu." Foreground="{DynamicResource SecondaryTextBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content -->
+            <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" CornerRadius="0,0,0,0">
+                <ScrollViewer Padding="18" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Border Style="{StaticResource CardStyle}">
+                            <DataGrid x:Name="PlayersGrid" AutoGenerateColumns="False" HeadersVisibility="Column"
+                                      ItemsSource="{Binding Players}" CanUserAddRows="False"
+                                      Background="{DynamicResource BackgroundBrush}" BorderThickness="0"
+                                      RowBackground="{DynamicResource SurfaceBrush}" AlternationCount="2"
+                                      GridLinesVisibility="Horizontal">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" Width="2*"/>
+                                    <DataGridTextColumn Header="Average" Binding="{Binding Average}" IsReadOnly="True" Width="80"/>
+                                    <DataGridComboBoxColumn Header="Klasse" SelectedItemBinding="{Binding SelectedClass}" Width="*"
+                                                             DisplayMemberPath=".">
+                                        <DataGridComboBoxColumn.ElementStyle>
+                                            <Style TargetType="ComboBox">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                                                <Setter Property="Padding" Value="4"/>
+                                                <Setter Property="ItemsSource" Value="{Binding ClassOptions}"/>
+                                            </Style>
+                                        </DataGridComboBoxColumn.ElementStyle>
+                                        <DataGridComboBoxColumn.EditingElementStyle>
+                                            <Style TargetType="ComboBox">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+                                                <Setter Property="Padding" Value="4"/>
+                                                <Setter Property="IsEditable" Value="False"/>
+                                                <Setter Property="ItemsSource" Value="{Binding ClassOptions}"/>
+                                            </Style>
+                                        </DataGridComboBoxColumn.EditingElementStyle>
+                                    </DataGridComboBoxColumn>
+                                    <DataGridTextColumn Header="Gruppe" Binding="{Binding SelectedGroup}" Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Übersicht pro Klasse/Gruppe" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <DataGrid ItemsSource="{Binding Summary}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserResizeRows="False"
+                                          HeadersVisibility="Column" IsReadOnly="True" Background="{DynamicResource BackgroundBrush}" BorderThickness="0"
+                                          RowBackground="{DynamicResource SurfaceBrush}" AlternationCount="2" GridLinesVisibility="Horizontal">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Klasse" Binding="{Binding Class}" Width="*"/>
+                                        <DataGridTextColumn Header="Gruppe" Binding="{Binding Group}" Width="*"/>
+                                        <DataGridTextColumn Header="Spieler" Binding="{Binding Count}" Width="80"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}" CornerRadius="0,0,16,16" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Abbrechen" Width="120" Style="{StaticResource SecondaryButton}" Click="Cancel_Click"/>
+                    <Button Content="Uebernehmen" Width="140" Style="{StaticResource PrimaryButton}" Click="Confirm_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

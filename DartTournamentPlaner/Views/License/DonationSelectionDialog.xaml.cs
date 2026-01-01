@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 
 namespace DartTournamentPlaner.Views.License;
@@ -213,6 +214,7 @@ public partial class DonationSelectionDialog : Window
                     "mit neuen Features weiterzuentwickeln.";
                 
                 //MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+                //TournamentDialogHelper.ShowInformation(message, title, _localizationService, this);
                 
                 DialogResult = true;
                 Close();
@@ -224,7 +226,7 @@ public partial class DonationSelectionDialog : Window
             var message = $"Fehler beim Öffnen von PayPal:\n\n{ex.Message}\n\n" +
                          "Sie können auch direkt spenden unter:\nhttps://paypal.me/darttournamentplanner";
             
-            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+            TournamentDialogHelper.ShowError(message, title, _localizationService, this);
         }
     }
 
@@ -259,9 +261,9 @@ public partial class DonationSelectionDialog : Window
             var message = $"PayPal konnte nicht automatisch geöffnet werden.\n\n" +
                          $"Bitte öffnen Sie diesen Link manuell:\n\n{paypalUrl}";
             
-            MessageBox.Show(message, "PayPal Link", MessageBoxButton.OK, MessageBoxImage.Information);
-            
-            // URL in Zwischenablage kopieren
+            TournamentDialogHelper.ShowInformation(message, "PayPal Link", null, null);
+             
+             // URL in Zwischenablage kopieren
             try
             {
                 Clipboard.SetText(paypalUrl);

@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Animation;
+using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Controls;
 
@@ -768,13 +769,13 @@ public partial class UpdateDialog : Window
             System.Diagnostics.Debug.WriteLine($"UpdateDialog: Error opening download page: {ex.Message}");
             
             // Fallback: Zeige URL in einer Nachricht
-            MessageBox.Show(
+            TournamentDialogHelper.ShowInformation(
                 $"Bitte besuchen Sie die folgende URL um das Update herunterzuladen:\n\n{_updateInfo.DownloadUrl}",
                 "Download-Link",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
-        }
-    }
+                _localizationService,
+                this);
+         }
+     }
 
     /// <summary>
     /// Erstellt einen modernen Button-Style

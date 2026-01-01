@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Data;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Views.License;
 
@@ -52,8 +53,10 @@ public partial class LicenseActivationDialog : Window
         Title = "Lizenz aktivieren";
         Width = 520;
         Height = 500;
+        MinWidth = 520;
+        MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        ResizeMode = ResizeMode.NoResize;
+        ResizeMode = ResizeMode.CanResize;
         ShowInTaskbar = false;
         Background = Brushes.Transparent;
         AllowsTransparency = true;
@@ -626,7 +629,7 @@ public partial class LicenseActivationDialog : Window
             // Fallback zu einfacher MessageBox
             System.Diagnostics.Debug.WriteLine("🔄 Falling back to MessageBox...");
             var message = BuildSuccessMessage(result);
-            MessageBox.Show(message, "Lizenz erfolgreich aktiviert", MessageBoxButton.OK, MessageBoxImage.Information);
+            TournamentDialogHelper.ShowInformation(message, "Lizenz erfolgreich aktiviert", _localizationService, this);
             
             try
             {
@@ -644,10 +647,7 @@ public partial class LicenseActivationDialog : Window
 
     private void ShowError(string message)
     {
-        MessageBox.Show(message, 
-            _localizationService.GetString("Error") ?? "Fehler", 
-            MessageBoxButton.OK, 
-            MessageBoxImage.Error);
+        TournamentDialogHelper.ShowError(message, _localizationService.GetString("Error") ?? "Fehler", _localizationService, this);
     }
 
     private void SetProgressState(bool isActive)
@@ -751,9 +751,18 @@ public partial class LicenseActivationDialog : Window
         Close();
     }
 
-    /// <summary>
-    /// Zeigt den Dialog als Modal Window an
-    /// </summary>
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonDown(e);
+        if (e.ButtonState == MouseButtonState.Pressed)
+        {
+            DragMove();
+        }
+    }
+ 
+     /// <summary>
+     /// Zeigt den Dialog als Modal Window an
+     /// </summary>
     public static async Task<bool> ShowDialogAsync(Window owner, LocalizationService localizationService, LicenseManager licenseManager)
     {
         try

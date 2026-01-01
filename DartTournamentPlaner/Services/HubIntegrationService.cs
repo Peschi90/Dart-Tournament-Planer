@@ -2,10 +2,14 @@
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Threading;
+using System.Windows;
 using System.Reflection;
 using System.Text.Json;
 using DartTournamentPlaner.Models;
+using DartTournamentPlaner.Models.HubSync;
 using DartTournamentPlaner.Views;
+using DartTournamentPlaner.Services.HubSync;
+using DartTournamentPlaner.Services.License;
 
 namespace DartTournamentPlaner.Services;
 
@@ -42,6 +46,10 @@ public class HubIntegrationService : IDisposable
     private readonly LocalizationService _localizationService;
     private readonly IApiIntegrationService _apiService;
     private readonly Dispatcher _dispatcher;
+    private readonly LicenseManager? _licenseManager;
+    private readonly HubTournamentSyncStorage _tournamentSyncStorage;
+    private AuthenticatedUser? _lastPlannerUser;
+    private bool _plannerRegistered;
     
     // Hub Status
     private DispatcherTimer _hubHeartbeatTimer;
@@ -60,7 +68,8 @@ public class HubIntegrationService : IDisposable
     public event Action<bool>? HubStatusChanged;
     public event Action<HubConnectionState>? HubConnectionStateChanged; // ✅ NEW: Detailed state event
     public event Action? DataChanged;
-    
+    public event Action<HubTournamentSyncPayload>? TournamentSyncPayloadReceived;
+
     // ✅ NEW: Event fired when tournament needs to be re-synced after reconnect
     public event Func<Task>? TournamentNeedsResync;
     
@@ -71,12 +80,15 @@ public class HubIntegrationService : IDisposable
         ConfigService configService,
         LocalizationService localizationService,
         IApiIntegrationService apiService,
-        Dispatcher dispatcher)
+        Dispatcher dispatcher,
+        LicenseManager? licenseManager = null)
     {
         _configService = configService;
         _localizationService = localizationService;
         _apiService = apiService;
         _dispatcher = dispatcher;
+        _licenseManager = licenseManager;
+        _tournamentSyncStorage = new HubTournamentSyncStorage();
         
         _tournamentHubService = new TournamentHubService(_configService);
         InitializeHubDebugConsole();
@@ -139,6 +151,7 @@ public class HubIntegrationService : IDisposable
             {
                 _tournamentHubService.OnMatchResultReceivedFromHub += OnHubMatchResultReceived;
                 _tournamentHubService.OnTournamentUpdateReceived += OnHubTournamentUpdateReceived;
+                _tournamentHubService.OnTournamentSyncMessageReceived += OnHubTournamentSyncMessageReceived;
                 _tournamentHubService.OnConnectionStatusChanged += OnHubConnectionStatusChanged;
                 
                 // ✅ CRITICAL FIX: Subscribe to NEW live-update events!
@@ -155,6 +168,7 @@ public class HubIntegrationService : IDisposable
                 _globalHubDebugWindow?.AddDebugMessage("✅ WebSocket-Verbindung hergestellt", "SUCCESS");
                 _globalHubDebugWindow?.AddDebugMessage("✅ Live-Update Events subscribed", "SUCCESS");
                 _globalHubDebugWindow?.UpdateStatus("WebSocket-Verbindung erfolgreich hergestellt");
+                _globalHubDebugWindow?.AddDebugMessage("✅ Hub Sync Listener aktiv", "SUCCESS");
                 
                 // ✅ CRITICAL FIX: Update connection status in debug window immediately
                 _globalHubDebugWindow?.UpdateConnectionStatus(true, "WebSocket Connected");
@@ -164,6 +178,12 @@ public class HubIntegrationService : IDisposable
                 
                 // ✅ CRITICAL FIX: Notify about state change (WebSocket Ready)
                 NotifyConnectionStateChanged();
+                
+                // ✅ NEW: Falls bereits ein Benutzer eingeloggt ist, Planner-Registration durchführen
+                if (_lastPlannerUser != null)
+                {
+                    _ = RegisterPlannerPresenceAsync(_lastPlannerUser);
+                }
             }
             else
             {
@@ -472,6 +492,9 @@ public class HubIntegrationService : IDisposable
     public HubConnectionState CurrentConnectionState => GetCurrentConnectionState();
     public bool IsWebSocketConnected => _isWebSocketConnected;
 
+    public IReadOnlyList<HubTournamentSyncPayload> GetStoredTournamentSyncMessages() => _tournamentSyncStorage.GetMessages();
+    public HubTournamentSyncPayload? GetLastTournamentSyncPayload() => _tournamentSyncStorage.GetMessages().FirstOrDefault();
+
     // Private Event Handlers
 
     private void OnHubMatchResultReceived(HubMatchUpdateEventArgs e)
@@ -537,159 +560,352 @@ public class HubIntegrationService : IDisposable
         });
     }
 
-    private void OnHubConnectionStatusChanged(bool isConnected, string status)
+    private void OnHubTournamentSyncMessageReceived(HubTournamentSyncPayload payload)
     {
         _dispatcher.Invoke(() =>
         {
-            // ✅ CRITICAL FIX: Track WebSocket connection state separately
-            var wasWebSocketConnected = _isWebSocketConnected;
-            _isWebSocketConnected = isConnected;
-            
-            _globalHubDebugWindow?.AddDebugMessage($"🔌 Hub-Verbindungsstatus geändert: {isConnected} - {status}", "WEBSOCKET");
-            _globalHubDebugWindow?.UpdateConnectionStatus(isConnected, status);
-            
-            System.Diagnostics.Debug.WriteLine($"🔔 [HUB-CONNECTION] WebSocket status changed:");
-            System.Diagnostics.Debug.WriteLine($"   Was Connected: {wasWebSocketConnected}");
-            System.Diagnostics.Debug.WriteLine($"   Now Connected: {_isWebSocketConnected}");
-            System.Diagnostics.Debug.WriteLine($"   Tournament Registered: {_isRegisteredWithHub}");
-            System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_currentTournamentId ?? "null"}");
-            
-            // ✅ FIX: Notify about state change (this will calculate correct state based on WebSocket + Registration)
-            NotifyConnectionStateChanged();
-            
-            // ✅ CRITICAL FIX: Auto-Reconnect, Re-Register und Re-Subscribe
-            if (isConnected && !wasWebSocketConnected)
+            try
             {
-                _globalHubDebugWindow?.AddDebugMessage($"🔄 WebSocket wiederhergestellt!", "SUCCESS");
-                System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] WebSocket reconnected!");
-                
-                // ✅ FIX: Wenn Tournament registriert war, RE-REGISTER und RE-SUBSCRIBE
-                if (_isRegisteredWithHub && !string.IsNullOrEmpty(_currentTournamentId))
+                var licenseKeyMatch = LicenseKeyMatches(payload.LicenseKey);
+
+                _globalHubDebugWindow?.AddDebugMessage($"📦 Hub Sync Nachricht empfangen für Turnier: {payload.TournamentName ?? payload.TournamentId ?? "Unbekannt"}", "SYNC");
+                _globalHubDebugWindow?.AddDebugMessage($"🔑 Lizenz im Payload: {payload.LicenseKey ?? "<none>"}", "SYNC");
+                _globalHubDebugWindow?.AddDebugMessage($"✅ Lizenz-Match: {licenseKeyMatch}", licenseKeyMatch ? "SUCCESS" : "WARNING");
+
+                if (!licenseKeyMatch)
                 {
-                    _globalHubDebugWindow?.AddDebugMessage($"🔄 Starting full tournament re-registration after reconnect...", "SYNC");
-                    System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Starting full tournament re-registration: {_currentTournamentId}");
-                    
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await Task.Delay(2000); // Warte 2 Sekunden damit WebSocket stabil ist
-                            
-                            if (!_isWebSocketConnected)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] WebSocket disconnected again, aborting re-registration");
-                                return;
-                            }
-                            
-                            var savedTournamentId = _currentTournamentId;
-                            
-                            if (string.IsNullOrEmpty(savedTournamentId))
-                            {
-                                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] Tournament ID lost, cannot re-register");
-                                return;
-                            }
-                            
-                            // ✅ STEP 1: Re-register tournament with Hub HTTP API
-                            System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 1: Re-registering tournament via HTTP API...");
-                            _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 1: Re-registering tournament {savedTournamentId} via HTTP API", "TOURNAMENT");
-                            
-                            var reRegisterSuccess = await _tournamentHubService.RegisterWithHubAsync(
-                                savedTournamentId,
-                                $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
-                                "Re-registered after reconnect"
-                            );
-                            
-                            if (!reRegisterSuccess)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"❌ [HUB-CONNECTION] HTTP re-registration failed!");
-                                _globalHubDebugWindow?.AddDebugMessage($"❌ HTTP re-registration failed", "ERROR");
-                                return;
-                            }
-                            
-                            System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] HTTP re-registration successful");
-                            _globalHubDebugWindow?.AddDebugMessage($"✅ HTTP re-registration successful", "SUCCESS");
-                            
-                            // ✅ STEP 2: Re-subscribe via WebSocket
-                            System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 2: Re-subscribing via WebSocket...");
-                            _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 2: Re-subscribing via WebSocket", "WEBSOCKET");
-                            
-                            await SubscribeToTournamentUpdates(savedTournamentId);
-                            
-                            // ✅ STEP 3: Sync tournament data (fire event for MainWindow to handle)
-                            System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 3: Syncing tournament data...");
-                            _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 3: Syncing tournament data", "SYNC");
-                            
-                            // Fire the resync event and wait for it to complete
-                            if (TournamentNeedsResync != null)
-                            {
-                                try
-                                {
-                                    await TournamentNeedsResync.Invoke();
-                                    System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] Tournament data sync completed");
-                                    _globalHubDebugWindow?.AddDebugMessage($"✅ Tournament data sync completed", "SUCCESS");
-                                }
-                                catch (Exception syncEx)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] Tournament data sync failed: {syncEx.Message}");
-                                    _globalHubDebugWindow?.AddDebugMessage($"⚠️ Tournament data sync failed: {syncEx.Message}", "WARNING");
-                                }
-                            }
-                            else
-                            {
-                                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] No TournamentNeedsResync handler registered");
-                                _globalHubDebugWindow?.AddDebugMessage($"⚠️ No sync handler registered", "WARNING");
-                            }
-                            
-                            // ✅ STEP 4: Update UI
-                            _dispatcher.Invoke(() =>
-                            {
-                                _globalHubDebugWindow?.AddDebugMessage($"✅ Full re-registration complete! Tournament fully reconnected", "SUCCESS");
-                                System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] Full re-registration complete!");
-                                
-                                // Restart timers
-                                _hubHeartbeatTimer?.Start();
-                                _hubSyncTimer?.Start();
-                                
-                                NotifyConnectionStateChanged();
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"❌ [HUB-CONNECTION] Error in re-registration: {ex.Message}");
-                            _globalHubDebugWindow?.AddDebugMessage($"❌ Error in re-registration: {ex.Message}", "ERROR");
-                        }
-                    });
+                    _globalHubDebugWindow?.AddDebugMessage("⚠️ Sync Nachricht ignoriert, Lizenz stimmt nicht überein", "WARNING");
+                    return;
                 }
-                else
-                {
-                    _globalHubDebugWindow?.AddDebugMessage($"ℹ️ WebSocket verbunden, aber kein Tournament registriert", "INFO");
-                    System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] WebSocket ready but no tournament registered");
-                }
+
+                _tournamentSyncStorage.AddMessage(payload);
+
+                TournamentSyncPayloadReceived?.Invoke(payload);
+
+                ShowTournamentSyncDialog(payload);
             }
-            else if (!isConnected && wasWebSocketConnected)
+            catch (Exception ex)
             {
-                // ✅ FIX: Bei Disconnect, stoppe Timer aber behalte Registration-Status
-                _hubHeartbeatTimer?.Stop();
-                _hubSyncTimer?.Stop();
-                
-                _globalHubDebugWindow?.AddDebugMessage($"⚠️ WebSocket-Verbindung verloren! Tournament bleibt registriert für Auto-Reconnect", "WARNING");
-                System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] WebSocket connection lost!");
-                
-                if (_isRegisteredWithHub)
-                {
-                    _globalHubDebugWindow?.AddDebugMessage($"ℹ️ Tournament-ID {_currentTournamentId} bleibt für Auto-Reconnect gespeichert", "INFO");
-                    System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] Tournament ID preserved for auto-reconnect: {_currentTournamentId}");
-                }
-                
-                // ✅ REMOVED: Don't trigger reconnect here, WebSocketConnectionManager handles it
-                // The reconnect is already scheduled in ListenForMessages finally block
-                // and in InitializeAsync after failed connection attempts
-                _globalHubDebugWindow?.AddDebugMessage($"ℹ️ Automatic reconnect is handled by WebSocketConnectionManager", "INFO");
-                System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] WebSocketConnectionManager will handle reconnect");
+                System.Diagnostics.Debug.WriteLine($"❌ [HUB-SYNC] Error handling sync payload: {ex.Message}");
+                _globalHubDebugWindow?.AddDebugMessage($"❌ Fehler beim Verarbeiten der Hub-Sync-Nachricht: {ex.Message}", "ERROR");
             }
         });
     }
 
+    /// <summary>
+    /// Meldet den Planner-Client beim Hub an (nur Präsenz, kein Turnier-Register).
+    /// </summary>
+    public async Task RegisterPlannerPresenceAsync(AuthenticatedUser? user)
+    {
+        try
+        {
+            _lastPlannerUser = user;
+
+            if (user == null)
+            {
+                _globalHubDebugWindow?.AddDebugMessage("ℹ️ Kein Benutzer eingeloggt – Planner-Registration wird übersprungen", "INFO");
+                _plannerRegistered = false;
+                await UnregisterPlannerPresenceAsync("user-logout");
+                return;
+            }
+
+            if (!_tournamentHubService.IsWebSocketConnected)
+            {
+                _globalHubDebugWindow?.AddDebugMessage("🔌 WebSocket nicht verbunden – versuche Initialisierung für Planner-Registration", "WEBSOCKET");
+                var initSuccess = await _tournamentHubService.InitializeWebSocketAsync();
+                if (!initSuccess)
+                {
+                    _globalHubDebugWindow?.AddDebugMessage("❌ Planner-Registration abgebrochen: WebSocket konnte nicht aufgebaut werden", "ERROR");
+                    _plannerRegistered = false;
+                    return;
+                }
+            }
+
+            var plannerInfo = new
+            {
+                userId = user.Id,
+                username = user.Username,
+                name = user.Name,
+                vorname = user.Vorname,
+                email = user.Email,
+                licenseKey = user.LicenseKey,
+                sessionToken = user.SessionToken,
+                clientType = "Tournament Planner",
+                clientVersion = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0",
+                machine = Environment.MachineName,
+                connectedAt = DateTime.UtcNow,
+                plannerOnly = true
+            };
+
+            var tournamentId = _currentTournamentId ?? string.Empty; // optional laut Spec
+
+            _globalHubDebugWindow?.AddDebugMessage($"📡 Registriere Planner-Client (User: {user.Username}) beim Hub...", "WEBSOCKET");
+            var success = await _tournamentHubService.RegisterAsPlannerAsync(tournamentId, plannerInfo);
+
+            if (success)
+            {
+                _plannerRegistered = true;
+                _globalHubDebugWindow?.AddDebugMessage("✅ Planner-Registration erfolgreich (ohne Turnier)", "SUCCESS");
+            }
+            else
+            {
+                _plannerRegistered = false;
+                _globalHubDebugWindow?.AddDebugMessage("❌ Planner-Registration fehlgeschlagen", "ERROR");
+            }
+        }
+        catch (Exception ex)
+        {
+            _plannerRegistered = false;
+            System.Diagnostics.Debug.WriteLine($"❌ Planner registration error: {ex.Message}");
+            _globalHubDebugWindow?.AddDebugMessage($"❌ Fehler bei Planner-Registration: {ex.Message}", "ERROR");
+        }
+    }
+    
+    /// <summary>
+    /// Meldet den Planner-Client explizit ab (z. B. bei Logout).
+    /// </summary>
+    public async Task UnregisterPlannerPresenceAsync(string reason = "user-logout")
+    {
+        try
+        {
+            if (!_tournamentHubService.IsWebSocketConnected)
+            {
+                _plannerRegistered = false;
+                _globalHubDebugWindow?.AddDebugMessage("ℹ️ WebSocket nicht verbunden – Unregister wird übersprungen", "INFO");
+                return;
+            }
+
+            _globalHubDebugWindow?.AddDebugMessage($"\ud83d\udce4 Sende unregister-planner (Reason: {reason})", "WEBSOCKET");
+            var success = await _tournamentHubService.UnregisterPlannerAsync(new { reason });
+
+            _plannerRegistered = false;
+            _lastPlannerUser = null;
+
+            if (success)
+            {
+                _globalHubDebugWindow?.AddDebugMessage("✅ Planner abgemeldet", "SUCCESS");
+            }
+            else
+            {
+                _globalHubDebugWindow?.AddDebugMessage("⚠️ Planner-Abmeldung fehlgeschlagen", "WARNING");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Planner unregister error: {ex.Message}");
+            _globalHubDebugWindow?.AddDebugMessage($"❌ Fehler bei Planner-Abmeldung: {ex.Message}", "ERROR");
+        }
+    }
+
+    private void ShowTournamentSyncDialog(HubTournamentSyncPayload payload)
+    {
+        try
+        {
+            var dialog = new HubTournamentSyncDialog(payload)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            dialog.Show();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [HUB-SYNC] Error showing sync dialog: {ex.Message}");
+            _globalHubDebugWindow?.AddDebugMessage($"❌ Fehler beim Anzeigen des Sync-Dialogs: {ex.Message}", "ERROR");
+        }
+    }
+
+    private bool LicenseKeyMatches(string? incomingLicenseKey)
+    {
+        try
+        {
+            var storedKey = _licenseManager?.GetStoredLicenseKey();
+
+            if (string.IsNullOrWhiteSpace(storedKey) || string.IsNullOrWhiteSpace(incomingLicenseKey))
+            {
+                return false;
+            }
+
+            return NormalizeLicenseKey(storedKey) == NormalizeLicenseKey(incomingLicenseKey);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private string NormalizeLicenseKey(string? key)
+    {
+        return key?.Replace("-", string.Empty)
+                   .Replace(" ", string.Empty)
+                   .Trim()
+                   .ToUpperInvariant() ?? string.Empty;
+    }
+ 
+     private void OnHubConnectionStatusChanged(bool isConnected, string status)
+     {
+         _dispatcher.Invoke(() =>
+         {
+             // ✅ CRITICAL FIX: Track WebSocket connection state separately
+             var wasWebSocketConnected = _isWebSocketConnected;
+             _isWebSocketConnected = isConnected;
+ 
+             _globalHubDebugWindow?.AddDebugMessage($"🔌 Hub-Verbindungsstatus geändert: {isConnected} - {status}", "WEBSOCKET");
+             _globalHubDebugWindow?.UpdateConnectionStatus(isConnected, status);
+             
+             if (isConnected)
+             {
+                 _globalHubDebugWindow?.AddDebugMessage("🛰️ Hub Sync Listener aktiv (WebSocket verbunden)", "SYNC");
+             }
+ 
+             System.Diagnostics.Debug.WriteLine($"🔔 [HUB-CONNECTION] WebSocket status changed:");
+             System.Diagnostics.Debug.WriteLine($"   Was Connected: {wasWebSocketConnected}");
+             System.Diagnostics.Debug.WriteLine($"   Now Connected: {_isWebSocketConnected}");
+             System.Diagnostics.Debug.WriteLine($"   Tournament Registered: {_isRegisteredWithHub}");
+             System.Diagnostics.Debug.WriteLine($"   Tournament ID: {_currentTournamentId ?? "null"}");
+ 
+             // ✅ FIX: Notify about state change (this will calculate correct state based on WebSocket + Registration)
+             NotifyConnectionStateChanged();
+ 
+             // ✅ CRITICAL FIX: Auto-Reconnect, Re-Register und Re-Subscribe
+             if (isConnected && !wasWebSocketConnected)
+             {
+                 _globalHubDebugWindow?.AddDebugMessage($"🔄 WebSocket wiederhergestellt!", "SUCCESS");
+                 System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] WebSocket reconnected!");
+ 
+                 // ✅ FIX: Wenn Tournament registriert war, RE-REGISTER und RE-SUBSCRIBE
+                 if (_isRegisteredWithHub && !string.IsNullOrEmpty(_currentTournamentId))
+                 {
+                     _globalHubDebugWindow?.AddDebugMessage($"🔄 Starting full tournament re-registration after reconnect...", "SYNC");
+                     System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Starting full tournament re-registration: {_currentTournamentId}");
+ 
+                     Task.Run(async () =>
+                     {
+                         try
+                         {
+                             await Task.Delay(2000); // Warte 2 Sekunden damit WebSocket stabil ist
+ 
+                             if (!_isWebSocketConnected)
+                             {
+                                 System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] WebSocket disconnected again, aborting re-registration");
+                                 return;
+                             }
+ 
+                             var savedTournamentId = _currentTournamentId;
+ 
+                             if (string.IsNullOrEmpty(savedTournamentId))
+                             {
+                                 System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] Tournament ID lost, cannot re-register");
+                                 return;
+                             }
+ 
+                             // ✅ STEP 1: Re-register tournament with Hub HTTP API
+                             System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 1: Re-registering tournament via HTTP API...");
+                             _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 1: Re-registering tournament {savedTournamentId} via HTTP API", "TOURNAMENT");
+ 
+                             var reRegisterSuccess = await _tournamentHubService.RegisterWithHubAsync(
+                                 savedTournamentId,
+                                 $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
+                                 "Re-registered after reconnect"
+                             );
+ 
+                             if (!reRegisterSuccess)
+                             {
+                                 System.Diagnostics.Debug.WriteLine($"❌ [HUB-CONNECTION] HTTP re-registration failed!");
+                                 _globalHubDebugWindow?.AddDebugMessage($"❌ HTTP re-registration failed", "ERROR");
+                                 return;
+                             }
+ 
+                             System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] HTTP re-registration successful");
+                             _globalHubDebugWindow?.AddDebugMessage($"✅ HTTP re-registration successful", "SUCCESS");
+ 
+                             // ✅ STEP 2: Re-subscribe via WebSocket
+                             System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 2: Re-subscribing via WebSocket...");
+                             _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 2: Re-subscribing via WebSocket", "WEBSOCKET");
+ 
+                             await SubscribeToTournamentUpdates(savedTournamentId);
+ 
+                             // ✅ STEP 3: Sync tournament data (fire event for MainWindow to handle)
+                             System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 3: Syncing tournament data...");
+                             _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 3: Syncing tournament data", "SYNC");
+ 
+                             // Fire the resync event and wait for it to complete
+                             if (TournamentNeedsResync != null)
+                             {
+                                 try
+                                 {
+                                     await TournamentNeedsResync.Invoke();
+                                     System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] Tournament data sync completed");
+                                     _globalHubDebugWindow?.AddDebugMessage($"✅ Tournament data sync completed", "SUCCESS");
+                                 }
+                                 catch (Exception syncEx)
+                                 {
+                                     System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] Tournament data sync failed: {syncEx.Message}");
+                                     _globalHubDebugWindow?.AddDebugMessage($"⚠️ Tournament data sync failed: {syncEx.Message}", "WARNING");
+                                 }
+                             }
+                             else
+                             {
+                                 System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] No TournamentNeedsResync handler registered");
+                                 _globalHubDebugWindow?.AddDebugMessage($"⚠️ No sync handler registered", "WARNING");
+                             }
+ 
+                             // ✅ STEP 4: Update UI
+                             _dispatcher.Invoke(() =>
+                             {
+                                 _globalHubDebugWindow?.AddDebugMessage($"✅ Full re-registration complete! Tournament fully reconnected", "SUCCESS");
+                                 System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] Full re-registration complete!");
+ 
+                                 // Restart timers
+                                 _hubHeartbeatTimer?.Start();
+                                 _hubSyncTimer?.Start();
+ 
+                                 NotifyConnectionStateChanged();
+                             });
+                         }
+                         catch (Exception ex)
+                         {
+                             System.Diagnostics.Debug.WriteLine($"❌ [HUB-CONNECTION] Error in re-registration: {ex.Message}");
+                             _globalHubDebugWindow?.AddDebugMessage($"❌ Error in re-registration: {ex.Message}", "ERROR");
+                         }
+                     });
+                 }
+                 else
+                 {
+                     _globalHubDebugWindow?.AddDebugMessage($"ℹ️ WebSocket verbunden, aber kein Tournament registriert", "INFO");
+                     System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] WebSocket ready but no tournament registered");
+                 }
+ 
+                // 🔄 Nach Reconnect ggf. Planner-Client erneut registrieren
+                if (_lastPlannerUser != null)
+                {
+                    _ = RegisterPlannerPresenceAsync(_lastPlannerUser);
+                }
+             }
+             else if (!isConnected && wasWebSocketConnected)
+             {
+                 // ✅ FIX: Bei Disconnect, stoppe Timer aber behalte Registration-Status
+                 _hubHeartbeatTimer?.Stop();
+                 _hubSyncTimer?.Stop();
+ 
+                 _globalHubDebugWindow?.AddDebugMessage($"⚠️ WebSocket-Verbindung verloren! Tournament bleibt registriert für Auto-Reconnect", "WARNING");
+                 System.Diagnostics.Debug.WriteLine($"⚠️ [HUB-CONNECTION] WebSocket connection lost!");
+ 
+                 if (_isRegisteredWithHub)
+                 {
+                     _globalHubDebugWindow?.AddDebugMessage($"ℹ️ Tournament-ID {_currentTournamentId} bleibt für Auto-Reconnect gespeichert", "INFO");
+                     System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] Tournament ID preserved for auto-reconnect: {_currentTournamentId}");
+                 }
+ 
+                 // ✅ REMOVED: Don't trigger reconnect here, WebSocketConnectionManager handles it
+                 // The reconnect is already scheduled in ListenForMessages finally block
+                 // and in InitializeAsync after failed connection attempts
+                 _globalHubDebugWindow?.AddDebugMessage($"ℹ️ Automatic reconnect is handled by WebSocketConnectionManager", "INFO");
+                 System.Diagnostics.Debug.WriteLine($"ℹ️ [HUB-CONNECTION] WebSocketConnectionManager will handle reconnect");
+             }
+         });
+     }
+ 
     private async void HubHeartbeatTimer_Tick(object? sender, EventArgs e)
     {
         if (!string.IsNullOrEmpty(_currentTournamentId))

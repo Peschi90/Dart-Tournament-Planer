@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using DartTournamentPlaner.Models;
+using DartTournamentPlaner.Models.HubSync;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.License;
 using DartTournamentPlaner.Services.PowerScore;
@@ -53,7 +54,7 @@ public class MainWindowServiceInitializer
         TournamentService = new TournamentManagementService(LocalizationService, App.DataService!);
 
         // Hub Services
-        var innerHubService = new HubIntegrationService(ConfigService, LocalizationService, ApiService, _dispatcher);
+        var innerHubService = new HubIntegrationService(ConfigService, LocalizationService, ApiService, _dispatcher, LicenseManager);
         HubService = new LicensedHubService(innerHubService, LicenseFeatureService, LocalizationService, LicenseManager);
 
         // Hub Match Processor
@@ -106,6 +107,7 @@ public class MainWindowServiceInitializer
         HubService.HubConnectionStateChanged += async (state) => await onHubConnectionStateChanged(state);
         HubService.TournamentNeedsResync += async () => await onTournamentNeedsResync();
         HubService.DataChanged += markAsChanged;
+        HubService.TournamentSyncPayloadReceived += payload => _dispatcher.BeginInvoke(() => OnTournamentSyncPayloadReceived?.Invoke(payload));
 
         // Hub Live Events
         if (HubService.TournamentHubService != null)
@@ -121,6 +123,24 @@ public class MainWindowServiceInitializer
 
         // API Service Events
         ApiService.MatchResultUpdated += async (sender, e) => await onApiMatchResultUpdated(sender, e);
+
+        // Auth Events -> Planner Auto-Registration beim Hub
+        UserAuthService.CurrentUserChanged += async (sender, user) => await RegisterPlannerPresenceAsync(user);
+
+        // Wenn Benutzer abgemeldet, Hub informieren
+        UserAuthService.CurrentUserChanged += async (sender, user) =>
+        {
+            if (user == null)
+            {
+                await UnregisterPlannerPresenceAsync("user-logout");
+            }
+        };
+
+        // Falls Session bereits vorhanden ist, Planner direkt registrieren
+        if (UserAuthService.CurrentUser != null)
+        {
+            _ = RegisterPlannerPresenceAsync(UserAuthService.CurrentUser);
+        }
 
         System.Diagnostics.Debug.WriteLine("✅ [ServiceInitializer] All services configured");
     }
@@ -149,6 +169,7 @@ public class MainWindowServiceInitializer
         try
         {
             await HubService.InitializeAsync();
+            await RegisterPlannerPresenceAsync(UserAuthService.CurrentUser);
             System.Diagnostics.Debug.WriteLine("✅ [ServiceInitializer] Hub service initialized");
         }
         catch (Exception ex)
@@ -156,4 +177,33 @@ public class MainWindowServiceInitializer
             System.Diagnostics.Debug.WriteLine($"❌ [ServiceInitializer] Hub initialization error: {ex.Message}");
         }
     }
+
+    private async Task RegisterPlannerPresenceAsync(AuthenticatedUser? user)
+    {
+        try
+        {
+            await HubService.RegisterPlannerPresenceAsync(user);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [ServiceInitializer] Planner presence registration failed: {ex.Message}");
+        }
+    }
+
+    private async Task UnregisterPlannerPresenceAsync(string reason)
+    {
+        try
+        {
+            await HubService.UnregisterPlannerPresenceAsync(reason);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ [ServiceInitializer] Planner presence unregister failed: {ex.Message}");
+        }
+    }
+
+    public event Action<HubTournamentSyncPayload>? OnTournamentSyncPayloadReceived;
+
+    public HubTournamentSyncPayload? GetLastTournamentSyncPayload() => HubService.GetLastTournamentSyncPayload();
+    public IReadOnlyList<HubTournamentSyncPayload> GetStoredTournamentSyncMessages() => HubService.GetStoredTournamentSyncMessages();
 }

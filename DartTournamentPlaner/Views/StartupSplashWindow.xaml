@@ -4,11 +4,12 @@
         xmlns:controls="clr-namespace:DartTournamentPlaner.Controls"
         Title="Dart Tournament Planner"
         Height="600" Width="600"
+        MinHeight="600" MinWidth="600"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         ShowInTaskbar="False"
         Topmost="True"
         Opacity="0"
@@ -16,7 +17,8 @@
         SnapsToDevicePixels="True"
         TextOptions.TextRenderingMode="ClearType"
         TextOptions.TextFormattingMode="Display"
-        RenderOptions.BitmapScalingMode="HighQuality">
+        RenderOptions.BitmapScalingMode="HighQuality"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
 
     <Window.Resources>
         <!-- Card Shadow Effect -->
@@ -136,13 +138,13 @@
 
             <!-- Header mit animiertem App-Icon und Titel -->
             <Border Grid.Row="0" 
-                    Padding="32,24,32,20"
+                    Padding="22,14,22,10"
                     Background="Transparent"
                     UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <StackPanel HorizontalAlignment="Center">
                     <!-- Animiertes App Icon -->
                     <Border x:Name="AppIconBorder"
-                            Width="150" Height="150" 
+                            Width="230" Height="230" 
                             CornerRadius="16" 
                             Margin="0,0,0,20"
                             UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -163,8 +165,8 @@
                             <!-- Primäres App Icon (zunächst versteckt) -->
                             <Image x:Name="AppIconImage"
                                    Source="pack://application:,,,/Assets/Images/favicon.ico" 
-                                   Width="128" 
-                                   Height="128"
+                                   Width="260" 
+                                   Height="260"
                                    HorizontalAlignment="Center" 
                                    VerticalAlignment="Center"
                                    RenderOptions.BitmapScalingMode="HighQuality"

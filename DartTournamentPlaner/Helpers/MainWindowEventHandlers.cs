@@ -45,11 +45,9 @@ public class MainWindowEventHandlers
 
     public void OnNew(object sender, RoutedEventArgs e)
     {
-        var title = _services.LocalizationService.GetString("NewTournament");
-        var message = _services.LocalizationService.GetString("CreateNewTournament");
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
+        var result = TournamentDialogHelper.ShowCreateNewTournamentConfirmation(_mainWindow, _services.LocalizationService);
 
-        if (result == MessageBoxResult.Yes)
+        if (result)
         {
             _services.TournamentService.ResetAllTournaments();
             _configureTournamentTabs();
