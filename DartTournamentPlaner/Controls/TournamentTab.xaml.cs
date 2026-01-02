@@ -173,49 +173,30 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
             {
                 System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] getHubService() callback called");
                 
-                // Versuche HubService über MainWindow zu finden
                 if (Application.Current.MainWindow is MainWindow mainWindow)
                 {
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] MainWindow found: {mainWindow.GetType().Name}");
-                    
-                    // ✅ FIX: Hole den LicensedHubService und extrahiere den inneren HubIntegrationService
-                    var hubServiceField = mainWindow.GetType()
-                        .GetField("_hubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubServiceField found: {hubServiceField != null}");
-                    
-                    var hubServiceValue = hubServiceField?.GetValue(mainWindow);
-                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubServiceValue type: {hubServiceValue?.GetType().Name ?? "null"}");
-                    
-                    if (hubServiceValue is LicensedHubService licensedHubService)
+                    // Hole den ServiceInitializer und daraus den lizenzierten Hub-Service
+                    var initializerField = mainWindow.GetType()
+                        .GetField("_serviceInitializer", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var initializer = initializerField?.GetValue(mainWindow) as MainWindowServiceInitializer;
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] ServiceInitializer found: {initializer != null}");
+
+                    var licensedHubService = initializer?.HubService;
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] LicensedHubService found: {licensedHubService != null}");
+
+                    var hubService = licensedHubService?.InnerHubService;
+                    System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubIntegrationService retrieved: {hubService != null}");
+
+                    if (hubService != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] LicensedHubService found, getting inner service...");
-                        
-                        // Zugriff auf den inneren HubIntegrationService über Reflection
-                        var innerServiceField = licensedHubService.GetType()
-                            .GetField("_innerHubService", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] InnerServiceField found: {innerServiceField != null}");
-                        
-                        var hubService = innerServiceField?.GetValue(licensedHubService) as HubIntegrationService;
-                        
-                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubIntegrationService retrieved: {hubService != null}");
-                        
-                        if (hubService != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubService registered: {hubService.IsRegisteredWithHub}");
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] HubIntegrationService is null");
-                        }
-                        
-                        return hubService;
+                        System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab-InitializeManagers] HubService registered: {hubService.IsRegisteredWithHub}");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] Not a LicensedHubService or null");
+                        System.Diagnostics.Debug.WriteLine($"❌ [TournamentTab-InitializeManagers] HubIntegrationService is null");
                     }
+
+                    return hubService;
                 }
                 else
                 {

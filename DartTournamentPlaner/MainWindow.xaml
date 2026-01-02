@@ -364,20 +364,47 @@
             <!-- Menu Bar with modern design and Dark Mode Toggle -->
             <Menu Grid.Row="0">
                 <MenuItem Name="FileMenuItem" Header="File">
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-save.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
                     <MenuItem Name="NewMenuItem" Header="New" Click="New_Click" Style="{StaticResource SubMenuItemStyle}"/>
                     <MenuItem Name="OpenMenuItem" Header="Open" Click="Open_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="SaveMenuItem" Header="Save" Click="Save_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-save.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Name="SaveAsMenuItem" Header="Save As" Click="SaveAs_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-save.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
-                    <MenuItem Name="PrintMenuItem" Header="Print" Click="Print_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="PrintMenuItem" Header="Print" Click="Print_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-print.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
-                    <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="ExitMenuItem" Header="Exit" Click="Exit_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-x.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
                 <MenuItem Name="ViewMenuItem" Header="View">
-                    <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="OverviewModeMenuItem" Header="Tournament Overview" Click="OverviewMode_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-trophy.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
                     <!-- ✅ NEU: PowerScoring -->
-                    <MenuItem x:Name="PowerScoringMenuItem" Header="🎯 PowerScoring" Click="PowerScoring_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="PowerScoringMenuItem" Header="🎯 PowerScoring" Click="PowerScoring_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-medal.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
                     <!-- ✅ NEU: Dark Mode Toggle im View Menü -->
                     <MenuItem Name="ToggleDarkModeMenuItem" Header="🌙 Toggle Dark Mode" Click="ToggleDarkMode_Click" Style="{StaticResource SubMenuItemStyle}"/>
@@ -391,34 +418,106 @@
                 </MenuItem> -->
                 <!-- Tournament Hub Menu -->
                 <MenuItem x:Name="TournamentHubMenuItem" Header="Tournament Hub">
-                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="Register with Hub" Click="RegisterWithHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="Unregister from Hub" Click="UnregisterFromHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-share.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
+                    <MenuItem x:Name="RegisterWithHubMenuItem" Header="Register with Hub" Click="RegisterWithHub_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-share.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="UnregisterFromHubMenuItem" Header="Unregister from Hub" Click="UnregisterFromHub_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-x.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="Show Join URL" Click="ShowJoinUrl_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem x:Name="ManualSyncMenuItem" Header="Manual Sync" Click="ManualSyncWithHub_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="ShowJoinUrlMenuItem" Header="Show Join URL" Click="ShowJoinUrl_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-share.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ManualSyncMenuItem" Header="Manual Sync" Click="ManualSyncWithHub_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-sandclock.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="HubSettingsMenuItem" Header="Hub Settings" Click="HubSettings_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="HubSettingsMenuItem" Header="Hub Settings" Click="HubSettings_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-shield.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
                 <!-- Account Menu -->
                 <MenuItem x:Name="AccountMenuItem" Header="Account">
-                    <MenuItem x:Name="LoginMenuItem" Header="Login" Click="Login_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem x:Name="ProfileMenuItem" Header="Profile" Click="Profile_Click" Style="{StaticResource SubMenuItemStyle}" IsEnabled="False" Visibility="Collapsed"/>
-                    <MenuItem x:Name="LogoutMenuItem" Header="Logout" Click="Logout_Click" Style="{StaticResource SubMenuItemStyle}" IsEnabled="False"/>
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-player-questionmark.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
+                    <MenuItem x:Name="LoginMenuItem" Header="Login" Click="Login_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-player-questionmark.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="ProfileMenuItem" Header="Profile" Click="Profile_Click" Style="{StaticResource SubMenuItemStyle}" IsEnabled="False" Visibility="Collapsed">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-medal.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="LogoutMenuItem" Header="Logout" Click="Logout_Click" Style="{StaticResource SubMenuItemStyle}" IsEnabled="False">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-x.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
                 <!-- License Menu -->
                 <MenuItem x:Name="LicenseMenuItem" Header="License">
-                    <MenuItem x:Name="LicenseStatusMenuItem" Header="License Status" Click="LicenseStatus_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-shield.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
+                    <MenuItem x:Name="LicenseStatusMenuItem" Header="License Status" Click="LicenseStatus_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-shield.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
-                    <MenuItem x:Name="ActivateLicenseMenuItem" Header="Activate License" Click="ActivateLicense_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem x:Name="LicenseInfoMenuItem" Header="License Information" Click="LicenseInfo_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem x:Name="RemoveLicenseMenuItem" Header="Remove License" Click="RemoveLicense_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="ActivateLicenseMenuItem" Header="Activate License" Click="ActivateLicense_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-shield.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="LicenseInfoMenuItem" Header="License Information" Click="LicenseInfo_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-shield.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem x:Name="RemoveLicenseMenuItem" Header="Remove License" Click="RemoveLicense_Click" Visibility="Collapsed" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-x.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator x:Name="LicenseSeparator" Visibility="Collapsed"/>
-                    <MenuItem x:Name="PurchaseLicenseMenuItem" Header="Purchase License" Click="PurchaseLicense_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem x:Name="PurchaseLicenseMenuItem" Header="Purchase License" Click="PurchaseLicense_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-medal.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                 </MenuItem>
-                <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click"/>
+                <MenuItem Name="SettingsMenuItem" Header="Settings" Click="Settings_Click">
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-print.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
                 <MenuItem Name="HelpMenuItem" Header="Help">
+                    <MenuItem.Icon>
+                        <Image Source="pack://application:,,,/Assets/Images/icons/icon-warning.png" Width="14" Height="14"/>
+                    </MenuItem.Icon>
                     <MenuItem Name="HelpContentMenuItem" Header="Help" Click="Help_Click" Style="{StaticResource SubMenuItemStyle}"/>
-                    <MenuItem Name="BugReportMenuItem" Header="Report Bug" Click="BugReport_Click" Style="{StaticResource SubMenuItemStyle}"/>
+                    <MenuItem Name="BugReportMenuItem" Header="Report Bug" Click="BugReport_Click" Style="{StaticResource SubMenuItemStyle}">
+                        <MenuItem.Icon>
+                            <Image Source="pack://application:,,,/Assets/Images/icons/icon-warning.png" Width="14" Height="14"/>
+                        </MenuItem.Icon>
+                    </MenuItem>
                     <Separator/>
                     <MenuItem Name="AboutMenuItem" Header="About" Click="About_Click" Style="{StaticResource SubMenuItemStyle}"/>
                 </MenuItem>

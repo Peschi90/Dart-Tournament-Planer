@@ -288,20 +288,14 @@ public class HubIntegrationService : IDisposable
         // Entferne alle Zeichen außer: A-Z, a-z, 0-9, _, -
         sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"[^a-zA-Z0-9_\-]", "");
  
-        // Stelle sicher dass die ID nicht leer ist und ein Präfix hat
+        // Stelle sicher dass die ID nicht leer ist
         if (string.IsNullOrWhiteSpace(sanitized))
         {
             // Fallback: Generiere automatische ID
             sanitized = $"TOURNAMENT_{DateTime.Now:yyyyMMdd_HHmmss}";
             System.Diagnostics.Debug.WriteLine($"⚠️ Empty custom ID provided, generated fallback: {sanitized}");
         }
-        else if (!sanitized.StartsWith("TOURNAMENT_", StringComparison.OrdinalIgnoreCase))
-        {
-            // Füge Präfix hinzu wenn nicht vorhanden
-            sanitized = $"TOURNAMENT_{sanitized}";
-            System.Diagnostics.Debug.WriteLine($"🔧 Added TOURNAMENT_ prefix: {sanitized}");
-        }
-   
+        
         System.Diagnostics.Debug.WriteLine($"🔧 Sanitized Tournament ID: '{rawId}' -> '{sanitized}'");
         
         return sanitized;

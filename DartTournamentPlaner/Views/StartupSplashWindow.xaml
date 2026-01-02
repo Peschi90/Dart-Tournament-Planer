@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:DartTournamentPlaner.Controls"
         Title="Dart Tournament Planner"
-        Height="600" Width="600"
+        Height="700" Width="700"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -142,7 +142,7 @@
                 <StackPanel HorizontalAlignment="Center">
                     <!-- Animiertes App Icon -->
                     <Border x:Name="AppIconBorder"
-                            Width="150" Height="150" 
+                            Width="220" Height="220" 
                             CornerRadius="16" 
                             Margin="0,0,0,20"
                             UseLayoutRounding="True" SnapsToDevicePixels="True">
@@ -163,8 +163,8 @@
                             <!-- Primäres App Icon (zunächst versteckt) -->
                             <Image x:Name="AppIconImage"
                                    Source="pack://application:,,,/Assets/Images/favicon.ico" 
-                                   Width="128" 
-                                   Height="128"
+                                   Width="260" 
+                                   Height="260"
                                    HorizontalAlignment="Center" 
                                    VerticalAlignment="Center"
                                    RenderOptions.BitmapScalingMode="HighQuality"
