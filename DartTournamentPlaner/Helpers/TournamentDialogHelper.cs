@@ -325,14 +325,6 @@ public static class TournamentDialogHelper
     }
 
     /// <summary>
-    /// Zeigt einen generischen Bestätigungsdialog im modernen Stil an
-    /// </summary>
-    public static bool ShowConfirmation(Window? owner, string title, string message, string icon = "❓", bool isWarning = false, LocalizationService? localizationService = null)
-    {
-        return ShowModernConfirmationDialog(owner, title, message, icon, isWarning, localizationService);
-    }
-
-    /// <summary>
     /// Zeigt einen modernen Bestätigungsdialog für das Zurücksetzen der KO-Phase an
     /// </summary>
     /// <param name="owner">Das übergeordnete Fenster</param>
@@ -345,18 +337,6 @@ public static class TournamentDialogHelper
                      "Möchten Sie wirklich die K.-o.-Phase zurücksetzen?\n\n⚠ Alle K.-o.-Spiele und der Turnierbaum werden gelöscht!\nDas Turnier wird auf die Gruppenphase zurückgesetzt.";
 
         return ShowModernConfirmationDialog(owner, title, message, "⚔️", true, localizationService);
-    }
-
-    /// <summary>
-    /// Zeigt einen modernen Bestätigungsdialog für das Anlegen eines neuen Turniers an
-    /// </summary>
-    public static bool ShowCreateNewTournamentConfirmation(Window? owner, LocalizationService? localizationService = null)
-    {
-        var title = localizationService?.GetString("NewTournament") ?? "Neues Turnier";
-        var message = localizationService?.GetString("CreateNewTournament") ??
-                     "Möchten Sie das aktuelle Turnier ersetzen und ein neues anlegen?";
-
-        return ShowModernConfirmationDialog(owner, title, message, "🆕", false, localizationService);
     }
 
     /// <summary>
@@ -832,7 +812,7 @@ public static class TournamentDialogHelper
     }
 
     /// <summary>
-    /// Zeigt jeden modernes Message-Dialog an
+    /// Zeigt einen modernen Message-Dialog an
     /// </summary>
     private static void ShowModernMessageDialog(Window? owner, string title, string message, string icon, MessageType type, LocalizationService? localizationService)
     {

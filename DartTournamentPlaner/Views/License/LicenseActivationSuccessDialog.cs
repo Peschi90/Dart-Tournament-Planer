@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Services;
 
 namespace DartTournamentPlaner.Views.License;
@@ -684,11 +683,11 @@ public class LicenseActivationSuccessDialog : Window
             
             // Fallback zu einfacher MessageBox
             System.Diagnostics.Debug.WriteLine("🔄 Using MessageBox fallback...");
-            TournamentDialogHelper.ShowInformation(
+            MessageBox.Show(
                 "Lizenz erfolgreich aktiviert!\n\nAlle Premium-Features sind jetzt verfügbar.",
                 "Erfolgreich",
-                localizationService,
-                owner);
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
         }
     }
 }

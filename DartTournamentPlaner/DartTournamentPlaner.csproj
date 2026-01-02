@@ -37,7 +37,6 @@
   <ItemGroup>
     <Resource Include="Assets\Images\favicon.ico" />
     <Resource Include="Assets\Images\logo.png" />
-    <Resource Include="Assets\Images\icons\*.png" />
   </ItemGroup>
 
 </Project>

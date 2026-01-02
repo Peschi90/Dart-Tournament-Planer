@@ -47,14 +47,6 @@ public partial class StartupSplashWindow : Window
         _minimumShowTimer.Start();
     }
 
-    private void Window_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-        if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
-        {
-            DragMove();
-        }
-    }
-
     private void InitializeSplashScreen()
     {
         try

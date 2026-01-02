@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using DartTournamentPlaner.Helpers;
 using DartTournamentPlaner.Models.PowerScore;
 using DartTournamentPlaner.Services;
 
@@ -190,7 +189,7 @@ public partial class PowerScoringAdvancedConfigDialog : Window
         }
         catch (Exception ex)
         {
-            TournamentDialogHelper.ShowError($"Error: {ex.Message}", "Error", _localizationService, this);
+            MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
     

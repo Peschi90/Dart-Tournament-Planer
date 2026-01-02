@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using DartTournamentPlaner.Services.PowerScore;  // ? NEU: Für PowerScoringHubMessage
-using DartTournamentPlaner.Models.HubSync;
 
 namespace DartTournamentPlaner.Services.HubWebSocket;
 
@@ -20,9 +19,8 @@ public class WebSocketMessageHandler
 
     // Events
     public event Action<HubMatchUpdateEventArgs>? MatchResultReceived;
-    public event Action<string, object>? TournamentUpdateReceived;
-    public event Action<HubTournamentSyncPayload>? TournamentSyncMessageReceived;
-
+  public event Action<string, object>? TournamentUpdateReceived;
+    
     // ? NEU: Zusätzliche Events für Live-Updates
     public event Action<HubMatchUpdateEventArgs>? MatchStarted;
     public event Action<HubMatchUpdateEventArgs>? LegCompleted;
@@ -99,11 +97,6 @@ public class WebSocketMessageHandler
                         break;
                     case "power-scoring-result":
                         await HandlePowerScoringResult(message);
-                        break;
-                    case "hub-tournament-sync":
-                    case "tournament-sync":
-                    case "planner-tournament-sync":
-                        await HandleTournamentSyncMessage(message);
                         break;
                     case "heartbeat-ack":
                         HandleHeartbeatAck(message);
@@ -1140,78 +1133,6 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
         catch (Exception ex)
         {
             _debugLog($"? [POWERSCORING] Error parsing progress message: {ex.Message}", "ERROR");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Verarbeitet Hub Tournament Sync Nachrichten (inkl. Lizenz-Key)
-    /// </summary>
-    private async Task HandleTournamentSyncMessage(JsonElement message)
-    {
-        try
-        {
-            _debugLog("?? [HUB-SYNC] Processing tournament sync message...", "SYNC");
-            
-            var payload = ParseTournamentSyncPayload(message);
-            if (payload != null)
-            {
-                _debugLog($"?? [HUB-SYNC] Payload for tournament '{payload.TournamentName ?? payload.TournamentId ?? "unknown"}' received", "SYNC");
-                _debugLog($"?? [HUB-SYNC] License: {payload.LicenseKey ?? "<none>"}", "SYNC");
-                _debugLog($"?? [HUB-SYNC] Players: {payload.PlayerCount?.ToString() ?? "?"}, Matches: {payload.MatchCount?.ToString() ?? "?"}", "SYNC");
-                
-                TournamentSyncMessageReceived?.Invoke(payload);
-            }
-            else
-            {
-                _debugLog("?? [HUB-SYNC] Payload could not be parsed", "WARNING");
-            }
-            
-            await Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            _debugLog($"? [HUB-SYNC] Error handling tournament sync message: {ex.Message}", "ERROR");
-        }
-    }
-
-    private HubTournamentSyncPayload? ParseTournamentSyncPayload(JsonElement message)
-    {
-        try
-        {
-            var dataElement = message.TryGetProperty("data", out var data) ? data : message;
-
-            var payload = new HubTournamentSyncPayload
-            {
-                LicenseKey = ExtractStringValue(dataElement, "licenseKey", "license_key", "license"),
-                TournamentId = ExtractStringValue(dataElement, "tournamentId", "tournamentID", "id"),
-                TournamentName = ExtractStringValue(dataElement, "tournamentName", "name", "title"),
-                Source = ExtractStringValue(message, "source", "clientType") ?? "hub-websocket",
-                RawJson = message.GetRawText(),
-                ReceivedAt = DateTime.UtcNow
-            };
-
-            if (dataElement.TryGetProperty("players", out var playersEl) && playersEl.ValueKind == JsonValueKind.Array)
-            {
-                payload.PlayerCount = playersEl.GetArrayLength();
-            }
-            else if (dataElement.TryGetProperty("participants", out var participantsEl) && participantsEl.ValueKind == JsonValueKind.Array)
-            {
-                payload.PlayerCount = participantsEl.GetArrayLength();
-            }
-
-            if (dataElement.TryGetProperty("matches", out var matchesEl) && matchesEl.ValueKind == JsonValueKind.Array)
-            {
-                payload.MatchCount = matchesEl.GetArrayLength();
-            }
-
-            payload.Summary = payload.TournamentName ?? payload.TournamentId;
-
-            return payload;
-        }
-        catch (Exception ex)
-        {
-            _debugLog($"? [HUB-SYNC] Error parsing tournament sync payload: {ex.Message}", "ERROR");
             return null;
         }
     }
