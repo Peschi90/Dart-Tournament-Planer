@@ -5,11 +5,14 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Collections.Generic;
 using DartTournamentPlaner.Models.PowerScore;
 using DartTournamentPlaner.Services;
 using DartTournamentPlaner.Services.PowerScore;
 using DartTournamentPlaner.Services.License;
 using QRCoder;
+using DartTournamentPlaner.Views;
 
 namespace DartTournamentPlaner.Views;
 
@@ -103,12 +106,9 @@ public partial class PowerScoringWindow : Window
             
             if (FindName("PlayerListLabel") is TextBlock playerListLabel)
                 playerListLabel.Text = _localizationService.GetString("PowerScoring_PlayerList");
-            
-            // Placeholder
-            PlayerNameTextBox.Tag = _localizationService.GetString("PowerScoring_PlayerName");
-            
-            // ComboBox Items übersetzen
-            UpdateRuleComboBoxTranslations();
+             
+             // ComboBox Items übersetzen
+             UpdateRuleComboBoxTranslations();
             
             System.Diagnostics.Debug.WriteLine("✅ PowerScoring translations updated");
         }
@@ -227,44 +227,89 @@ public partial class PowerScoringWindow : Window
 
     private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
     {
-        AddPlayer();
+        var session = _powerScoringService.CurrentSession;
+        if (session == null)
+        {
+            var rule = PowerScoringRule.ThrowsOf3x10;
+            if (RuleComboBox.SelectedItem is ComboBoxItem item && item.Tag is PowerScoringRule selectedRule)
+            {
+                rule = selectedRule;
+            }
+
+            var tournamentId = TournamentIdTextBox.Text?.Trim();
+            session = _powerScoringService.CreateNewSession(rule, tournamentId);
+            System.Diagnostics.Debug.WriteLine($"[PowerScoring] Created session for AddPlayer dialog. Rule={rule}, TournamentId={tournamentId}");
+        }
+         var dialog = new PowerScoringAddPlayersDialog(session.Players)
+         {
+             Owner = this
+         };
+
+         if (dialog.ShowDialog() == true)
+         {
+             ApplyPlayerEntries(dialog.PlayerEntries, session);
+             UpdatePlayerList();
+         }
     }
 
-    private void PlayerNameTextBox_KeyDown(object sender, KeyEventArgs e)
+    private void ApplyPlayerEntries(IEnumerable<PowerScoringAddPlayersDialog.PlayerEntryRow> entries, PowerScoringSession session)
     {
-        if (e.Key == Key.Enter)
+        var usedNames = new HashSet<string>(session.Players.Select(p => p.Name), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var entry in entries)
         {
-            AddPlayer();
+            if (string.IsNullOrWhiteSpace(entry.Nickname) && string.IsNullOrWhiteSpace(entry.FirstName) && string.IsNullOrWhiteSpace(entry.LastName))
+            {
+                continue;
+            }
+
+            var displayName = GenerateDisplayName(entry, usedNames);
+            if (displayName == null)
+            {
+                continue;
+            }
+
+            var player = _powerScoringService.AddPlayerToSession(displayName);
+            if (player != null)
+            {
+                usedNames.Add(displayName);
+            }
         }
     }
 
-    private void AddPlayer()
+    private string? GenerateDisplayName(PowerScoringAddPlayersDialog.PlayerEntryRow entry, HashSet<string> usedNames)
     {
-        var playerName = PlayerNameTextBox.Text.Trim();
-        
-        if (string.IsNullOrWhiteSpace(playerName))
+        if (!string.IsNullOrWhiteSpace(entry.Nickname))
         {
-            PowerScoringConfirmDialog.ShowWarning(
-                _localizationService.GetString("Warning"),
-                _localizationService.GetString("PowerScoring_Error_AddPlayers"),
-                this);
-            return;
+            var nick = entry.Nickname.Trim();
+            if (usedNames.Contains(nick))
+                return null;
+            return nick;
         }
 
-        var player = _powerScoringService.AddPlayerToSession(playerName);
-        
-        if (player == null)
+        var first = entry.FirstName?.Trim();
+        if (string.IsNullOrWhiteSpace(first))
+            return null;
+
+        var last = entry.LastName?.Trim() ?? string.Empty;
+        if (!usedNames.Contains(first))
+            return first;
+
+        for (int len = 1; len <= last.Length; len++)
         {
-            PowerScoringConfirmDialog.ShowWarning(
-                _localizationService.GetString("PowerScoring_Error_PlayerExists"),
-                $"{_localizationService.GetString("PowerScoring_Error_PlayerExistsMessage")} '{playerName}'",
-                this);
-            return;
+            var candidate = $"{first} {last.Substring(0, len)}";
+            if (!usedNames.Contains(candidate))
+                return candidate;
         }
 
-        PlayerNameTextBox.Clear();
-        PlayerNameTextBox.Focus();
-        UpdatePlayerList();
+        int counter = 2;
+        while (true)
+        {
+            var candidate = $"{first} {counter}";
+            if (!usedNames.Contains(candidate))
+                return candidate;
+            counter++;
+        }
     }
 
     private void RemovePlayerButton_Click(object sender, RoutedEventArgs e)

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
-using DartTournamentPlaner.Services.PowerScore;  // ? NEU: Für PowerScoringHubMessage
+using DartTournamentPlaner.Models;
+using DartTournamentPlaner.Services.PowerScore;
 
 namespace DartTournamentPlaner.Services.HubWebSocket;
 
@@ -26,18 +26,25 @@ public class WebSocketMessageHandler
     public event Action<HubMatchUpdateEventArgs>? LegCompleted;
     public event Action<HubMatchUpdateEventArgs>? MatchProgressUpdated;
 
+    // ? NEU: Planner Tournament Fetch Events
+    public event Action<PlannerTournamentsResponse>? PlannerTournamentsReceived;
+    public event Action<PlannerFetchErrorResponse>? PlannerFetchFailed;
+
     /// <summary>
     /// ? NEU: Event für PowerScoring Messages
     /// </summary>
     public event EventHandler<PowerScoringHubMessage>? PowerScoringMessageReceived;
 
+    // Aggregation for planner chunking
+    private readonly Dictionary<string, PlannerChunkBuffer> _plannerChunkBuffers = new();
+
     public WebSocketMessageHandler(
         Action<string, string> debugLog, 
         Func<JsonElement, Task> matchUpdateAcknowledgment,
         Func<string, Task> errorAcknowledgment)
-  {
-    _debugLog = debugLog;
-   _matchUpdateAcknowledgment = matchUpdateAcknowledgment;
+    {
+        _debugLog = debugLog;
+        _matchUpdateAcknowledgment = matchUpdateAcknowledgment;
         _errorAcknowledgment = errorAcknowledgment;
     }
 
@@ -72,6 +79,18 @@ public class WebSocketMessageHandler
                         break;
                     case "planner-registration-confirmed":
                         HandlePlannerRegistrationConfirmed(message);
+                        break;
+                    case "planner-tournaments-data":
+                        HandlePlannerTournamentsData(message);
+                        break;
+                    case "planner-tournaments-data-chunk":
+                        HandlePlannerTournamentsChunk(message);
+                        break;
+                    case "planner-tournaments-data-end":
+                        HandlePlannerTournamentsEnd(message);
+                        break;
+                    case "planner-fetch-error":
+                        HandlePlannerFetchError(message);
                         break;
                     case "tournament-match-updated":
                         await HandleTournamentMatchUpdate(message);
@@ -138,6 +157,164 @@ public class WebSocketMessageHandler
     }
 
     /// <summary>
+    /// Behandelt Fetch-Ergebnisse für Planner-Turniere
+    /// </summary>
+    private void HandlePlannerTournamentsData(JsonElement message)
+    {
+        try
+        {
+            var response = JsonSerializer.Deserialize<PlannerTournamentsResponse>(message.GetRawText());
+            if (response != null)
+            {
+                _debugLog($"?? [WS-MESSAGE] Received planner tournaments data: {response.Tournaments?.Count ?? 0} tournaments", "SUCCESS");
+                PlannerTournamentsReceived?.Invoke(response);
+
+                // Reset potential chunk buffer for this license/days
+                var key = BuildPlannerChunkKey(response.LicenseKey, response.Days);
+                _plannerChunkBuffers.Remove(key);
+            }
+            else
+            {
+                _debugLog("? [WS-MESSAGE] Planner tournaments data could not be parsed", "ERROR");
+            }
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling planner tournaments data: {ex.Message}", "ERROR");
+        }
+    }
+
+    private void HandlePlannerTournamentsChunk(JsonElement message)
+    {
+        try
+        {
+            var licenseKey = message.TryGetProperty("licenseKey", out var licenseEl) ? licenseEl.GetString() : string.Empty;
+            var days = message.TryGetProperty("days", out var daysEl) && daysEl.ValueKind == JsonValueKind.Number ? daysEl.GetInt32() : 14;
+            var index = message.TryGetProperty("index", out var idxEl) && idxEl.ValueKind == JsonValueKind.Number ? idxEl.GetInt32() : -1;
+            var total = message.TryGetProperty("total", out var totalEl) && totalEl.ValueKind == JsonValueKind.Number ? totalEl.GetInt32() : 0;
+
+            if (index < 0 || total <= 0)
+            {
+                _debugLog($"? [WS-MESSAGE] Invalid planner chunk index/total: index={index}, total={total}", "ERROR");
+                return;
+            }
+
+            var key = BuildPlannerChunkKey(licenseKey, days);
+            if (!_plannerChunkBuffers.TryGetValue(key, out var buffer))
+            {
+                buffer = new PlannerChunkBuffer(total);
+                _plannerChunkBuffers[key] = buffer;
+                _debugLog($"?? [WS-MESSAGE] Init planner chunk buffer: total={total}, key={key}", "INFO");
+            }
+            else if (buffer.Total != total)
+            {
+                _debugLog($"? [WS-MESSAGE] Planner chunk total mismatch: existing={buffer.Total}, incoming={total}", "WARNING");
+                buffer.Total = total;
+            }
+
+            if (index >= buffer.Total)
+            {
+                _debugLog($"? [WS-MESSAGE] Planner chunk index out of range: {index} >= {buffer.Total}", "ERROR");
+                return;
+            }
+
+            if (message.TryGetProperty("tournament", out var tournamentElement))
+            {
+                var tournament = JsonSerializer.Deserialize<PlannerTournamentSummary>(tournamentElement.GetRawText());
+                buffer.Store(index, tournament);
+                _debugLog($"?? [WS-MESSAGE] Planner chunk stored index={index}/{buffer.Total - 1}", "INFO");
+            }
+            else
+            {
+                _debugLog("? [WS-MESSAGE] Planner chunk missing tournament payload", "ERROR");
+            }
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling planner chunk: {ex.Message}", "ERROR");
+        }
+    }
+
+    private void HandlePlannerTournamentsEnd(JsonElement message)
+    {
+        try
+        {
+            var licenseKey = message.TryGetProperty("licenseKey", out var licenseEl) ? licenseEl.GetString() : string.Empty;
+            var days = message.TryGetProperty("days", out var daysEl) && daysEl.ValueKind == JsonValueKind.Number ? daysEl.GetInt32() : 14;
+            var total = message.TryGetProperty("total", out var totalEl) && totalEl.ValueKind == JsonValueKind.Number ? totalEl.GetInt32() : 0;
+
+            var key = BuildPlannerChunkKey(licenseKey, days);
+            if (!_plannerChunkBuffers.TryGetValue(key, out var buffer))
+            {
+                _debugLog($"? [WS-MESSAGE] Planner end received but no buffer for key={key}", "WARNING");
+                return;
+            }
+
+            if (total > 0 && buffer.Total != total)
+            {
+                _debugLog($"? [WS-MESSAGE] Planner end total mismatch: buffer={buffer.Total}, end={total}", "WARNING");
+                buffer.Total = total;
+            }
+
+            if (!buffer.IsComplete)
+            {
+                _debugLog($"? [WS-MESSAGE] Planner chunks incomplete: {buffer.Received}/{buffer.Total}", "ERROR");
+                _plannerChunkBuffers.Remove(key);
+                return;
+            }
+
+            var response = new PlannerTournamentsResponse
+            {
+                LicenseKey = licenseKey,
+                Days = days,
+                Tournaments = buffer.GetTournaments()
+            };
+
+            _plannerChunkBuffers.Remove(key);
+            _debugLog($"?? [WS-MESSAGE] Planner chunks assembled: {response.Tournaments.Count} tournaments", "SUCCESS");
+            PlannerTournamentsReceived?.Invoke(response);
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling planner chunk end: {ex.Message}", "ERROR");
+        }
+    }
+
+    private static string BuildPlannerChunkKey(string? licenseKey, int days) => $"{licenseKey ?? ""}__{days}";
+
+    private class PlannerChunkBuffer
+    {
+        private readonly List<PlannerTournamentSummary?> _items;
+
+        public int Total { get; set; }
+        public int Received { get; private set; }
+
+        public PlannerChunkBuffer(int total)
+        {
+            Total = Math.Max(1, total);
+            _items = Enumerable.Repeat<PlannerTournamentSummary?>(null, Total).ToList();
+            Received = 0;
+        }
+
+        public void Store(int index, PlannerTournamentSummary? item)
+        {
+            if (index < 0 || index >= Total) return;
+            if (_items[index] == null)
+            {
+                Received++;
+            }
+            _items[index] = item;
+        }
+
+        public bool IsComplete => Received == Total && _items.All(x => x != null);
+
+        public List<PlannerTournamentSummary> GetTournaments()
+        {
+            return _items.Where(x => x != null).Select(x => x!).ToList();
+        }
+    }
+
+    /// <summary>
     /// Behandelt Error-Nachrichten
   /// </summary>
     private void HandleErrorMessage(JsonElement message)
@@ -161,13 +338,10 @@ public class WebSocketMessageHandler
     {
         try
         {
-            var tournamentId = message.TryGetProperty("tournamentId", out var tournamentIdElement) ? tournamentIdElement.GetString() : "unknown";
-            
-            // ? ERWEITERT: Detailliertes Logging mit vollständiger Message
-            _debugLog($"? [WS-MESSAGE] ===== SUBSCRIPTION CONFIRMED =====", "SUCCESS");
-            _debugLog($"? [WS-MESSAGE] Tournament ID: {tournamentId}", "SUCCESS");
-            _debugLog($"? [WS-MESSAGE] Full message: {message.ToString()}", "SUCCESS");
-            _debugLog($"? [WS-MESSAGE] ================================", "SUCCESS");
+            var tournamentId = message.TryGetProperty("tournamentId", out var idElement) ? idElement.GetString() : "unknown";
+            _debugLog($"?? [WS-MESSAGE] Subscription confirmed for tournament: {tournamentId}", "WEBSOCKET");
+
+            TournamentUpdateReceived?.Invoke(tournamentId ?? "unknown", message);
         }
         catch (Exception ex)
         {
@@ -629,7 +803,7 @@ else
         }
         }
         catch (Exception ex)
-        {
+    {
             _debugLog($"?? [LEG-RESULTS] Error parsing leg results: {ex.Message}", "WARNING");
         }
         
@@ -878,8 +1052,7 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
                 _debugLog($"?? [POWERSCORING] Update for player {powerScoringMessage.PlayerName}: " +
                          $"Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
                          "POWERSCORING");
-                
-                // Feuere Event
+
                 PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
             }
             
@@ -902,13 +1075,12 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
             
             var powerScoringMessage = ParsePowerScoringProgressMessage(message);
             
-            if (powerScoringMessage != null)
+            if (powerScoringMessage is not null)
             {
                 _debugLog($"?? [POWERSCORING] Progress for player {powerScoringMessage.PlayerName}: " +
                          $"Round {powerScoringMessage.Rounds}, Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
                          "POWERSCORING");
-                
-                // Feuere Event (wird wie Result behandelt, nur mit isComplete=false)
+
                 PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
             }
             
@@ -931,13 +1103,12 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
             
             var powerScoringMessage = ParsePowerScoringMessage(message, "power-scoring-result");
             
-            if (powerScoringMessage != null)
+            if (powerScoringMessage is not null)
             {
                 _debugLog($"? [POWERSCORING] Result for player {powerScoringMessage.PlayerName}: " +
                          $"Total={powerScoringMessage.TotalScore}, Avg={powerScoringMessage.Average:F2}",
                          "POWERSCORING");
-                
-                // Feuere Event
+
                 PowerScoringMessageReceived?.Invoke(this, powerScoringMessage);
             }
             
@@ -1095,19 +1266,19 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
             }
             
             // Parse lastThrow (die letzte geworfene Runde)
-            if (message.TryGetProperty("lastThrow", out var lastThrow))
+            if (message.TryGetProperty("lastThrow", out var dartsElement))
             {
                 var throwRound = new ThrowRound
                 {
-                    Round = lastThrow.TryGetProperty("round", out var round) ? round.GetInt32() : 0,
-                    Total = lastThrow.TryGetProperty("total", out var total) ? total.GetInt32() : 0,
-                    Timestamp = lastThrow.TryGetProperty("timestamp", out var roundTs) 
+                    Round = dartsElement.TryGetProperty("round", out var round) ? round.GetInt32() : 0,
+                    Total = dartsElement.TryGetProperty("total", out var total) ? total.GetInt32() : 0,
+                    Timestamp = dartsElement.TryGetProperty("timestamp", out var roundTs) 
                         ? DateTime.Parse(roundTs.GetString() ?? DateTime.Now.ToString()) 
                         : DateTime.Now
                 };
                 
                 // Parse Darts
-                if (lastThrow.TryGetProperty("darts", out var dartsArray) && 
+                if (dartsElement.TryGetProperty("darts", out var dartsArray) && 
                     dartsArray.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var dartItem in dartsArray.EnumerateArray())
@@ -1134,6 +1305,27 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
         {
             _debugLog($"? [POWERSCORING] Error parsing progress message: {ex.Message}", "ERROR");
             return null;
+        }
+    }
+    
+    private void HandlePlannerFetchError(JsonElement message)
+    {
+        try
+        {
+            var error = JsonSerializer.Deserialize<PlannerFetchErrorResponse>(message.GetRawText());
+            if (error != null)
+            {
+                _debugLog($"? [WS-MESSAGE] Planner fetch error: {error.Error}", "ERROR");
+                PlannerFetchFailed?.Invoke(error);
+            }
+            else
+            {
+                _debugLog("? [WS-MESSAGE] Planner fetch error could not be parsed", "ERROR");
+            }
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling planner fetch error: {ex.Message}", "ERROR");
         }
     }
 }

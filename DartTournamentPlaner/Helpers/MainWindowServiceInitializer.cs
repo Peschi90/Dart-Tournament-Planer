@@ -53,7 +53,7 @@ public class MainWindowServiceInitializer
         TournamentService = new TournamentManagementService(LocalizationService, App.DataService!);
 
         // Hub Services
-        var innerHubService = new HubIntegrationService(ConfigService, LocalizationService, ApiService, _dispatcher);
+        var innerHubService = new HubIntegrationService(ConfigService, LocalizationService, ApiService, _dispatcher, LicenseManager, TournamentService);
         HubService = new LicensedHubService(innerHubService, LicenseFeatureService, LocalizationService, LicenseManager);
 
         // Hub Match Processor

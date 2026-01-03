@@ -29,11 +29,10 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
     private LocalizationService? _localizationService;
     private Group? _selectedGroup;
     private Player? _selectedPlayer;
-    private string _newPlayerName = string.Empty;
 
     // Manager classes for different responsibilities
-    private TournamentTabUIManager? _uiManager;
-    private TournamentTabEventHandlers? _eventHandlers;
+    private TournamentTabUIManager _uiManager;
+    private TournamentTabEventHandlers _eventHandlers;
     private TournamentTabTranslationManager? _translationManager;
 
     // NEU: License Services für Statistics-Prüfung
@@ -110,16 +109,6 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
             _selectedPlayer = value;
             OnPropertyChanged();
             RemovePlayerButton.IsEnabled = value != null;
-        }
-    }
-
-    public string NewPlayerName
-    {
-        get => _newPlayerName;
-        set
-        {
-            _newPlayerName = value;
-            OnPropertyChanged();
         }
     }
 
@@ -221,20 +210,16 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
             _localizationService,
             () => SelectedGroup,
             () => SelectedPlayer,
-            name => NewPlayerName = name,
-            () => NewPlayerName,
             () => DataChanged?.Invoke(this, EventArgs.Empty),
             UpdateNextIds,
-            () => _uiManager?.UpdatePlayersView(SelectedGroup),
-            () => _uiManager?.UpdateMatchesView(SelectedGroup),
-            () => _uiManager?.RefreshFinalsView(),
-            () => _uiManager?.RefreshKnockoutView(),
-            () => Window.GetWindow(this),
+            UpdatePlayersView,
+            UpdateMatchesView,
+            RefreshFinalsView,
+            RefreshKnockoutView,
+            () => Window.GetWindow(this)!,
             getHubService,
-            // ✅ NEU: Callback für Tab-Wechsel
-            (phaseType) => SwitchToPhaseTab(phaseType),
-            // ✅ NEU: Callback für vollständiges UI-Update
-            () => _uiManager?.UpdateUI()
+            phase => SwitchToPhaseTab(phase),
+            UpdateUI
         );
 
         System.Diagnostics.Debug.WriteLine($"🎯 [TournamentTab] TournamentTabEventHandlers initialized with HubService callback");
@@ -268,7 +253,6 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         _uiManager.ResetTournamentButton = ResetTournamentButton;
         _uiManager.AddPlayerButton = AddPlayerButton;
         _uiManager.RemoveGroupButton = RemoveGroupButton;
-        _uiManager.PlayerNameTextBox = PlayerNameTextBox;
         _uiManager.FinalsTabItem = FinalsTabItem;
         _uiManager.KnockoutTabItem = KnockoutTabItem;
         _uiManager.LoserBracketTab = LoserBracketTab;
@@ -808,16 +792,8 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         RemoveGroupButton.IsEnabled = SelectedGroup != null;
     }
 
-    private void PlayerNameTextBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter && AddPlayerButton.IsEnabled)
-        {
-            _eventHandlers?.AddPlayerButton_Click(sender, new RoutedEventArgs());
-        }
-    }
-
-    private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
-        => _eventHandlers?.AddPlayerButton_Click(sender, e);
+     private void AddPlayerButton_Click(object sender, RoutedEventArgs e)
+         => _eventHandlers?.AddPlayerButton_Click(sender, e);
 
     private void RemovePlayerButton_Click(object sender, RoutedEventArgs e)
         => _eventHandlers?.RemovePlayerButton_Click(sender, e);
@@ -1256,5 +1232,30 @@ public partial class TournamentTab : UserControl, INotifyPropertyChanged, IDispo
         _uiManager?.Dispose();
         _eventHandlers?.Dispose();
         _translationManager?.Dispose();
+    }
+
+    private void UpdatePlayersView()
+    {
+        _uiManager?.UpdatePlayersView(SelectedGroup);
+    }
+
+    private void UpdateMatchesView()
+    {
+        _uiManager?.UpdateMatchesView(SelectedGroup);
+    }
+
+    private void RefreshFinalsView()
+    {
+        _uiManager?.RefreshFinalsView();
+    }
+
+    private void RefreshKnockoutView()
+    {
+        _uiManager?.RefreshKnockoutView();
+    }
+
+    private void UpdateUI()
+    {
+        _uiManager?.UpdateUI();
     }
 }

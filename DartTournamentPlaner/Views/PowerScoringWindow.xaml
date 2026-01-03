@@ -369,25 +369,15 @@
 
                     <!-- Spieler hinzufuegen -->
                     <StackPanel Grid.Row="2" Margin="0,0,0,15">
-                        <TextBlock Text="Spieler hinzufuegen:"
+                        <TextBlock Text="Spieler hinzufügen:" 
                                    FontWeight="SemiBold"
                                    FontSize="14"
                                    Margin="0,0,0,8"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="PlayerNameTextBox"
-                                     Grid.Column="0"
-                                     Style="{StaticResource ModernTextBox}"
-                                     KeyDown="PlayerNameTextBox_KeyDown"/>
-                            <Button x:Name="AddPlayerButton"
-                                    Grid.Column="1"
-                                    Content="+ Add Player"
-                                    Style="{StaticResource ModernButton}"
-                                    Click="AddPlayerButton_Click"/>
-                        </Grid>
+                        <Button x:Name="AddPlayerButton"
+                                Content="Spieler verwalten"
+                                Style="{StaticResource ModernButton}"
+                                Click="AddPlayerButton_Click"
+                                HorizontalAlignment="Left"/>
                     </StackPanel>
 
                     <!-- Spielerliste -->

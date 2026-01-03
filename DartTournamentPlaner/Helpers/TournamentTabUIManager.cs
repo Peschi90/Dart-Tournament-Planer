@@ -20,6 +20,7 @@ public class TournamentTabUIManager : IDisposable
     private readonly LocalizationService _localizationService;
     private readonly Dispatcher _dispatcher;
     private bool _disposed = false;
+    private bool _allowGroupManagement;
 
     // UI Elements - werden vom TournamentTab gesetzt
     public ListBox? GroupsListBox { get; set; }
@@ -42,7 +43,6 @@ public class TournamentTabUIManager : IDisposable
     public Button? ResetTournamentButton { get; set; }
     public Button? AddPlayerButton { get; set; }
     public Button? RemoveGroupButton { get; set; }
-    public TextBox? PlayerNameTextBox { get; set; }
     public TabItem? FinalsTabItem { get; set; }
     public TabItem? KnockoutTabItem { get; set; }
     public TabItem? LoserBracketTab { get; set; }
@@ -735,12 +735,11 @@ public class TournamentTabUIManager : IDisposable
         
         // ✅ NEU: Gruppen-Management Buttons - Deaktivieren wenn SkipGroupPhase aktiv und KO-Phase läuft
         bool allowGroupManagement = !skipGroupPhase || _tournamentClass.CurrentPhase?.PhaseType == TournamentPhaseType.GroupPhase;
+        _allowGroupManagement = allowGroupManagement;
+         
+         if (AddPlayerButton != null)
+             AddPlayerButton.IsEnabled = allowGroupManagement;
         
-        if (AddPlayerButton != null)
-            AddPlayerButton.IsEnabled = allowGroupManagement && GroupsListBox?.SelectedItem != null;
-        if (PlayerNameTextBox != null)
-            PlayerNameTextBox.IsEnabled = allowGroupManagement && GroupsListBox?.SelectedItem != null;
-            
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] UpdateButtonStates: Phase={_tournamentClass.CurrentPhase?.PhaseType}, SkipGroupPhase={skipGroupPhase}, canResetMatches={canResetMatches}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetTournamentButton.IsEnabled = {ResetTournamentButton?.IsEnabled}");
         System.Diagnostics.Debug.WriteLine($"[UI-MANAGER] ResetMatchesButton.IsEnabled = {ResetMatchesButton?.IsEnabled}");
@@ -749,13 +748,11 @@ public class TournamentTabUIManager : IDisposable
 
     private void UpdatePlayerManagementButtons(bool enabled, Group? selectedGroup, bool allowGeneration = true)
     {
-        if (PlayerNameTextBox != null)
-            PlayerNameTextBox.IsEnabled = enabled;
         if (AddPlayerButton != null)
-            AddPlayerButton.IsEnabled = enabled;
+            AddPlayerButton.IsEnabled = _allowGroupManagement;
         
         if (allowGeneration && GenerateMatchesButton != null)
-            GenerateMatchesButton.IsEnabled = enabled && selectedGroup?.Players.Count >= 2;
+             GenerateMatchesButton.IsEnabled = enabled && selectedGroup?.Players.Count >= 2;
         if (allowGeneration && ResetMatchesButton != null)
             ResetMatchesButton.IsEnabled = enabled && selectedGroup != null && selectedGroup.MatchesGenerated && selectedGroup.Matches.Count > 0;
     }

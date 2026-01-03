@@ -266,6 +266,28 @@ public class MainWindowEventHandlers
 
     #region Settings Menu Handlers
 
+    public void OnTournamentSettings(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog = new TournamentMetadataDialog(_services.ConfigService, _services.LocalizationService, _services.TournamentService)
+            {
+                Owner = _mainWindow
+            };
+
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            StyledInfoDialog.Show(
+                _services.LocalizationService.GetString("Error") ?? "Fehler",
+                $"Fehler beim Öffnen der Turnier-Einstellungen: {ex.Message}",
+                _services.LocalizationService,
+                isError: true,
+                owner: _mainWindow);
+        }
+    }
+
     public void OnSettings(object sender, RoutedEventArgs e)
     {
         var settingsWindow = new SettingsWindow(_services.ConfigService, _services.LocalizationService, App.ThemeService);

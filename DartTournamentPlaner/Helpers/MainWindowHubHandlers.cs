@@ -150,6 +150,24 @@ public class MainWindowHubHandlers
         }
     }
 
+    public void OnPlannerTournaments(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            HubPlannerTournamentsDialog.ShowDialog(
+                _mainWindow,
+                _services.HubService,
+                _services.LocalizationService,
+                _services.LicenseManager);
+        }
+        catch (Exception ex)
+        {
+            var title = _services.LocalizationService.GetString("Error");
+            var message = _services.LocalizationService.GetString("PlannerFetchStatusError", ex.Message);
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
     public void OnHubSettings(object sender, RoutedEventArgs e)
     {
         try

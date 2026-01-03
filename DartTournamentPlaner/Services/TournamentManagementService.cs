@@ -119,13 +119,20 @@ public class TournamentManagementService
     SubscribeToChanges(_tournamentClasses[i]);
        }
                 
-         // ⭐ NEU: Restore Tournament-ID from loaded data
-       _tournamentData.TournamentId = data.TournamentId;
-      _tournamentData.TournamentName = data.TournamentName;
-           
-       System.Diagnostics.Debug.WriteLine($"✅ [LoadData] Tournament ID restored: {_tournamentData.TournamentId ?? "null"}");
-            
-             return true;
+     // ⭐ NEU: Restore Tournament-ID from loaded data
+                _tournamentData.TournamentId = data.TournamentId;
+                _tournamentData.TournamentName = data.TournamentName;
+                _tournamentData.TournamentDescription = data.TournamentDescription;
+                _tournamentData.TournamentLocation = data.TournamentLocation;
+                _tournamentData.TournamentStartTimeIso = data.TournamentStartTimeIso;
+                _tournamentData.TournamentTotalPlayers = data.TournamentTotalPlayers;
+                _tournamentData.FeaturePowerScoring = data.FeaturePowerScoring;
+                _tournamentData.FeatureQrRegistration = data.FeatureQrRegistration;
+                _tournamentData.FeaturePublicView = data.FeaturePublicView;
+                
+                System.Diagnostics.Debug.WriteLine($"✅ [LoadData] Tournament ID restored: {_tournamentData.TournamentId ?? "null"}");
+                
+                return true;
             }
             return false;
    }
@@ -138,32 +145,27 @@ public class TournamentManagementService
 
     public async Task<bool> SaveDataAsync()
  {
-        try
-        {
+         try
+         {
      // ⭐ FIXED: Verwende persistente TournamentData für Speichern
       _tournamentData.TournamentClasses = _tournamentClasses;
-   
+ 
             System.Diagnostics.Debug.WriteLine($"✅ [SaveData] Saving with Tournament ID: {_tournamentData.TournamentId ?? "null"}");
-
+ 
             await _dataService.SaveTournamentDataAsync(_tournamentData);
             return true;
-        }
-        catch (Exception ex)
-        {
-         System.Diagnostics.Debug.WriteLine($"SaveData ERROR: {ex.Message}");
-            
-            var title = _localizationService.GetString("Error");
-            var message = $"{_localizationService.GetString("ErrorSavingData")} {ex.Message}";
-    MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-    
-     return false;
-      }
-    }
+         }
+         catch (Exception ex)
+         {
+            System.Diagnostics.Debug.WriteLine($"SaveData ERROR: {ex.Message}");
+            return false;
+         }
+     }
 
     public TournamentData GetTournamentData()
     {
         // ⭐ FIXED: Gebe persistente Instanz zurück statt neue zu erstellen
-      _tournamentData.TournamentClasses = _tournamentClasses;
+     _tournamentData.TournamentClasses = _tournamentClasses;
      return _tournamentData;
     }
 

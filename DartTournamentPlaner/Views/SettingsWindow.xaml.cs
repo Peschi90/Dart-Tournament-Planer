@@ -62,6 +62,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
         ThemeComboBox.SelectedValue = Config.Theme ?? "Light";
         AutoSaveCheckBox.IsChecked = Config.AutoSave;
         AutoSaveIntervalTextBox.Text = Config.AutoSaveInterval.ToString();
+        TournamentLocationTextBox.Text = Config.TournamentLocation;
     }
 
     private void UpdateTranslations()
@@ -115,6 +116,7 @@ public partial class SettingsWindow : Window, INotifyPropertyChanged
             // Update config settings
             _configService.Config.Theme = newTheme;
             _configService.Config.AutoSave = AutoSaveCheckBox.IsChecked ?? false;
+            _configService.Config.TournamentLocation = TournamentLocationTextBox.Text?.Trim() ?? string.Empty;
             
             if (int.TryParse(AutoSaveIntervalTextBox.Text, out int interval) && interval > 0)
             {

@@ -6,6 +6,11 @@ using System.Reflection;
 using System.Text.Json;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Views;
+using DartTournamentPlaner.Services.License;
+using DartTournamentPlaner.Services.HubSync;
+using DartTournamentPlaner.Services.HubWebSocket;
+using DartTournamentPlaner.Services.PowerScore;
+using DartTournamentPlaner.Helpers;
 
 namespace DartTournamentPlaner.Services;
 
@@ -42,6 +47,8 @@ public class HubIntegrationService : IDisposable
     private readonly LocalizationService _localizationService;
     private readonly IApiIntegrationService _apiService;
     private readonly Dispatcher _dispatcher;
+    private readonly LicenseManager? _licenseManager;
+    private readonly TournamentManagementService? _tournamentService;
     
     // Hub Status
     private DispatcherTimer _hubHeartbeatTimer;
@@ -51,6 +58,8 @@ public class HubIntegrationService : IDisposable
     private bool _isWebSocketConnected = false; // ✅ NEW: Track WebSocket connection separately
     private DateTime _lastSyncTime = DateTime.MinValue;
     private bool _isSyncingWithHub = false;
+
+    private bool UseNewPlannerRegistration => _configService.Config.UseNewPlannerRegistration;
 
     // Hub Debug Console - KORRIGIERT: Static instance für globalen Zugriff
     private static HubDebugWindow? _globalHubDebugWindow;
@@ -71,12 +80,16 @@ public class HubIntegrationService : IDisposable
         ConfigService configService,
         LocalizationService localizationService,
         IApiIntegrationService apiService,
-        Dispatcher dispatcher)
+        Dispatcher dispatcher,
+        LicenseManager? licenseManager = null,
+        TournamentManagementService? tournamentService = null)
     {
         _configService = configService;
         _localizationService = localizationService;
         _apiService = apiService;
         _dispatcher = dispatcher;
+        _licenseManager = licenseManager;
+        _tournamentService = tournamentService;
         
         _tournamentHubService = new TournamentHubService(_configService);
         InitializeHubDebugConsole();
@@ -218,46 +231,30 @@ public class HubIntegrationService : IDisposable
                 _globalHubDebugWindow?.AddDebugMessage($"🎯 Automatisch generierte Tournament-ID: {_currentTournamentId}", "TOURNAMENT");
             }
     
-            _globalHubDebugWindow?.AddDebugMessage($"🎯 Registriere Tournament: {_currentTournamentId}", "TOURNAMENT");
-    
-            var success = await _tournamentHubService.RegisterWithHubAsync(
-                _currentTournamentId,
-                $"Dart Turnier {DateTime.Now:dd.MM.yyyy}",
-                "Live Dart Tournament von Tournament Planner"
-            );
-            
-            if (success)
+            var tournamentData = _tournamentService?.GetTournamentData();
+            var totalPlayersConfig = tournamentData?.TournamentTotalPlayers ?? 0;
+            var totalPlayers = totalPlayersConfig > 0
+                ? totalPlayersConfig
+                : _tournamentService?.GetTotalPlayersCount() ?? 0;
+            var (classes, participants) = BuildClassesAndParticipants(tournamentData);
+            var gameRules = BuildGameRules(tournamentData);
+
+            var tournamentName = !string.IsNullOrWhiteSpace(tournamentData?.TournamentName)
+                ? tournamentData!.TournamentName
+                : $"Dart Turnier {DateTime.Now:dd.MM.yyyy}";
+            var tournamentDescription = !string.IsNullOrWhiteSpace(tournamentData?.TournamentDescription)
+                ? tournamentData!.TournamentDescription
+                : "Live Dart Tournament von Tournament Planner";
+             _globalHubDebugWindow?.AddDebugMessage($"🎯 Registriere Tournament: {_currentTournamentId}", "TOURNAMENT");
+
+            if (UseNewPlannerRegistration)
             {
-                _isRegisteredWithHub = true;
-                _hubHeartbeatTimer?.Start();
-                _hubSyncTimer?.Start();
-                
-                System.Diagnostics.Debug.WriteLine($"✅ Tournament registered: {_currentTournamentId}");
-                _globalHubDebugWindow?.AddDebugMessage($"✅ Tournament erfolgreich registriert: {_currentTournamentId}", "SUCCESS");
-                
-                // API Integration benachrichtigen
-                if (_apiService is HttpApiIntegrationService httpApiService)
-                {
-                    httpApiService.SetCurrentTournamentId(_currentTournamentId);
-                    _globalHubDebugWindow?.AddDebugMessage("🔗 API Integration benachrichtigt", "INFO");
-                }
-        
-                await SubscribeToTournamentUpdates(_currentTournamentId);
-                
-                // ✅ CRITICAL FIX: Notify about state change (Tournament Registered)
-                NotifyConnectionStateChanged();
-                
-                return true;
+                _globalHubDebugWindow?.AddDebugMessage("🚀 Verwende neue Planner-Registrierungsroutine (config.json)", "INFO");
+                return await RegisterTournamentWithPlannerMessageAsync(_currentTournamentId, tournamentName, tournamentDescription);
             }
-            
-            _currentTournamentId = string.Empty;
-            _isRegisteredWithHub = false;
-            _globalHubDebugWindow?.AddDebugMessage("❌ Tournament-Registrierung fehlgeschlagen", "ERROR");
-            
-            // ✅ CRITICAL FIX: Notify about state change (WebSocket Ready or Disconnected)
-            NotifyConnectionStateChanged();
-            
-            return false;
+
+            _globalHubDebugWindow?.AddDebugMessage("ℹ️ Verwende Legacy-Hub-Registrierungsroutine", "INFO");
+            return await RegisterTournamentWithLegacyAsync(_currentTournamentId, tournamentName);
         }
         catch (Exception ex)
         {
@@ -271,6 +268,229 @@ public class HubIntegrationService : IDisposable
             
             return false;
         }
+    }
+
+    private async Task<bool> RegisterTournamentWithLegacyAsync(string tournamentId, string tournamentName)
+    {
+        var success = await _tournamentHubService.RegisterWithHubAsync(
+            tournamentId,
+            tournamentName,
+            "Live Dart Tournament von Tournament Planner"
+        );
+        
+        if (success)
+        {
+            _isRegisteredWithHub = true;
+            _hubHeartbeatTimer?.Start();
+            _hubSyncTimer?.Start();
+            
+            System.Diagnostics.Debug.WriteLine($"✅ Tournament registered: {tournamentId}");
+            _globalHubDebugWindow?.AddDebugMessage($"✅ Tournament erfolgreich registriert: {tournamentId}", "SUCCESS");
+            
+            // API Integration benachrichtigen
+            if (_apiService is HttpApiIntegrationService httpApiService)
+            {
+                httpApiService.SetCurrentTournamentId(tournamentId);
+                _globalHubDebugWindow?.AddDebugMessage("🔗 API Integration benachrichtigt", "INFO");
+            }
+    
+            await SubscribeToTournamentUpdates(tournamentId);
+            
+            // ✅ CRITICAL FIX: Notify about state change (Tournament Registered)
+            NotifyConnectionStateChanged();
+            
+            return true;
+        }
+        
+        _currentTournamentId = string.Empty;
+        _isRegisteredWithHub = false;
+        _globalHubDebugWindow?.AddDebugMessage("❌ Tournament-Registrierung fehlgeschlagen", "ERROR");
+        
+        // ✅ CRITICAL FIX: Notify about state change (WebSocket Ready or Disconnected)
+        NotifyConnectionStateChanged();
+        
+        return false;
+    }
+
+    private async Task<bool> RegisterTournamentWithPlannerMessageAsync(string tournamentId, string tournamentName, string tournamentDescription)
+    {
+        if (_licenseManager == null)
+        {
+            _globalHubDebugWindow?.AddDebugMessage("❌ Keine LicenseManager-Instanz für Planner-Registrierung verfügbar", "ERROR");
+            return false;
+        }
+
+        var licenseKey = _licenseManager.GetStoredLicenseKey();
+        if (string.IsNullOrWhiteSpace(licenseKey))
+        {
+            _globalHubDebugWindow?.AddDebugMessage("❌ Kein gültiger Lizenzschlüssel für Planner-Registrierung gefunden", "ERROR");
+            return false;
+        }
+
+        if (!_tournamentHubService.IsWebSocketConnected)
+        {
+            _globalHubDebugWindow?.AddDebugMessage("🔌 Initialisiere WebSocket für Planner-Registrierung...", "INFO");
+            var initSuccess = await _tournamentHubService.InitializeWebSocketAsync();
+            if (!initSuccess)
+            {
+                _globalHubDebugWindow?.AddDebugMessage("❌ WebSocket konnte nicht initialisiert werden", "ERROR");
+                return false;
+            }
+
+            await Task.Delay(500);
+        }
+
+        var tournamentData = _tournamentService?.GetTournamentData();
+        var totalPlayersConfig = tournamentData?.TournamentTotalPlayers ?? 0;
+        var totalPlayers = totalPlayersConfig > 0
+            ? totalPlayersConfig
+            : _tournamentService?.GetTotalPlayersCount() ?? 0;
+        var (classes, participants) = BuildClassesAndParticipants(tournamentData);
+        var gameRules = BuildGameRules(tournamentData);
+
+        var plannerRequest = new PlannerTournamentRegistrationRequest
+        {
+            TournamentId = tournamentId,
+            LicenseKey = licenseKey.Trim(),
+            Name = tournamentName,
+            Description = tournamentDescription,
+            Status = "active",
+            TotalPlayers = totalPlayers,
+            StartTime = string.IsNullOrWhiteSpace(tournamentData?.TournamentStartTimeIso)
+                ? DateTime.UtcNow.ToString("o")
+                : tournamentData!.TournamentStartTimeIso,
+            Location = tournamentData?.TournamentLocation,
+            Classes = classes,
+            GameRules = gameRules,
+            Participants = participants,
+            Metadata = new { source = "planner-ws", client = "DartTournamentPlaner" },
+            Features = new PlannerRegistrationFeatures
+            {
+                PublicView = tournamentData?.FeaturePublicView ?? true,
+                PowerScoring = tournamentData?.FeaturePowerScoring ?? false,
+                QrRegistration = tournamentData?.FeatureQrRegistration ?? false
+             }
+         };
+
+        var registrationSuccess = await _tournamentHubService.RegisterTournamentViaPlannerAsync(plannerRequest);
+
+        if (registrationSuccess)
+        {
+            _isRegisteredWithHub = true;
+            _hubHeartbeatTimer?.Start();
+            _hubSyncTimer?.Start();
+            
+            System.Diagnostics.Debug.WriteLine($"✅ Tournament registered via planner WS: {tournamentId}");
+            _globalHubDebugWindow?.AddDebugMessage($"✅ Tournament erfolgreich registriert (Planner WS): {tournamentId}", "SUCCESS");
+            
+            if (_apiService is HttpApiIntegrationService httpApiService)
+            {
+                httpApiService.SetCurrentTournamentId(tournamentId);
+                _globalHubDebugWindow?.AddDebugMessage("🔗 API Integration benachrichtigt", "INFO");
+            }
+
+            await SubscribeToTournamentUpdates(tournamentId);
+
+            // ✅ Notify about state change (Tournament Registered)
+            NotifyConnectionStateChanged();
+            return true;
+        }
+
+        _currentTournamentId = string.Empty;
+        _isRegisteredWithHub = false;
+        _globalHubDebugWindow?.AddDebugMessage("❌ Tournament-Registrierung fehlgeschlagen (Planner WS)", "ERROR");
+        NotifyConnectionStateChanged();
+        return false;
+    }
+
+    private (List<object> classes, List<object> participants) BuildClassesAndParticipants(TournamentData? tournamentData)
+    {
+        var classes = new List<object>();
+        var participants = new List<object>();
+        if (tournamentData == null) return (classes, participants);
+
+        var handledPlayerIds = new HashSet<int>();
+
+        foreach (var tournamentClass in tournamentData.TournamentClasses)
+        {
+            var playersInClass = tournamentClass.Groups.SelectMany(g => g.Players).ToList();
+            if (!playersInClass.Any()) continue;
+
+            classes.Add(new
+            {
+                name = tournamentClass.Name,
+                playerCount = playersInClass.Count
+            });
+
+            foreach (var group in tournamentClass.Groups)
+            {
+                foreach (var player in group.Players)
+                {
+                    if (handledPlayerIds.Contains(player.Id)) continue;
+                    handledPlayerIds.Add(player.Id);
+
+                    var firstName = player.FirstName;
+                    var lastName = player.LastName;
+                    var nickname = player.Nickname;
+                    var displayName = !string.IsNullOrWhiteSpace(player.Name)
+                        ? player.Name
+                        : string.Join(" ", new[] { firstName, lastName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+                    participants.Add(new
+                    {
+                        id = player.Id,
+                        name = displayName?.Trim(),
+                        firstName,
+                        lastName,
+                        nickname,
+                        email = player.Email,
+                        className = tournamentClass.Name,
+                        groupName = group.Name
+                    });
+                }
+            }
+        }
+
+        return (classes, participants);
+    }
+
+    private List<object> BuildGameRules(TournamentData? tournamentData)
+    {
+        var rulesList = new List<object>();
+        if (tournamentData == null) return rulesList;
+
+        foreach (var tournamentClass in tournamentData.TournamentClasses)
+        {
+            var playersInClass = tournamentClass.Groups.SelectMany(g => g.Players).ToList();
+            if (!playersInClass.Any()) continue;
+
+            var rules = tournamentClass.GameRules;
+            var knockoutRules = rules.SerializableKnockoutRoundRules?.Rules ?? new Dictionary<string, RoundRules>();
+            var finalsRules = rules.SerializableRoundRobinFinalsRules?.Rules ?? new Dictionary<string, RoundRules>();
+
+            rulesList.Add(new
+            {
+                ClassId = tournamentClass.Id,
+                ClassName = tournamentClass.Name,
+                GameRules = new
+                {
+                    GameMode = (int)rules.GameMode,
+                    FinishMode = (int)rules.FinishMode,
+                    LegsToWin = rules.LegsToWin,
+                    PlayWithSets = rules.PlayWithSets,
+                    SetsToWin = rules.SetsToWin,
+                    LegsPerSet = rules.LegsPerSet,
+                    QualifyingPlayersPerGroup = rules.QualifyingPlayersPerGroup,
+                    KnockoutMode = (int)rules.KnockoutMode,
+                    IncludeGroupPhaseLosersBracket = rules.IncludeGroupPhaseLosersBracket,
+                    SkipGroupPhase = rules.SkipGroupPhase,
+                    KnockoutRoundRules = new { Rules = knockoutRules },
+                    RoundRobinFinalsRules = new { Rules = finalsRules }
+                }
+            });
+        }
+
+        return rulesList;
     }
 
     /// <summary>
@@ -603,6 +823,7 @@ public class HubIntegrationService : IDisposable
                             System.Diagnostics.Debug.WriteLine($"✅ [HUB-CONNECTION] HTTP re-registration successful");
                             _globalHubDebugWindow?.AddDebugMessage($"✅ HTTP re-registration successful", "SUCCESS");
                             
+
                             // ✅ STEP 2: Re-subscribe via WebSocket
                             System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 2: Re-subscribing via WebSocket...");
                             _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 2: Re-subscribing via WebSocket", "WEBSOCKET");
@@ -613,6 +834,7 @@ public class HubIntegrationService : IDisposable
                             System.Diagnostics.Debug.WriteLine($"🔄 [HUB-CONNECTION] Step 3: Syncing tournament data...");
                             _globalHubDebugWindow?.AddDebugMessage($"🔄 Step 3: Syncing tournament data", "SYNC");
                             
+
                             // Fire the resync event and wait for it to complete
                             if (TournamentNeedsResync != null)
                             {
@@ -844,5 +1066,65 @@ public class HubIntegrationService : IDisposable
         
         // Debug Console nicht schließen, da sie global verwendet wird
         _globalHubDebugWindow?.AddDebugMessage("🔄 Hub Integration Service disposed", "INFO");
+    }
+
+    public async Task<PlannerTournamentsResponse?> FetchPlannerTournamentsAsync(int days = 14)
+    {
+        if (_licenseManager == null)
+        {
+            throw new InvalidOperationException("License manager not available");
+        }
+
+        var licenseKey = _licenseManager.GetStoredLicenseKey();
+        if (string.IsNullOrWhiteSpace(licenseKey))
+        {
+            throw new InvalidOperationException("License key is required for fetching tournaments");
+        }
+
+        if (!_tournamentHubService.IsWebSocketConnected)
+        {
+            var initialized = await _tournamentHubService.InitializeWebSocketAsync();
+            if (!initialized)
+            {
+                throw new InvalidOperationException("WebSocket connection could not be established");
+            }
+        }
+
+        var successTcs = new TaskCompletionSource<PlannerTournamentsResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var errorTcs = new TaskCompletionSource<PlannerFetchErrorResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        void OnSuccess(PlannerTournamentsResponse response) => successTcs.TrySetResult(response);
+        void OnError(PlannerFetchErrorResponse error) => errorTcs.TrySetResult(error);
+
+        _tournamentHubService.OnPlannerTournamentsReceived += OnSuccess;
+        _tournamentHubService.OnPlannerFetchFailed += OnError;
+
+        try
+        {
+            var sent = await _tournamentHubService.FetchPlannerTournamentsAsync(licenseKey.Trim(), days);
+            if (!sent)
+            {
+                throw new InvalidOperationException("Planner tournaments request could not be sent");
+            }
+
+            var completed = await Task.WhenAny(successTcs.Task, errorTcs.Task, Task.Delay(TimeSpan.FromSeconds(10)));
+            if (completed == errorTcs.Task)
+            {
+                var error = await errorTcs.Task;
+                throw new InvalidOperationException(error?.Error ?? "Planner tournaments fetch failed");
+            }
+
+            if (completed == successTcs.Task)
+            {
+                return await successTcs.Task;
+            }
+
+            throw new TimeoutException("Planner tournaments request timed out");
+        }
+        finally
+        {
+            _tournamentHubService.OnPlannerTournamentsReceived -= OnSuccess;
+            _tournamentHubService.OnPlannerFetchFailed -= OnError;
+        }
     }
 }

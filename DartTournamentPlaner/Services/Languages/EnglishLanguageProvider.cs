@@ -22,6 +22,7 @@ public class EnglishLanguageProvider : ILanguageProvider
             new EnglishUILanguageProvider(),
             new EnglishStartupLanguageProvider(), // ✅ NEU: Startup/Splash Screen Übersetzungen
             new EnglishHubLanguageProvider(),
+            new EnglishPlannerFetchLanguageProvider(),
             new EnglishLicenseLanguageProvider(),
             new EnglishTournamentLanguageProvider(),
             new EnglishKnockoutLanguageProvider(), // ✅ NEU: KO-Tab spezifische Übersetzungen

@@ -474,6 +474,23 @@ public class EnglishUILanguageProvider : ILanguageSection
             ["LicenseAutoFillSuccess"] = "License key inserted.",
             ["LicenseAutoFillMissing"] = "No license key stored.",
             ["AuthNotLoggedIn"] = "Not logged in.",
+
+            // =====================================
+            // TOURNAMENT SETTINGS DIALOG
+            // =====================================
+            
+            ["TournamentSettings"] = "Tournament Settings",
+            ["TournamentMetadata"] = "Tournament Metadata",
+            ["TournamentName"] = "Tournament Name",
+            ["TournamentDescription"] = "Description",
+            ["TournamentLocation"] = "Location",
+            ["TournamentSchedule"] = "Schedule",
+            ["StartDate"] = "Start Date",
+            ["StartTime"] = "Start Time",
+            ["PowerScoring"] = "PowerScoring",
+            ["QRRegistration"] = "QR Registration",
+            ["PublicView"] = "Public View",
+            ["TotalPlayers"] = "Total Players",
         };
     }
 }

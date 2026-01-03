@@ -1,0 +1,300 @@
+<Window x:Class="DartTournamentPlaner.Views.TournamentMetadataDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tournament Settings" Height="520" Width="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextFormattingMode="Display"
+        RenderOptions.BitmapScalingMode="HighQuality">
+    <Window.Resources>
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="MinWidth" Value="90"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#3B82F6" Offset="0"/>
+                        <GradientStop Color="#2563EB" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" CornerRadius="8" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#F1F5F9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Name="border" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="2"
+                                UseLayoutRounding="True" SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" 
+                                          Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="DatePicker">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="UseLayoutRounding" Value="True"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Foreground" Value="#374151"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="Transparent" Margin="10" UseLayoutRounding="True" SnapsToDevicePixels="True">
+        <Border Background="{x:Static SystemColors.WindowBrush}" 
+                CornerRadius="12" 
+                BorderBrush="#E2E8F0" 
+                BorderThickness="1"
+                UseLayoutRounding="True" SnapsToDevicePixels="True">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Direction="270" ShadowDepth="8" 
+                                  BlurRadius="20" Opacity="0.15"/>
+            </Border.Effect>
+
+            <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" CornerRadius="12,12,0,0" 
+                        Padding="24,18,24,18" MouseLeftButtonDown="Header_MouseLeftButtonDown"
+                        Background="{DynamicResource DialogPrimaryGradient}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏆" FontSize="20" Margin="0,0,12,0" 
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Name="HeaderTitle" Text="Tournament Settings" 
+                                   FontSize="18" FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="24,16,24,0">
+                    <StackPanel>
+                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                BorderThickness="1" CornerRadius="12" 
+                                Padding="20" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="ℹ️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Name="MetadataLabel" Text="Tournament Metadata" FontWeight="SemiBold" FontSize="15" 
+                                               Foreground="#374151" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Name="NameLabel" Text="Name" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Name="TournamentNameTextBox" Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Name="DescriptionLabel" Text="Description" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Name="TournamentDescriptionTextBox" Margin="8,0,0,0" Height="80" TextWrapping="Wrap" AcceptsReturn="True"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" Name="LocationLabel" Text="Location" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <TextBox Grid.Row="6" Grid.Column="1" Name="TournamentLocationTextBox" Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Row="8" Grid.Column="0" x:Name="TotalPlayersLabel" Text="Total Players" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <TextBox Grid.Row="8" Grid.Column="1" x:Name="TotalPlayersTextBox" Margin="8,0,0,0"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                BorderThickness="1" CornerRadius="12" 
+                                Padding="20" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="130"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="📅" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Name="ScheduleLabel" Text="Schedule" FontWeight="SemiBold" FontSize="15" 
+                                               Foreground="#374151" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" Name="StartDateLabel" Text="Start Date" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <DatePicker Grid.Row="2" Grid.Column="1" Name="StartDatePicker" Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" Name="StartTimeLabel" Text="Start Time" 
+                                           VerticalAlignment="Center" FontWeight="Medium" 
+                                           Foreground="#6B7280"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Name="StartTimeTextBox" Margin="8,0,0,0" ToolTip="HH:mm"/>
+                            </Grid>
+                        </Border>
+
+                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" 
+                                BorderThickness="1" CornerRadius="12" 
+                                Padding="20" Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="⚙️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Name="FeaturesLabel" Text="Features" FontWeight="SemiBold" FontSize="15" 
+                                               Foreground="#374151" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280" Text="PowerScoring"/>
+                                <CheckBox Grid.Row="2" Grid.Column="1" Name="PowerScoringCheckBox" Content="PowerScoring" Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280" Text="QR Registration"/>
+                                <CheckBox Grid.Row="4" Grid.Column="1" Name="QrRegistrationCheckBox" Content="QR Registration" Margin="8,0,0,0"/>
+
+                                <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" FontWeight="Medium" Foreground="#6B7280" Text="Public View"/>
+                                <CheckBox Grid.Row="6" Grid.Column="1" Name="PublicViewCheckBox" Content="Public View" Margin="8,0,0,0"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" 
+                        Background="#FAFAFA" CornerRadius="0,0,12,12">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" 
+                                Margin="24,16,24,16">
+                        <Button Name="CancelButton" Content="Cancel" 
+                                Style="{StaticResource SecondaryButton}"
+                                Click="CancelButton_Click" 
+                                Margin="0,0,12,0" IsCancel="True"/>
+                        <Button Name="SaveButton" Content="Save" 
+                                Style="{StaticResource PrimaryButton}"
+                                Click="SaveButton_Click" IsDefault="True"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+    </Border>
+</Window>

@@ -322,7 +322,7 @@ public class MainWindowUIHelper
     public void UpdateMenuTranslations(
         MenuItem fileMenuItem, MenuItem newMenuItem, MenuItem openMenuItem, 
         MenuItem saveMenuItem, MenuItem saveAsMenuItem, MenuItem printMenuItem, MenuItem exitMenuItem,
-        MenuItem viewMenuItem, MenuItem overviewModeMenuItem,
+        MenuItem tournamentSettingsMenuItem, MenuItem viewMenuItem, MenuItem overviewModeMenuItem,
         MenuItem tournamentHubMenuItem, MenuItem registerWithHubMenuItem, MenuItem unregisterFromHubMenuItem,
         MenuItem showJoinUrlMenuItem, MenuItem manualSyncMenuItem, MenuItem hubSettingsMenuItem,
         MenuItem licenseMenuItem, MenuItem licenseStatusMenuItem, MenuItem activateLicenseMenuItem, 
@@ -340,6 +340,9 @@ public class MainWindowUIHelper
         printMenuItem.Header = "🖨️ " + (_localizationService.GetString("Print") ?? "Drucken");
         exitMenuItem.Header = _localizationService.GetString("Exit");
         
+        // Turnier-Einstellungen
+        tournamentSettingsMenuItem.Header = _localizationService.GetString("TournamentSettings") ?? "Tournament Settings";
+
         // Ansicht-Menü
         viewMenuItem.Header = _localizationService.GetString("View");
         overviewModeMenuItem.Header = _localizationService.GetString("TournamentOverview");

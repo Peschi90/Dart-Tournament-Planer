@@ -301,7 +301,7 @@ public partial class MainWindow : Window
         // Menü-Übersetzungen über UI Helper
         _serviceInitializer.UiHelper.UpdateMenuTranslations(
             FileMenuItem, NewMenuItem, OpenMenuItem, SaveMenuItem, SaveAsMenuItem,
-            PrintMenuItem, ExitMenuItem, ViewMenuItem, OverviewModeMenuItem,
+            PrintMenuItem, ExitMenuItem, TournamentSettingsMenuItem, ViewMenuItem, OverviewModeMenuItem,
             TournamentHubMenuItem, RegisterWithHubMenuItem, UnregisterFromHubMenuItem,
             ShowJoinUrlMenuItem, ManualSyncMenuItem, HubSettingsMenuItem,
             LicenseMenuItem, LicenseStatusMenuItem, ActivateLicenseMenuItem, LicenseInfoMenuItem, RemoveLicenseMenuItem, PurchaseLicenseMenuItem,
@@ -478,6 +478,7 @@ public partial class MainWindow : Window
 
     // Settings Menu
     private void Settings_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnSettings(sender, e);
+    private void TournamentSettings_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnTournamentSettings(sender, e);
 
     // Account Menu
     private void Login_Click(object sender, RoutedEventArgs e) => _eventHandlers.OnLogin(sender, e);
@@ -504,6 +505,7 @@ public partial class MainWindow : Window
     private async void UnregisterFromHub_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnUnregisterFromHub(sender, e);
     private async void ManualSyncWithHub_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnManualSyncWithHub(sender, e);
     private void ShowJoinUrl_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnShowJoinUrl(sender, e);
+    private void PlannerTournaments_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnPlannerTournaments(sender, e);
     private void HubSettings_Click(object sender, RoutedEventArgs e) => _hubHandlers.OnHubSettings(sender, e);
     private void HubStatus_Click(object sender, System.Windows.Input.MouseButtonEventArgs e) => _hubHandlers.OnHubStatusClick(sender, e);
 
@@ -543,7 +545,7 @@ public partial class MainWindow : Window
 
             if (success)
             {
-                var title = _serviceInitializer.LocalizationService.GetString("Success") ?? "Erfolgreich";
+                var title = _serviceInitializer.LocalizationService.GetString("Success") ?? "Erfolgreicht";
                 var message = _serviceInitializer.LocalizationService.GetString("APIStopped") ?? "API gestoppt.";
                 MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
             }

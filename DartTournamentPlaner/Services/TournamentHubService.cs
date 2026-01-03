@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DartTournamentPlaner.Models;
-using DartTournamentPlaner.Services.HubWebSocket;
+using DartTournamentPlaner.Models.PowerScore;
 using DartTournamentPlaner.Services.HubSync;
+using DartTournamentPlaner.Services.HubWebSocket;
 
 namespace DartTournamentPlaner.Services;
 
@@ -118,33 +121,29 @@ public interface ITournamentHubService
     Task<bool> RegisterWithHubAsync(string tournamentId, string name, string description);
     Task<bool> UnregisterFromHubAsync(string tournamentId);
     Task<bool> SendHeartbeatAsync(string tournamentId, int activeMatches, int totalPlayers);
+    Task<bool> RegisterTournamentViaPlannerAsync(PlannerTournamentRegistrationRequest request);
     Task<bool> SyncTournamentWithClassesAsync(string tournamentId, string name, TournamentData data);
+    string GetJoinUrl(string tournamentId);
     
- // WebSocket Operations
+    // WebSocket operations
     Task<bool> InitializeWebSocketAsync();
+    bool IsWebSocketConnected { get; }
     Task<bool> SubscribeToTournamentAsync(string tournamentId);
     Task<bool> UnsubscribeFromTournamentAsync(string tournamentId);
     Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo);
+    Task<bool> FetchPlannerTournamentsAsync(string licenseKey, int days = 14);
     Task CloseWebSocketAsync();
- 
-    // ✅ NEU: WebSocket Status
-    bool IsWebSocketConnected { get; }
     
-    // Events for WebSocket communication
-    event Action<HubMatchUpdateEventArgs> OnMatchResultReceivedFromHub;
-    event Action<string, object> OnTournamentUpdateReceived;
-    event Action<bool, string> OnConnectionStatusChanged;
-    
- // ✨ NEU: Events für Live-Updates
-    event Action<HubMatchUpdateEventArgs> OnMatchStarted;
-    event Action<HubMatchUpdateEventArgs> OnLegCompleted;
-    event Action<HubMatchUpdateEventArgs> OnMatchProgressUpdated;
-    
-    // ✅ NEW: Event für PowerScoring Messages (delegiert an WebSocketMessageHandler)
-    event EventHandler<PowerScore.PowerScoringHubMessage> OnPowerScoringMessageReceived;
-    
-    // Utility
-  string GetJoinUrl(string tournamentId);
+    // Events
+    event Action<HubMatchUpdateEventArgs>? OnMatchResultReceivedFromHub;
+    event Action<bool, string>? OnConnectionStatusChanged;
+    event Action<string, object>? OnTournamentUpdateReceived;
+    event Action<HubMatchUpdateEventArgs>? OnMatchStarted;
+    event Action<HubMatchUpdateEventArgs>? OnLegCompleted;
+    event Action<HubMatchUpdateEventArgs>? OnMatchProgressUpdated;
+    event EventHandler<PowerScore.PowerScoringHubMessage>? OnPowerScoringMessageReceived;
+    event Action<PlannerTournamentsResponse>? OnPlannerTournamentsReceived;
+    event Action<PlannerFetchErrorResponse>? OnPlannerFetchFailed;
 }
 
 /// <summary>
@@ -171,8 +170,8 @@ public class TournamentHubService : ITournamentHubService, IDisposable
 
     // Events (delegated from managers)
     public event Action<HubMatchUpdateEventArgs>? OnMatchResultReceivedFromHub;
-    public event Action<string, object>? OnTournamentUpdateReceived;
     public event Action<bool, string>? OnConnectionStatusChanged;
+    public event Action<string, object>? OnTournamentUpdateReceived;
   
     // ✨ NEU: Events für Live-Updates (delegiert an WebSocketMessageHandler)
     public event Action<HubMatchUpdateEventArgs>? OnMatchStarted
@@ -180,18 +179,20 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         add => _messageHandler.MatchStarted += value;
         remove => _messageHandler.MatchStarted -= value;
     }
-    
     public event Action<HubMatchUpdateEventArgs>? OnLegCompleted
     {
         add => _messageHandler.LegCompleted += value;
         remove => _messageHandler.LegCompleted -= value;
     }
-  
     public event Action<HubMatchUpdateEventArgs>? OnMatchProgressUpdated
  {
         add => _messageHandler.MatchProgressUpdated += value;
         remove => _messageHandler.MatchProgressUpdated -= value;
     }
+
+    // ✅ NEW: Planner tournaments fetch events
+    public event Action<PlannerTournamentsResponse>? OnPlannerTournamentsReceived;
+    public event Action<PlannerFetchErrorResponse>? OnPlannerFetchFailed;
 
     // ✅ NEW: Event für PowerScoring Messages (delegiert an WebSocketMessageHandler)
     public event EventHandler<PowerScore.PowerScoringHubMessage>? OnPowerScoringMessageReceived
@@ -222,6 +223,8 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         _connectionManager.ConnectionStatusChanged += OnConnectionStatusChangedInternal;
         _messageHandler.MatchResultReceived += OnMatchResultReceivedInternal;
         _messageHandler.TournamentUpdateReceived += OnTournamentUpdateReceivedInternal;
+        _messageHandler.PlannerTournamentsReceived += OnPlannerTournamentsReceivedInternal;
+        _messageHandler.PlannerFetchFailed += OnPlannerFetchFailedInternal;
 
         DebugLog($"🎯 TournamentHubService initialized with modular architecture", "SUCCESS");
         DebugLog($"🔗 Hub URL: {HubUrl}", "INFO");
@@ -331,6 +334,47 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     {
         DebugLog($"📋 [HUB-SERVICE] Registering as planner for: {tournamentId}", "WEBSOCKET");
         return await _connectionManager.RegisterAsPlannerAsync(tournamentId, plannerInfo);
+    }
+
+    public async Task<bool> FetchPlannerTournamentsAsync(string licenseKey, int days = 14)
+    {
+        var request = new PlannerFetchTournamentsRequest
+        {
+            LicenseKey = licenseKey,
+            Days = days
+        };
+
+        DebugLog($"📥 [HUB-SERVICE] Fetching planner tournaments for license {licenseKey}, days: {days}", "WEBSOCKET");
+        return await _connectionManager.SendPlannerFetchTournamentsAsync(request);
+    }
+
+    public async Task<bool> RegisterTournamentViaPlannerAsync(PlannerTournamentRegistrationRequest request)
+    {
+        try
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.TournamentId))
+            {
+                DebugLog("❌ [HUB-SERVICE] Invalid planner registration request", "ERROR");
+                return false;
+            }
+
+            _currentTournamentId = request.TournamentId;
+            DebugLog($"📤 [HUB-SERVICE] Registering tournament via planner WS: {request.TournamentId}", "WEBSOCKET");
+
+            var success = await _connectionManager.SendPlannerRegistrationAsync(request);
+
+            DebugLog(success
+                ? $"✅ [HUB-SERVICE] Planner registration message sent: {request.TournamentId}"
+                : $"❌ [HUB-SERVICE] Planner registration message failed: {request.TournamentId}",
+                success ? "SUCCESS" : "ERROR");
+
+            return success;
+        }
+        catch (Exception ex)
+        {
+            DebugLog($"❌ [HUB-SERVICE] Planner registration error: {ex.Message}", "ERROR");
+            return false;
+        }
     }
 
     /// <summary>
@@ -474,6 +518,18 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         OnTournamentUpdateReceived?.Invoke(tournamentId, updateData);
     }
 
+    private void OnPlannerTournamentsReceivedInternal(PlannerTournamentsResponse response)
+    {
+        DebugLog($"📥 [HUB-SERVICE] Planner tournaments received: {response.Tournaments?.Count ?? 0}", "SUCCESS");
+        OnPlannerTournamentsReceived?.Invoke(response);
+    }
+
+    private void OnPlannerFetchFailedInternal(PlannerFetchErrorResponse error)
+    {
+        DebugLog($"❌ [HUB-SERVICE] Planner fetch failed: {error.Error}", "ERROR");
+        OnPlannerFetchFailed?.Invoke(error);
+    }
+
     #endregion
 
     #region WebSocket Message Acknowledgments
@@ -552,7 +608,7 @@ public class TournamentHubService : ITournamentHubService, IDisposable
     /// </summary>
     public string GetJoinUrl(string tournamentId)
     {
-        // ✅ FIXED: Verwende IMMER die konfigurierte HubUrl statt der vom Server gelieferten
+        // ✅ FIXED: Verwende IMMER die configurierte HubUrl statt der vom Server gelieferten
         // Dies stellt sicher, dass die Join-URL der konfigurierten Domain/Port entspricht
         return $"{HubUrl}/join/{tournamentId}";
         

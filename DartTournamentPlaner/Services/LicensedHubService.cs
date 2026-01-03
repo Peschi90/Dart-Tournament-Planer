@@ -1,4 +1,5 @@
 ﻿using DartTournamentPlaner.Controls;
+using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Views;  // NEU: Für die neuen Dialog-Views
 using DartTournamentPlaner.Services.License;
 using System;
@@ -22,6 +23,8 @@ public class LicensedHubService
     public bool IsSyncing => _innerHubService.IsSyncing;
     public DateTime? LastSyncTime => _innerHubService.LastSyncTime;
     public ITournamentHubService? TournamentHubService => _innerHubService.TournamentHubService;
+    public HubConnectionState CurrentConnectionState => _innerHubService.CurrentConnectionState;
+    public bool IsWebSocketConnected => _innerHubService.IsWebSocketConnected;
     
     /// <summary>
     /// ✅ NEU: Direkter Zugriff auf den inneren HubIntegrationService für QR-Code Generierung
@@ -207,7 +210,7 @@ else
        
             if (shouldRetry)
          {
-       return await RegisterTournamentAsync(customTournamentId);  // ⭐ Übergebe custom ID beim Retry
+       return await RegisterTournamentAsync(customTournamentId);  // ⭐ Übergebe custom TournamentId beim Retry
             }
      
          return false;
@@ -257,12 +260,18 @@ else
         }
     }
 
-    public async Task UnregisterTournamentAsync()
+    // Unlizenzierte Methoden (immer verfügbar)
+    public string GenerateNewTournamentId()
+    {
+        return _innerHubService.GenerateNewTournamentId();
+    }
+
+    public async Task<bool> UnregisterTournamentAsync()
     {
         System.Diagnostics.Debug.WriteLine("🔗 LicensedHubService: UnregisterTournamentAsync requested");
         
         // Unregister ist immer erlaubt - auch ohne Lizenz
-        await _innerHubService.UnregisterTournamentAsync();
+        return await _innerHubService.UnregisterTournamentAsync();
     }
 
     public async Task<bool> SyncTournamentAsync(Models.TournamentData tournamentData)
@@ -278,7 +287,17 @@ else
         return await _innerHubService.SyncTournamentAsync(tournamentData);
     }
 
-    // Unlizenzierte Methoden (immer verfügbar)
+    public async Task<PlannerTournamentsResponse?> FetchPlannerTournamentsAsync(int days = 14)
+    {
+        if (!HasHubConnectionLicense())
+        {
+            ShowHubLicenseRequired();
+            return null;
+        }
+
+        return await _innerHubService.FetchPlannerTournamentsAsync(days);
+    }
+
     public async Task InitializeAsync()
     {
         await _innerHubService.InitializeAsync();
@@ -297,5 +316,10 @@ else
     public void UpdateHubUrl(string newHubUrl)
     {
         _innerHubService.UpdateHubUrl(newHubUrl);
+    }
+
+    public void ShowDebugConsole()
+    {
+        _innerHubService.ShowDebugConsole();
     }
 }

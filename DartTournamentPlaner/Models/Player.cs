@@ -13,6 +13,9 @@ public class Player : INotifyPropertyChanged
     private string _name = string.Empty;  // Name des Spielers
     private int _id;                      // Eindeutige ID des Spielers
     private string? _email;               // E-Mail-Adresse des Spielers (optional)
+    private string? _firstName;
+    private string? _lastName;
+    private string? _nickname;
 
     /// <summary>
     /// Standard-Konstruktor ohne Parameter
@@ -86,6 +89,36 @@ public class Player : INotifyPropertyChanged
         {
             _email = value;
             OnPropertyChanged(); // Benachrichtigt UI über Änderung
+        }
+    }
+
+    public string? FirstName
+    {
+        get => _firstName;
+        set
+        {
+            _firstName = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string? LastName
+    {
+        get => _lastName;
+        set
+        {
+            _lastName = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string? Nickname
+    {
+        get => _nickname;
+        set
+        {
+            _nickname = value;
+            OnPropertyChanged();
         }
     }
 

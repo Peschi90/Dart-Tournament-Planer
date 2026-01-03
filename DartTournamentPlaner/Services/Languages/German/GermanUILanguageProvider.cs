@@ -471,6 +471,20 @@ public class GermanUILanguageProvider : ILanguageSection
             ["LicenseAutoFillMissing"] = "Kein Lizenzschlüssel gefunden.",
             ["LoginSuccess"] = "Erfolgreich angemeldet. Willkommen zurück und viel Spaß mit dem Dart Turnierplaner!",
             ["RegistrationSuccess"] = "Registrierung erfolgreich abgeschlossen. Du kannst dein Konto jetzt im Dart Turnierplaner nutzen.",
+
+            // Turniereinstellungen Dialog
+            ["TournamentSettings"] = "Turniereinstellungen",
+            ["TournamentMetadata"] = "Turnier-Metadaten",
+            ["TournamentName"] = "Turniername",
+            ["TournamentDescription"] = "Beschreibung",
+            ["TournamentLocation"] = "Veranstaltungsort",
+            ["TournamentSchedule"] = "Zeitplan",
+            ["StartDate"] = "Startdatum",
+            ["StartTime"] = "Startzeit",
+            ["PowerScoring"] = "PowerScoring",
+            ["QRRegistration"] = "QR-Registrierung",
+            ["PublicView"] = "Öffentliche Ansicht",
+            ["TotalPlayers"] = "Gesamtspieler",
         };
     }
 }

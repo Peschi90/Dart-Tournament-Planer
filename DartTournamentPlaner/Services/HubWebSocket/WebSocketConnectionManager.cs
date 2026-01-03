@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DartTournamentPlaner.Models;
 
 namespace DartTournamentPlaner.Services.HubWebSocket;
 
@@ -321,6 +322,56 @@ public class WebSocketConnectionManager : IDisposable
             _debugLog($"❌ [WS-CONNECTION] Stack trace: {ex.StackTrace}", "ERROR");
             return false;
         }
+    }
+
+    public async Task<bool> SendRawMessageAsync(object message)
+    {
+        try
+        {
+            if (_webSocket?.State != WebSocketState.Open)
+            {
+                _debugLog($"❌ [WS-CONNECTION] Cannot send raw message - WebSocket not open (State: {_webSocket?.State})", "ERROR");
+                return false;
+            }
+
+            var messageJson = System.Text.Json.JsonSerializer.Serialize(message);
+            var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+            var messageType = message.GetType().GetProperty("Type")?.GetValue(message)?.ToString() ?? "unknown";
+
+            _debugLog($"📤 [WS-CONNECTION] ===== SENDING RAW MESSAGE =====", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Type: {messageType}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Full JSON: {messageJson}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Message size: {messageBytes.Length} bytes", "WEBSOCKET");
+
+            await _webSocket.SendAsync(new ArraySegment<byte>(messageBytes), WebSocketMessageType.Text, true, _cancellationTokenSource.Token);
+
+            _debugLog($"✅ [WS-CONNECTION] Raw message '{messageType}' sent successfully", "SUCCESS");
+            _debugLog($"📤 [WS-CONNECTION] ================================", "WEBSOCKET");
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"❌ [WS-CONNECTION] Error sending raw WebSocket message: {ex.Message}", "ERROR");
+            return false;
+        }
+    }
+
+    public Task<bool> SendPlannerRegistrationAsync(PlannerTournamentRegistrationRequest request)
+    {
+        return SendRawMessageAsync(request);
+    }
+
+    public Task<bool> SendPlannerFetchTournamentsAsync(PlannerFetchTournamentsRequest request)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.LicenseKey))
+        {
+            _debugLog("❌ [WS-CONNECTION] Invalid fetch request - license key missing", "ERROR");
+            return Task.FromResult(false);
+        }
+
+        _debugLog($"📄 [WS-CONNECTION] Sending planner-fetch-tournaments for license: {request.LicenseKey}, days: {request.Days}", "WEBSOCKET");
+        return SendRawMessageAsync(request);
     }
 
     /// <summary>

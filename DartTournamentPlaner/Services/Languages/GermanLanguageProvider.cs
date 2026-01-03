@@ -22,6 +22,7 @@ public class GermanLanguageProvider : ILanguageProvider
             new GermanUILanguageProvider(),
             new GermanStartupLanguageProvider(), // ✅ NEU: Startup/Splash Screen Übersetzungen
             new GermanHubLanguageProvider(),
+            new GermanPlannerFetchLanguageProvider(),
             new GermanLicenseLanguageProvider(),
             new GermanTournamentLanguageProvider(),
             new GermanKnockoutLanguageProvider(), // ✅ NEU: KO-Tab spezifische Übersetzungen
