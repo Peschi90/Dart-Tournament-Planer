@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DartTournamentPlaner.Models;
 using DartTournamentPlaner.Services.PowerScore;
 
@@ -34,9 +36,17 @@ public class WebSocketMessageHandler
     /// ? NEU: Event für PowerScoring Messages
     /// </summary>
     public event EventHandler<PowerScoringHubMessage>? PowerScoringMessageReceived;
-
-    // Aggregation for planner chunking
-    private readonly Dictionary<string, PlannerChunkBuffer> _plannerChunkBuffers = new();
+ 
+     // Aggregation for planner chunking
+     private readonly Dictionary<string, PlannerChunkBuffer> _plannerChunkBuffers = new();
+    private readonly object _messageBufferLock = new();
+    private readonly StringBuilder _incompleteMessageBuffer = new();
+    private static readonly JsonSerializerOptions PlannerDeserializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        Converters = { new PlannerClassInfoConverter() }
+    };
 
     public WebSocketMessageHandler(
         Action<string, string> debugLog, 
@@ -53,14 +63,33 @@ public class WebSocketMessageHandler
     /// </summary>
     public async Task ProcessWebSocketMessage(string messageJson)
     {
+        string combinedMessage;
+        lock (_messageBufferLock)
+        {
+            if (_incompleteMessageBuffer.Length > 0)
+            {
+                _incompleteMessageBuffer.Append(messageJson);
+                combinedMessage = _incompleteMessageBuffer.ToString();
+            }
+            else
+            {
+                combinedMessage = messageJson;
+            }
+        }
+
         try
         {
             // ? ERWEITERT: Logge rohe Nachricht
             _debugLog($"?? [WS-MESSAGE] ===== RAW MESSAGE RECEIVED =====", "WEBSOCKET");
-            _debugLog($"?? [WS-MESSAGE] Length: {messageJson.Length} characters", "WEBSOCKET");
-            _debugLog($"?? [WS-MESSAGE] Content: {messageJson}", "WEBSOCKET");
+            _debugLog($"?? [WS-MESSAGE] Length: {combinedMessage.Length} characters", "WEBSOCKET");
+            _debugLog($"?? [WS-MESSAGE] Content: {combinedMessage}", "WEBSOCKET");
 
-            var message = JsonSerializer.Deserialize<JsonElement>(messageJson);
+            var message = JsonSerializer.Deserialize<JsonElement>(combinedMessage);
+
+            lock (_messageBufferLock)
+            {
+                _incompleteMessageBuffer.Clear();
+            }
 
             if (message.TryGetProperty("type", out var typeElement))
             {
@@ -123,29 +152,55 @@ public class WebSocketMessageHandler
                     case "error":
                         HandleErrorMessage(message);
                         break;
+                    case "tournament-unsubscribed":
+                        HandleTournamentUnsubscribed(message);
+                        break;
+                    // ? NEU: Match-Result-Submitted Handler
+                    case "match-result-submitted":
+                        HandleMatchResultSubmitted(message);
+                        break;
                     default:
                         _debugLog($"?? [WS-MESSAGE] Unknown message type: {messageType}", "WARNING");
-                        _debugLog($"?? [WS-MESSAGE] Full message: {messageJson}", "WARNING");
+                        _debugLog($"?? [WS-MESSAGE] Full message: {combinedMessage}", "WARNING");
                         break;
                 }
             }
             else
             {
                 _debugLog($"?? [WS-MESSAGE] Message has no 'type' property", "WARNING");
-                _debugLog($"?? [WS-MESSAGE] Full message: {messageJson}", "WARNING");
+                _debugLog($"?? [WS-MESSAGE] Full message: {combinedMessage}", "WARNING");
             }
         }
         catch (JsonException jsonEx)
         {
             _debugLog($"? [WS-MESSAGE] JSON parsing error: {jsonEx.Message}", "ERROR");
-            _debugLog($"? [WS-MESSAGE] Invalid JSON: {messageJson}", "ERROR");
+            _debugLog($"? [WS-MESSAGE] Invalid JSON: {combinedMessage}", "ERROR");
+
+            // Bei fragmentierten Nachrichten: im Puffer behalten und auf nächste Nachricht warten
+            if (combinedMessage.TrimStart().StartsWith("{", StringComparison.Ordinal))
+            {
+                lock (_messageBufferLock)
+                {
+                    if (_incompleteMessageBuffer.Length == 0)
+                    {
+                        _incompleteMessageBuffer.Append(combinedMessage);
+                    }
+
+                    // Schutz gegen unendliches Wachstum
+                    if (_incompleteMessageBuffer.Length > 100_000)
+                    {
+                        _debugLog("? [WS-MESSAGE] Incomplete message buffer cleared (size limit exceeded)", "WARNING");
+                        _incompleteMessageBuffer.Clear();
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
             _debugLog($"? [WS-MESSAGE] Error processing WebSocket message: {ex.Message}", "ERROR");
             _debugLog($"? [WS-MESSAGE] Stack trace: {ex.StackTrace}", "ERROR");
         }
-    }
+     }
 
     /// <summary>
     /// Behandelt Welcome-Nachrichten
@@ -163,7 +218,7 @@ public class WebSocketMessageHandler
     {
         try
         {
-            var response = JsonSerializer.Deserialize<PlannerTournamentsResponse>(message.GetRawText());
+            var response = JsonSerializer.Deserialize<PlannerTournamentsResponse>(message.GetRawText(), PlannerDeserializerOptions);
             if (response != null)
             {
                 _debugLog($"?? [WS-MESSAGE] Received planner tournaments data: {response.Tournaments?.Count ?? 0} tournaments", "SUCCESS");
@@ -220,7 +275,7 @@ public class WebSocketMessageHandler
 
             if (message.TryGetProperty("tournament", out var tournamentElement))
             {
-                var tournament = JsonSerializer.Deserialize<PlannerTournamentSummary>(tournamentElement.GetRawText());
+                var tournament = JsonSerializer.Deserialize<PlannerTournamentSummary>(tournamentElement.GetRawText(), PlannerDeserializerOptions);
                 buffer.Store(index, tournament);
                 _debugLog($"?? [WS-MESSAGE] Planner chunk stored index={index}/{buffer.Total - 1}", "INFO");
             }
@@ -450,7 +505,7 @@ _debugLog("?? [WS-MESSAGE] ===== MATCH UPDATE RECEIVED =====", "MATCH_RESULT");
      var matchUpdate = ParseMatchUpdateData(data);
           if (matchUpdate != null)
    {
- // ? WICHTIG: Status überschreiben BEVOR Events gefeuert werden
+ // ? WICHTIG: Status überschreiben BEVOR EVENTS gefeuert werden
            matchUpdate.IsMatchStarted = true;
        matchUpdate.IsMatchCompleted = false;
         matchUpdate.Status = "InProgress";  // ? Überschreibt den falschen Status vom Hub
@@ -1326,6 +1381,65 @@ _debugLog($"   Class ID: {classId}", "MATCH_RESULT");
         catch (Exception ex)
         {
             _debugLog($"? [WS-MESSAGE] Error handling planner fetch error: {ex.Message}", "ERROR");
+        }
+    }
+
+    /// <summary>
+    /// Behandelt Match-Resultateingaben
+    /// </summary>
+    private void HandleMatchResultSubmitted(JsonElement message)
+    {
+        try
+        {
+            var success = message.TryGetProperty("success", out var successEl) && successEl.GetBoolean();
+            var tournamentId = message.TryGetProperty("tournamentId", out var tidEl) ? tidEl.GetString() : "unknown";
+            var matchId = message.TryGetProperty("matchId", out var midEl) ? midEl.GetString() : "unknown";
+            var classId = message.TryGetProperty("classId", out var classEl) && classEl.ValueKind == JsonValueKind.Number
+                ? classEl.GetInt32()
+                : (int?)null;
+            var className = message.TryGetProperty("className", out var classNameEl) ? classNameEl.GetString() : null;
+
+            var category = success ? "SUCCESS" : "WARNING";
+            _debugLog("?? [WS-MESSAGE] ===== MATCH RESULT SUBMITTED =====", category);
+            _debugLog($"?? [WS-MESSAGE] Success: {success}", category);
+            _debugLog($"?? [WS-MESSAGE] Tournament: {tournamentId}", category);
+            _debugLog($"?? [WS-MESSAGE] Match ID: {matchId}", category);
+            _debugLog($"?? [WS-MESSAGE] Class: {(className ?? "-")} (ID: {classId?.ToString() ?? "-"})", category);
+            _debugLog($"?? [WS-MESSAGE] Full message: {message}", category);
+            _debugLog("?? [WS-MESSAGE] =================================", category);
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling match-result-submitted: {ex.Message}", "ERROR");
+        }
+    }
+
+    private void HandleTournamentUnsubscribed(JsonElement message)
+    {
+        try
+        {
+            var tournamentId = message.TryGetProperty("tournamentId", out var idElement) ? idElement.GetString() : "unknown";
+            var status = message.TryGetProperty("status", out var statusEl) ? statusEl.GetString() : "unknown";
+            var source = message.TryGetProperty("source", out var sourceEl) ? sourceEl.GetString() : "unknown";
+            var success = message.TryGetProperty("success", out var successEl) && successEl.ValueKind == JsonValueKind.True;
+            var timestamp = message.TryGetProperty("timestamp", out var tsEl) ? tsEl.GetString() : null;
+
+            var category = success ? "SUCCESS" : "WARNING";
+            _debugLog("?? [WS-MESSAGE] ===== TOURNAMENT UNSUBSCRIBED =====", category);
+            _debugLog($"?? [WS-MESSAGE] Tournament: {tournamentId}", category);
+            _debugLog($"?? [WS-MESSAGE] Status: {status}", category);
+            _debugLog($"?? [WS-MESSAGE] Source: {source}", category);
+            if (!string.IsNullOrWhiteSpace(timestamp))
+            {
+                _debugLog($"?? [WS-MESSAGE] Timestamp: {timestamp}", category);
+            }
+            _debugLog($"?? [WS-MESSAGE] Success: {success}", category);
+            _debugLog($"?? [WS-MESSAGE] Full message: {message}", category);
+            _debugLog("?? [WS-MESSAGE] =================================", category);
+        }
+        catch (Exception ex)
+        {
+            _debugLog($"? [WS-MESSAGE] Error handling tournament-unsubscribed: {ex.Message}", "ERROR");
         }
     }
 }

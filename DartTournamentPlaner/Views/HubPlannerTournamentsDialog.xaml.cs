@@ -15,25 +15,28 @@ namespace DartTournamentPlaner.Views
         private readonly LicensedHubService _hubService;
         private readonly LocalizationService? _localizationService;
         private readonly LicenseManager? _licenseManager;
+        private readonly TournamentManagementService _tournamentService;
 
         public HubPlannerTournamentsDialog()
         {
             InitializeComponent();
+            _tournamentService = null!;
         }
 
-        public HubPlannerTournamentsDialog(LicensedHubService hubService, LocalizationService? localizationService, LicenseManager? licenseManager) : this()
+        public HubPlannerTournamentsDialog(LicensedHubService hubService, LocalizationService? localizationService, LicenseManager? licenseManager, TournamentManagementService tournamentService) : this()
         {
             _hubService = hubService;
             _localizationService = localizationService;
             _licenseManager = licenseManager;
+            _tournamentService = tournamentService ?? throw new ArgumentNullException(nameof(tournamentService));
 
             ApplyLocalization();
             LoadLicenseKey();
         }
 
-        public static void ShowDialog(Window owner, LicensedHubService hubService, LocalizationService? localizationService, LicenseManager? licenseManager)
+        public static void ShowDialog(Window owner, LicensedHubService hubService, LocalizationService? localizationService, LicenseManager? licenseManager, TournamentManagementService tournamentService)
         {
-            var dialog = new HubPlannerTournamentsDialog(hubService, localizationService, licenseManager)
+            var dialog = new HubPlannerTournamentsDialog(hubService, localizationService, licenseManager, tournamentService)
             {
                 Owner = owner
             };
@@ -147,12 +150,32 @@ namespace DartTournamentPlaner.Views
             {
                 if (sender is FrameworkElement element && element.DataContext is PlannerTournamentSummary summary)
                 {
-                    HubPlannerTournamentDetailsDialog.ShowDialog(this, summary, _localizationService);
+                    HubPlannerTournamentDetailsDialog.ShowDialog(this, summary, _localizationService, _tournamentService);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"? Error opening tournament details: {ex.Message}");
+            }
+        }
+
+        private void ImportPlayers_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is FrameworkElement element && element.DataContext is PlannerTournamentSummary summary)
+                {
+                    var participants = summary.Participants ?? Enumerable.Empty<PlannerParticipant>();
+                    var dialog = new PlannerImportPlayersDialog(summary, participants, _localizationService, _tournamentService)
+                    {
+                        Owner = this
+                    };
+                    dialog.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"? Error opening import players dialog: {ex.Message}");
             }
         }
 

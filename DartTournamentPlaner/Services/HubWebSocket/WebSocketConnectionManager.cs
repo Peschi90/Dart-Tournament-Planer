@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DartTournamentPlaner.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DartTournamentPlaner.Services.HubWebSocket;
 
@@ -298,13 +300,13 @@ public class WebSocketConnectionManager : IDisposable
                 timestamp = DateTime.Now.ToString("o")
             };
 
-            var messageJson = System.Text.Json.JsonSerializer.Serialize(message);
+            var messageJson = JsonSerializer.Serialize(message, CamelCaseJsonOptions);
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
 
             // ✅ ERWEITERT: Detailliertes Logging vor dem Senden
             _debugLog($"📤 [WS-CONNECTION] ===== SENDING MESSAGE =====", "WEBSOCKET");
             _debugLog($"📤 [WS-CONNECTION] Type: {messageType}", "WEBSOCKET");
-            _debugLog($"📤 [WS-CONNECTION] Data: {System.Text.Json.JsonSerializer.Serialize(data)}", "WEBSOCKET");
+            _debugLog($"📤 [WS-CONNECTION] Data: {JsonSerializer.Serialize(data, CamelCaseJsonOptions)}", "WEBSOCKET");
             _debugLog($"📤 [WS-CONNECTION] Full JSON: {messageJson}", "WEBSOCKET");
             _debugLog($"📤 [WS-CONNECTION] Message size: {messageBytes.Length} bytes", "WEBSOCKET");
             _debugLog($"📤 [WS-CONNECTION] WebSocket state: {_webSocket.State}", "WEBSOCKET");
@@ -334,7 +336,7 @@ public class WebSocketConnectionManager : IDisposable
                 return false;
             }
 
-            var messageJson = System.Text.Json.JsonSerializer.Serialize(message);
+            var messageJson = JsonSerializer.Serialize(message, CamelCaseJsonOptions);
             var messageBytes = Encoding.UTF8.GetBytes(messageJson);
             var messageType = message.GetType().GetProperty("Type")?.GetValue(message)?.ToString() ?? "unknown";
 
@@ -563,4 +565,10 @@ public class WebSocketConnectionManager : IDisposable
             _isDisposed = true;
         }
     }
+
+    private static readonly JsonSerializerOptions CamelCaseJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 }

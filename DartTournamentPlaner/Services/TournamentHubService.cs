@@ -110,6 +110,54 @@ public class LegResult
 }
 
 /// <summary>
+/// Payload für das Senden eines Match-Ergebnisses über WebSocket
+/// </summary>
+public class SubmitMatchResultMessage
+{
+    public string Type { get; set; } = "submit-match-result";
+    public string? TournamentId { get; set; }
+    public string? MatchId { get; set; }
+    public int? ClassId { get; set; }
+    public string? ClassName { get; set; }
+    public string? MatchType { get; set; }
+    public SubmitMatchResultPayload Result { get; set; } = new();
+}
+
+/// <summary>
+/// Ergebnisdetails für submit-match-result
+/// </summary>
+public class SubmitMatchResultPayload
+{
+    public string? Winner { get; set; }
+    public string? Player1 { get; set; }
+    public string? Player2 { get; set; }
+    public int Player1Sets { get; set; }
+    public int Player2Sets { get; set; }
+    public int Player1Legs { get; set; }
+    public int Player2Legs { get; set; }
+    public string Status { get; set; } = "Finished";
+    public string? Notes { get; set; }
+    public int? GroupId { get; set; }
+    public string? GroupName { get; set; }
+    public string? BracketType { get; set; }
+    public SubmitMatchGameRules? GameRulesUsed { get; set; }
+}
+
+/// <summary>
+/// Regel-Metadaten für submit-match-result
+/// </summary>
+public class SubmitMatchGameRules
+{
+    public int ClassId { get; set; }
+    public string? ClassName { get; set; }
+    public string? GameMode { get; set; }
+    public string? FinishMode { get; set; }
+    public bool PlayWithSets { get; set; }
+    public int SetsToWin { get; set; }
+    public int LegsToWin { get; set; }
+    public int LegsPerSet { get; set; }
+}
+/// <summary>
 /// Service für die Kommunikation mit dem Tournament Hub
 /// REFACTORED: Hauptklasse delegiert an spezialisierte Manager
 /// </summary>
@@ -118,7 +166,7 @@ public interface ITournamentHubService
     string HubUrl { get; set; }
     
     // Registration & Basic Operations
-    Task<bool> RegisterWithHubAsync(string tournamentId, string name, string description);
+    Task<bool> RegisterWithHubAsync(string tournamentId, string name, string description = null);
     Task<bool> UnregisterFromHubAsync(string tournamentId);
     Task<bool> SendHeartbeatAsync(string tournamentId, int activeMatches, int totalPlayers);
     Task<bool> RegisterTournamentViaPlannerAsync(PlannerTournamentRegistrationRequest request);
@@ -132,6 +180,7 @@ public interface ITournamentHubService
     Task<bool> UnsubscribeFromTournamentAsync(string tournamentId);
     Task<bool> RegisterAsPlannerAsync(string tournamentId, object plannerInfo);
     Task<bool> FetchPlannerTournamentsAsync(string licenseKey, int days = 14);
+    Task<bool> SendSubmitMatchResultAsync(SubmitMatchResultMessage message);
     Task CloseWebSocketAsync();
     
     // Events
@@ -373,6 +422,38 @@ public class TournamentHubService : ITournamentHubService, IDisposable
         catch (Exception ex)
         {
             DebugLog($"❌ [HUB-SERVICE] Planner registration error: {ex.Message}", "ERROR");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Sendet ein Match-Ergebnis per WebSocket an den Hub
+    /// </summary>
+    public async Task<bool> SendSubmitMatchResultAsync(SubmitMatchResultMessage message)
+    {
+        try
+        {
+            if (message == null || string.IsNullOrWhiteSpace(message.TournamentId) || string.IsNullOrWhiteSpace(message.MatchId))
+            {
+                DebugLog("❌ [HUB-SERVICE] Invalid submit-match-result payload (TournamentId/MatchId missing)", "ERROR");
+                return false;
+            }
+
+            message.Type = "submit-match-result";
+
+            DebugLog($"📤 [HUB-SERVICE] Sending submit-match-result for Match {message.MatchId} (Tournament {message.TournamentId})", "MATCH_RESULT");
+            DebugLog($"📄 [HUB-SERVICE] Payload: {JsonSerializer.Serialize(message)}", "WEBSOCKET");
+
+            var sent = await _connectionManager.SendRawMessageAsync(message);
+            DebugLog(sent
+                ? "✅ [HUB-SERVICE] submit-match-result sent"
+                : "❌ [HUB-SERVICE] submit-match-result send failed",
+                sent ? "SUCCESS" : "ERROR");
+            return sent;
+        }
+        catch (Exception ex)
+        {
+            DebugLog($"❌ [HUB-SERVICE] Error sending submit-match-result: {ex.Message}", "ERROR");
             return false;
         }
     }

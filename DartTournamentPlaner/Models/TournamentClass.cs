@@ -100,25 +100,25 @@ public partial class TournamentClass : INotifyPropertyChanged
     /// </summary>
     private void OnGameRulesPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"GameRules property changed: {e.PropertyName} for {Name}");
+        //System.Diagnostics.Debug.WriteLine($"GameRules property changed: {e.PropertyName} for {Name}");
         
         // WICHTIG: Spezifische Property-Updates loggen
-        if (e.PropertyName == nameof(GameRules.PostGroupPhaseMode))
-        {
-            System.Diagnostics.Debug.WriteLine($"  PostGroupPhaseMode changed to: {GameRules.PostGroupPhaseMode}");
-        }
-        else if (e.PropertyName == nameof(GameRules.QualifyingPlayersPerGroup))
-        {
-            System.Diagnostics.Debug.WriteLine($"  QualifyingPlayersPerGroup changed to: {GameRules.QualifyingPlayersPerGroup}");
-        }
-        else if (e.PropertyName == nameof(GameRules.KnockoutMode))
-        {
-            System.Diagnostics.Debug.WriteLine($"  KnockoutMode changed to: {GameRules.KnockoutMode}");
-        }
-        else if (e.PropertyName == nameof(GameRules.IncludeGroupPhaseLosersBracket))
-        {
-            System.Diagnostics.Debug.WriteLine($"  IncludeGroupPhaseLosersBracket changed to: {GameRules.IncludeGroupPhaseLosersBracket}");
-        }
+        //if (e.PropertyName == nameof(GameRules.PostGroupPhaseMode))
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"  PostGroupPhaseMode changed to: {GameRules.PostGroupPhaseMode}");
+        //}
+        //else if (e.PropertyName == nameof(GameRules.QualifyingPlayersPerGroup))
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"  QualifyingPlayersPerGroup changed to: {GameRules.QualifyingPlayersPerGroup}");
+        //}
+        //else if (e.PropertyName == nameof(GameRules.KnockoutMode))
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"  KnockoutMode changed to: {GameRules.KnockoutMode}");
+        //}
+        //else if (e.PropertyName == nameof(GameRules.IncludeGroupPhaseLosersBracket))
+        //{
+        //    System.Diagnostics.Debug.WriteLine($"  IncludeGroupPhaseLosersBracket changed to: {GameRules.IncludeGroupPhaseLosersBracket}");
+        //}
         
         // Propagiere GameRules-Änderungen an UI
         OnPropertyChanged(nameof(GameRules));
@@ -129,7 +129,7 @@ public partial class TournamentClass : INotifyPropertyChanged
             e.PropertyName == nameof(GameRules.KnockoutMode) ||
             e.PropertyName == nameof(GameRules.IncludeGroupPhaseLosersBracket))
         {
-            System.Diagnostics.Debug.WriteLine($"  Triggering UI refresh for important property change: {e.PropertyName}");
+            //System.Diagnostics.Debug.WriteLine($"  Triggering UI refresh for important property change: {e.PropertyName}");
             
             // Trigger UI refresh wenn sich die Turnierstruktur ändert
             TriggerUIRefresh();
@@ -146,7 +146,7 @@ public partial class TournamentClass : INotifyPropertyChanged
         set
         {
             _currentPhase = value;
-            System.Diagnostics.Debug.WriteLine($"CurrentPhase set for {Name}: {_currentPhase?.PhaseType}");
+            //System.Diagnostics.Debug.WriteLine($"CurrentPhase set for {Name}: {_currentPhase?.PhaseType}");
             OnPropertyChanged(); // Benachrichtigt UI über Änderung
         }
     }
@@ -503,7 +503,7 @@ public partial class TournamentClass : INotifyPropertyChanged
     /// </summary>
     public void TriggerUIRefresh()
     {
-        System.Diagnostics.Debug.WriteLine("Triggering UIRefreshRequested event");
+        //System.Diagnostics.Debug.WriteLine("Triggering UIRefreshRequested event");
         UIRefreshRequested?.Invoke(this, EventArgs.Empty);
         
         // ZUSÄTZLICH: Feuere ein spezifisches Event für Datenänderungen
@@ -515,7 +515,7 @@ public partial class TournamentClass : INotifyPropertyChanged
         // ✅ VEREINFACHT: Nur noch eine Datenquelle für Statistiken
         OnPropertyChanged(nameof(PlayerStatisticsData));
         
-        System.Diagnostics.Debug.WriteLine($"Triggered UI refresh including statistics for class {Name}");
+        //System.Diagnostics.Debug.WriteLine($"Triggered UI refresh including statistics for class {Name}");
     }
 
     /// <summary>
@@ -576,7 +576,7 @@ public partial class TournamentClass : INotifyPropertyChanged
             {
                 // ✅ KORRIGIERT: Manager verwendet PlayerStatisticsData DIREKT als Datenquelle
                 _statisticsManager = new PlayerStatisticsManager(Name, PlayerStatisticsData);
-                System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Created StatisticsManager for {Name} with direct data reference");
+                //System.Diagnostics.Debug.WriteLine($"[TOURNAMENT-CLASS] Created StatisticsManager for {Name} with direct data reference");
             }
             return _statisticsManager;
         }

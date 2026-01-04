@@ -115,6 +115,9 @@
                     <TextBlock Text="Description" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
                     <TextBlock x:Name="DescriptionTextBlock" TextWrapping="Wrap" Foreground="#374151" Margin="0,0,0,10"/>
 
+                    <TextBlock Text="Participants" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
+                    <TextBlock x:Name="ParticipantsTextBlock" TextWrapping="Wrap" Foreground="#111827" Margin="0,0,0,10"/>
+
                     <TextBlock Text="Game Rules" FontWeight="SemiBold" Foreground="#374151" Margin="0,0,0,4"/>
                     <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="8">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="140">
@@ -126,6 +129,7 @@
 
             <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="CopyIdButton" Content="Copy ID" Padding="14,8" Margin="0,0,8,0" Click="CopyIdButton_Click" Style="{StaticResource SecondaryButton}"/>
+                <Button x:Name="ImportPlayersButton" Content="Import Players" Padding="14,8" Margin="0,0,8,0" Click="ImportPlayers_Click" Style="{StaticResource SecondaryButton}"/>
                 <Button Content="Close" Padding="14,8" Click="CloseButton_Click" Style="{StaticResource PrimaryButton}"/>
             </StackPanel>
         </Grid>

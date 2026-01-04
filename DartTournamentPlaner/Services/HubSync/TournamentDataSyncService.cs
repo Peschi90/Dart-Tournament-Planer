@@ -32,7 +32,7 @@ public class TournamentDataSyncService
     {
         try
         {
-            _debugLog($"🔄 [SYNC] Starting full tournament sync with ALL match types: {tournamentId}", "SYNC");
+            //_debugLog($"🔄 [SYNC] Starting full tournament sync with ALL match types: {tournamentId}", "SYNC");
 
             var allMatches = new List<object>();
             var tournamentClasses = new List<object>();
@@ -61,10 +61,10 @@ public class TournamentDataSyncService
                 }
             };
 
-            _debugLog($"🎯 [SYNC] Tournament sync data prepared:", "SYNC");
-            _debugLog($"   Classes: {tournamentClasses.Count}", "SYNC");
-            _debugLog($"   Total Matches: {allMatches.Count}", "SYNC");
-            _debugLog($"   Game Rules: {gameRulesArray.Count}", "SYNC");
+            //_debugLog($"🎯 [SYNC] Tournament sync data prepared:", "SYNC");
+            //_debugLog($"   Classes: {tournamentClasses.Count}", "SYNC");
+            //_debugLog($"   Total Matches: {allMatches.Count}", "SYNC");
+            //_debugLog($"   Game Rules: {gameRulesArray.Count}", "SYNC");
 
             var json = JsonSerializer.Serialize(syncData, new JsonSerializerOptions { WriteIndented = true });
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -75,16 +75,16 @@ public class TournamentDataSyncService
 
             if (response.IsSuccessStatusCode)
             {
-                _debugLog($"✅ [SYNC] Tournament sync successful with ALL match types:", "SUCCESS");
-                _debugLog($"   📊 Synced: {syncData.matchTypeStats.totalMatches} total matches", "SUCCESS");
-                _debugLog($"   📊 Game Rules: {gameRulesArray.Count} rules synced", "SUCCESS");
+                //_debugLog($"✅ [SYNC] Tournament sync successful with ALL match types:", "SUCCESS");
+                //_debugLog($"   📊 Synced: {syncData.matchTypeStats.totalMatches} total matches", "SUCCESS");
+                //_debugLog($"   📊 Game Rules: {gameRulesArray.Count} rules synced", "SUCCESS");
                 return true;
             }
             else
             {
-                _debugLog($"❌ [SYNC] Tournament sync failed: {response.StatusCode}", "ERROR");
+                //_debugLog($"❌ [SYNC] Tournament sync failed: {response.StatusCode}", "ERROR");
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _debugLog($"❌ [SYNC] Error response: {errorContent}", "ERROR");
+                //_debugLog($"❌ [SYNC] Error response: {errorContent}", "ERROR");
                 return false;
             }
         }
@@ -101,9 +101,9 @@ public class TournamentDataSyncService
     private async Task ProcessTournamentClass(TournamentClass tournamentClass, List<object> allMatches, 
         List<object> tournamentClasses, List<object> gameRulesArray, string tournamentId)
     {
-        _debugLog($"🎮 [SYNC] Processing class {tournamentClass.Name}", "SYNC");
-        _debugLog($"🎮 [SYNC] Base GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
-        _debugLog($"🎮 [SYNC] KnockoutRoundRules count: {tournamentClass.GameRules.KnockoutRoundRules.Count}", "SYNC");
+        //_debugLog($"🎮 [SYNC] Processing class {tournamentClass.Name}", "SYNC");
+        //_debugLog($"🎮 [SYNC] Base GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
+        //_debugLog($"🎮 [SYNC] KnockoutRoundRules count: {tournamentClass.GameRules.KnockoutRoundRules.Count}", "SYNC");
 
         // Debug: Ausgabe aller KnockoutRoundRules
         //foreach (var roundRule in tournamentClass.GameRules.KnockoutRoundRules)
@@ -118,7 +118,7 @@ public class TournamentDataSyncService
         int loserBracketMatches = tournamentClass.CurrentPhase?.LoserBracket?.Count ?? 0;
         int totalMatches = groupMatches + finalsMatches + winnerBracketMatches + loserBracketMatches;
 
-        _debugLog($"   📊 Match Count: Groups={groupMatches}, Finals={finalsMatches}, Winner={winnerBracketMatches}, Loser={loserBracketMatches}, Total={totalMatches}", "SYNC");
+        //_debugLog($"   📊 Match Count: Groups={groupMatches}, Finals={finalsMatches}, Winner={winnerBracketMatches}, Loser={loserBracketMatches}, Total={totalMatches}", "SYNC");
 
         tournamentClasses.Add(new
         {
@@ -145,7 +145,7 @@ public class TournamentDataSyncService
         // 4. Loser Bracket Matches verarbeiten
         await ProcessLoserBracketMatches(tournamentClass, allMatches, tournamentId, gameRulesArray);
 
-        _debugLog($"✅ [SYNC] Processed class {tournamentClass.Name}: {totalMatches} matches, {gameRulesArray.Count} game rules", "SUCCESS");
+        //_debugLog($"✅ [SYNC] Processed class {tournamentClass.Name}: {totalMatches} matches, {gameRulesArray.Count} game rules", "SUCCESS");
     }
 
     /// <summary>
@@ -228,19 +228,19 @@ public class TournamentDataSyncService
     {
         if (tournamentClass.CurrentPhase?.FinalsGroup == null) return;
 
-        _debugLog($"🏆 [SYNC] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches", "SYNC");
+        //_debugLog($"🏆 [SYNC] Processing Finals matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.FinalsGroup.Matches.Count} matches", "SYNC");
 
         // ✅ NEU: Hole rundenspezifische Round Robin Finals Regeln
         var finalsRules = tournamentClass.GameRules.GetRulesForRoundRobinFinals(RoundRobinFinalsRound.Finals);
         
-        _debugLog($"🏆 [SYNC] Round Robin Finals Rules: Sets={finalsRules.SetsToWin}, Legs={finalsRules.LegsToWin}, LegsPerSet={finalsRules.LegsPerSet}", "SYNC");
-        _debugLog($"🏆 [SYNC] Base GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
+        //_debugLog($"🏆 [SYNC] Round Robin Finals Rules: Sets={finalsRules.SetsToWin}, Legs={finalsRules.LegsToWin}, LegsPerSet={finalsRules.LegsPerSet}", "SYNC");
+        //_debugLog($"🏆 [SYNC] Base GameRules: Sets={tournamentClass.GameRules.SetsToWin}, Legs={tournamentClass.GameRules.LegsToWin}, LegsPerSet={tournamentClass.GameRules.LegsPerSet}", "SYNC");
 
         // Finals-spezifische Game Rules hinzufügen
         var finalsGameRules = CreateFinalsGameRulesObject(tournamentClass, finalsRules);
         gameRulesArray.Add(finalsGameRules);
 
-        _debugLog($"🏆 [SYNC] Finals GameRules ID: {finalsGameRules.GetType().GetProperty("id")?.GetValue(finalsGameRules)}", "SYNC");
+        //_debugLog($"🏆 [SYNC] Finals GameRules ID: {finalsGameRules.GetType().GetProperty("id")?.GetValue(finalsGameRules)}", "SYNC");
 
         foreach (var match in tournamentClass.CurrentPhase.FinalsGroup.Matches)
         {
@@ -322,7 +322,7 @@ public class TournamentDataSyncService
     {
         if (tournamentClass.CurrentPhase?.WinnerBracket == null) return;
 
-        _debugLog($"⚡ [SYNC] Processing Winner Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.WinnerBracket.Count} matches", "SYNC");
+        //_debugLog($"⚡ [SYNC] Processing Winner Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.WinnerBracket.Count} matches", "SYNC");
 
         // Gruppiere Winner Bracket Matches nach Runden
         var winnerRounds = tournamentClass.CurrentPhase.WinnerBracket
@@ -432,7 +432,7 @@ public class TournamentDataSyncService
     {
         if (tournamentClass.CurrentPhase?.LoserBracket == null) return;
 
-        _debugLog($"🔄 [SYNC] Processing Loser Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.LoserBracket.Count} matches", "SYNC");
+        //_debugLog($"🔄 [SYNC] Processing Loser Bracket matches for {tournamentClass.Name}: {tournamentClass.CurrentPhase.LoserBracket.Count} matches", "SYNC");
 
         var loserRounds = tournamentClass.CurrentPhase.LoserBracket
             .GroupBy(m => m.Round)

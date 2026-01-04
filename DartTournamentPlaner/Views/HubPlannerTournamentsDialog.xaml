@@ -154,10 +154,11 @@ BorderBrush="#E5E7EB" BorderThickness="1" Padding="12" Margin="0,0,0,10" MouseLe
                                                 </StackPanel>
                                             </Grid>
 
-                                            <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.ColumnSpan="2" Margin="0,10,0,0">
-                                                <TextBlock Text="ID:" FontSize="11" Foreground="#6B7280"/>
-                                                <TextBlock Text="{Binding TournamentId}" FontSize="12" FontFamily="Consolas" Foreground="#111827" Margin="4,0,10,0"/>
-                                                <Button Content="📋" Style="{StaticResource SecondaryButton}" Padding="10,4" Click="CopyId_Click" Tag="{Binding TournamentId}"/>
+                                            <StackPanel Grid.Row="2" Orientation="Horizontal" Grid.ColumnSpan="2" Margin="0,10,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="ID:" FontSize="11" Foreground="#6B7280" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding TournamentId}" FontSize="12" FontFamily="Consolas" Foreground="#111827" Margin="4,0,10,0" VerticalAlignment="Center"/>
+                                                <Button Content="Kopieren" Style="{StaticResource SecondaryButton}" Padding="10,4" Click="CopyId_Click" Tag="{Binding TournamentId}"/>
+                                                <Button Content="Spieler übernehmen" Style="{StaticResource SecondaryButton}" Padding="10,4" Margin="8,0,0,0" Click="ImportPlayers_Click"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>

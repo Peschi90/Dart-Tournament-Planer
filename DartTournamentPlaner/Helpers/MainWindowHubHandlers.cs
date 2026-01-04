@@ -158,7 +158,8 @@ public class MainWindowHubHandlers
                 _mainWindow,
                 _services.HubService,
                 _services.LocalizationService,
-                _services.LicenseManager);
+                _services.LicenseManager,
+                _services.TournamentService);
         }
         catch (Exception ex)
         {

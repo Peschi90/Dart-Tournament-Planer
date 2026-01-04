@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -13,24 +15,27 @@ namespace DartTournamentPlaner.Views
     {
         private PlannerTournamentSummary _summary;
         private readonly LocalizationService? _localizationService;
+        private readonly TournamentManagementService _tournamentService;
 
         public HubPlannerTournamentDetailsDialog()
         {
             InitializeComponent();
+            _tournamentService = null!;
         }
 
-        private HubPlannerTournamentDetailsDialog(PlannerTournamentSummary summary, LocalizationService? localizationService) : this()
+        private HubPlannerTournamentDetailsDialog(PlannerTournamentSummary summary, LocalizationService? localizationService, TournamentManagementService tournamentService) : this()
         {
             _summary = summary ?? throw new ArgumentNullException(nameof(summary));
             _localizationService = localizationService;
+            _tournamentService = tournamentService ?? throw new ArgumentNullException(nameof(tournamentService));
             PopulateFields();
         }
 
-        public static void ShowDialog(Window owner, PlannerTournamentSummary summary, LocalizationService? localizationService)
+        public static void ShowDialog(Window owner, PlannerTournamentSummary summary, LocalizationService? localizationService, TournamentManagementService tournamentService)
         {
             ArgumentNullException.ThrowIfNull(summary);
 
-            var dialog = new HubPlannerTournamentDetailsDialog(summary, localizationService)
+            var dialog = new HubPlannerTournamentDetailsDialog(summary, localizationService, tournamentService)
             {
                 Owner = owner
             };
@@ -59,9 +64,12 @@ namespace DartTournamentPlaner.Views
 
                 DescriptionTextBlock.Text = _summary.Description ?? string.Empty;
 
+                ParticipantsTextBlock.Text = FormatParticipants(_summary.Participants);
+
                 GameRulesTextBlock.Text = FormatGameRules(_summary.GameRules);
 
                 CopyIdButton.Content = L("PlannerFetchCopyId", "Copy ID");
+                ImportPlayersButton.Content = L("PlannerImportPlayers", "Spieler übernehmen");
             }
             catch (Exception ex)
             {
@@ -161,6 +169,31 @@ namespace DartTournamentPlaner.Views
             };
         }
 
+        private string FormatParticipants(IEnumerable<PlannerParticipant>? participants)
+        {
+            if (participants == null) return L("PlannerImportNoParticipants", "Keine Teilnehmer vorhanden.");
+
+            var names = participants
+                .Select(p =>
+                {
+                    var first = p.FirstName;
+                    var last = p.LastName;
+                    var nick = p.Nickname;
+                    var fullFromParts = string.Join(" ", new[] { first, last }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+                    if (!string.IsNullOrWhiteSpace(fullFromParts)) return fullFromParts;
+                    if (!string.IsNullOrWhiteSpace(p.Name)) return p.Name!;
+                    if (!string.IsNullOrWhiteSpace(nick)) return nick!;
+                    if (!string.IsNullOrWhiteSpace(first)) return first!;
+                    return p.Email ?? "";
+                })
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            if (names.Count == 0) return L("PlannerImportNoParticipants", "Keine Teilnehmer vorhanden.");
+
+            return string.Join(", ", names);
+        }
+
         private void CopyIdButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -173,6 +206,23 @@ namespace DartTournamentPlaner.Views
             catch (Exception ex)
             {
                 Debug.WriteLine($"❌ Error copying tournament ID: {ex.Message}");
+            }
+        }
+
+        private void ImportPlayers_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var participants = _summary.Participants ?? Enumerable.Empty<PlannerParticipant>();
+                var dialog = new PlannerImportPlayersDialog(_summary, participants, _localizationService, _tournamentService)
+                {
+                    Owner = this
+                };
+                dialog.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"❌ Error opening import players dialog: {ex.Message}");
             }
         }
 
